@@ -1,0 +1,570 @@
+{
+  "schema_version": 1,
+  "fingerprint": "7de086908f48e7e8164f63f88e5314472f51824123ced88f10a2450238762a27",
+  "tag": "content.cave-of-horrors.1.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"Cave of Horrors\" (id: cave-of-horrors), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- c1 | printed key \"C1\" | Entranceway | pages 18\n- c2 | printed key \"C2\" | Ogre's Lair | pages 18\n- c3 | printed key \"C3\" | Gray Jelly's Pool | pages 19\n- c4 | printed key \"C4\" | Steps | pages 19\n- c5 | printed key \"C5\" | Steps | pages 19\n- c6 | printed key \"C6\" | Slope Down | pages 19\n- c7 | printed key \"C7\" | Stirge Rookery | pages 19\n- c8 | printed key \"C8\" | Ornate Room | pages 19\n- c9 | printed key \"C9\" | Cave-In Trap | pages 19\n- c10 | printed key \"C10\" | Cave Crickets | pages 19\n- c11 | printed key \"C11\" | Pool of Water | pages 19\nThis level's map is on page 21.\n"
+      },
+      {
+        "text": "[page 18]\nThe Town and Surroundings The Chaotic Caves\nsome rocks. A wild boar is chasing him; it\ncircles the rocks, stamping and chomping in\nrage. If the PCs ignore the man's plight,\nnothing bad happens: the boar will eventually\nget bored and leave. If they help the man, he\nwill give them 20 gp (kept at his home), and his\ngratitude. If the PCs are searching for the\ncaves, he has recently seen several goblins\nthat might be headed there and can help point\nthem in the general direction. He is a rancher\nout looking for stray sheep, not a hero who can\nfight boars and monsters. Remember to\nreward the PCs with experience. If they kill\nthe boar and clean it, they can recover a\nhundred pounds of meat and its tusks (worth\nabout 10 gp in town).\nWild Boar: AC 13, HD 3, #At 1 tusk, Dam 2d4, \nMv 50' (10'), Sv F3, ML 9, XP 145\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n5. GIANT TOADS AND HARPY: The ruins of an\nold tower rise from the woods. It is 20' high\nand 30' round, but there is little left to warrant\na map. The single harpy that inhabits it\nattempts to use its singing to lure opponents\ninto the jaws of the giant toads that lurk in the\nnearly-dry moat in the shadows of the woods\nbeneath it. The harpy has a short bow to shoot\nat intruders with. (If the GM wants to weaken\nit, they might decide the bow is poorly-made\nand she is using crude arrows fletched by the\nrandom feathers of birds she catches; it only\ndoes 1d4 points of damage and has a range of\n40/80/120.) On the highest ledge of the tower\nis its nest, including a leather belt with\npouches with 50 gp and 10 pp ripped off some\npoor victim.\n3 Giant Toads: AC 13, HD 2, #At 1 tongue or \n1 bite, Dam grab tongue, 1d4+1 bite, \nMv 30' Swim 30', Sv F2, ML 6, XP 75 ea.\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n7 ☐☐☐☐☐ ☐☐\n6 ☐☐☐☐☐ ☐\nHarpy: AC 13, HD 2*, #At 2 claws, 1 shortsword \n+ song, Dam 1d4 claw, 1d6 shortsword + charm \nperson song, Mv 20' Fly 50' (10'), Sv F2, ML 7, \nXP 100\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n6. CAVE OF HORRORS (see the Miscellaneous\nMaps): This is a collection of what appears to\nbe crudely-carved, cold, and dark winding\ntunnels. Bones litter the grassy area around\nthe entranceway, and large footprints (ogre\u0002sized) can be found in muddy areas or soft soil.\nC1. ENTRANCEWAY: Deep enough inside the\nentryway to avoid sunlight is evidence that the\ncave might be occupied: there are five thin\ncords strung across the width of the floor\nabout 2' apart and an inch or two above the\nground. They are covered by dust and hard to\ndetect unless a close inspection is made. If\ntripped on, they release a broad frame that has\nbeen pulled back against the east wall. It is 8'\nhigh and wide, and lined with sharp wooden\nspikes. It strikes as a 2 HD monster and does\n2d6 points of damage if it hits. A number of\nthe spikes are covered in fresh blood and fur.\nC2. OGRE'S LAIR: Munching on the corpse of a\nbear is an ogre. This creature might be bribed\ninto helping the PCs (provided the bribe is at\nleast 200 gp), but it is also incredibly dense\nand self-interested. It will just as happily\nattack intruders or get a party lost leading\nthem in circles. It gets bored quickly and\nrarely stays with even the most agreeable\nparty for more than 1d6 days. The lair is\nfurnished with hides, piles of leaves, a few tree\ntrunks for benches and such items. The ogre\nhas a large, knobby club for a weapon. It has a\ncrude hide pouch on its belt. If made an ally, it\nthumps the pouch and says, \"Me poor. Me\nneed much money!\" Inside are 231 cp. A set of\nnatural stone steps goes down 10' in the\nsouthwest hall.\nOgre: AC 15, HD 4+1, #At 1 huge club, Dam 2d6,\nMv 30', Sv F4, ML 10, XP 240\nHP 19 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐\n16"
+      },
+      {
+        "sha256": "be5b337f64d5a26edea4b5ee4985ea365817810131507482553204a5cc267257",
+        "bytes": 530285
+      },
+      {
+        "text": "[page 19]\nThe Chaotic Caves The Town and Surroundings\nC3. GRAY JELLY'S POOL: Bones litter this wide,\n3'-deep pool. The ogre occasionally takes body\nparts and throws them in to watch the gray\njelly inside it devour them. A plant-fiber cord\nis tied to a heavy rock on the edge of the pool.\nThe cord has prickly spines along its length to\nkeep the ooze away from it. Tied to the other\nend is a heavy glass bottle that the ogre has\nthrown in the pool; it has 23 pp and 42 gp in it.\nGray Jelly: AC 12, HD 3*, #At 1 pseudopod, \nDam 2d8, Mv 1', Sv F3, ML 12, XP 175\nHP 14 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐\nC4. STEPS: Rough natural steps go down\nsharply some 20' in elevation to the north.\nThey are coated in harmless slime.\nC5. STEPS: Rough natural steps descend\nsharply (some 20' in elevation) to the north.\nSlime and pebbles coat them.\nC6. SLOPE DOWN: This slope goes down 30'.\nC7. STIRGE ROOKERY: A long, narrow hole in\nthe ceiling winds up some 30' to the forest\nfloor above. Around noon light will come down\nin a dull glow through it. Hanging on the\nceiling here are a dozen or so stirges. About\n1d6 will attack the party each round. The\nground is cluttered with feces and leaves.\nWorms wiggle in the leaves. Buried under the\nmuck is a wooden chest with the ogre's (see\nroom C2) valuables: a Potion of Healing, a\nPotion of Clairvoyance, 124 gp, and 848 sp.\n12 Stirges: AC 13, HD 1*, #At 1 bite, Dam 1d4 + \n1d4/round blood drain, Mv 10' Fly 60', Sv F1, \nML 9, XP 37 ea.\nHP 7 ☐☐☐☐☐ ☐☐ 4 ☐☐☐☐\n6 ☐☐☐☐☐ ☐ 4 ☐☐☐☐\n5 ☐☐☐☐☐ 3 ☐☐☐\n5 ☐☐☐☐☐ 3 ☐☐☐\n4 ☐☐☐☐ 2 ☐☐\n4 ☐☐☐☐ 1 ☐\nC8. ORNATE ROOM: A smashed-in door opens\ninto a room carved out by human hands. It is\nfurnished with a table, chairs, and a single\nskeletal figure sitting in a chair at the far end\nof the table. On the table are 6 silver cups\n(worth 20 gp each) and a golden chalice with\ngems (worth 200 gp). The ogre, deathly afraid\nof the room, will make an evil-eye sign if\nanyone gets near this.\nC9. CAVE-IN TRAP: Noise and movement from\nthe party will cause part of the fragile ceiling\nto collapse atop the first two or three party\nmembers. Each will be attacked by a 2\nHD monster taking 1d6 points of damage if hit\n(make the attack as a 4 HD monster if they do\nnot have a helmet). The collapse will block the\nhallway, requiring a half-hour's work to clear it.\nC10. CAVE CRICKETS: Fungus and moss cover\nthe floor and walls of this room. Cave locusts\nprowl here and will jump wildly if spooked.\n6 Giant Cave Locust: AC 16, HD 2**, #At 1 bite \nor 1 bump or 1 spit, Dam 1d2 bite, 1d4* bump, \nor save vs Poison or be unable to move or act \nfor 3d6 rounds from spit, Mv 20' Fly 60' (15'), \nSv F2, ML 5, XP 125 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐ 6 ☐☐☐☐☐ ☐\n9 ☐☐☐☐☐ ☐☐☐☐ 5 ☐☐☐☐☐\n8 ☐☐☐☐☐ ☐☐☐ 5 ☐☐☐☐☐\nC11. POOL OF WATER: A clear pool of water\nwith a frog, a few small fish, and crayfish fills\nmuch of this chamber. Under the mud and\nmuck of the bottom is a bone tube with a\nClerical Scroll of Cure Light Wounds. There is\nalso a rotten pouch with 500 sp and a sea\nsnake curled up to strike anyone probing\naround. A rough iron ladder leads up into the\nceiling. It goes up through a tight hole (3'\nwide) and exits in the woods 30' overhead.\nSea Snake: AC 14, HD 3*, #At 1 bite, Dam 1 + \npoison (save at -4), Mv 10' Swim 30', Sv F3, \nML 7, XP 175\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n17"
+      },
+      {
+        "sha256": "8f410ebc0344fd23ca300a8bc7b3b8d0a440e4e86be1a1ab00103eb7e377bdaa",
+        "bytes": 470029
+      },
+      {
+        "text": "[page 21]\nThe Chaotic Caves The Town and Surroundings\nMiscellaneous Maps\n19"
+      },
+      {
+        "sha256": "3102a1d0e21bee9266e7ff4a219892e6084adbabe09e0c7885609fed4154aeba",
+        "bytes": 212238
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "c1",
+                  "c2",
+                  "c3",
+                  "c4",
+                  "c5",
+                  "c6",
+                  "c7",
+                  "c8",
+                  "c9",
+                  "c10",
+                  "c11"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "c1",
+          "description": "The cave entrance shows signs of occupation. Bones litter the grassy area outside, and large ogre-sized footprints can be found in muddy or soft ground nearby. Deep enough inside to avoid sunlight, five thin cords are strung across the floor about 2 feet apart and 1–2 inches above the ground, covered by dust and hard to detect without close inspection.",
+          "encounters": [],
+          "trap": "If the cords are tripped, they release a broad frame pulled back against the east wall. It is 8 feet high and wide, lined with sharp wooden spikes, strikes as a 2 HD monster, and deals 2d6 damage on a hit. Some spikes are covered in fresh blood and fur.",
+          "treasure": [],
+          "features": [
+            "Bones outside the entrance",
+            "Large ogre-sized footprints near the entrance",
+            "Five dust-covered trip cords across the floor",
+            "Broad spiked frame concealed against the east wall"
+          ],
+          "connections": [
+            {
+              "to_key": "c2",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            18,
+            21
+          ],
+          "confidence": 0.96
+        },
+        {
+          "key": "c2",
+          "description": "An ogre is here, munching on the corpse of a bear. It may be bribed into helping the party if offered at least 200 gp, but it is incredibly dense, self-interested, easily bored, and may attack intruders or lead allies in circles. It rarely stays with even an agreeable party for more than 1d6 days. The lair is furnished with hides, piles of leaves, and a few tree trunks used as benches and similar furniture. The ogre carries a large knobby club and a crude hide pouch on its belt.",
+          "encounters": [
+            {
+              "monster": "ogre",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "231 cp in the ogre's crude hide pouch"
+          ],
+          "features": [
+            "Bear corpse",
+            "Hides and piles of leaves used as furnishings",
+            "Tree trunks used as benches",
+            "Natural stone steps in the southwest hall descending 10 feet"
+          ],
+          "connections": [
+            {
+              "to_key": "c1",
+              "direction": "south"
+            },
+            {
+              "to_key": "c3",
+              "direction": "south"
+            },
+            {
+              "to_key": "c6",
+              "direction": "north"
+            },
+            {
+              "to_key": "c8",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            18,
+            21
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "c3",
+          "description": "Bones litter this wide, 3-foot-deep pool. The ogre sometimes throws body parts into it to watch the gray jelly devour them. A plant-fiber cord is tied to a heavy rock at the pool's edge; the cord has prickly spines along its length to keep the ooze away from it, and a heavy glass bottle is tied to the other end in the pool.",
+          "encounters": [
+            {
+              "monster": "Gray Jelly",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "A heavy glass bottle in the pool containing 23 pp and 42 gp"
+          ],
+          "features": [
+            "Wide 3-foot-deep pool",
+            "Bones scattered around the pool",
+            "Plant-fiber retrieval cord with prickly spines",
+            "Heavy rock anchoring the cord"
+          ],
+          "connections": [
+            {
+              "to_key": "c1",
+              "direction": "south"
+            },
+            {
+              "to_key": "c2",
+              "direction": "north"
+            },
+            {
+              "to_key": "c4",
+              "direction": "west"
+            },
+            {
+              "to_key": "c8",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            19,
+            21
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "c4",
+          "description": "Rough natural steps go down sharply about 20 feet in elevation to the north. They are coated in harmless slime.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Rough natural steps descending 20 feet",
+            "Harmless slime coating the steps"
+          ],
+          "connections": [
+            {
+              "to_key": "c3",
+              "direction": "east"
+            },
+            {
+              "to_key": "c5",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            19,
+            21
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "c5",
+          "description": "Rough natural steps descend sharply about 20 feet in elevation to the north. Slime and pebbles coat them.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Rough natural steps descending 20 feet",
+            "Slime and pebbles coating the steps"
+          ],
+          "connections": [
+            {
+              "to_key": "c4",
+              "direction": "south"
+            },
+            {
+              "to_key": "c7",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            19,
+            21
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "c6",
+          "description": "This passage is a slope descending 30 feet.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Slope descending 30 feet"
+          ],
+          "connections": [
+            {
+              "to_key": "c2",
+              "direction": "south"
+            },
+            {
+              "to_key": "c8",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            19,
+            21
+          ],
+          "confidence": 0.85
+        },
+        {
+          "key": "c7",
+          "description": "A long, narrow hole in the ceiling winds up about 30 feet to the forest floor above. Around noon, dim light shines down through it. The ground is cluttered with feces and leaves, with worms wriggling in the leaves. Buried under the muck is a wooden chest containing the ogre's valuables from room C2.",
+          "encounters": [
+            {
+              "monster": "Stirges",
+              "count_fixed": 12,
+              "count_dice": null,
+              "count_note": "About 1d6 will attack the party each round"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Wooden chest buried under the muck containing a Potion of Healing",
+            "A Potion of Clairvoyance",
+            "124 gp",
+            "848 sp"
+          ],
+          "features": [
+            "Long narrow ceiling hole to the forest floor 30 feet above",
+            "Dim noon light from above",
+            "Ground covered in feces and leaves",
+            "Worms in the leaves",
+            "Buried wooden chest"
+          ],
+          "connections": [
+            {
+              "to_key": "c5",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            19,
+            21
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "c8",
+          "description": "A smashed-in door opens into a room carved out by human hands. It is furnished with a table, chairs, and a single skeletal figure sitting in a chair at the far end of the table. The ogre is deathly afraid of the room and will make an evil-eye sign if anyone gets near it.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [
+            "6 silver cups worth 20 gp each",
+            "A golden chalice with gems worth 200 gp"
+          ],
+          "features": [
+            "Smashed-in door",
+            "Room carved by human hands",
+            "Table",
+            "Chairs",
+            "Single skeletal figure seated at the far end of the table"
+          ],
+          "connections": [
+            {
+              "to_key": "c2",
+              "direction": "west"
+            },
+            {
+              "to_key": "c6",
+              "direction": "west"
+            },
+            {
+              "to_key": "c3",
+              "direction": "west"
+            },
+            {
+              "to_key": "c9",
+              "direction": "south"
+            },
+            {
+              "to_key": "c10",
+              "direction": "east"
+            },
+            {
+              "to_key": "c11",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            19,
+            21
+          ],
+          "confidence": 0.88
+        },
+        {
+          "key": "c9",
+          "description": "This section of hallway has a fragile ceiling that can collapse onto intruders.",
+          "encounters": [],
+          "trap": "Noise and movement from the party cause part of the fragile ceiling to collapse atop the first two or three party members. Each is attacked by a 2 HD monster and takes 1d6 damage if hit; make the attack as a 4 HD monster if they do not have a helmet. The collapse blocks the hallway and requires a half-hour's work to clear.",
+          "treasure": [],
+          "features": [
+            "Fragile ceiling",
+            "Hallway can be blocked by cave-in rubble"
+          ],
+          "connections": [
+            {
+              "to_key": "c8",
+              "direction": "north"
+            },
+            {
+              "to_key": "c10",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            19,
+            21
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "c10",
+          "description": "Fungus and moss cover the floor and walls of this room. Cave locusts prowl here and will jump wildly if spooked.",
+          "encounters": [
+            {
+              "monster": "Giant Cave Locust",
+              "count_fixed": 6,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Fungus-covered floor and walls",
+            "Moss-covered floor and walls"
+          ],
+          "connections": [
+            {
+              "to_key": "c8",
+              "direction": "west"
+            },
+            {
+              "to_key": "c9",
+              "direction": "south"
+            },
+            {
+              "to_key": "c11",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            19,
+            21
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "c11",
+          "description": "A clear pool of water with a frog, a few small fish, and crayfish fills much of this chamber. Under the mud and muck at the bottom is a bone tube, and there is also a rotten pouch. A rough iron ladder leads up into the ceiling through a tight 3-foot-wide hole and exits in the woods 30 feet overhead.",
+          "encounters": [
+            {
+              "monster": "Sea Snake",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "Curled up to strike anyone probing around"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "A bone tube containing a Clerical Scroll of Cure Light Wounds",
+            "A rotten pouch with 500 sp"
+          ],
+          "features": [
+            "Clear pool of water",
+            "Frog, small fish, and crayfish in the pool",
+            "Mud and muck at the bottom",
+            "Rough iron ladder",
+            "Tight 3-foot-wide hole leading to the woods 30 feet above"
+          ],
+          "connections": [
+            {
+              "to_key": "c8",
+              "direction": "south"
+            },
+            {
+              "to_key": "c10",
+              "direction": "south"
+            },
+            {
+              "to_key": "woods",
+              "direction": "up"
+            }
+          ],
+          "source_pages": [
+            19,
+            21
+          ],
+          "confidence": 0.95
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 14089,
+      "output_tokens": 3911
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

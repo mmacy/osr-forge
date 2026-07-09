@@ -1,0 +1,594 @@
+{
+  "schema_version": 1,
+  "fingerprint": "be9b0a505875ac4eec0bf901cb314efc1ab9f21b863bfe5d0956daadd6fd2b65",
+  "tag": "content.a-orc-lair.1.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"A. Orc Lair\" (id: a-orc-lair), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- 1 | printed key \"1\" | Entrance | pages 22\n- 2 | printed key \"2\" | Empty Room | pages 22\n- 3 | printed key \"3\" | Common Room | pages 22, 23\n- 4 | printed key \"4\" | Wolf Pen | pages 23\n- 5 | printed key \"5\" | Door to Jail | pages 23\n- jail-area | printed key \"JAIL AREA\" | Jail Area | pages 23\n- 6 | printed key \"6\" | Chief's Room | pages 23\n- 7 | printed key \"7\" | Common Room/Guard Room | pages 24\n- 8 | printed key \"8\" | Pools | pages 24\n- 9 | printed key \"9\" | Shared Hallway | pages 24\n- 10 | printed key \"10\" | Orc Temple | pages 24\nThis level's map is on page 38.\n"
+      },
+      {
+        "text": "[page 22]\nThe Caves The Chaotic Caves\nThe Caves\nThe GM has to decide where the caves are on\nthe map. They might even be scattered about\nthe countryside in different places. As drawn,\nthe cave map is wooded with occasional\nclearings, but the GM may of course change\nthat. \nThe monsters are trying to avoid leaving tracks\nand trails so as to keep their lairs undetected.\nWild animals are few in the general area\naround the caves; monsters are hunting them\npretty hard. As the characters get close to an\nentrance, they will note it or the guards (if any)\non duty. Perhaps smoke from someone\ncooking a meal in the open is seen rising above\nthe treetops, or is smelled by the PCs in the\nbreeze.\nAn adventuring party blundering around\noutside the caves, making a lot of noise, should\nalert the denizens to their presence; the\nmonsters will surely come out in force after\ndark, if an adventuring party is foolish enough\nto camp nearby.\nThe underground areas are not lit unless\notherwise noted. It is usually dead-silent\nunderground, making a Thief's ability to Move\nSilently handy. Contrast that to when the wind\nis blowing outdoors and the sound of the\nleaves makes a constant background noise.\nMonsters can hear PCs as easily as PCs can\nhear monsters, so unless a monster is on guard\nduty or hunting, it does not have an increased\nchance of surprise versus PCs.\nMost ceilings are 10 to 15 feet high, but the GM\nshould choose heights as desired. In some\nplaces they are obviously higher, and in others\nthe GM might want to lower them.\nMost of the doors to rooms are heavy wooden\ndoors that open with a simple latch and can be\nbarred from inside the room.\nSteps typically have a 1 to 1 grade, going down\n1 foot for each foot of length (so 10 foot long\nsteps drop 10 feet in elevation).\nExact elevations are not given to avoid fooling\nthe GM into thinking everything is neat and\norderly. The contour lines are only rough\nguidelines for slopes. The region may look flat\non paper, but even the \"flat\" parts undulate.\nTwo entrances (or other features) that appear\nto be on the same level could differ in\nelevation by 10 to 20 feet. The tunnels will\nconstantly slope up and down.\nImpress the irregularity of the ground from the\nstart to reduce \"flat-world\" thinking. If\nsomeone starts arguing that part \"A\" doesn't\nwork because it looks like it is on the same\nlevel as part \"B\", just tell them the ground\nslopes up or down as needed and get on with\nplaying.\nA. ORC LAIR\nThese orcs share (along with those at lair B\nbelow) the duty of guarding the local orc\ntemple from intruders. They are brash and\nhaughty, prone to cruelty, tricks, and nastiness.\nThere is a chance (a 1 or 2 on 1d6) per hour (6\nturns) that the player characters will\nencounter 1d6 orcs moving about.\n1d6 Wandering Orcs: AC 14, HD 1, \n#At 1 longsword, Dam 1d8, Mv 30', Sv F1, ML 8, \nXP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n1. ENTRANCE: Two orcs usually stand guard\noutside this gaping entranceway, leaning on\ntheir spears. Others will be inside the first\nchamber, which is their usual bunk room. Each\nhas 1d6 sp.\n6 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n 4 ☐☐☐☐ 4 ☐☐☐☐\n 4 ☐☐☐☐ 4 ☐☐☐☐\n2. EMPTY ROOM: The walls and some of the\nceiling of this room collapsed some time ago.\nIt is currently unfit to live in.\n3. COMMON ROOM: These are the quarters of a\nnumber of orcs, with their weapons and gear.\nEach has 1d6 sp. Crude furniture is in the\ncenter of the room, and wooden bunks line the\nwalls. In the back are sacks of food stuffs\n20"
+      },
+      {
+        "sha256": "bb1805a1db28e98cea5c04a5465a8392f6899447fdb1cfdcf1d8985d04a86d4c",
+        "bytes": 496731
+      },
+      {
+        "text": "[page 23]\nThe Chaotic Caves The Caves\n(potatoes, etc.) and hanging meat (12 – 72\npounds each of veggies and meat).\n8 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4. WOLF PEN. Both ends of this area are\nblocked by a wooden fence spanning the\ncomplete width and height of the halls; in the\ncenter of each is a wooden gate about 3' wide\nand 6' high, lashed shut by rope. Inside are\nthree wolves. They are usually alert and will\nset up a clamorous barking and howling if they\nhear or smell careless parties, resulting in a\nchance of attracting orcs to see what is going\non (use the wandering orc concept explained at\nthe start of the lair for the chance and number\nof orcs). Make a \"hear noise\" roll to see if the\njailers in #5 below hear and investigate as well.\nThe soft earthen floor of the room is littered\nwith wooden bowls full of water, bones, and\noffal, but nothing else.\n3 Wolves: AC 13, HD 2, #At 1 bite, Dam 1d6, \nMv 60', Sv F2, ML 8, XP 75 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n7 ☐☐☐☐☐ ☐☐\n5. DOOR TO JAIL: Behind this door are the\nquarters for the big, sweaty orc who serves as\nthe warden of the jail (and also chief torturer)\nand two assistants. The key to the jail door is\nusually hung on a hide cord on the wall. Crude\nfurniture and various simple wooden or stone\ninterrogation devices fill the room. The warden\nhas 1d6 gp and the other two orcs 1d6 sp.\nOrc Warden: AC 14, HD 2, #At 1 longsword, \nDam 1d8+1 for strength, Mv 30', Sv F2, ML 8, \nXP 75\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n2 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐ \nJAIL AREA: The locked door to the east opens\ninto the jail, where anyone captured will be\nheld. Currently there is a merchant who is a\nnormal man (bedraggled and missing a finger,\nwhich was sent off with a ransom note). If\nsaved, he will give the party what he has at his\nhome (100 gp; it is obvious the orcs think he's\nricher than he is). \nMerchant: AC 11, HD ½ (1d4 HP), #At 1 fist, \nDam 1d3, Mv 40', Sv NM, ML 7, XP 10\nHP 3 ☐☐☐\n6. CHIEF'S ROOM: The strong, shrewd leader of\nthe orcs resides here, sitting on a large,\nheavily-built throne when judging court. The\nsub-room to the south contains a bed and\nother personal furniture. His pets are also\nhere: a mountain lion and two wolves. The\ntawny cat wears a collar with gems (100 gp\nvalue for the gems) that is connected to a\nstrong steel chain. The chain is usually\nattached to a steel hoop on the base of the\nthrone; the chain can be released quickly. The\nwolves wear ordinary heavy leather collars, and\nare usually chained to the wall beside the door.\nUsually there are four orcs: two are here on\npermanent duty and two more to serve as\nmessengers and go-fers. The chief has the key\nto the west temple door (see room #9).\nOrc Chief: AC 15, HD 4, #At 1 longsword, \nDam 1d8+1 due to Strength, Mv 20', Sv F4, \nML 8, XP 240\nHP 18 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\nMountain Lion: AC 14, HD 3+2, #At 2 claws, \n1 bite, Dam 1d4 claw, 1d6 bite, Mv 50', Sv F3, \nML 8, XP 145\nHP 14 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐\n2 Wolves: AC 13, HD 2, #At 1 bite, Dam 1d6, \nMv 60', Sv F2, ML 8, XP 75 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n9 ☐☐☐☐☐ ☐☐☐☐\n4 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n21"
+      },
+      {
+        "sha256": "9ea8edd51f2e7e20d4072b0b9df8fdc6fbe298466631c35b22350a87e4c7983e",
+        "bytes": 454797
+      },
+      {
+        "text": "[page 24]\nThe Caves The Chaotic Caves\nThe throne is the treasure chest. There is a\nsilk pillow on it which is worth 200 gp. Under\nthe flip-up seat is: 671 gp, 1,235 sp, and 785 cp.\nA stoppered flask in a padded jar contains a\nPotion of Passwall – which replicates the\neffect of the 5th-level Magic-User spell of that\nname when poured onto an appropriate\nsurface.\n7. COMMON ROOM/GUARD ROOM: Several orcs\nare housed here as a guard post against those\nin lair B. Each has 1d6 sp. The room is\ncluttered with crude furniture and common\nfoods stuffs, some in bags, some in the form of\ndried meats hanging on strings.\n4 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n8. POOLS: These pools of water are fed by\nunderground springs. They provide a year\u0002round source of fresh water. They are 6' deep\nand clean, but otherwise not unusual.\n9. SHARED HALLWAY: At each end of this\nhallway is a heavy, thick wooden door bound\nby strong steel bands, with crafty and heavy\nlocks. Each of the orc chiefs (rooms #6 and\n#13) has the key to the opposite side. They\nmust cooperate to enter the temple.\nSet here as temple guards, the orcs on either\nside have been fighting so savagely for the\naffections of the god in the temple that a high\npriest had the doors locked. She gave the keys\nto the chiefs, with the admonishment that any\nfurther monkey business was not going to be\ntolerated. \n10. ORC TEMPLE: This temple was carefully\ncut from the living stone and is well\u0002maintained. The four pillars are fluted and\nornate; the floor is tiled with polished green\nand red marble. The ceiling sweeps up some\n20' high. On a dais some 6' above the floor is\nthe statue of a vindictive, evil orc god. It is\ncarved from a single shining piece of black\nbasalt, standing 12' high. It has two red gems\nfor eyes (each worth 250 gp). Steps are not\nprovided for getting atop the dais; no one is\nsupposed to stand on it.\nB. ORC LAIR\nThese orcs share (with those at lair A above)\nthe duty of guarding the local orc temple from\nintruders. They have a cruel sense of humor.\nThere is a 1-2 on 1d6 chance per hour (6 turns)\nthat the player characters will encounter 1d6\norcs while exploring the caves.\n1d6 Wandering Orcs: AC 14, HD 1, #At 1 spear, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nENTRANCE: Four orcs are immediately inside in\nthe first chamber, along with a hobgoblin that\nwent looking for greener pastures and latched\nonto the orcs. Each has 1d6 sp.\n4 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nHobgoblin: AC 14, HD 1, #At 1 scimitar, Dam 1d8,\nMv 30', Sv F1, ML 8, XP 25\nHP 5 ☐☐☐☐☐\n11. SECRET SAFE ROOM: Only the orc chief in\nroom #13 knows of this secret room. Both of\nthe secret doors that enter into it are so well\u0002hidden that even close scrutiny has a low\nchance of finding them. Each is also trapped\nin two ways: when opened without disarming\nthe traps, (1) a bladder of gas will release,\ncausing anyone within 10' to make a save vs.\nPoison or fall asleep for 1d6 hours. And (2) an\nalarm bangs away loudly for a minute in the\norc chiefs quarters. Stashed in the main\nchamber is a sword, a pouch with 25 gp, food,\nand flint and steel, a skin of water, a cot, and a\ncloak.\n12. GUARD POST: Two orcs with spears and\nhand axes stand on guard duty at this door.\nEach has 1d6 sp. The short corridor between it\nand the next room provides a buffer zone in\ncase of attack.\n2 Orcs: AC 14, HD 1, #At 1 spear or 1 hand axe, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n22"
+      },
+      {
+        "sha256": "b0e7046e6fe09505fb8ec6167965e960ee2fb19b0f09abfe4cccd98a9ca69b91",
+        "bytes": 528515
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "1",
+                  "2",
+                  "3",
+                  "4",
+                  "5",
+                  "jail-area",
+                  "6",
+                  "7",
+                  "8",
+                  "9",
+                  "10"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "1",
+          "description": "Gaping entranceway to the orc lair. Two orcs usually stand guard outside, leaning on spears, while the first chamber inside serves as their usual bunk room. These orcs are brash, haughty, cruel, and tricky like the rest of lair A.",
+          "encounters": [
+            {
+              "monster": "orc",
+              "count_fixed": 6,
+              "count_dice": null,
+              "count_note": "Two usually stand guard outside; others are inside the first chamber."
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each orc has 1d6 sp."
+          ],
+          "features": [
+            "Gaping cave entrance",
+            "First chamber used as bunk room"
+          ],
+          "connections": [
+            {
+              "to_key": "3",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            22,
+            38
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "2",
+          "description": "A ruined chamber whose walls and part of the ceiling collapsed some time ago. It is currently unfit to live in.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Collapsed walls",
+            "Partially collapsed ceiling",
+            "Unfit for habitation"
+          ],
+          "connections": [
+            {
+              "to_key": "3",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            22,
+            38
+          ],
+          "confidence": 0.92
+        },
+        {
+          "key": "3",
+          "description": "Quarters for a number of orcs, with weapons and gear. Crude furniture stands in the center, wooden bunks line the walls, and the back of the room holds sacks of foodstuffs such as potatoes and hanging meat.",
+          "encounters": [
+            {
+              "monster": "orc",
+              "count_fixed": 8,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each orc has 1d6 sp."
+          ],
+          "features": [
+            "Crude furniture",
+            "Wooden bunks lining the walls",
+            "Sacks of foodstuffs",
+            "Hanging meat",
+            "Stored vegetables and meat weighing 12–72 pounds each"
+          ],
+          "connections": [
+            {
+              "to_key": "1",
+              "direction": "west"
+            },
+            {
+              "to_key": "2",
+              "direction": "north"
+            },
+            {
+              "to_key": "4",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            22,
+            23,
+            38
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "4",
+          "description": "A wolf pen with both ends blocked by wooden fences spanning the full width and height of the halls. Each fence has a 3-foot-wide, 6-foot-high wooden gate lashed shut by rope. Inside, three wolves are kept. They are usually alert and will bark and howl loudly if they hear or smell careless intruders, potentially drawing wandering orcs and possibly alerting the jailers in area 5. The soft earthen floor is littered with wooden bowls of water, bones, and offal.",
+          "encounters": [
+            {
+              "monster": "wolf",
+              "count_fixed": 3,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Wooden fence at both ends of the area",
+            "Wooden gates, 3' wide and 6' high, lashed shut with rope",
+            "Soft earthen floor",
+            "Wooden bowls of water",
+            "Bones and offal scattered on the floor"
+          ],
+          "connections": [
+            {
+              "to_key": "3",
+              "direction": "west"
+            },
+            {
+              "to_key": "5",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            23,
+            38
+          ],
+          "confidence": 0.96
+        },
+        {
+          "key": "5",
+          "description": "Quarters of the big, sweaty orc who serves as jail warden and chief torturer, along with two assistants. The key to the jail door is usually hung on a hide cord on the wall. The room contains crude furniture and various simple wooden or stone interrogation devices.",
+          "encounters": [
+            {
+              "monster": "orc warden",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            },
+            {
+              "monster": "orc",
+              "count_fixed": 2,
+              "count_dice": null,
+              "count_note": "Assistants to the jail warden."
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "The warden has 1d6 gp.",
+            "Each of the two other orcs has 1d6 sp."
+          ],
+          "features": [
+            "Jail key hung on a hide cord on the wall",
+            "Crude furniture",
+            "Simple wooden interrogation devices",
+            "Simple stone interrogation devices"
+          ],
+          "connections": [
+            {
+              "to_key": "4",
+              "direction": "west"
+            },
+            {
+              "to_key": "jail-area",
+              "direction": "east"
+            },
+            {
+              "to_key": "6",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            23,
+            38
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "jail-area",
+          "description": "A locked jail where captives are held. Currently it contains a bedraggled merchant missing a finger, which the orcs sent off with a ransom note. If rescued, he promises the party what he has at home, though the orcs clearly overestimate his wealth.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [
+            "If saved, the merchant will give the party 100 gp from his home."
+          ],
+          "features": [
+            "Locked jail cell or chamber",
+            "Currently holds a captive merchant"
+          ],
+          "connections": [
+            {
+              "to_key": "5",
+              "direction": "west"
+            }
+          ],
+          "source_pages": [
+            23,
+            38
+          ],
+          "confidence": 0.9
+        },
+        {
+          "key": "6",
+          "description": "Residence and court of the strong, shrewd orc chief. He sits on a large, heavily built throne when judging court. A sub-room to the south contains his bed and other personal furniture. His pets are a mountain lion and two wolves. The mountain lion wears a collar set with gems and is usually chained by a strong steel chain to a steel hoop at the base of the throne, though the chain can be released quickly. The wolves wear heavy leather collars and are usually chained to the wall beside the door. Usually four orcs are present: two on permanent duty and two serving as messengers and go-fers. The chief carries the key to the west temple door (see area 9). The throne doubles as a treasure chest with a flip-up seat.",
+          "encounters": [
+            {
+              "monster": "orc chief",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            },
+            {
+              "monster": "mountain lion",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "The chief's pet."
+            },
+            {
+              "monster": "wolf",
+              "count_fixed": 2,
+              "count_dice": null,
+              "count_note": "The chief's pets."
+            },
+            {
+              "monster": "orc",
+              "count_fixed": 4,
+              "count_dice": null,
+              "count_note": "Two on permanent duty and two messengers/go-fers."
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Gems in the mountain lion's collar worth 100 gp total.",
+            "Silk pillow worth 200 gp.",
+            "671 gp.",
+            "1,235 sp.",
+            "785 cp.",
+            "Potion of Passwall in a stoppered flask inside a padded jar."
+          ],
+          "features": [
+            "Large heavily built throne",
+            "Throne has a flip-up seat and serves as a treasure chest",
+            "Southern sub-room with bed and personal furniture",
+            "Steel hoop on the base of the throne",
+            "Strong steel chain for the mountain lion",
+            "Heavy leather collars on the wolves",
+            "Chief has the key to the west temple door"
+          ],
+          "connections": [
+            {
+              "to_key": "5",
+              "direction": "north"
+            },
+            {
+              "to_key": "7",
+              "direction": "south"
+            },
+            {
+              "to_key": "9",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            23,
+            24,
+            38
+          ],
+          "confidence": 0.97
+        },
+        {
+          "key": "7",
+          "description": "A common room and guard post housing several orcs posted against those in lair B. The room is cluttered with crude furniture and common foodstuffs, some bagged and some in the form of dried meats hanging on strings.",
+          "encounters": [
+            {
+              "monster": "orc",
+              "count_fixed": 4,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each orc has 1d6 sp."
+          ],
+          "features": [
+            "Crude furniture",
+            "Common foodstuffs in bags",
+            "Dried meats hanging on strings",
+            "Guard post against lair B"
+          ],
+          "connections": [
+            {
+              "to_key": "6",
+              "direction": "north"
+            },
+            {
+              "to_key": "8",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            24,
+            38
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "8",
+          "description": "Clean pools of water fed by underground springs. They provide a year-round source of fresh water and are 6 feet deep, but are otherwise unremarkable.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Pools fed by underground springs",
+            "Year-round fresh water source",
+            "Pools are 6 feet deep"
+          ],
+          "connections": [
+            {
+              "to_key": "7",
+              "direction": "west"
+            },
+            {
+              "to_key": "9",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            24,
+            38
+          ],
+          "confidence": 0.91
+        },
+        {
+          "key": "9",
+          "description": "A hallway shared in relation to the temple. At each end stands a heavy, thick wooden door bound with strong steel bands and fitted with crafty, heavy locks. Each of the two orc chiefs, in rooms 6 and 13, has the key to the opposite side, so they must cooperate to enter the temple. Orc guards on either side had been fighting over the god's favor so savagely that a high priest had the doors locked and the keys distributed to the chiefs with a warning against further misconduct.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Heavy thick wooden door at each end",
+            "Strong steel bands on both doors",
+            "Crafty heavy locks",
+            "Chief in room 6 has the key to the west temple door",
+            "Chief in room 13 has the key to the east temple door"
+          ],
+          "connections": [
+            {
+              "to_key": "6",
+              "direction": "west"
+            },
+            {
+              "to_key": "10",
+              "direction": "east"
+            },
+            {
+              "to_key": "13",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            24,
+            38
+          ],
+          "confidence": 0.76
+        },
+        {
+          "key": "10",
+          "description": "A well-maintained temple carefully cut from living stone. Four fluted, ornate pillars support the chamber; the floor is tiled with polished green and red marble, and the ceiling rises about 20 feet high. A dais 6 feet above the floor holds a 12-foot-high statue of a vindictive, evil orc god carved from a single piece of shining black basalt. The statue's eyes are red gems. No steps lead onto the dais, as no one is supposed to stand upon it.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [
+            "Two red gems in the statue's eyes, worth 250 gp each."
+          ],
+          "features": [
+            "Temple cut from living stone",
+            "Four fluted ornate pillars",
+            "Polished green and red marble floor",
+            "20-foot-high ceiling",
+            "Dais 6 feet above the floor",
+            "12-foot black basalt statue of an evil orc god",
+            "No steps onto the dais"
+          ],
+          "connections": [
+            {
+              "to_key": "9",
+              "direction": "west"
+            }
+          ],
+          "source_pages": [
+            24,
+            38
+          ],
+          "confidence": 0.92
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 8152,
+      "output_tokens": 2165
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

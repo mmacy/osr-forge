@@ -1,0 +1,726 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-abandoned-manor",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "77",
+      "description": "A corroded brass plaque over the gates reads \"Roslof Manor.\" The old wooden gates were battered down long ago and recently someone removed the stronger timbers and much of the metal hardware, laying the rest out in a pattern as if preparing to replace them. The area has been cleaned for easy access; hoofprints and wagon tracks mark the soft earth among badly broken paving stones.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Corroded brass plaque reading \"Roslof Manor\"",
+        "Ruined wooden gates with salvaged timbers and metal hardware laid out for replacement",
+        "Broken paving stones",
+        "Hoofprints and wagon tracks"
+      ],
+      "connections": [
+        {
+          "to_key": "78",
+          "direction": "west"
+        },
+        {
+          "to_key": "79",
+          "direction": "east"
+        },
+        {
+          "to_key": "83",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        41,
+        46
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "78",
+      "description": "A gate tower originally three stories high plus roof; the top floors have collapsed inward, leaving only the bottom floor. It is a hollow tube with a steep stairway that would have reached each floor, and arrow slits every 10 feet facing outward. The entrance door has a lock but is not kept locked; a heavy bar lies beside it to fit brackets on the frame. This tower serves as a guard post for human fighters in scarlet cloaks, red-enameled helmets, and chain mail. They are currently dealing with a giant black widow spider in the rubble overhead, which may scuttle down the wall to attack.",
+      "encounters": [
+        {
+          "monster": "Human Fighter 2",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "guard post leader"
+        },
+        {
+          "monster": "Human Fighter 1",
+          "count_fixed": 6,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "Giant Black Widow Spider",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "in rubble overhead"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each human fighter has 1d6 gp"
+      ],
+      "features": [
+        "Collapsed upper stories",
+        "Steep interior stairway",
+        "Arrow slits every 10 feet",
+        "Door with lock and nearby heavy bar"
+      ],
+      "connections": [
+        {
+          "to_key": "77",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        41,
+        46
+      ],
+      "confidence": 0.96
+    },
+    {
+      "key": "79",
+      "description": "Like area 78, but this tower has been badly damaged and is unsafe to use. No humans are stationed here. The door's lock is broken off its hinges and the door leans askew in the frame, wedged in place by heavy wooden pegs. The lower floor is full of rubble occupied by giant centipedes. The rubble of the next floor is overrun with giant rats amid broken furniture and harmless skeletal remains.",
+      "encounters": [
+        {
+          "monster": "Giant Centipedes",
+          "count_fixed": 9,
+          "count_dice": null,
+          "count_note": "on the lower floor"
+        },
+        {
+          "monster": "Giant Rats",
+          "count_fixed": 9,
+          "count_dice": null,
+          "count_note": "in the rubble of the next floor"
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Badly damaged unsafe tower",
+        "Broken door wedged in frame with heavy wooden pegs",
+        "Rubble",
+        "Broken furniture",
+        "Harmless skeletal remains"
+      ],
+      "connections": [
+        {
+          "to_key": "77",
+          "direction": "west"
+        }
+      ],
+      "source_pages": [
+        41,
+        46
+      ],
+      "confidence": 0.96
+    },
+    {
+      "key": "80",
+      "description": "Ruined stables left in neglect. The area once included a smithy, small cottages, hay storage, wagon storage, rooms for grooms, and similar structures, but these have collapsed into a maze of darkness and ruin. Soot and burned timbers from ancient fires are everywhere, and weeds grow through the rubbish. A giant weasel is sparring with three giant shrews over a pack of giant rats the shrews killed; if they smell fresh meat they attack it instead.",
+      "encounters": [
+        {
+          "monster": "Giant Weasel",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "Giant Shrews",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Ruined remains of former stables complex",
+        "Collapsed structures forming a maze of darkness and ruin",
+        "Soot and burned timbers from ancient fires",
+        "Weeds growing through rubbish"
+      ],
+      "connections": [],
+      "source_pages": [
+        41,
+        46
+      ],
+      "confidence": 0.93
+    },
+    {
+      "key": "81",
+      "description": "Former quarters for gardeners and other staff, now ruined much like area 80. Berries, fruit trees, and vegetables grow wild here. During the growing season, characters can gather 1d6 weeks of rations, though most will spoil within a week or two unless preserved.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [
+        "1d6 weeks of rations during the growing season, though most spoil in a week or two unless preserved"
+      ],
+      "features": [
+        "Ruined staff cottages",
+        "Wild berries, fruit trees, and vegetables"
+      ],
+      "connections": [],
+      "source_pages": [
+        42,
+        46
+      ],
+      "confidence": 0.92
+    },
+    {
+      "key": "82",
+      "description": "This area of rotten wooden buildings and weeds was once used for dog kennels. The wall here is patrolled by the humans' minotaur ally. If it notices intruders, it bellows to attract guards, throws rocks for 1d6 rounds or so, then charges down the nearest steps. In the northeast corner stands a rude lean-to of hides sheltering the half-eaten raw carcass of a deer, with animal parts strewn around.",
+      "encounters": [
+        {
+          "monster": "Minotaur",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "patrols the wall; throws rocks before charging down the nearest steps"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Necklace of 100 gp and 50 pp holed and strung together"
+      ],
+      "features": [
+        "Rotten wooden buildings from former dog kennels",
+        "Wall patrol route",
+        "Steps down from the wall",
+        "Lean-to of hides in the northeast corner",
+        "Half-eaten deer carcass and scattered animal parts"
+      ],
+      "connections": [],
+      "source_pages": [
+        42,
+        46
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "83",
+      "description": "A 10-foot-deep moat surrounds the main house and is currently full. A simple wooden bridge once crossed it at the front entrance, but it burned down long ago, leaving only footing planks and timbers on each side. The moat is fed by a slow-moving stream entering under the north wall and exiting to the east. Each opening has an arched undercut with two sets of heavy iron bars, one on each side, to keep out intruders.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "10-foot-deep full moat",
+        "Burned-out remains of former wooden bridge",
+        "Slow-moving stream entering under the north wall and exiting east",
+        "Arched undercuts at stream openings",
+        "Two sets of heavy iron bars at each opening"
+      ],
+      "connections": [
+        {
+          "to_key": "77",
+          "direction": "south"
+        },
+        {
+          "to_key": "84",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        42,
+        46
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "84",
+      "description": "The great iron double doors of the main house are firmly shut and barred from the inside and cannot be opened without something like a massive ram. High wide windows along the walls are barred with heavy iron, preventing entry by anything bigger than a squirrel. Forcing entry through the windows or by other noisy means is likely to attract attention from occupants. On the west side of the door, some blocks can be easily pulled from the wall where earlier invaders made a hole and the current occupants stacked the blocks back sloppily, allowing easy access into room 85. Nearby lie three wooden ramps, each about 24 feet long, made from collected timbers and iron hardware to let wagons cross the moat.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Great iron double doors barred from inside",
+        "High wide windows with heavy iron bars",
+        "Loose wall blocks on west side that can be removed to make an entry hole into 85",
+        "Three wooden wagon ramps about 24 feet long"
+      ],
+      "connections": [
+        {
+          "to_key": "83",
+          "direction": "south"
+        },
+        {
+          "to_key": "85",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        42,
+        46
+      ],
+      "confidence": 0.96
+    },
+    {
+      "key": "85",
+      "description": "The main hall's lower floor is heavily used, with many hardwood timbers torn out or scuffed and dirt everywhere; the upstairs is cleaner and less damaged. A heavy iron chandelier hangs overhead for lanterns or torches, with smaller wall mounts throughout the manor. Skylights light the hall by day, and most rooms have outside windows. Two ornate stairs marked a and b rise about 20 feet to the second-floor balcony. Under the balcony are swinging double doors leading to the back. The main hall ceiling is about 30 feet high; other rooms are about 20 feet high. Recent bootprints in the dust lead everywhere. Some adjoining-room hardwood walls have been torn down in places. Horses can be heard in areas 86 and 87. As adventurers enter, three fighters in red surcoats over chain mail, carrying swords, are coming down the stairs, discussing whether raiding towns or waylaying travelers would make them richer. One is a woman with a longsword +1. They may try to lure intruders upstairs to area 106 while one fetches troops from room 88. A smith and two assistants from the stables join them if alerted by shouting or battle noise.",
+      "encounters": [
+        {
+          "monster": "Fighters",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": "coming down the stairs; one has a longsword +1"
+        },
+        {
+          "monster": "Human Fighter 2",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "smith from the stables joins if alerted"
+        },
+        {
+          "monster": "Human Fighter 1",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": "apprentice smiths from the stables join if alerted"
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Heavy iron chandelier",
+        "Wall torch or lantern mounts",
+        "Skylights",
+        "Two ornate stairways (a and b) up to second-floor balcony",
+        "Swinging double doors under the balcony",
+        "30-foot-high main hall ceiling",
+        "Bootprints in the dust",
+        "Torn-down interior wall sections"
+      ],
+      "connections": [
+        {
+          "to_key": "84",
+          "direction": "south"
+        },
+        {
+          "to_key": "86",
+          "direction": "west"
+        },
+        {
+          "to_key": "87",
+          "direction": "east"
+        },
+        {
+          "to_key": "88",
+          "direction": "north"
+        },
+        {
+          "to_key": "98",
+          "direction": "up"
+        }
+      ],
+      "source_pages": [
+        42,
+        43,
+        46
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "86",
+      "description": "These rooms were once a library, music room, and gymnasium, but have been gutted and fitted with simple wooden stalls to serve as a smithy and stables. There are four riding horses, three mules, and three oxen here. Nearby are hay, feed bags, sacks of grain, and similar supplies. In one corner are a small traveling anvil, a pile of bricks, bags of coal, several hammers, other tools, and a few horseshoes. Two horses were lost to wandering monsters before the rest of the animals were moved inside for safety.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Simple wooden stalls",
+        "4 riding horses",
+        "3 mules",
+        "3 oxen",
+        "Hay and feed supplies",
+        "Small traveling anvil",
+        "Pile of bricks",
+        "Bags of coal",
+        "Hammers and smithing tools",
+        "Horseshoes"
+      ],
+      "connections": [
+        {
+          "to_key": "85",
+          "direction": "east"
+        },
+        {
+          "to_key": "90",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        43,
+        46
+      ],
+      "confidence": 0.93
+    },
+    {
+      "key": "87",
+      "description": "The south end of this area was once a posh sitting room, but the walls were knocked out to make room for wagons and equipment. Two wagons and two carts are stored here along with boxes, tarps, and other gear. The northern end was once a long dining hall. Old smashed tables and chairs are stacked neatly like firewood, and some thicker pieces are arranged like building timbers ready for use. There is ample room to move between the piles to reach the kitchen and prep room at the back.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Two wagons",
+        "Two carts",
+        "Boxes and tarps",
+        "Stacks of smashed tables and chairs",
+        "Thicker wood pieces arranged like building timbers",
+        "Open paths to the kitchen and prep room"
+      ],
+      "connections": [
+        {
+          "to_key": "85",
+          "direction": "west"
+        },
+        {
+          "to_key": "88",
+          "direction": "north"
+        },
+        {
+          "to_key": "89",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        43,
+        46
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "88",
+      "description": "Formerly a prep room buffering the kitchen and dining room, this room now holds tables and chairs, usually strewn with dirty wooden plates, pewter or wooden mugs, and other items. A keg of cheap beer is propped on a table in one corner. A group of men are eating bread, meat, gravy, and cheap beer here. If fighting breaks out, two more men come from the kitchen. The leader wears chain mail and carries a sword; the others wear red-stained leather armor and carry various weapons including short swords, hand axes, and war hammers.",
+      "encounters": [
+        {
+          "monster": "Human Fighter 2",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "sergeant"
+        },
+        {
+          "monster": "Human Fighter 1",
+          "count_fixed": 6,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each occupant has 2d6 gp on him"
+      ],
+      "features": [
+        "Tables and chairs",
+        "Dirty wooden plates",
+        "Pewter or wooden mugs",
+        "Keg of cheap beer"
+      ],
+      "connections": [
+        {
+          "to_key": "85",
+          "direction": "south"
+        },
+        {
+          "to_key": "87",
+          "direction": "south"
+        },
+        {
+          "to_key": "89",
+          "direction": "east"
+        },
+        {
+          "to_key": "95",
+          "direction": "west"
+        },
+        {
+          "to_key": "97",
+          "direction": "west"
+        }
+      ],
+      "source_pages": [
+        43,
+        46
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "89",
+      "description": "A kitchen built to prepare large meals, with several ovens and stoves along the outer walls, plus plenty of tables and sinks. Dirty wooden dishes are common. Two men are here cooking stew on one of the stoves; if a fight breaks out they join the men in room 88. They are armed with hand axes and dressed in red-stained leather armor.",
+      "encounters": [
+        {
+          "monster": "Human Fighter 1",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": "armed with hand axes; join room 88 if a fight breaks out"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each occupant has 2d6 gp on him"
+      ],
+      "features": [
+        "Several ovens and stoves",
+        "Tables",
+        "Sinks",
+        "Dirty wooden dishes",
+        "Stew cooking on a stove"
+      ],
+      "connections": [
+        {
+          "to_key": "88",
+          "direction": "west"
+        },
+        {
+          "to_key": "93",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        43,
+        46
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "90",
+      "description": "A storeroom for dry foods. Bags of flour and other grains and vegetables are stacked here. A narrow stair leads down 10 feet to a cold room where fresh carcasses of venison, boar, rabbits, and other game hang on iron hooks.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Bags of flour",
+        "Stored grains and vegetables",
+        "Narrow stairs down 10 feet to cold room",
+        "Cold room with game carcasses on iron hooks"
+      ],
+      "connections": [
+        {
+          "to_key": "86",
+          "direction": "south"
+        },
+        {
+          "to_key": "91",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.92
+    },
+    {
+      "key": "91",
+      "description": "Formerly a laundry room with buckets and tubs; now only long ropes for hanging laundry remain. Wooden shelves for linens and rugs stand empty. In one corner are two sealed buckets, one containing red paint and the other red varnish.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Long laundry ropes",
+        "Empty wooden shelves for linens and rugs",
+        "Sealed bucket of red paint",
+        "Sealed bucket of red varnish"
+      ],
+      "connections": [
+        {
+          "to_key": "90",
+          "direction": "south"
+        },
+        {
+          "to_key": "92",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.93
+    },
+    {
+      "key": "92",
+      "description": "A wash room for people, clothes, and dishes. It contains bathtubs, cloth screens on wooden frames, and a table with bars of soap.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Bathtubs",
+        "Cloth screens on wooden frames",
+        "Table with bars of soap"
+      ],
+      "connections": [
+        {
+          "to_key": "91",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "93",
+      "description": "The rear exit of the manor. The door is a heavy security door with two iron bars that can be thrown across from the inside.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Heavy back door",
+        "Two iron bars securing it from inside"
+      ],
+      "connections": [
+        {
+          "to_key": "89",
+          "direction": "south"
+        },
+        {
+          "to_key": "82",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "94",
+      "description": "One of the enlarged former servant quarters, with inner partitions torn down. Two men here are resting after a fight with giant rats. They can still fight and will accost intruders as best they can. They are not wearing their leather armor, though they can put it on if given time.",
+      "encounters": [
+        {
+          "monster": "Human Fighter 1",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": "resting after a fight with giant rats; not wearing leather armor unless given time"
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Former servant quarters with inner partitions torn down"
+      ],
+      "connections": [
+        {
+          "to_key": "85",
+          "direction": "south"
+        },
+        {
+          "to_key": "95",
+          "direction": "east"
+        },
+        {
+          "to_key": "96",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "95",
+      "description": "One of the enlarged former servant quarters, now partly occupied by foot troops, most of whom are eating or elsewhere. The inner partitions have been torn down to enlarge the room.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Former servant quarters with inner partitions torn down"
+      ],
+      "connections": [
+        {
+          "to_key": "94",
+          "direction": "west"
+        },
+        {
+          "to_key": "88",
+          "direction": "east"
+        },
+        {
+          "to_key": "97",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.8
+    },
+    {
+      "key": "96",
+      "description": "One of the enlarged former servant quarters, now partly occupied by foot troops, most of whom are eating or elsewhere. The inner partitions have been torn down to enlarge the room.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Former servant quarters with inner partitions torn down"
+      ],
+      "connections": [
+        {
+          "to_key": "94",
+          "direction": "north"
+        },
+        {
+          "to_key": "97",
+          "direction": "east"
+        },
+        {
+          "to_key": "85",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.8
+    },
+    {
+      "key": "97",
+      "description": "One of the enlarged former servant quarters, now partly occupied by foot troops. As adventurers enter the hall around this room, a man comes out of the door and, unless stopped, ducks back inside and calls for help. Four men occupy this room, sleeping after watch. Their spears and hand axes are nearby. They are not currently wearing their red-stained leather armor, but will put it on if given time. Each carries coin.",
+      "encounters": [
+        {
+          "monster": "Human Fighter 1",
+          "count_fixed": 4,
+          "count_dice": null,
+          "count_note": "sleeping after watch; not wearing armor unless given time"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each occupant has 2d6 gp on him"
+      ],
+      "features": [
+        "Former servant quarters with inner partitions torn down",
+        "Nearby spears and hand axes"
+      ],
+      "connections": [
+        {
+          "to_key": "95",
+          "direction": "north"
+        },
+        {
+          "to_key": "88",
+          "direction": "east"
+        },
+        {
+          "to_key": "96",
+          "direction": "west"
+        },
+        {
+          "to_key": "85",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.92
+    }
+  ]
+}

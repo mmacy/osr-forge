@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "fingerprint": "c65107e60ee7d45793f97f0fea0dc5b1a2e8e59552c5f5fda37da8774826a17d",
+  "tag": "content.crypt.1.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"Crypt\" (id: crypt), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- crypt | printed key \"Crypt\" | Crypt | pages 20\n"
+      },
+      {
+        "text": "[page 20]\nThe Town and Surroundings The Chaotic Caves\n7. BEE HIVE: A high-pitched voice is heard\nyelling in gleeful excitement. From out of the\ntrees (or grass) a giant bee careens into the\nparty and hits a PC or tree, tumbling to the\nground, dead but wiggling and oozing juices.\nLaughing uproariously, the pixie that was riding\nit (detailed below) stands up and tries to turn\ninvisible and flee. Hot on its tail are a half\ndozen more bees that will attack the party and\nanything else they find near the dead bee.\n6 Giant Bees: AC 13, HD ½ (1d4 HP)*, #At 1 \nsting, Dam 1d4 + poison, Mv 10' Fly 50', Sv F1, \nML 9. XP 13 ea.\nHP 4 ☐☐☐☐ 2 ☐☐\n3 ☐☐☐ 1 ☐\n3 ☐☐☐ 1 ☐\nIf the PCs follow the general direction the bees\ncame from, they will note several more buzzing\nangrily around in a copse of trees:\n3 Giant Bees: AC 13, HD ½ (1d4 HP)*, \n#At 1 sting, Dam 1d4 + poison, Mv 10' Fly 50', \nSv F1, ML 9, XP 13 ea.\nHP 3 ☐☐☐ 2 ☐☐\n2 ☐☐\nThe beehive is built amid the branches and\ncrooked trunks of several fig trees that are\ngrowing together. It contains some 1d6 gallons\nof honey (weight about 8 pounds per gallon;\nvalue about 40 to 50 gp per gallon depending\non the buyer). If the PCs collect the honey and\nthe pixie is still alive and able, they will be\npelted by several (1d6) platinum coins from the\npixie, which is now hiding in the trees and\nlaughing.\nPixie: AC 17, HD 1*, #At 1 dagger, Dam 1d4, \nMv 30' Fly 60', Sv F1E, ML 7, XP 37\nHP 3 ☐☐☐\n8. CRYPT: The PCs have found the entrance to\nan old tomb. The tomb is built of heavy stones\nburied under eons of dirt and brush. A rusted\niron gate and door blocks the entranceway but\ncan be pried open. Lines of old, worn runes\nover the doorway spell out slogans in Common,\nsuch as \"EVIL WILL ALWAYS PREVAIL\" and\n\"DESTRUCTION TO ALL THAT IS GOOD.\" The\ntomb itself is a fairly simple rectangle, 10' high,\n20' wide, and 30' long from the door to the\nback wall. Inside are three stone coffins\n(sarcophagi).\nThe main occupant is a wight in the middle\nsarcophagus. It will avoid daylight and hunker\ninside until darkness falls. The wight wears\nPlate Mail +1 armor. A silver-bladed sword\nwill be found in its coffin. It wears a simple\nbrass crown (as a sign of military office, not\nroyalty) with three 100 gp gems in the rim. A\ncoffer holds 200 gp in coins.\nWight: AC 18 (s), HD 3*, #At 1 touch, \nDam energy drain (1 level), Mv 30', Sv F3, ML 12,\nXP 175\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n18"
+      },
+      {
+        "sha256": "fd9b95965d73312944a1b5369bdcad26b6cf8e67a38ee10e11ca32399f57cb71",
+        "bytes": 802684
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "crypt"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "crypt",
+          "description": "An old tomb built of heavy stones buried under eons of dirt and brush. A rusted iron gate and door block the entranceway but can be pried open. Worn runes over the doorway in Common read slogans such as \"EVIL WILL ALWAYS PREVAIL\" and \"DESTRUCTION TO ALL THAT IS GOOD.\" The tomb is a simple rectangle, 10 feet high, 20 feet wide, and 30 feet long from the door to the back wall. Inside are three stone coffins (sarcophagi). The main occupant rests in the middle sarcophagus and avoids daylight, remaining inside until darkness falls.",
+          "encounters": [
+            {
+              "monster": "wight",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Plate Mail +1 armor worn by the wight",
+            "a silver-bladed sword in the coffin",
+            "a simple brass crown with three 100 gp gems in the rim",
+            "200 gp in a coffer"
+          ],
+          "features": [
+            "rusted iron gate and door at the entrance",
+            "worn runes over the doorway",
+            "three stone coffins (sarcophagi)",
+            "middle sarcophagus holds the main occupant"
+          ],
+          "connections": [],
+          "source_pages": [
+            20
+          ],
+          "confidence": 0.98
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 2347,
+      "output_tokens": 282
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

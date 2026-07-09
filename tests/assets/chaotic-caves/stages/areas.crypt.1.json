@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "crypt",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "crypt",
+      "description": "An old tomb built of heavy stones buried under eons of dirt and brush. A rusted iron gate and door block the entranceway but can be pried open. Worn runes over the doorway in Common read slogans such as \"EVIL WILL ALWAYS PREVAIL\" and \"DESTRUCTION TO ALL THAT IS GOOD.\" The tomb is a simple rectangle, 10 feet high, 20 feet wide, and 30 feet long from the door to the back wall. Inside are three stone coffins (sarcophagi). The main occupant rests in the middle sarcophagus and avoids daylight, remaining inside until darkness falls.",
+      "encounters": [
+        {
+          "monster": "wight",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Plate Mail +1 armor worn by the wight",
+        "a silver-bladed sword in the coffin",
+        "a simple brass crown with three 100 gp gems in the rim",
+        "200 gp in a coffer"
+      ],
+      "features": [
+        "rusted iron gate and door at the entrance",
+        "worn runes over the doorway",
+        "three stone coffins (sarcophagi)",
+        "middle sarcophagus holds the main occupant"
+      ],
+      "connections": [],
+      "source_pages": [
+        20
+      ],
+      "confidence": 0.98
+    }
+  ]
+}

@@ -1,0 +1,487 @@
+{
+  "schema_version": 1,
+  "fingerprint": "27e350c9df150b41c88f99a4c9c74f3534baf348bfb8662a6a5c120682e10b6f",
+  "tag": "content.the-abandoned-manor.2.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"The Abandoned Manor\" (id: the-abandoned-manor), level 2.\nAreas to extract (canonical key | printed key | name | expected pages):\n- 98 | printed key \"98\" | Stairway | pages 44\n- 99 | printed key \"99\" | Guest Room | pages 44\n- 100 | printed key \"100\" | Guest Room | pages 44\n- 101 | printed key \"101\" | Guest Room | pages 44\n- 102 | printed key \"102\" | Guest Room | pages 44\n- 103 | printed key \"103\" | Guest Room | pages 45\n- 104 | printed key \"104\" | Guest Room | pages 45\n- 105 | printed key \"105\" | Children's Nursery | pages 45\n- 106 | printed key \"106\" | Master Room | pages 45\nThis level's map is on page 47.\n"
+      },
+      {
+        "text": "[page 44]\nThe Abandoned Manor The Chaotic Caves\n90. STORE ROOM: For dry foods and such.\nSome bags of flour and other grains and\nvegetables are stacked here. A narrow set of\nstairs leads down 10' to a cold room where the\nfresh carcasses of venison, boar, rabbits, and\nother game animals hang on iron hooks.\n91. LAUNDRY ROOM: Buckets and tubs once\nresided here. Now there are only long ropes to\nhang laundry up to dry. Wooden shelves for\nlinens and rugs gawk emptily at the observer.\nIn one corner are two sealed buckets: one\ncontains red paint and the other red varnish.\n92. WASH ROOM: For humans, clothes, dishes,\netc. It contains bath tubs, cloth screens on\nwooden frames, and a table with bars of soap.\n93. BACK DOOR. The rear exit. The door is a\nheavy security door with two iron bars that can\nbe thrown across from the inside.\n94 to 97. SERVANT QUARTERS: These\nchambers once held servants and their guests\nand are now occupied in part by foot troops,\nmost of whom are eating or elsewhere. The\ninner partitions of each set have been torn\ndown to enlarge the rooms.\nIn room #94, two men are resting after a fight\nwith giant rats. They can still fight and will\naccost intruders to the best of their ability\n(they are not wearing their leather armor but\ncan put it on, given time).\n2 Human Fighter 1: AC 13 or 11, #At 1 spear, \nDam 1d6, Mv 30' or 40', Sv F1, ML 8, XP 25 ea.\nHP 2 ☐☐ 2 ☐☐\nAs the adventurers enter the hall around #97, a\nman will come out of the door and then\n(unless stopped) duck back inside and call for\nhelp. Four men occupy this room, sleeping\nafter watch. Their spears and hand axes are\nnearby. They are not currently wearing their\nred-stained leather armor, but will put it on if\ngiven time. Each has 2d6 gp on him. \n4 Human Fighter 1: AC 13, AB +1, #At 1 spear, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 6 ☐☐☐☐☐ ☐ 4 ☐☐☐☐\n5 ☐☐☐☐☐ 3 ☐☐☐\nMAP L – MANOR UPPER FLOOR\nThe upper floor is occupied by the leaders of\nthis band of fighters. Each room has several\ngas lights, tapped from a natural deposit of gas\nin the rock far below, as well as windows and\ntorch holders. The ceilings of the rooms on\nthis floor are about 10' high (the stairs rise 20').\n98. STAIRWAY: The stairs go down into the\nground floor to #85. A railing along the side\nprovides safety.\n99. GUEST ROOM: This is the residence of the\nfemale fighter and one of the male fighters\nwho are met coming down the stairs in entry\n#85. Furnishings include makeshift bed, table,\nchairs, and such. There is a single locked\ncasket here (with a crude lock only intended to\nindicate tampering, not really keep anyone out)\nwith 345 gp and five gems worth 50 gp each.\n100. GUEST ROOM: One of the three fighters\nencountered on the stairs (entry #85 on the\nground floor) lives here. It is furnished by a\nmakeshift bed, table, chairs, and such. Under\nthe bed is a sack with ten gems worth 50 gp\neach, plus coins: 198 gp and 31 sp. It is being\nguarded by the owner's pet snake which might\nimmediately grab and pull someone under if\nthey investigate unwisely.\nPython: AC 14, HD 5*, #At 1 bite, 1 constrict, \nDam 1d4 bite, 2d4 + 2d4/round constrict, \nMv 30', Sv F5, ML 8, XP 405\nHP 20 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐\n101. GUEST ROOM: Now being used by one of\nthe clerics as a private room (see #106). It has\nmakeshift furnishings: bed, table, chairs, etc.\nOn a chest of drawers are three silver holy\nsymbols (worth 25 gp each) arranged in a\nworshipful way around a golden icon of some\nevil demonic being (valued at 100 gp) known\nfor austerity and obedience.\n102. GUEST ROOM: Now claimed by one of the\nclerics as a private room (see #106). It\ncontains shabby, slapped-together furniture:\nbed, table, chairs, and such. Hung on one wall\nis a painting of horrors and stark terror that in\ngeneral has no value. A church of good nature\nmight buy it for 100 gp or so in order to burn it\nor use it as an educational tool to illustrate the\ntrue face of evil. Hung under it are a holy\n42"
+      },
+      {
+        "sha256": "9af28e0b971f603055e3392aecf05546b3d14d1f67592429c16318a50ca54085",
+        "bytes": 580854
+      },
+      {
+        "text": "[page 45]\nThe Chaotic Caves The Abandoned Manor\nsymbol with several gems (valued at 250 gp)\ntaken from a murdered Cleric, and three\nnecklaces of gold and silver worth 50 gp each.\n103. GUEST ROOM: Now used by the Magic\u0002User as a private room (see #106). There is\nnothing special about the furnishings:\nmakeshift bed, table, chairs, and such. The\nbeginnings of an alchemical laboratory for\nmaking potions is here, but incomplete.\n104. GUEST ROOM: Used to store various items\nfor future use: tables, bedding, etc.\n105. CHILDREN'S NURSERY: The double doors\nto this room hang open. This was once a\nbedroom and nursery for children. A few old\ntoys and cribs lie scattered about, covered by\ndust.\n106. MASTER ROOM: The door to this room is\nshut and voices can be heard talking inside. A\nsmall bell has been hung from a rod on the\ninside, near the top. It will jingle if the door is\nnot opened carefully.\nThis lavish, very large room is being used as\nthe headquarters and treasury of the band.\nThree humans are leaning over a map on a\ntable in this room. These three are ambitiously\nworking on a plan that involves using monsters\nto carve out their own little empire. They will\nattack any intrusion unless said intruders\nsurrender.\nSeveral gaslights (fed from natural gas taps)\ngive light. The furnishings are sparse: a large\nround table, some chairs, and a desk (the old\nfurnishings were looted a long time ago). \nHuman Magic-User 4: AC 15, AB +2, \n#At 1 dagger or spell, Dam 1d4 or by spell, \nMv 40', Sv M4, ML 9, XP 280\nSTR 8 (-1), DEX 15 (+1)\nSpells: 1st level – sleep, magic missile;\n2nd level – detect invisible, web\nMagic Items: Wand of Magic Missiles (11 \ncharges), Ring of Protection +1, Cloak of \nDisplacement\nScrolls: magic missile, sleep\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\nHuman Cleric 3, wearing plate mail and \nwielding mace and shield: AC 18, AB +2, \n#At 1 mace, Dam 1d8+1, Mv 20', Sv C3, ML 9, \nXP 145\nSTR 15 (+1)\nSpells: 1st level – cure light wounds, remove \nfear\nMagic Items: 2 Potions of Healing\nHP 11 ☐☐☐☐☐ ☐☐☐☐☐ ☐\nHuman Cleric 3, wearing plate mail and \nwielding mace and shield: AC 18, AB +2, \n#At 1 mace, Dam 1d8-1, Mv 10', Sv C3, ML 9, \nXP 145\nSTR 8 (-1), CHA 7 (-1)\nSpells: 1st level – cure light wounds, light\nMagic Items: Potion of Healing, Potion of \nInvisibility\nHP 11 ☐☐☐☐☐ ☐☐☐☐☐ ☐\nThe magic user's spell book containing the\nspells he knows is nearby. The cover has a\nneedle trap in it (save vs. Poison or die). Two\nlarge chests are resting in one corner. They\nhold the war funds this band has amassed.\nOne contains 1,230 gp, 456 sp, and 983 cp. The\nother holds 456 gp, 1,234 sp, and 491 pp. \n43"
+      },
+      {
+        "sha256": "c1bc33ab747ccedd816d79555e0b9fe3f40f517175565efb57f2b5dfe74bc71d",
+        "bytes": 417460
+      },
+      {
+        "text": "[page 47]\nThe Chaotic Caves The Abandoned Manor\n45"
+      },
+      {
+        "sha256": "dace089732121d4f012e0ca1ef072792fce4e1c6faf36957bd88904efe5b9e72",
+        "bytes": 75390
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "98",
+                  "99",
+                  "100",
+                  "101",
+                  "102",
+                  "103",
+                  "104",
+                  "105",
+                  "106"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "98",
+          "description": "Stairway on the manor upper floor with a safety railing. The stairs descend to area #85 on the ground floor. Rooms on this floor have gas lights, windows, torch holders, and 10' ceilings; the stairs rise 20'.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Stairs descending to area 85 on the ground floor",
+            "Safety railing",
+            "Upper floor has gas lighting, windows, and torch holders",
+            "10' ceilings on this floor; stairs rise 20'"
+          ],
+          "connections": [
+            {
+              "to_key": "85",
+              "direction": "down"
+            },
+            {
+              "to_key": "99",
+              "direction": "west"
+            },
+            {
+              "to_key": "102",
+              "direction": "east"
+            },
+            {
+              "to_key": "105",
+              "direction": "north"
+            },
+            {
+              "to_key": "106",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            44,
+            47
+          ],
+          "confidence": 0.91
+        },
+        {
+          "key": "99",
+          "description": "Guest room serving as the residence of the female fighter and one of the male fighters encountered coming down the stairs in area #85. Furnished with a makeshift bed, table, chairs, and similar basics.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [
+            "A locked casket with 345 gp",
+            "Five gems worth 50 gp each"
+          ],
+          "features": [
+            "Makeshift bed",
+            "Table",
+            "Chairs",
+            "Locked casket with a crude lock meant only to indicate tampering"
+          ],
+          "connections": [
+            {
+              "to_key": "98",
+              "direction": "east"
+            },
+            {
+              "to_key": "100",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            44,
+            47
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "100",
+          "description": "Guest room occupied by one of the three fighters encountered on the stairs in area #85. Furnished with a makeshift bed, table, chairs, and similar items. A sack of valuables is hidden under the bed, guarded by the owner's pet snake, which may immediately grab and pull someone under if they investigate unwisely.",
+          "encounters": [
+            {
+              "monster": "Python",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "Owner's pet snake guarding treasure under the bed"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "A sack under the bed containing ten gems worth 50 gp each",
+            "198 gp",
+            "31 sp"
+          ],
+          "features": [
+            "Makeshift bed",
+            "Table",
+            "Chairs",
+            "Sack hidden under the bed"
+          ],
+          "connections": [
+            {
+              "to_key": "99",
+              "direction": "north"
+            },
+            {
+              "to_key": "101",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            44,
+            47
+          ],
+          "confidence": 0.96
+        },
+        {
+          "key": "101",
+          "description": "Guest room now used by one of the clerics from area #106 as a private room. It has makeshift furnishings: bed, table, chairs, and so on. On a chest of drawers, three silver holy symbols are arranged in a worshipful manner around a golden icon of an evil demonic being known for austerity and obedience.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [
+            "Three silver holy symbols worth 25 gp each",
+            "A golden icon worth 100 gp"
+          ],
+          "features": [
+            "Makeshift bed",
+            "Table",
+            "Chairs",
+            "Chest of drawers",
+            "Religious display on the chest of drawers"
+          ],
+          "connections": [
+            {
+              "to_key": "100",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            44,
+            47
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "102",
+          "description": "Guest room claimed by one of the clerics from area #106 as a private room. It contains shabby, slapped-together furniture: bed, table, chairs, and such. A painting of horrors and stark terror hangs on one wall; it has little general value, but a church of good nature might pay about 100 gp for it to burn or use educationally. Beneath it hang items taken from a murdered cleric.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [
+            "A holy symbol with several gems valued at 250 gp",
+            "Three necklaces of gold and silver worth 50 gp each",
+            "A painting of horrors and stark terror that a good church might buy for about 100 gp"
+          ],
+          "features": [
+            "Shabby, slapped-together bed",
+            "Table",
+            "Chairs",
+            "Painting of horrors and stark terror hanging on the wall",
+            "Holy symbol hung beneath the painting",
+            "Three necklaces hung beneath the painting"
+          ],
+          "connections": [
+            {
+              "to_key": "98",
+              "direction": "west"
+            },
+            {
+              "to_key": "103",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            44,
+            45,
+            47
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "103",
+          "description": "Guest room now used by the magic-user from area #106 as a private room. Furnishings are an ordinary makeshift bed, table, chairs, and such. The beginnings of an alchemical laboratory for making potions are here, but it is incomplete.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Makeshift bed",
+            "Table",
+            "Chairs",
+            "Incomplete alchemical laboratory for making potions"
+          ],
+          "connections": [
+            {
+              "to_key": "102",
+              "direction": "north"
+            },
+            {
+              "to_key": "104",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            45,
+            47
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "104",
+          "description": "Guest room used as a storage room for various items kept for future use.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Stored tables",
+            "Stored bedding",
+            "Miscellaneous items for future use"
+          ],
+          "connections": [
+            {
+              "to_key": "103",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            45,
+            47
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "105",
+          "description": "Former children's bedroom and nursery. The double doors to this room hang open. A few old toys and cribs lie scattered about under a layer of dust.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Double doors hanging open",
+            "Old toys scattered about",
+            "Cribs",
+            "Dust-covered nursery"
+          ],
+          "connections": [
+            {
+              "to_key": "98",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            45,
+            47
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "106",
+          "description": "Lavish, very large master room now used as the headquarters and treasury of the band. The door is shut, and voices can be heard talking inside. Three human leaders are leaning over a map on a table, planning to use monsters to carve out their own empire; they attack intruders unless the intruders surrender. Several gaslights fed by natural gas taps illuminate the sparse furnishings: a large round table, chairs, and a desk; the original furnishings were looted long ago. The magic-user's spell book is nearby, and it contains the spells he knows. Two large chests in one corner hold the band's war funds.",
+          "encounters": [
+            {
+              "monster": "Human Magic-User 4",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            },
+            {
+              "monster": "Human Cleric 3",
+              "count_fixed": 2,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": "A small bell hung from a rod on the inside near the top of the door jingles if the door is not opened carefully. The magic-user's spell book cover has a needle trap; save vs. Poison or die.",
+          "treasure": [
+            "Magic-user's spell book containing the spells he knows",
+            "Wand of Magic Missiles (11 charges)",
+            "Ring of Protection +1",
+            "Cloak of Displacement",
+            "Scroll of magic missile",
+            "Scroll of sleep",
+            "2 Potions of Healing",
+            "Potion of Healing",
+            "Potion of Invisibility",
+            "One chest with 1,230 gp, 456 sp, and 983 cp",
+            "One chest with 456 gp, 1,234 sp, and 491 pp"
+          ],
+          "features": [
+            "Shut door",
+            "Small warning bell hung on the inside of the door",
+            "Several gaslights fed by natural gas taps",
+            "Large round table",
+            "Chairs",
+            "Desk",
+            "Map on the table",
+            "Two large chests holding war funds"
+          ],
+          "connections": [
+            {
+              "to_key": "98",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            45,
+            47
+          ],
+          "confidence": 0.97
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 5544,
+      "output_tokens": 1607
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

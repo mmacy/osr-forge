@@ -1,0 +1,432 @@
+{
+  "schema_version": 1,
+  "fingerprint": "8a8efaf1894e5ad7f1c03947809100b50b26bd8739a2c96da8a646509ffeb218",
+  "tag": "content.g-kobold-lair.1.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"G. Kobold Lair\" (id: g-kobold-lair), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- 43 | printed key \"43\" | Guard Post | pages 31\n- 44 | printed key \"44\" | Guards | pages 31\n- 45 | printed key \"45\" | Common Room | pages 31\n- 46 | printed key \"46\" | Common Room | pages 31\n- 47 | printed key \"47\" | Trophy Room | pages 31\n- 48 | printed key \"48\" | Chief's Room | pages 32\n- 49 | printed key \"49\" | Escape Route | pages 32\nThis level's map is on page 38.\n"
+      },
+      {
+        "text": "[page 31]\nThe Chaotic Caves The Caves\n42. WEST ENTRANCE: Four humans and a\nHalfling stand guard here (on hot days, they are\nusually inside the cave entrance). They have\ncrossbows and a case of bolts which are\ntraded out as the guard changes. Each has 1d6\n+ 6 sp on his or her person. A dozen torches\nare kept just inside the entrance along with a\ncovered bowl of hot coals.\n5 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐\nG. KOBOLD LAIR\nThese creatures were not invited to the region;\nthey arrived like rats smelling a dead corpse to\nchew on. They are tolerated much the same\nway.\n43. GUARD POST: Nine kobolds hunker\nnervously here. South of them is a locked\nstore room; the chief in room #48 has the key.\nThe store room has dried meat, pickled\nvegetables in clay jars, and other supplies.\n9 Kobolds: AC 13, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv NM, ML 6,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n44. GUARDS: Seven kobolds lounge on benches\nand chairs around tables. None have armor.\n7 Kobolds: AC 11, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 30', Sv NM, ML 6,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐\n45. COMMON ROOM: The doors to this room\nare made of flimsy wooden poles lashed\ntogether; they can be kicked in or heard\nthrough easily. A number of the kobolds (none\nhave armor) inside are keeping normal rats as\n\"pets\" (they eat their pets now and then).\n12 Kobolds: AC 11, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 30', Sv NM, ML 6,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n46. COMMON ROOM: The door to this room is\nrickety and easily kicked in or listened through.\nThe kobolds inside do not have armor.\nOrdinary rats and mice scurry among the litter;\nsome are being cooked on a fire. \n9 Kobolds: AC 11, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 30', Sv NM, ML 6,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n2 ☐☐\n47. TROPHY ROOM: This open chamber is\ndecorated by old metal helmets, clothing hung\non wooden frames like scarecrows, and other\nitems. These are all mementos of opponents\ndefeated in battle. Most of them are not that\nimpressive and some are kobold-sized.\nSECRET DOOR: The secret door (3' wide and 6'\nhigh) in the center of the west wall is well\u0002hidden and takes careful scrutiny to find. It\nopens if a careful grip is taken on one side and\npulled. Only the chief knows it is there.\n29"
+      },
+      {
+        "sha256": "fa13bdd8630a7ca4400d0005768bc4d3c17b94e0d14c3a7f33f9e08fda593451",
+        "bytes": 366967
+      },
+      {
+        "text": "[page 32]\nThe Caves The Chaotic Caves\n48. CHIEF'S ROOM: The kobold chief, two\nbodyguards, and four normal kobolds live here.\nThe chief has the key to the store room at #43.\nThe chief wields a silver-bladed hand-axe\nworth about 40 to 50 gp and has a pouch\naround his neck with six 100 gp gems in it.\nEach bodyguard has a golden arm-band on one\narm worth 50 gp. There is a large clay urn in\nback with a wooden lid tied on by rough fiber\nrope, inside which are 306 gp, 312 sp, and\n108 cp.\nKobold Chief: AC 13, HD 2, #At 1 shortsword, \nDam 1d6, Mv 20', Sv F2, ML 7, XP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\n2 Kobold Bodyguards: AC 13, HD 1, \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv F1, ML 8 \n(7 if chief is defeated or leaves the area), \nXP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 Kobolds: AC 13, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv NM, ML 7\n(6 if chief and bodyguards are defeated or \nleave the area), XP 10 ea.\nHP 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n49. ESCAPE ROUTE: As shown on the map, a\npit trap with stakes (2d6 damage) is some 10'\nor 20' from the entranceway: it is covered by a\npretty good false floor, although a careful\nsearch should have a high chance of finding it.\nThe outside exit is in the middle of the woods\nand has been covered by living brush and\ndebris such that it is hard to find.\nScuttling in the brush just outside the entrance\nare seven giant centipedes, attacking anyone\nwho comes near:\n7 Giant Centipedes: AC 11, HD ½ (1d4 HP), \n#At 1 bite, Dam poison, Mv 40', Sv NM, ML 7, \nXP 10 ea.\nHP 2 ☐☐ 3 ☐☐☐ 2 ☐☐ 3 ☐☐☐\n1 ☐ 2 ☐☐ 4 ☐☐☐☐\nH. LIZARD MAN LAIR\nThe lizard man lair is located in a swampy area\nformed where a stream slows down, spreads\nout, and pools in this area. The tunnels of the\nlair are wet and muddy, with water dripping\ndown from the ceiling to form small pools.\nGnarled tree roots grow through the ceiling and\nwalls. The inner chambers are 10' tall and the\nconnecting passages are low (6' or so).\nDECORATION: Each of the lizard men wears a\n25 gp gem on a leather thong around its neck\nas a tribal identifier, and is painted in garish\nred colors.\nSTREAM: The stream is cool and clean, running\nnorthwest to southeast. It has pools up to ten\nfeet deep, shallow places less than a foot\ndeep, and is easily crossed by finding a shallow\nplace. In some places it is overgrown with\nreeds. The bank can rise to a height of 10' or\n20' and is occasionally flat. Normal inhabitants\ninclude crayfish, fish, frogs, beavers, ducks,\nand other animals coming to drink.\n50. NORTH ENTRANCE: Two totem poles flank\nthe rough entrance that has been clawed into\nthe hard, rocky ground. Each is capped with\nthe bleached skull of a bear and feathers.\nThree lizard men (wearing tough hide and bone\narmor) and a giant gecko lizard lounge some\ntwenty feet inside, warding off any intruders.\nThe tunnel slopes down sharply from the\nopening to the first chamber, dropping some\n30' in elevation. There are several boulders\nthere which can be rolled into the hallway and\npacked with mud to prevent flooding.\n3 Lizard Men: AC 15, HD 2, #At 1 spear, \nDam 1d6+1, Mv 20', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\nGiant Gecko Lizard: AC 15, HD 3+1, #At 1 bite, \nDam 1d8, Mv 40', Sv F2, ML 7, XP 145\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n51. EMPTY CHAMBER: An empty chamber,\nstacked with firewood, dry grass for tinder, and\nrocks.\n30"
+      },
+      {
+        "sha256": "d5cbfd47e4e6259b375c22b2fd6de8a78276758f8b185e14b0204e6651f7ddf2",
+        "bytes": 488586
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "43",
+                  "44",
+                  "45",
+                  "46",
+                  "47",
+                  "48",
+                  "49"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "43",
+          "description": "Nine kobolds hunker nervously here. South of this room is a locked storeroom; the chief in room 48 has the key. The storeroom contains dried meat, pickled vegetables in clay jars, and other supplies.",
+          "encounters": [
+            {
+              "monster": "kobold",
+              "count_fixed": 9,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Locked storeroom to the south",
+            "Storeroom contains dried meat, pickled vegetables in clay jars, and other supplies"
+          ],
+          "connections": [
+            {
+              "to_key": "44",
+              "direction": "west"
+            },
+            {
+              "to_key": "45",
+              "direction": "east"
+            },
+            {
+              "to_key": "48",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            31
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "44",
+          "description": "Seven kobolds lounge on benches and chairs around tables. None have armor.",
+          "encounters": [
+            {
+              "monster": "kobold",
+              "count_fixed": 7,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Benches",
+            "Chairs",
+            "Tables"
+          ],
+          "connections": [
+            {
+              "to_key": "43",
+              "direction": "east"
+            },
+            {
+              "to_key": "46",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            31
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "45",
+          "description": "The doors to this room are made of flimsy wooden poles lashed together; they can be kicked in or heard through easily. The kobolds inside have no armor. Some keep normal rats as pets, though they sometimes eat them.",
+          "encounters": [
+            {
+              "monster": "kobold",
+              "count_fixed": 12,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Flimsy wooden-pole doors lashed together",
+            "Doors can be kicked in easily",
+            "Doors can be heard through easily",
+            "Normal rats kept as pets"
+          ],
+          "connections": [
+            {
+              "to_key": "43",
+              "direction": "west"
+            },
+            {
+              "to_key": "47",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            31
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "46",
+          "description": "The door to this room is rickety and easily kicked in or listened through. The kobolds inside do not have armor. Ordinary rats and mice scurry among the litter; some are being cooked on a fire.",
+          "encounters": [
+            {
+              "monster": "kobold",
+              "count_fixed": 9,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Rickety door",
+            "Door can be kicked in easily",
+            "Door can be listened through easily",
+            "Litter on the floor",
+            "Fire with rats and mice being cooked"
+          ],
+          "connections": [
+            {
+              "to_key": "44",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            31
+          ],
+          "confidence": 0.92
+        },
+        {
+          "key": "47",
+          "description": "This open chamber is decorated with old metal helmets, clothing hung on wooden frames like scarecrows, and other mementos of opponents defeated in battle. Most are unimpressive, and some are kobold-sized. A well-hidden secret door in the center of the west wall is 3 feet wide and 6 feet high; it opens by taking a careful grip on one side and pulling. Only the chief knows it is there.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Open chamber",
+            "Old metal helmets",
+            "Clothing hung on wooden frames like scarecrows",
+            "Battle mementos and trophies",
+            "Secret door in center of west wall, 3' wide and 6' high",
+            "Secret door is well-hidden and opens by pulling one side"
+          ],
+          "connections": [
+            {
+              "to_key": "45",
+              "direction": "west"
+            },
+            {
+              "to_key": "49",
+              "direction": "south"
+            },
+            {
+              "to_key": "48",
+              "direction": "west"
+            }
+          ],
+          "source_pages": [
+            31
+          ],
+          "confidence": 0.74
+        },
+        {
+          "key": "48",
+          "description": "The kobold chief, two bodyguards, and four normal kobolds live here. The chief has the key to the storeroom at area 43.",
+          "encounters": [
+            {
+              "monster": "Kobold Chief",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            },
+            {
+              "monster": "Kobold Bodyguards",
+              "count_fixed": 2,
+              "count_dice": null,
+              "count_note": null
+            },
+            {
+              "monster": "kobold",
+              "count_fixed": 4,
+              "count_dice": null,
+              "count_note": "ML 7; 6 if chief and bodyguards are defeated or leave the area"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Chief's silver-bladed hand-axe worth about 40 to 50 gp",
+            "Pouch with six 100 gp gems",
+            "Two golden arm-bands worth 50 gp each",
+            "Large clay urn containing 306 gp, 312 sp, and 108 cp"
+          ],
+          "features": [
+            "Large clay urn in back with wooden lid tied on by rough fiber rope",
+            "Chief holds the key to the storeroom in area 43"
+          ],
+          "connections": [
+            {
+              "to_key": "43",
+              "direction": "north"
+            },
+            {
+              "to_key": "47",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            32
+          ],
+          "confidence": 0.88
+        },
+        {
+          "key": "49",
+          "description": "As shown on the map, a pit trap with stakes lies about 10 or 20 feet from the entranceway, covered by a fairly good false floor, though a careful search has a high chance of finding it. The outside exit lies in the middle of the woods and is concealed by living brush and debris, making it hard to find. Seven giant centipedes scuttle in the brush just outside the entrance and attack anyone who comes near.",
+          "encounters": [
+            {
+              "monster": "giant centipedes",
+              "count_fixed": 7,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": "Pit trap with stakes about 10' or 20' from the entranceway; covered by a pretty good false floor; inflicts 2d6 damage.",
+          "treasure": [],
+          "features": [
+            "Concealed outside exit in the woods",
+            "Exit hidden by living brush and debris"
+          ],
+          "connections": [
+            {
+              "to_key": "47",
+              "direction": "north"
+            },
+            {
+              "to_key": "outside",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            32
+          ],
+          "confidence": 0.84
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 5644,
+      "output_tokens": 1254
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

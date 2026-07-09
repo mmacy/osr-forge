@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "cave-of-horrors",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "c1",
+      "description": "The cave entrance shows signs of occupation. Bones litter the grassy area outside, and large ogre-sized footprints can be found in muddy or soft ground nearby. Deep enough inside to avoid sunlight, five thin cords are strung across the floor about 2 feet apart and 1–2 inches above the ground, covered by dust and hard to detect without close inspection.",
+      "encounters": [],
+      "trap": "If the cords are tripped, they release a broad frame pulled back against the east wall. It is 8 feet high and wide, lined with sharp wooden spikes, strikes as a 2 HD monster, and deals 2d6 damage on a hit. Some spikes are covered in fresh blood and fur.",
+      "treasure": [],
+      "features": [
+        "Bones outside the entrance",
+        "Large ogre-sized footprints near the entrance",
+        "Five dust-covered trip cords across the floor",
+        "Broad spiked frame concealed against the east wall"
+      ],
+      "connections": [
+        {
+          "to_key": "c2",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        18,
+        21
+      ],
+      "confidence": 0.96
+    },
+    {
+      "key": "c2",
+      "description": "An ogre is here, munching on the corpse of a bear. It may be bribed into helping the party if offered at least 200 gp, but it is incredibly dense, self-interested, easily bored, and may attack intruders or lead allies in circles. It rarely stays with even an agreeable party for more than 1d6 days. The lair is furnished with hides, piles of leaves, and a few tree trunks used as benches and similar furniture. The ogre carries a large knobby club and a crude hide pouch on its belt.",
+      "encounters": [
+        {
+          "monster": "ogre",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "231 cp in the ogre's crude hide pouch"
+      ],
+      "features": [
+        "Bear corpse",
+        "Hides and piles of leaves used as furnishings",
+        "Tree trunks used as benches",
+        "Natural stone steps in the southwest hall descending 10 feet"
+      ],
+      "connections": [
+        {
+          "to_key": "c1",
+          "direction": "south"
+        },
+        {
+          "to_key": "c3",
+          "direction": "south"
+        },
+        {
+          "to_key": "c6",
+          "direction": "north"
+        },
+        {
+          "to_key": "c8",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        18,
+        21
+      ],
+      "confidence": 0.93
+    },
+    {
+      "key": "c3",
+      "description": "Bones litter this wide, 3-foot-deep pool. The ogre sometimes throws body parts into it to watch the gray jelly devour them. A plant-fiber cord is tied to a heavy rock at the pool's edge; the cord has prickly spines along its length to keep the ooze away from it, and a heavy glass bottle is tied to the other end in the pool.",
+      "encounters": [
+        {
+          "monster": "Gray Jelly",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "A heavy glass bottle in the pool containing 23 pp and 42 gp"
+      ],
+      "features": [
+        "Wide 3-foot-deep pool",
+        "Bones scattered around the pool",
+        "Plant-fiber retrieval cord with prickly spines",
+        "Heavy rock anchoring the cord"
+      ],
+      "connections": [
+        {
+          "to_key": "c1",
+          "direction": "south"
+        },
+        {
+          "to_key": "c2",
+          "direction": "north"
+        },
+        {
+          "to_key": "c4",
+          "direction": "west"
+        },
+        {
+          "to_key": "c8",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        19,
+        21
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "c4",
+      "description": "Rough natural steps go down sharply about 20 feet in elevation to the north. They are coated in harmless slime.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Rough natural steps descending 20 feet",
+        "Harmless slime coating the steps"
+      ],
+      "connections": [
+        {
+          "to_key": "c3",
+          "direction": "east"
+        },
+        {
+          "to_key": "c5",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        19,
+        21
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "c5",
+      "description": "Rough natural steps descend sharply about 20 feet in elevation to the north. Slime and pebbles coat them.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Rough natural steps descending 20 feet",
+        "Slime and pebbles coating the steps"
+      ],
+      "connections": [
+        {
+          "to_key": "c4",
+          "direction": "south"
+        },
+        {
+          "to_key": "c7",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        19,
+        21
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "c6",
+      "description": "This passage is a slope descending 30 feet.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Slope descending 30 feet"
+      ],
+      "connections": [
+        {
+          "to_key": "c2",
+          "direction": "south"
+        },
+        {
+          "to_key": "c8",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        19,
+        21
+      ],
+      "confidence": 0.85
+    },
+    {
+      "key": "c7",
+      "description": "A long, narrow hole in the ceiling winds up about 30 feet to the forest floor above. Around noon, dim light shines down through it. The ground is cluttered with feces and leaves, with worms wriggling in the leaves. Buried under the muck is a wooden chest containing the ogre's valuables from room C2.",
+      "encounters": [
+        {
+          "monster": "Stirges",
+          "count_fixed": 12,
+          "count_dice": null,
+          "count_note": "About 1d6 will attack the party each round"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Wooden chest buried under the muck containing a Potion of Healing",
+        "A Potion of Clairvoyance",
+        "124 gp",
+        "848 sp"
+      ],
+      "features": [
+        "Long narrow ceiling hole to the forest floor 30 feet above",
+        "Dim noon light from above",
+        "Ground covered in feces and leaves",
+        "Worms in the leaves",
+        "Buried wooden chest"
+      ],
+      "connections": [
+        {
+          "to_key": "c5",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        19,
+        21
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "c8",
+      "description": "A smashed-in door opens into a room carved out by human hands. It is furnished with a table, chairs, and a single skeletal figure sitting in a chair at the far end of the table. The ogre is deathly afraid of the room and will make an evil-eye sign if anyone gets near it.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [
+        "6 silver cups worth 20 gp each",
+        "A golden chalice with gems worth 200 gp"
+      ],
+      "features": [
+        "Smashed-in door",
+        "Room carved by human hands",
+        "Table",
+        "Chairs",
+        "Single skeletal figure seated at the far end of the table"
+      ],
+      "connections": [
+        {
+          "to_key": "c2",
+          "direction": "west"
+        },
+        {
+          "to_key": "c6",
+          "direction": "west"
+        },
+        {
+          "to_key": "c3",
+          "direction": "west"
+        },
+        {
+          "to_key": "c9",
+          "direction": "south"
+        },
+        {
+          "to_key": "c10",
+          "direction": "east"
+        },
+        {
+          "to_key": "c11",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        19,
+        21
+      ],
+      "confidence": 0.88
+    },
+    {
+      "key": "c9",
+      "description": "This section of hallway has a fragile ceiling that can collapse onto intruders.",
+      "encounters": [],
+      "trap": "Noise and movement from the party cause part of the fragile ceiling to collapse atop the first two or three party members. Each is attacked by a 2 HD monster and takes 1d6 damage if hit; make the attack as a 4 HD monster if they do not have a helmet. The collapse blocks the hallway and requires a half-hour's work to clear.",
+      "treasure": [],
+      "features": [
+        "Fragile ceiling",
+        "Hallway can be blocked by cave-in rubble"
+      ],
+      "connections": [
+        {
+          "to_key": "c8",
+          "direction": "north"
+        },
+        {
+          "to_key": "c10",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        19,
+        21
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "c10",
+      "description": "Fungus and moss cover the floor and walls of this room. Cave locusts prowl here and will jump wildly if spooked.",
+      "encounters": [
+        {
+          "monster": "Giant Cave Locust",
+          "count_fixed": 6,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Fungus-covered floor and walls",
+        "Moss-covered floor and walls"
+      ],
+      "connections": [
+        {
+          "to_key": "c8",
+          "direction": "west"
+        },
+        {
+          "to_key": "c9",
+          "direction": "south"
+        },
+        {
+          "to_key": "c11",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        19,
+        21
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "c11",
+      "description": "A clear pool of water with a frog, a few small fish, and crayfish fills much of this chamber. Under the mud and muck at the bottom is a bone tube, and there is also a rotten pouch. A rough iron ladder leads up into the ceiling through a tight 3-foot-wide hole and exits in the woods 30 feet overhead.",
+      "encounters": [
+        {
+          "monster": "Sea Snake",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "Curled up to strike anyone probing around"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "A bone tube containing a Clerical Scroll of Cure Light Wounds",
+        "A rotten pouch with 500 sp"
+      ],
+      "features": [
+        "Clear pool of water",
+        "Frog, small fish, and crayfish in the pool",
+        "Mud and muck at the bottom",
+        "Rough iron ladder",
+        "Tight 3-foot-wide hole leading to the woods 30 feet above"
+      ],
+      "connections": [
+        {
+          "to_key": "c8",
+          "direction": "south"
+        },
+        {
+          "to_key": "c10",
+          "direction": "south"
+        },
+        {
+          "to_key": "woods",
+          "direction": "up"
+        }
+      ],
+      "source_pages": [
+        19,
+        21
+      ],
+      "confidence": 0.95
+    }
+  ]
+}

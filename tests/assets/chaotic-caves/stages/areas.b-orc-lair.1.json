@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "b-orc-lair",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "entrance",
+      "description": "The first chamber of the orc lair. Four orcs are immediately inside along with a hobgoblin who joined up with them after looking for greener pastures. Each inhabitant has 1d6 sp.",
+      "encounters": [
+        {
+          "monster": "orc",
+          "count_fixed": 4,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "hobgoblin",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each inhabitant has 1d6 sp."
+      ],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "12",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        24,
+        38
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "11",
+      "description": "A secret safe room known only to the orc chief in room 13. The chamber contains a sword, a pouch with 25 gp, food, flint and steel, a skin of water, a cot, and a cloak. Both secret doors leading into it are exceptionally well hidden, with only a low chance of discovery even on close scrutiny.",
+      "encounters": [],
+      "trap": "Each of the two secret doors is trapped in two ways: opening one without disarming it releases sleeping gas affecting anyone within 10 feet (save vs. Poison or fall asleep for 1d6 hours) and also triggers a loud alarm that rings for 1 minute in the orc chief's quarters.",
+      "treasure": [
+        "25 gp"
+      ],
+      "features": [
+        "Two very well-hidden secret doors",
+        "Sword",
+        "Food stores",
+        "Flint and steel",
+        "Skin of water",
+        "Cot",
+        "Cloak"
+      ],
+      "connections": [
+        {
+          "to_key": "13",
+          "direction": "east"
+        },
+        {
+          "to_key": "15",
+          "direction": "west"
+        }
+      ],
+      "source_pages": [
+        24,
+        38
+      ],
+      "confidence": 0.96
+    },
+    {
+      "key": "12",
+      "description": "Two orcs with spears and hand axes stand guard at this door. The short corridor between this post and the next room provides a buffer zone in case of attack. Each orc has 1d6 sp.",
+      "encounters": [
+        {
+          "monster": "orc",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each orc has 1d6 sp."
+      ],
+      "features": [
+        "Guard door",
+        "Short buffer corridor"
+      ],
+      "connections": [
+        {
+          "to_key": "entrance",
+          "direction": "west"
+        },
+        {
+          "to_key": "14",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        24,
+        38
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "13",
+      "description": "The wily orc chief resides here, usually with a war leader and two common orcs. The chief carries the key to the eastern temple door at room 9 on a necklace of long pencil-thin gold bars worth 100 gp. The room contains stout wooden furniture. Under a heavy chair in the northeast corner is the alarm bell that rings if either trapped secret door in room 11 is opened without being disarmed first.",
+      "encounters": [
+        {
+          "monster": "orc chief",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "orc war leader",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "orc",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": "A locked chest contains a gas trap. When opened without inserting a long pencil-sized object into a hole in the back, it releases gas in a 10-foot area; those affected must save vs. Poison or die (or suffer a similarly nasty effect at the GM's discretion).",
+      "treasure": [
+        "Necklace of long pencil-thin gold bars worth 100 gp",
+        "800 gp",
+        "500 ep",
+        "700 sp",
+        "Potion of Healing"
+      ],
+      "features": [
+        "Locked chest",
+        "Stout wooden furniture",
+        "Alarm bell under a heavy chair in the northeast corner",
+        "Key to the eastern temple door at room 9"
+      ],
+      "connections": [
+        {
+          "to_key": "11",
+          "direction": "west"
+        },
+        {
+          "to_key": "9",
+          "direction": "west"
+        }
+      ],
+      "source_pages": [
+        25,
+        38
+      ],
+      "confidence": 0.91
+    },
+    {
+      "key": "14",
+      "description": "A trash-littered common room housing nine orcs. They are currently throwing rocks at one standing against a wall while several others are bruised; the game is to see who can take the most beating before flinching. Each has 1d6 sp.",
+      "encounters": [
+        {
+          "monster": "orc",
+          "count_fixed": 9,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each orc has 1d6 sp."
+      ],
+      "features": [
+        "Trash-littered room"
+      ],
+      "connections": [
+        {
+          "to_key": "12",
+          "direction": "west"
+        },
+        {
+          "to_key": "15",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        25,
+        38
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "15",
+      "description": "A common room housing seven orcs. It is cluttered with miscellaneous debris they have torn up and discarded, along with firewood and stone circles for cooking. Hidden in a hole in the northeast corner, covered by a stack of fireplace rocks and a foot of earth, is a bag of coins.",
+      "encounters": [
+        {
+          "monster": "orc",
+          "count_fixed": 7,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "10 pp",
+        "400 sp"
+      ],
+      "features": [
+        "Miscellaneous debris",
+        "Firewood",
+        "Stone cooking circles",
+        "Hidden hole in the northeast corner covered by fireplace rocks and a foot of earth"
+      ],
+      "connections": [
+        {
+          "to_key": "14",
+          "direction": "west"
+        },
+        {
+          "to_key": "11",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        25,
+        38
+      ],
+      "confidence": 0.93
+    }
+  ]
+}

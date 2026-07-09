@@ -1,0 +1,1521 @@
+{
+  "schema_version": 1,
+  "title": "The Chaotic Caves",
+  "hooks": [
+    "Treasure recovery and monster exterminators are needed because monster attacks near the frontier town have recently increased.",
+    "Locals offer rumors of monster activity in the wilderness, including orcs, goblins, gnolls, lizard men, bandits, ghouls near old crypts, and possible spell-casting attackers.",
+    "The heroes can explore the marked wilderness sites, recover loot from monsters, rescue captives, and root out the caves threatening nearby towns and villages."
+  ],
+  "town": {
+    "name": "",
+    "description": "An unnamed frontier town on the border between wilderness and civilized lands, beside a river and bridge and protected by a wooden stockade being replaced by a stone wall. It serves as the local home base, with merchants, taverns, craftsmen, church, healer, garrison, militia, docks, warehouse, and many residences."
+  },
+  "dungeons": [
+    {
+      "id": "halfling-home",
+      "name": "Halfling Home",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            21
+          ],
+          "areas": [
+            {
+              "key": "h1",
+              "name": "Front Door",
+              "source_label": "H1",
+              "kind": "other",
+              "source_pages": [
+                16
+              ]
+            },
+            {
+              "key": "h2",
+              "name": "Living Room",
+              "source_label": "H2",
+              "kind": "room",
+              "source_pages": [
+                16
+              ]
+            },
+            {
+              "key": "h3",
+              "name": "Dining Room",
+              "source_label": "H3",
+              "kind": "room",
+              "source_pages": [
+                16
+              ]
+            },
+            {
+              "key": "h4",
+              "name": "Kitchen",
+              "source_label": "H4",
+              "kind": "room",
+              "source_pages": [
+                16
+              ]
+            },
+            {
+              "key": "h5",
+              "name": "Bedroom",
+              "source_label": "H5",
+              "kind": "room",
+              "source_pages": [
+                16
+              ]
+            },
+            {
+              "key": "h6",
+              "name": "Bedroom",
+              "source_label": "H6",
+              "kind": "room",
+              "source_pages": [
+                16
+              ]
+            },
+            {
+              "key": "h7",
+              "name": "Bedroom",
+              "source_label": "H7",
+              "kind": "room",
+              "source_pages": [
+                16
+              ]
+            },
+            {
+              "key": "h8",
+              "name": "Back Door",
+              "source_label": "H8",
+              "kind": "other",
+              "source_pages": [
+                17
+              ]
+            },
+            {
+              "key": "h9",
+              "name": "Tree House",
+              "source_label": "H9",
+              "kind": "room",
+              "source_pages": [
+                17
+              ]
+            },
+            {
+              "key": "h10",
+              "name": "Stables and Storage",
+              "source_label": "H10",
+              "kind": "room",
+              "source_pages": [
+                17
+              ]
+            },
+            {
+              "key": "h11",
+              "name": "Buried House",
+              "source_label": "H11",
+              "kind": "room",
+              "source_pages": [
+                17
+              ]
+            },
+            {
+              "key": "h12",
+              "name": "Living Room",
+              "source_label": "H12",
+              "kind": "room",
+              "source_pages": [
+                17
+              ]
+            },
+            {
+              "key": "h13",
+              "name": "Kitchen",
+              "source_label": "H13",
+              "kind": "room",
+              "source_pages": [
+                17
+              ]
+            },
+            {
+              "key": "h14",
+              "name": "Master Bedroom",
+              "source_label": "H14",
+              "kind": "room",
+              "source_pages": [
+                17
+              ]
+            },
+            {
+              "key": "h15",
+              "name": "Guest Room",
+              "source_label": "H15",
+              "kind": "room",
+              "source_pages": [
+                17
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cave-of-horrors",
+      "name": "Cave of Horrors",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            21
+          ],
+          "areas": [
+            {
+              "key": "c1",
+              "name": "Entranceway",
+              "source_label": "C1",
+              "kind": "cave",
+              "source_pages": [
+                18
+              ]
+            },
+            {
+              "key": "c2",
+              "name": "Ogre's Lair",
+              "source_label": "C2",
+              "kind": "cave",
+              "source_pages": [
+                18
+              ]
+            },
+            {
+              "key": "c3",
+              "name": "Gray Jelly's Pool",
+              "source_label": "C3",
+              "kind": "cave",
+              "source_pages": [
+                19
+              ]
+            },
+            {
+              "key": "c4",
+              "name": "Steps",
+              "source_label": "C4",
+              "kind": "corridor",
+              "source_pages": [
+                19
+              ]
+            },
+            {
+              "key": "c5",
+              "name": "Steps",
+              "source_label": "C5",
+              "kind": "corridor",
+              "source_pages": [
+                19
+              ]
+            },
+            {
+              "key": "c6",
+              "name": "Slope Down",
+              "source_label": "C6",
+              "kind": "corridor",
+              "source_pages": [
+                19
+              ]
+            },
+            {
+              "key": "c7",
+              "name": "Stirge Rookery",
+              "source_label": "C7",
+              "kind": "cave",
+              "source_pages": [
+                19
+              ]
+            },
+            {
+              "key": "c8",
+              "name": "Ornate Room",
+              "source_label": "C8",
+              "kind": "room",
+              "source_pages": [
+                19
+              ]
+            },
+            {
+              "key": "c9",
+              "name": "Cave-In Trap",
+              "source_label": "C9",
+              "kind": "corridor",
+              "source_pages": [
+                19
+              ]
+            },
+            {
+              "key": "c10",
+              "name": "Cave Crickets",
+              "source_label": "C10",
+              "kind": "cave",
+              "source_pages": [
+                19
+              ]
+            },
+            {
+              "key": "c11",
+              "name": "Pool of Water",
+              "source_label": "C11",
+              "kind": "cave",
+              "source_pages": [
+                19
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crypt",
+      "name": "Crypt",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [],
+          "areas": [
+            {
+              "key": "crypt",
+              "name": "Crypt",
+              "source_label": "Crypt",
+              "kind": "room",
+              "source_pages": [
+                20
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a-orc-lair",
+      "name": "A. Orc Lair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Entrance",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                22
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Empty Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                22
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                22,
+                23
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Wolf Pen",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                23
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Door to Jail",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                23
+              ]
+            },
+            {
+              "key": "jail-area",
+              "name": "Jail Area",
+              "source_label": "JAIL AREA",
+              "kind": "room",
+              "source_pages": [
+                23
+              ]
+            },
+            {
+              "key": "6",
+              "name": "Chief's Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                23
+              ]
+            },
+            {
+              "key": "7",
+              "name": "Common Room/Guard Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                24
+              ]
+            },
+            {
+              "key": "8",
+              "name": "Pools",
+              "source_label": null,
+              "kind": "landmark",
+              "source_pages": [
+                24
+              ]
+            },
+            {
+              "key": "9",
+              "name": "Shared Hallway",
+              "source_label": null,
+              "kind": "corridor",
+              "source_pages": [
+                24
+              ]
+            },
+            {
+              "key": "10",
+              "name": "Orc Temple",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                24
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b-orc-lair",
+      "name": "B. Orc Lair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "entrance",
+              "name": "Entrance",
+              "source_label": "ENTRANCE",
+              "kind": "cave",
+              "source_pages": [
+                24
+              ]
+            },
+            {
+              "key": "11",
+              "name": "Secret Safe Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                24
+              ]
+            },
+            {
+              "key": "12",
+              "name": "Guard Post",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                24
+              ]
+            },
+            {
+              "key": "13",
+              "name": "Chief's Quarters",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                25
+              ]
+            },
+            {
+              "key": "14",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                25
+              ]
+            },
+            {
+              "key": "15",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                25
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c-hobgoblin-lair",
+      "name": "C. Hobgoblin Lair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "entrance",
+              "name": "Entrance",
+              "source_label": "ENTRANCE",
+              "kind": "cave",
+              "source_pages": [
+                25
+              ]
+            },
+            {
+              "key": "16",
+              "name": "Trapped Hallway",
+              "source_label": null,
+              "kind": "corridor",
+              "source_pages": [
+                26
+              ]
+            },
+            {
+              "key": "17",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                26
+              ]
+            },
+            {
+              "key": "18",
+              "name": "Store Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                26
+              ]
+            },
+            {
+              "key": "19",
+              "name": "Sub-Leader",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                26
+              ]
+            },
+            {
+              "key": "20",
+              "name": "Guard Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                26
+              ]
+            },
+            {
+              "key": "21",
+              "name": "Chief's Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                26
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "d-abandoned-crypts",
+      "name": "D. Abandoned Crypts",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "22",
+              "name": "Ghouls",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                27
+              ]
+            },
+            {
+              "key": "23",
+              "name": "Skeletons",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                27
+              ]
+            },
+            {
+              "key": "24",
+              "name": "Zombies",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                27
+              ]
+            },
+            {
+              "key": "25",
+              "name": "Skeletons",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                27
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "e-goblin-lair",
+      "name": "E. Goblin Lair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "26",
+              "name": "Guard Post",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                27
+              ]
+            },
+            {
+              "key": "27",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                28
+              ]
+            },
+            {
+              "key": "28",
+              "name": "Trap",
+              "source_label": null,
+              "kind": "corridor",
+              "source_pages": [
+                28
+              ]
+            },
+            {
+              "key": "29",
+              "name": "Goblin Priest",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                28
+              ]
+            },
+            {
+              "key": "30",
+              "name": "Common Room/Store Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                28
+              ]
+            },
+            {
+              "key": "31",
+              "name": "Goblin Chief Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                28
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "f-bandit-lair",
+      "name": "F. Bandit Lair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "32",
+              "name": "East Entrance",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                29
+              ]
+            },
+            {
+              "key": "33",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                29
+              ]
+            },
+            {
+              "key": "34",
+              "name": "Locked Store Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                29
+              ]
+            },
+            {
+              "key": "35",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                29
+              ]
+            },
+            {
+              "key": "36",
+              "name": "Leader's Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                29
+              ]
+            },
+            {
+              "key": "37",
+              "name": "Stables",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                30
+              ]
+            },
+            {
+              "key": "38",
+              "name": "Dungeon",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                30
+              ]
+            },
+            {
+              "key": "39",
+              "name": "Guard Post",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                30
+              ]
+            },
+            {
+              "key": "40",
+              "name": "Treasure Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                30
+              ]
+            },
+            {
+              "key": "41",
+              "name": "Bandit Lieutenant",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                30
+              ]
+            },
+            {
+              "key": "42",
+              "name": "West Entrance",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                31
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g-kobold-lair",
+      "name": "G. Kobold Lair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "43",
+              "name": "Guard Post",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                31
+              ]
+            },
+            {
+              "key": "44",
+              "name": "Guards",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                31
+              ]
+            },
+            {
+              "key": "45",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                31
+              ]
+            },
+            {
+              "key": "46",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                31
+              ]
+            },
+            {
+              "key": "47",
+              "name": "Trophy Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                31
+              ]
+            },
+            {
+              "key": "48",
+              "name": "Chief's Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                32
+              ]
+            },
+            {
+              "key": "49",
+              "name": "Escape Route",
+              "source_label": null,
+              "kind": "corridor",
+              "source_pages": [
+                32
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "h-lizard-man-lair",
+      "name": "H. Lizard Man Lair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "50",
+              "name": "North Entrance",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                32
+              ]
+            },
+            {
+              "key": "51",
+              "name": "Empty Chamber",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                32
+              ]
+            },
+            {
+              "key": "52",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                33
+              ]
+            },
+            {
+              "key": "53",
+              "name": "Larder (Food Storage)",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                33
+              ]
+            },
+            {
+              "key": "54",
+              "name": "Main Harem",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                33
+              ]
+            },
+            {
+              "key": "55",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                34
+              ]
+            },
+            {
+              "key": "56",
+              "name": "Guard Post",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                34
+              ]
+            },
+            {
+              "key": "57",
+              "name": "South Entrance",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                34
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "i-bugbear-lair",
+      "name": "I. Bugbear Lair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "58",
+              "name": "Entrance",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                34
+              ]
+            },
+            {
+              "key": "59",
+              "name": "Swinging Arm Trap",
+              "source_label": null,
+              "kind": "corridor",
+              "source_pages": [
+                34
+              ]
+            },
+            {
+              "key": "60",
+              "name": "Store Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                34
+              ]
+            },
+            {
+              "key": "61",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                34
+              ]
+            },
+            {
+              "key": "62",
+              "name": "Empty Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                34
+              ]
+            },
+            {
+              "key": "63",
+              "name": "Secret Door",
+              "source_label": null,
+              "kind": "corridor",
+              "source_pages": [
+                35
+              ]
+            },
+            {
+              "key": "64",
+              "name": "Treasure Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                35
+              ]
+            },
+            {
+              "key": "65",
+              "name": "Prison",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                35
+              ]
+            },
+            {
+              "key": "66",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                35
+              ]
+            },
+            {
+              "key": "67",
+              "name": "Owlbear",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                35
+              ]
+            },
+            {
+              "key": "68",
+              "name": "Main Boss",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                35
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "j-gnoll-lair",
+      "name": "J. Gnoll Lair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            38
+          ],
+          "areas": [
+            {
+              "key": "69",
+              "name": "Entrance",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                36
+              ]
+            },
+            {
+              "key": "70",
+              "name": "Guard Post",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                36
+              ]
+            },
+            {
+              "key": "71",
+              "name": "Guard Post",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                36
+              ]
+            },
+            {
+              "key": "72",
+              "name": "Common Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                36
+              ]
+            },
+            {
+              "key": "73",
+              "name": "Cavern",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                36
+              ]
+            },
+            {
+              "key": "74",
+              "name": "Leader's Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                36
+              ]
+            },
+            {
+              "key": "treasure-hoard",
+              "name": "Treasure Hoard",
+              "source_label": "TREASURE HOARD",
+              "kind": "room",
+              "source_pages": [
+                37
+              ]
+            },
+            {
+              "key": "75",
+              "name": "Storeroom",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                37
+              ]
+            },
+            {
+              "key": "76",
+              "name": "Dungeon",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                37
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "the-abandoned-manor",
+      "name": "The Abandoned Manor",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            46
+          ],
+          "areas": [
+            {
+              "key": "77",
+              "name": "Gateway Flanked by Towers",
+              "source_label": null,
+              "kind": "landmark",
+              "source_pages": [
+                41
+              ]
+            },
+            {
+              "key": "78",
+              "name": "West Gate Tower",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                41
+              ]
+            },
+            {
+              "key": "79",
+              "name": "East Gate Tower",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                41
+              ]
+            },
+            {
+              "key": "80",
+              "name": "Stables",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                41
+              ]
+            },
+            {
+              "key": "81",
+              "name": "Cottages",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                42
+              ]
+            },
+            {
+              "key": "82",
+              "name": "North Wall",
+              "source_label": null,
+              "kind": "landmark",
+              "source_pages": [
+                42
+              ]
+            },
+            {
+              "key": "83",
+              "name": "Moat",
+              "source_label": null,
+              "kind": "landmark",
+              "source_pages": [
+                42
+              ]
+            },
+            {
+              "key": "84",
+              "name": "Main Doors",
+              "source_label": null,
+              "kind": "other",
+              "source_pages": [
+                42
+              ]
+            },
+            {
+              "key": "85",
+              "name": "Main Hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                42,
+                43
+              ]
+            },
+            {
+              "key": "86",
+              "name": "Renovated Stables",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                43
+              ]
+            },
+            {
+              "key": "87",
+              "name": "Wagon Storage",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                43
+              ]
+            },
+            {
+              "key": "88",
+              "name": "Prep Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                43
+              ]
+            },
+            {
+              "key": "89",
+              "name": "Kitchen",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                43
+              ]
+            },
+            {
+              "key": "90",
+              "name": "Store Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "91",
+              "name": "Laundry Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "92",
+              "name": "Wash Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "93",
+              "name": "Back Door",
+              "source_label": null,
+              "kind": "other",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "94",
+              "name": "Servant Quarters",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "95",
+              "name": "Servant Quarters",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "96",
+              "name": "Servant Quarters",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "97",
+              "name": "Servant Quarters",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "map_pages": [
+            47
+          ],
+          "areas": [
+            {
+              "key": "98",
+              "name": "Stairway",
+              "source_label": null,
+              "kind": "corridor",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "99",
+              "name": "Guest Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "100",
+              "name": "Guest Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "101",
+              "name": "Guest Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "102",
+              "name": "Guest Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                44
+              ]
+            },
+            {
+              "key": "103",
+              "name": "Guest Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                45
+              ]
+            },
+            {
+              "key": "104",
+              "name": "Guest Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                45
+              ]
+            },
+            {
+              "key": "105",
+              "name": "Children's Nursery",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                45
+              ]
+            },
+            {
+              "key": "106",
+              "name": "Master Room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                45
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [
+    "Bandit",
+    "Banker",
+    "Bear",
+    "Bee",
+    "Bugbear",
+    "Bugbear Chief",
+    "Centaur",
+    "Dog",
+    "Dwarf Fighter",
+    "Elf",
+    "Elven Fighter",
+    "Elven Thief",
+    "Female Lizard Men",
+    "Fire Beetle",
+    "Ghoul",
+    "Giant Bat",
+    "Giant Bee",
+    "Giant Black Widow Spider",
+    "Giant Cave Locust",
+    "Giant Centipede",
+    "Giant Crab Spider",
+    "Giant Fire Beetle",
+    "Giant Gecko Lizard",
+    "Giant Rat",
+    "Giant Shrew",
+    "Giant Toad",
+    "Giant Weasel",
+    "Gnoll",
+    "Gnoll Females",
+    "Gnoll leader",
+    "Goblin",
+    "Goblin King",
+    "Gray Jelly",
+    "Halfling",
+    "Harpy",
+    "Hobgoblin",
+    "Hobgoblin Chief",
+    "Kobold",
+    "Kobold Bodyguards",
+    "Kobold Chief",
+    "Lizard Man",
+    "Lizard Man Leader",
+    "Magic-User",
+    "Merchant",
+    "Minotaur",
+    "Mountain Lion",
+    "Normal Man",
+    "Ogre",
+    "Old Man",
+    "Orc",
+    "Orc Chief",
+    "Orc War Leader",
+    "Owlbear",
+    "Pixie",
+    "Python",
+    "Riding Horse",
+    "Sea Snake",
+    "Skeleton",
+    "Soldier",
+    "Stirge",
+    "Tentacle Worm",
+    "War Leader",
+    "Wight",
+    "Wild Boar",
+    "Wolf",
+    "Yellow Mold",
+    "Zombie"
+  ]
+}

@@ -26,10 +26,18 @@ whose request digests embed module text (also licensed):
   replay-grade fixtures: page 8 (town key), pages 22–27 (the caves key), and
   page 38 (the keyed caves map). Each was visually verified to contain no
   non-licensed illustration before committing.
-- `fixtures/` — recorded request/response fixtures from the capability spike
-  (see `docs/foundry-capabilities.md`). Replay-grade fixtures pair with
+- `fixtures/` — recorded request/response fixtures from the phase 0 capability
+  spike (see `docs/foundry-capabilities.md`). Replay-grade fixtures pair with
   `pages/`; evidence-grade fixtures (image-count, DPI, and context boundary
   probes) are committed without their page assets and replay is not promised.
+- `fixtures-extract/` — phase 1 extraction recordings, classified by
+  directory: `replay/` holds the excerpt survey and first-content-batch
+  fixtures recorded over `pages/` (replayed in tests with zero network);
+  `evidence/` holds the full 48-page milestone run's fixtures (no replay
+  promise — their requests reference uncommitted workdir renders).
+- `stages/` — the stage caches (`survey.json`, `areas.<dungeon>.<level>.json`)
+  the milestone run produced; the credibility-floor test gates them. Their
+  text derives from the module's licensed text.
 
 Everything in this directory derived from the module is distributed under
 CC BY-SA 4.0 with attribution to J.D. Neal and the Basic Fantasy Project.
