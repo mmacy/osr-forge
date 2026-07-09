@@ -7,9 +7,9 @@ leave no recorded module text behind.
 """
 
 import argparse
-import json
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 from osrforge.content import build_batch_request, content, plan_content_batches
 from osrforge.contracts.run import RunMeta, TokenUsage
@@ -90,7 +90,7 @@ def cmd_excerpt(args: argparse.Namespace) -> None:
     print(f"excerpt survey over committed pages {pages} (module page count {args.page_count})")
     response = provider.generate(build_survey_request(page_request_parts(asset_workdir, pages)))
     print(f"survey usage: in={response.usage.input_tokens} out={response.usage.output_tokens}")
-    index = normalize_survey(response.data, args.page_count)  # type: ignore[arg-type]
+    index = normalize_survey(cast(dict[str, Any], response.data), args.page_count)
     # The pinned closure step: restrict every page reference to the committed
     # subset before planning, so an in-range reference to an uncommitted page
     # cannot make the batch request unbuildable at replay time.
@@ -102,7 +102,7 @@ def cmd_excerpt(args: argparse.Namespace) -> None:
     print(f"first content batch: {batch.tag}, pages {list(batch.part_pages)}, {len(batch.areas)} areas")
     batch_response = provider.generate(build_batch_request(batch, page_request_parts(asset_workdir, batch.part_pages)))
     print(f"content usage: in={batch_response.usage.input_tokens} out={batch_response.usage.output_tokens}")
-    data = json.loads(json.dumps(batch_response.data))
+    data = cast(dict[str, Any], batch_response.data)
     print(f"content areas returned: {[entry['key'] for entry in data['areas']]}")
 
 

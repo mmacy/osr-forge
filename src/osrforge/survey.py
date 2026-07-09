@@ -358,7 +358,7 @@ def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
         tracker.set_model(type(provider).__name__, response.model_id)
         index = normalize_survey(cast(dict[str, Any], response.data), run.page_count)
         workdir.stages_dir.mkdir(parents=True, exist_ok=True)
-        for stale in workdir.stage_caches():
+        for stale in workdir.area_caches():
             stale.unlink()
         write_json_artifact(workdir.survey_json, index)
     return index

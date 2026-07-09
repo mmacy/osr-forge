@@ -133,8 +133,12 @@ class Workdir:
         """
         return self.pages_dir / f"{page_number:04d}.txt"
 
-    def stage_caches(self) -> list[Path]:
+    def area_caches(self) -> list[Path]:
         """Return every content-stage cache file, sorted.
+
+        Only the per-level `areas.*.json` caches — not `survey.json` (or
+        phase 2's `monsters.json`): both extraction stages clear exactly these
+        when a re-run may have orphaned them.
 
         Returns:
             The `stages/areas.*.json` paths, sorted by name.

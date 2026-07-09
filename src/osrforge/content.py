@@ -180,7 +180,14 @@ def plan_content_batches(index: SurveyIndex, batch_pages: int) -> tuple[LevelPla
 
     Returns:
         One plan per level, in survey order.
+
+    Raises:
+        ValueError: If `batch_pages` is below 2 — the sliding-window stride is
+            `batch_pages - 1`, so a smaller value cannot advance (programmer
+            misuse; the settings model enforces the same floor).
     """
+    if batch_pages < 2:
+        raise ValueError(f"batch_pages must be at least 2, got {batch_pages}")
     return tuple(_plan_level(dungeon, level, batch_pages) for dungeon in index.dungeons for level in dungeon.levels)
 
 
@@ -415,7 +422,7 @@ def content(workdir: Workdir, provider: ModelProvider) -> tuple[LevelContent, ..
     index = SurveyIndex.model_validate_json(workdir.survey_json.read_text(encoding="utf-8"))
     results: list[LevelContent] = []
     with track_stage(workdir, Stage.CONTENT) as tracker:
-        for stale in workdir.stage_caches():
+        for stale in workdir.area_caches():
             stale.unlink()
         for plan in plan_content_batches(index, run.settings.content_batch_pages):
             level = _extract_level(workdir, provider, plan, run.page_count, tracker)

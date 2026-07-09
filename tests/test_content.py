@@ -172,6 +172,12 @@ class TestBatchPlanning:
         plans = plan_content_batches(index, batch_pages=8)
         assert [(plan.dungeon_id, plan.level_number) for plan in plans] == [("lair", 1), ("lair", 2)]
 
+    def test_batch_pages_below_floor_is_misuse(self):
+        index = make_index({1: (make_area("1", (1,)),)})
+        for bad in (1, 0, -3):
+            with pytest.raises(ValueError, match="at least 2"):
+                plan_content_batches(index, batch_pages=bad)
+
 
 class TestBatchRequest:
     def make_batch(self) -> ContentBatch:

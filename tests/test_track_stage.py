@@ -13,13 +13,13 @@ def test_stage_cache_paths():
     assert workdir.areas_json("a-orc-lair", 2) == Path("my-module.forge/stages/areas.a-orc-lair.2.json")
 
 
-def test_stage_caches_lists_only_area_caches_sorted(tmp_path: Path):
+def test_area_caches_lists_only_area_caches_sorted(tmp_path: Path):
     workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=1)
     workdir.stages_dir.mkdir()
     workdir.survey_json.write_text("{}", encoding="utf-8")
     workdir.areas_json("b-lair", 1).write_text("{}", encoding="utf-8")
     workdir.areas_json("a-lair", 1).write_text("{}", encoding="utf-8")
-    assert workdir.stage_caches() == [workdir.areas_json("a-lair", 1), workdir.areas_json("b-lair", 1)]
+    assert workdir.area_caches() == [workdir.areas_json("a-lair", 1), workdir.areas_json("b-lair", 1)]
 
 
 def test_track_stage_writes_running_on_enter(tmp_path: Path):
