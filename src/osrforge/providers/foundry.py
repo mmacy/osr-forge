@@ -129,7 +129,10 @@ def _content_parts(request: ModelRequest) -> list[dict[str, object]]:
 
 
 def _response_format(request: ModelRequest) -> dict[str, object]:
-    name = re.sub(r"[^A-Za-z0-9_-]", "_", request.tag)
+    # The service caps json_schema.name at 64 characters (observed as a 400 on
+    # a long content-batch tag). The name is cosmetic and not part of request
+    # identity, so truncation is safe.
+    name = re.sub(r"[^A-Za-z0-9_-]", "_", request.tag)[:64]
     return {"type": "json_schema", "json_schema": {"name": name, "schema": request.schema}}
 
 
