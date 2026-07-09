@@ -40,8 +40,8 @@ Six stages. Stages 1–3 call the model; 0, 4, and 5 are deterministic code.
 1. **Preprocess (0).** Open the PDF with pypdfium2; extract each page's text layer and render each page to a PNG (default 150 DPI, configurable). Scanned modules with no text layer just yield empty `.txt` files — the model reads the images. Enforce limits (page count, file size) and write `run.json` metadata (source hash, page count, settings).
 2. **Survey (1).** One structured-output request over the whole document (text + page images, chunked if needed): identify title, hooks, town/base info, the dungeon(s) and level(s), the keyed-area list per level with page locations, and every monster name that appears. Output is the index that plans the content passes.
 3. **Content (2).** Per level, extract keyed areas in batches: description prose, encounters (monster name + count), traps, treasure, features, and connections to other areas ("the corridor continues north to area 7"), each with `source_pages` and a self-assessed confidence. Requests send only the relevant page images/text plus the survey index. Schemas are small and per-batch — one giant Adventure schema extracts worse and runs into structured-output limits.
-4. **Monsters (3).** Resolve extracted names against `osrlib.data.load_monsters()` in tiers: normalized exact id match → curated alias table → stdlib fuzzy match (`difflib`) → one LLM pass that picks from the top-k candidates or answers "none of these". Unresolved names become report flags; `validate_adventure` rejects dangling ids, so publishing anywhere requires a human override choosing a substitute.
-5. **Geometry (4).** Deterministic synthesis of grid geometry from the room graph: place the entrance area at the origin, walk the connection graph breadth-first, place rooms as rectangular cell clusters (10' per cell, sized from stated dimensions like "30' × 40'" when present, defaults otherwise) in the stated compass direction when known, route 1-cell-wide corridors, emit `Edge`s (open/door per the text), shift on collision. The output always satisfies osrlib's structural rules — entrance exists, transitions align, cells in bounds — even when it doesn't match the printed map. Every synthesized area is flagged `geometry_synthesized` in the report.
+4. **Monsters (3).** Resolve extracted names against `osrlib.data.load_monsters()` in tiers: normalized exact id match → curated alias table → stdlib fuzzy match (`difflib`) → one LLM pass that picks from the top-k candidates or answers "none of these". Unresolved names become report flags and assembly omits their encounters from the draft — emitting a dangling id would fail `validate_adventure`, and osrlib refuses to open a session over an invalid adventure — so an unresolved encounter enters the adventure only through a human override choosing a substitute.
+5. **Geometry (4).** Deterministic synthesis of grid geometry from the room graph, recomputed inside every assembly rather than cached (which is why the workdir has no geometry cache file): place the entrance area at the origin, walk the connection graph breadth-first, place rooms as rectangular cell clusters (10' per cell, sized from stated dimensions like "30' × 40'" when present, defaults otherwise) in the stated compass direction when known, route 1-cell-wide corridors, emit open `Edge`s (door placement is override territory in v1 — the extraction schema carries no door signal; a map-vision pass is the future automatic candidate), shift on collision. The output always satisfies osrlib's structural rules — entrance exists, transitions align, cells in bounds — even when it doesn't match the printed map. Every synthesized area is flagged `geometry_synthesized` in the report.
 6. **Assemble and check (5).** Apply `overrides.yaml` to the cached stage outputs, build the `Adventure` via `model_validate`, run `validate_adventure` against the shipped monster/equipment catalogs, write the four artifacts. Validation failures land in the report rather than crashing — a draft is allowed to be invalid; *publishing* it somewhere is the consumer's gate.
 
 ## The workdir
@@ -66,7 +66,7 @@ my-module.forge/
 └── adventure.json
 ```
 
-Host apps archive the whole workdir (osr-web stores it in Blob Storage) to get debuggability and stage-level re-runs for free.
+Host apps archive the whole workdir (osr-web stores it in Blob Storage) to get debuggability and stage-level re-runs for free. (There is no geometry cache: geometry is deterministic and recomputed inside every assembly.)
 
 ## LLM provider interface
 
@@ -138,9 +138,12 @@ Supported override kinds in v1: monster remaps, per-area field replacement (name
     }
   ],
   "monsters": { "resolved": 11, "unresolved": ["hobgoblin chieftain"] },
-  "usage": { "input_tokens": 412000, "output_tokens": 88000 }
+  "usage": { "input_tokens": 412000, "output_tokens": 88000 },
+  "flags": ["low_confidence:town name unstated"]
 }
 ```
+
+Module-scope conditions with no per-area home — a defaulted adventure title or town name — land in the top-level `flags` array, using the same flag grammar as per-area flags.
 
 Flag vocabulary is small and enumerated (geometry synthesized, monster unresolved, low confidence, connection ambiguous, treasure unparsed, page unreadable) so UIs can badge reliably.
 
