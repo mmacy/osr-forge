@@ -36,3 +36,5 @@ The Azure AI Foundry adapter reads its connection from `OSRFORGE_FOUNDRY_*` envi
 ## Licensing
 
 Package code is MIT (see [LICENSE](LICENSE)). osr-forge ships no game content: osrlib's OGL data stays in osrlib, and test assets live under `tests/assets/` outside the built distribution, each with its provenance and license documented in [tests/assets/README.md](tests/assets/README.md).
+
+These fences govern what this repository redistributes, not what you convert: bringing your own purchased, non-redistributable module is the primary use case. Conversion runs locally and everything derived from your module stays in your own workdir — nothing is shared unless you share it.
