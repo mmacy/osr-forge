@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "fingerprint": "1e724e36664197fc3636ec58dc4b23b59f181c4f29ab61d0fc665729dfea2bb1",
+  "tag": "probe.auth-entra",
+  "request": {
+    "system": "Reply with the single word 'ok'.",
+    "parts": [
+      {
+        "text": "Auth check over the entra path."
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "answer": "ok"
+    },
+    "usage": {
+      "input_tokens": 52,
+      "output_tokens": 15
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

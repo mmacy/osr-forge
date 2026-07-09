@@ -1,0 +1,269 @@
+{
+  "schema_version": 1,
+  "fingerprint": "ee897a6fc4b8321a50739c65970534fcaf37a31f9a4f006620bc961e98e23967",
+  "tag": "probe.schema-stress-e128-d4",
+  "request": {
+    "system": "Reply with any document that satisfies the schema.",
+    "parts": [
+      {
+        "text": "Produce a minimal valid document."
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "$ref": "#/$defs/nest_3"
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "leaf": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "type": "string",
+              "enum": [
+                "option_0000",
+                "option_0001",
+                "option_0002",
+                "option_0003",
+                "option_0004",
+                "option_0005",
+                "option_0006",
+                "option_0007",
+                "option_0008",
+                "option_0009",
+                "option_0010",
+                "option_0011",
+                "option_0012",
+                "option_0013",
+                "option_0014",
+                "option_0015",
+                "option_0016",
+                "option_0017",
+                "option_0018",
+                "option_0019",
+                "option_0020",
+                "option_0021",
+                "option_0022",
+                "option_0023",
+                "option_0024",
+                "option_0025",
+                "option_0026",
+                "option_0027",
+                "option_0028",
+                "option_0029",
+                "option_0030",
+                "option_0031",
+                "option_0032",
+                "option_0033",
+                "option_0034",
+                "option_0035",
+                "option_0036",
+                "option_0037",
+                "option_0038",
+                "option_0039",
+                "option_0040",
+                "option_0041",
+                "option_0042",
+                "option_0043",
+                "option_0044",
+                "option_0045",
+                "option_0046",
+                "option_0047",
+                "option_0048",
+                "option_0049",
+                "option_0050",
+                "option_0051",
+                "option_0052",
+                "option_0053",
+                "option_0054",
+                "option_0055",
+                "option_0056",
+                "option_0057",
+                "option_0058",
+                "option_0059",
+                "option_0060",
+                "option_0061",
+                "option_0062",
+                "option_0063",
+                "option_0064",
+                "option_0065",
+                "option_0066",
+                "option_0067",
+                "option_0068",
+                "option_0069",
+                "option_0070",
+                "option_0071",
+                "option_0072",
+                "option_0073",
+                "option_0074",
+                "option_0075",
+                "option_0076",
+                "option_0077",
+                "option_0078",
+                "option_0079",
+                "option_0080",
+                "option_0081",
+                "option_0082",
+                "option_0083",
+                "option_0084",
+                "option_0085",
+                "option_0086",
+                "option_0087",
+                "option_0088",
+                "option_0089",
+                "option_0090",
+                "option_0091",
+                "option_0092",
+                "option_0093",
+                "option_0094",
+                "option_0095",
+                "option_0096",
+                "option_0097",
+                "option_0098",
+                "option_0099",
+                "option_0100",
+                "option_0101",
+                "option_0102",
+                "option_0103",
+                "option_0104",
+                "option_0105",
+                "option_0106",
+                "option_0107",
+                "option_0108",
+                "option_0109",
+                "option_0110",
+                "option_0111",
+                "option_0112",
+                "option_0113",
+                "option_0114",
+                "option_0115",
+                "option_0116",
+                "option_0117",
+                "option_0118",
+                "option_0119",
+                "option_0120",
+                "option_0121",
+                "option_0122",
+                "option_0123",
+                "option_0124",
+                "option_0125",
+                "option_0126",
+                "option_0127"
+              ]
+            }
+          },
+          "required": [
+            "tag"
+          ],
+          "additionalProperties": false
+        },
+        "nest_0": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/leaf"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/leaf"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_1": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_0"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_0"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_2": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_1"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_1"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_3": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_2"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_2"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "response": {
+    "data": {
+      "root": {
+        "child": {
+          "child": {
+            "child": {
+              "child": {
+                "tag": "option_0000"
+              },
+              "items": []
+            },
+            "items": []
+          },
+          "items": []
+        },
+        "items": []
+      }
+    },
+    "usage": {
+      "input_tokens": 1866,
+      "output_tokens": 67
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

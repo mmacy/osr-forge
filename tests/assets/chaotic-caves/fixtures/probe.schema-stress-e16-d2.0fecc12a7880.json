@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "fingerprint": "0fecc12a78807a5b722cce484e7e505b159faf2d8f3021bfed66ecc890f71066",
+  "tag": "probe.schema-stress-e16-d2",
+  "request": {
+    "system": "Reply with any document that satisfies the schema.",
+    "parts": [
+      {
+        "text": "Produce a minimal valid document."
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "$ref": "#/$defs/nest_1"
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "leaf": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "type": "string",
+              "enum": [
+                "option_0000",
+                "option_0001",
+                "option_0002",
+                "option_0003",
+                "option_0004",
+                "option_0005",
+                "option_0006",
+                "option_0007",
+                "option_0008",
+                "option_0009",
+                "option_0010",
+                "option_0011",
+                "option_0012",
+                "option_0013",
+                "option_0014",
+                "option_0015"
+              ]
+            }
+          },
+          "required": [
+            "tag"
+          ],
+          "additionalProperties": false
+        },
+        "nest_0": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/leaf"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/leaf"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_1": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_0"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_0"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "response": {
+    "data": {
+      "root": {
+        "child": {
+          "child": {
+            "tag": "option_0000"
+          },
+          "items": []
+        },
+        "items": []
+      }
+    },
+    "usage": {
+      "input_tokens": 962,
+      "output_tokens": 88
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

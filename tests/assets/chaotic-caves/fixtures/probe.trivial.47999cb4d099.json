@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "fingerprint": "47999cb4d099f1ed0a1064dc6643bf3b1420f0a83ef3324eef525700bd04335e",
+  "tag": "probe.trivial",
+  "request": {
+    "system": "You answer questions about tabletop adventure module pages.",
+    "parts": [
+      {
+        "text": "What is this module's title?"
+      },
+      {
+        "sha256": "210d741654db8183d767f3f8d9678f97b3b0b01f66a9f49aad439e64199d14b3",
+        "bytes": 479949
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "answer": "The Chaotic Caves"
+    },
+    "usage": {
+      "input_tokens": 960,
+      "output_tokens": 18
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

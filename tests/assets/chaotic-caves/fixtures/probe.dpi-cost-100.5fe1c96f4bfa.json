@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "fingerprint": "5fe1c96f4bfaaa38f566b5f71a4f88ecafe714226ffe34dbe760575956a21e6e",
+  "tag": "probe.dpi-cost-100",
+  "request": {
+    "system": "You read adventure module page images.",
+    "parts": [
+      {
+        "text": "Name this page's most prominent heading."
+      },
+      {
+        "sha256": "d17e3b0a749b717eee0b4b755703d2cd1b9597f0b24da3a6d9d6792c31a76f70",
+        "bytes": 212556
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "answer": "The Chaotic Caves"
+    },
+    "usage": {
+      "input_tokens": 962,
+      "output_tokens": 21
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

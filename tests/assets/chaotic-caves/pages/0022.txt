@@ -1,0 +1,93 @@
+The Caves The Chaotic Caves
+The Caves
+The GM has to decide where the caves are on
+the map. They might even be scattered about
+the countryside in different places. As drawn,
+the cave map is wooded with occasional
+clearings, but the GM may of course change
+that. 
+The monsters are trying to avoid leaving tracks
+and trails so as to keep their lairs undetected.
+Wild animals are few in the general area
+around the caves; monsters are hunting them
+pretty hard. As the characters get close to an
+entrance, they will note it or the guards (if any)
+on duty. Perhaps smoke from someone
+cooking a meal in the open is seen rising above
+the treetops, or is smelled by the PCs in the
+breeze.
+An adventuring party blundering around
+outside the caves, making a lot of noise, should
+alert the denizens to their presence; the
+monsters will surely come out in force after
+dark, if an adventuring party is foolish enough
+to camp nearby.
+The underground areas are not lit unless
+otherwise noted. It is usually dead-silent
+underground, making a Thief's ability to Move
+Silently handy. Contrast that to when the wind
+is blowing outdoors and the sound of the
+leaves makes a constant background noise.
+Monsters can hear PCs as easily as PCs can
+hear monsters, so unless a monster is on guard
+duty or hunting, it does not have an increased
+chance of surprise versus PCs.
+Most ceilings are 10 to 15 feet high, but the GM
+should choose heights as desired. In some
+places they are obviously higher, and in others
+the GM might want to lower them.
+Most of the doors to rooms are heavy wooden
+doors that open with a simple latch and can be
+barred from inside the room.
+Steps typically have a 1 to 1 grade, going down
+1 foot for each foot of length (so 10 foot long
+steps drop 10 feet in elevation).
+Exact elevations are not given to avoid fooling
+the GM into thinking everything is neat and
+orderly. The contour lines are only rough
+guidelines for slopes. The region may look flat
+on paper, but even the "flat" parts undulate.
+Two entrances (or other features) that appear
+to be on the same level could differ in
+elevation by 10 to 20 feet. The tunnels will
+constantly slope up and down.
+Impress the irregularity of the ground from the
+start to reduce "flat-world" thinking. If
+someone starts arguing that part "A" doesn't
+work because it looks like it is on the same
+level as part "B", just tell them the ground
+slopes up or down as needed and get on with
+playing.
+A. ORC LAIR
+These orcs share (along with those at lair B
+below) the duty of guarding the local orc
+temple from intruders. They are brash and
+haughty, prone to cruelty, tricks, and nastiness.
+There is a chance (a 1 or 2 on 1d6) per hour (6
+turns) that the player characters will
+encounter 1d6 orcs moving about.
+1d6 Wandering Orcs: AC 14, HD 1, 
+#At 1 longsword, Dam 1d8, Mv 30', Sv F1, ML 8, 
+XP 25 ea.
+HP 4 ☐☐☐☐ 4 ☐☐☐☐
+4 ☐☐☐☐ 4 ☐☐☐☐
+4 ☐☐☐☐ 4 ☐☐☐☐
+1. ENTRANCE: Two orcs usually stand guard
+outside this gaping entranceway, leaning on
+their spears. Others will be inside the first
+chamber, which is their usual bunk room. Each
+has 1d6 sp.
+6 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, 
+Mv 30', Sv F1, ML 8, XP 25 ea.
+HP 4 ☐☐☐☐ 4 ☐☐☐☐
+ 4 ☐☐☐☐ 4 ☐☐☐☐
+ 4 ☐☐☐☐ 4 ☐☐☐☐
+2. EMPTY ROOM: The walls and some of the
+ceiling of this room collapsed some time ago.
+It is currently unfit to live in.
+3. COMMON ROOM: These are the quarters of a
+number of orcs, with their weapons and gear.
+Each has 1d6 sp. Crude furniture is in the
+center of the room, and wooden bunks line the
+walls. In the back are sacks of food stuffs
+20

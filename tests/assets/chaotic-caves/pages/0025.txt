@@ -1,0 +1,91 @@
+The Chaotic Caves The Caves
+13. CHIEF'S QUARTERS: The wily orc chief
+resides here. A war leader and a couple of
+common orcs are also usually found here.
+The chief has a key that opens the eastern
+temple door at room #9 attached to a necklace
+of long pencil-thin gold bars (value 100 gp).
+Treasure is housed in a locked chest with a gas
+trap inside it. The trap is released when it is
+opened, unless some long pencil-sized object
+is inserted into a hole in back (the chief's
+necklace is used for this). The gas will affect a
+10' area around the chest (save vs. Poison or
+die; alternately the GM may substitute a
+similarly-nasty effect of his or her own
+devising). In the chest are 800 gp, 500 ep,
+700 sp, and a Potion of Healing.
+This room contains various bits of stout
+wooden furniture. Under a heavy chair in the
+northeast corner is the alarm bell that rings if
+either of the trapped secret doors in room #11
+is opened without disarming it first.
+Orc Chief: AC 15, HD 4, #At 1 longsword, 
+Dam 1d8+2, Mv 20', Sv F4, ML 9, XP 240
+HP 18 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐
+Orc War Leader: AC 14, HD 2, #At 1 longsword, 
+Dam 1d8+1, Mv 30', Sv F2, ML 9, XP 75
+HP 10 ☐☐☐☐☐ ☐☐☐☐☐
+2 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, 
+Mv 30', Sv F1, ML 8 (9 while chief and/or leader
+are present), XP 25 ea.
+HP 4 ☐☐☐☐ 4 ☐☐☐☐
+14. COMMON ROOM: This trash-littered room
+houses nine orcs. They are currently throwing
+rocks at one who is standing against a wall.
+Several others are bruised. The game is to see
+who can take the most beating before
+flinching. Each has 1d6 sp.
+9 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, 
+Mv 30', Sv F1, ML 8, XP 25 ea.
+HP 4 ☐☐☐☐ 4 ☐☐☐☐
+4 ☐☐☐☐ 3 ☐☐☐
+4 ☐☐☐☐ 3 ☐☐☐
+4 ☐☐☐☐ 2 ☐☐
+4 ☐☐☐☐
+15. COMMON ROOM: This room houses seven
+orcs. It is cluttered by miscellaneous debris
+that they have torn up and discarded, as well
+as firewood and stone circles for cooking.
+Hidden in a hole in the northeast corner
+(covered by a stack of fireplace rocks and a
+foot of earth) is a bag with 10 pp and 400 sp.
+7 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, 
+Mv 30', Sv F1, ML 8, XP 25 ea.
+HP 4 ☐☐☐☐ 4 ☐☐☐☐
+4 ☐☐☐☐ 4 ☐☐☐☐
+4 ☐☐☐☐ 4 ☐☐☐☐
+4 ☐☐☐☐
+C. HOBGOBLIN LAIR
+These hobgoblins have taken over what was
+going to be an expansion of the funeral crypt at
+D and are renovating it. The interior is a
+mixture of smooth stone where the original
+carvers completed their work, rough unfinished
+work where they left off, and some work by
+the hobgoblins.
+ENTRANCE: Twin entrances lead into the first
+chamber where five hobgoblins are bunked on
+guard duty. Each has 1d6 sp.
+At "A" is a wide underground stream being
+used as a moat. Wooden planks about 15' long
+(used to cross it) are stored on the opposite
+side. A loud horn (from an ox) hangs on a peg
+and can be blown to attract someone to come
+put planks across (the hobgoblins at #17 are
+tasked for the job). Other methods can be
+used to cross it; if the players engage in a
+lengthy debate or over-elaborate plan to cross,
+roll 1d6 and on a 5 or 6 two hobgoblins from
+#17 appear to interrupt.
+In the northwest corner at "C" is a crude hide
+painted to resemble stone used for laying
+ambushes (i.e. hiding behind the hide and
+letting people get inside the room, then rushing
+out to attack).
+5 Hobgoblins: AC 14, HD 1, #At 1 scimitar, 
+Dam 1d8, Mv 30', Sv F1, ML 8, XP 25 ea.
+HP 5 ☐☐☐☐☐ 5 ☐☐☐☐☐
+5 ☐☐☐☐☐ 5 ☐☐☐☐☐
+5 ☐☐☐☐☐
+23

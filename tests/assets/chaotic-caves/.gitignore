@@ -1,0 +1,3 @@
+# The module PDF is not redistributable as-published (non-licensed artwork);
+# it is referenced by pointer + sha256 in README.md and never committed.
+*.pdf

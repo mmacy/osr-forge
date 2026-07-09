@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "fingerprint": "83c010a197a4e59910b2f6755228fad561ced52ecfb8b65d1ac87061e2e0aa57",
+  "tag": "probe.auth-key",
+  "request": {
+    "system": "Reply with the single word 'ok'.",
+    "parts": [
+      {
+        "text": "Auth check over the key path."
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "answer": "ok"
+    },
+    "usage": {
+      "input_tokens": 51,
+      "output_tokens": 14
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

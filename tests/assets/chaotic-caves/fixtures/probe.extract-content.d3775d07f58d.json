@@ -1,0 +1,972 @@
+{
+  "schema_version": 1,
+  "fingerprint": "d3775d07f58d75a1e5c08a3b9c0b059fd562ed760bac39f8cd0c7f5529934a26",
+  "tag": "probe.extract-content",
+  "request": {
+    "system": "Extract the keyed areas on these pages: description, encounters, treasure, connections, source pages, and a self-assessed confidence in [0, 1] per area.",
+    "parts": [
+      {
+        "text": "[page 8]\nThe Town and Surroundings The Chaotic Caves\nTown Key\nThe town lies at the crossroads of a river and\nan old paved highway. It thrives on trade and\ncommerce. Several smithies provide weapons\nand body armor. Merchants offer food,\nclothing, and basic goods. A Cleric and healer\nplies her wares. Horses and wagons are\navailable, as are freight, coach, and courier\nservices. Near the bridge are docks with a\nnarrow wooden pier and storage shed where\nboats might be purchased or rented.\nAn irregular wooden stockade 15' high\nsurrounds most of the town, thrown up\nhaphazardly as it expanded. This is slowly\nbeing replaced by a heavy stone wall about the\nsame height and ten feet thick, with\nbattlements occupying the top five feet. The\nwoods to the northwest of the town are being\ncleared to allow the expansion of the walls.\nThe GM can add residents and NPCs as needed.\nAdditional residences and farms would be\nscattered around outside the walls.\nTo save space, XP values are not given for the\nvillagers. Most are Normal Men, worth 10 XP\neach. The GM can look up outliers if needed.\nEast, North and South Gates: These heavy\nwooden gates can be barred from the inside.\nEach has a hut beside it for a watch of three\nsoldiers from the garrison (see #38 for basic\ntroops). The east gate opens onto a dirt road\nleading east towards farms and forest. A\ncobblestone highway winds through the town\nfrom the north to south gate.\nOrchard: Apples, pears, pecans, etc. grow here.\nIt is the common property of the town.\n1. HUNTERS AND DOG BREEDERS RESIDENCE:\nThese hunters also breed hunting and guard\ndogs. They have several large pens for dogs.\nFather: AC 11, HD ½ (1d4 HP), #At 1 spear or \n1 shortbow, Dam 1d6, Mv 40', Sv NM, ML 7\nHP 4 ☐☐☐☐\n2 Sons: AC 11, HD ½ (1d4 HP), #At 1 spear or \n1 shortbow, Dam 1d6, Mv 40', Sv NM, ML 7\nHP 3 ☐☐☐ 3 ☐☐☐\n2. CHICKEN RANCHERS AND HOME: These\nordinary people raise numerous chickens for\neggs, meat and feathers. They have coops as\nwell as a fenced-in area that the chickens can\nget in and out of – and flee to if chased by\ndogs.\nWidow Woman: AC 11, HD ½ (1d4 HP), \n#At 1 kitchen knife, Dam 1d4, Mv 40', Sv NM, \nML 7\nHP 3 ☐☐☐\n2 Older Children: AC 11, HD ½ (1d4 HP), \n#At 1 club, Dam 1d4, Mv 40', Sv NM, ML 7\nHP 3 ☐☐☐ 2 ☐☐\n3. FAMILY RESIDENCE: This two-story home is\nheavily built from large oaken beams. The top\nstory overhangs the bottom one. The\noccupants do odd work for a living.\nFather: AC 11, HD ½ (1d4 HP), #At 1 spear, \nDam 1d6+2 (bonus for strength of 16), Mv 40', \nSv NM, ML 7\nHP 4 ☐☐☐☐\n5 Sons: AC 11, HD ½ (1d4 HP), #At 1 spear, \nDam 1d6+2 (bonus for strength of 16), Mv 40', \nSv NM, ML 7\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 2 ☐☐\n2 ☐☐\n4a. SMITH: This man has two apprentices who\nhelp tend the forge. They spend a good deal of\ntime making nails, tacks, and other items. The\nsmith mainly makes iron hardware, from hinges\nand fireplace pokers to iron railings for those\nwho can afford them.\nSmith: AC 11, HD ½ (1d4 HP), #At 1 hammer, \nDam 1d6 +1 (bonus for strength of 14), Mv 40', \nSv NM, ML 7\nHP 4 ☐☐☐☐\n2 Apprentices: AC 11, HD ½ (1d4 HP), #At 1 \nhammer, Dam 1d6, Mv 40', Sv NM, ML 7\nHP 3 ☐☐☐ 2 ☐☐\n6"
+      },
+      {
+        "sha256": "210d741654db8183d767f3f8d9678f97b3b0b01f66a9f49aad439e64199d14b3",
+        "bytes": 479949
+      },
+      {
+        "text": "[page 22]\nThe Caves The Chaotic Caves\nThe Caves\nThe GM has to decide where the caves are on\nthe map. They might even be scattered about\nthe countryside in different places. As drawn,\nthe cave map is wooded with occasional\nclearings, but the GM may of course change\nthat. \nThe monsters are trying to avoid leaving tracks\nand trails so as to keep their lairs undetected.\nWild animals are few in the general area\naround the caves; monsters are hunting them\npretty hard. As the characters get close to an\nentrance, they will note it or the guards (if any)\non duty. Perhaps smoke from someone\ncooking a meal in the open is seen rising above\nthe treetops, or is smelled by the PCs in the\nbreeze.\nAn adventuring party blundering around\noutside the caves, making a lot of noise, should\nalert the denizens to their presence; the\nmonsters will surely come out in force after\ndark, if an adventuring party is foolish enough\nto camp nearby.\nThe underground areas are not lit unless\notherwise noted. It is usually dead-silent\nunderground, making a Thief's ability to Move\nSilently handy. Contrast that to when the wind\nis blowing outdoors and the sound of the\nleaves makes a constant background noise.\nMonsters can hear PCs as easily as PCs can\nhear monsters, so unless a monster is on guard\nduty or hunting, it does not have an increased\nchance of surprise versus PCs.\nMost ceilings are 10 to 15 feet high, but the GM\nshould choose heights as desired. In some\nplaces they are obviously higher, and in others\nthe GM might want to lower them.\nMost of the doors to rooms are heavy wooden\ndoors that open with a simple latch and can be\nbarred from inside the room.\nSteps typically have a 1 to 1 grade, going down\n1 foot for each foot of length (so 10 foot long\nsteps drop 10 feet in elevation).\nExact elevations are not given to avoid fooling\nthe GM into thinking everything is neat and\norderly. The contour lines are only rough\nguidelines for slopes. The region may look flat\non paper, but even the \"flat\" parts undulate.\nTwo entrances (or other features) that appear\nto be on the same level could differ in\nelevation by 10 to 20 feet. The tunnels will\nconstantly slope up and down.\nImpress the irregularity of the ground from the\nstart to reduce \"flat-world\" thinking. If\nsomeone starts arguing that part \"A\" doesn't\nwork because it looks like it is on the same\nlevel as part \"B\", just tell them the ground\nslopes up or down as needed and get on with\nplaying.\nA. ORC LAIR\nThese orcs share (along with those at lair B\nbelow) the duty of guarding the local orc\ntemple from intruders. They are brash and\nhaughty, prone to cruelty, tricks, and nastiness.\nThere is a chance (a 1 or 2 on 1d6) per hour (6\nturns) that the player characters will\nencounter 1d6 orcs moving about.\n1d6 Wandering Orcs: AC 14, HD 1, \n#At 1 longsword, Dam 1d8, Mv 30', Sv F1, ML 8, \nXP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n1. ENTRANCE: Two orcs usually stand guard\noutside this gaping entranceway, leaning on\ntheir spears. Others will be inside the first\nchamber, which is their usual bunk room. Each\nhas 1d6 sp.\n6 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n 4 ☐☐☐☐ 4 ☐☐☐☐\n 4 ☐☐☐☐ 4 ☐☐☐☐\n2. EMPTY ROOM: The walls and some of the\nceiling of this room collapsed some time ago.\nIt is currently unfit to live in.\n3. COMMON ROOM: These are the quarters of a\nnumber of orcs, with their weapons and gear.\nEach has 1d6 sp. Crude furniture is in the\ncenter of the room, and wooden bunks line the\nwalls. In the back are sacks of food stuffs\n20"
+      },
+      {
+        "sha256": "bb1805a1db28e98cea5c04a5465a8392f6899447fdb1cfdcf1d8985d04a86d4c",
+        "bytes": 496731
+      },
+      {
+        "text": "[page 23]\nThe Chaotic Caves The Caves\n(potatoes, etc.) and hanging meat (12 – 72\npounds each of veggies and meat).\n8 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4. WOLF PEN. Both ends of this area are\nblocked by a wooden fence spanning the\ncomplete width and height of the halls; in the\ncenter of each is a wooden gate about 3' wide\nand 6' high, lashed shut by rope. Inside are\nthree wolves. They are usually alert and will\nset up a clamorous barking and howling if they\nhear or smell careless parties, resulting in a\nchance of attracting orcs to see what is going\non (use the wandering orc concept explained at\nthe start of the lair for the chance and number\nof orcs). Make a \"hear noise\" roll to see if the\njailers in #5 below hear and investigate as well.\nThe soft earthen floor of the room is littered\nwith wooden bowls full of water, bones, and\noffal, but nothing else.\n3 Wolves: AC 13, HD 2, #At 1 bite, Dam 1d6, \nMv 60', Sv F2, ML 8, XP 75 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n7 ☐☐☐☐☐ ☐☐\n5. DOOR TO JAIL: Behind this door are the\nquarters for the big, sweaty orc who serves as\nthe warden of the jail (and also chief torturer)\nand two assistants. The key to the jail door is\nusually hung on a hide cord on the wall. Crude\nfurniture and various simple wooden or stone\ninterrogation devices fill the room. The warden\nhas 1d6 gp and the other two orcs 1d6 sp.\nOrc Warden: AC 14, HD 2, #At 1 longsword, \nDam 1d8+1 for strength, Mv 30', Sv F2, ML 8, \nXP 75\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n2 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐ \nJAIL AREA: The locked door to the east opens\ninto the jail, where anyone captured will be\nheld. Currently there is a merchant who is a\nnormal man (bedraggled and missing a finger,\nwhich was sent off with a ransom note). If\nsaved, he will give the party what he has at his\nhome (100 gp; it is obvious the orcs think he's\nricher than he is). \nMerchant: AC 11, HD ½ (1d4 HP), #At 1 fist, \nDam 1d3, Mv 40', Sv NM, ML 7, XP 10\nHP 3 ☐☐☐\n6. CHIEF'S ROOM: The strong, shrewd leader of\nthe orcs resides here, sitting on a large,\nheavily-built throne when judging court. The\nsub-room to the south contains a bed and\nother personal furniture. His pets are also\nhere: a mountain lion and two wolves. The\ntawny cat wears a collar with gems (100 gp\nvalue for the gems) that is connected to a\nstrong steel chain. The chain is usually\nattached to a steel hoop on the base of the\nthrone; the chain can be released quickly. The\nwolves wear ordinary heavy leather collars, and\nare usually chained to the wall beside the door.\nUsually there are four orcs: two are here on\npermanent duty and two more to serve as\nmessengers and go-fers. The chief has the key\nto the west temple door (see room #9).\nOrc Chief: AC 15, HD 4, #At 1 longsword, \nDam 1d8+1 due to Strength, Mv 20', Sv F4, \nML 8, XP 240\nHP 18 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\nMountain Lion: AC 14, HD 3+2, #At 2 claws, \n1 bite, Dam 1d4 claw, 1d6 bite, Mv 50', Sv F3, \nML 8, XP 145\nHP 14 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐\n2 Wolves: AC 13, HD 2, #At 1 bite, Dam 1d6, \nMv 60', Sv F2, ML 8, XP 75 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n9 ☐☐☐☐☐ ☐☐☐☐\n4 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n21"
+      },
+      {
+        "sha256": "9ea8edd51f2e7e20d4072b0b9df8fdc6fbe298466631c35b22350a87e4c7983e",
+        "bytes": 454797
+      },
+      {
+        "text": "[page 24]\nThe Caves The Chaotic Caves\nThe throne is the treasure chest. There is a\nsilk pillow on it which is worth 200 gp. Under\nthe flip-up seat is: 671 gp, 1,235 sp, and 785 cp.\nA stoppered flask in a padded jar contains a\nPotion of Passwall – which replicates the\neffect of the 5th-level Magic-User spell of that\nname when poured onto an appropriate\nsurface.\n7. COMMON ROOM/GUARD ROOM: Several orcs\nare housed here as a guard post against those\nin lair B. Each has 1d6 sp. The room is\ncluttered with crude furniture and common\nfoods stuffs, some in bags, some in the form of\ndried meats hanging on strings.\n4 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n8. POOLS: These pools of water are fed by\nunderground springs. They provide a year\u0002round source of fresh water. They are 6' deep\nand clean, but otherwise not unusual.\n9. SHARED HALLWAY: At each end of this\nhallway is a heavy, thick wooden door bound\nby strong steel bands, with crafty and heavy\nlocks. Each of the orc chiefs (rooms #6 and\n#13) has the key to the opposite side. They\nmust cooperate to enter the temple.\nSet here as temple guards, the orcs on either\nside have been fighting so savagely for the\naffections of the god in the temple that a high\npriest had the doors locked. She gave the keys\nto the chiefs, with the admonishment that any\nfurther monkey business was not going to be\ntolerated. \n10. ORC TEMPLE: This temple was carefully\ncut from the living stone and is well\u0002maintained. The four pillars are fluted and\nornate; the floor is tiled with polished green\nand red marble. The ceiling sweeps up some\n20' high. On a dais some 6' above the floor is\nthe statue of a vindictive, evil orc god. It is\ncarved from a single shining piece of black\nbasalt, standing 12' high. It has two red gems\nfor eyes (each worth 250 gp). Steps are not\nprovided for getting atop the dais; no one is\nsupposed to stand on it.\nB. ORC LAIR\nThese orcs share (with those at lair A above)\nthe duty of guarding the local orc temple from\nintruders. They have a cruel sense of humor.\nThere is a 1-2 on 1d6 chance per hour (6 turns)\nthat the player characters will encounter 1d6\norcs while exploring the caves.\n1d6 Wandering Orcs: AC 14, HD 1, #At 1 spear, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nENTRANCE: Four orcs are immediately inside in\nthe first chamber, along with a hobgoblin that\nwent looking for greener pastures and latched\nonto the orcs. Each has 1d6 sp.\n4 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nHobgoblin: AC 14, HD 1, #At 1 scimitar, Dam 1d8,\nMv 30', Sv F1, ML 8, XP 25\nHP 5 ☐☐☐☐☐\n11. SECRET SAFE ROOM: Only the orc chief in\nroom #13 knows of this secret room. Both of\nthe secret doors that enter into it are so well\u0002hidden that even close scrutiny has a low\nchance of finding them. Each is also trapped\nin two ways: when opened without disarming\nthe traps, (1) a bladder of gas will release,\ncausing anyone within 10' to make a save vs.\nPoison or fall asleep for 1d6 hours. And (2) an\nalarm bangs away loudly for a minute in the\norc chiefs quarters. Stashed in the main\nchamber is a sword, a pouch with 25 gp, food,\nand flint and steel, a skin of water, a cot, and a\ncloak.\n12. GUARD POST: Two orcs with spears and\nhand axes stand on guard duty at this door.\nEach has 1d6 sp. The short corridor between it\nand the next room provides a buffer zone in\ncase of attack.\n2 Orcs: AC 14, HD 1, #At 1 spear or 1 hand axe, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n22"
+      },
+      {
+        "sha256": "b0e7046e6fe09505fb8ec6167965e960ee2fb19b0f09abfe4cccd98a9ca69b91",
+        "bytes": 528515
+      },
+      {
+        "text": "[page 25]\nThe Chaotic Caves The Caves\n13. CHIEF'S QUARTERS: The wily orc chief\nresides here. A war leader and a couple of\ncommon orcs are also usually found here.\nThe chief has a key that opens the eastern\ntemple door at room #9 attached to a necklace\nof long pencil-thin gold bars (value 100 gp).\nTreasure is housed in a locked chest with a gas\ntrap inside it. The trap is released when it is\nopened, unless some long pencil-sized object\nis inserted into a hole in back (the chief's\nnecklace is used for this). The gas will affect a\n10' area around the chest (save vs. Poison or\ndie; alternately the GM may substitute a\nsimilarly-nasty effect of his or her own\ndevising). In the chest are 800 gp, 500 ep,\n700 sp, and a Potion of Healing.\nThis room contains various bits of stout\nwooden furniture. Under a heavy chair in the\nnortheast corner is the alarm bell that rings if\neither of the trapped secret doors in room #11\nis opened without disarming it first.\nOrc Chief: AC 15, HD 4, #At 1 longsword, \nDam 1d8+2, Mv 20', Sv F4, ML 9, XP 240\nHP 18 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\nOrc War Leader: AC 14, HD 2, #At 1 longsword, \nDam 1d8+1, Mv 30', Sv F2, ML 9, XP 75\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n2 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8 (9 while chief and/or leader\nare present), XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n14. COMMON ROOM: This trash-littered room\nhouses nine orcs. They are currently throwing\nrocks at one who is standing against a wall.\nSeveral others are bruised. The game is to see\nwho can take the most beating before\nflinching. Each has 1d6 sp.\n9 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 3 ☐☐☐\n4 ☐☐☐☐ 3 ☐☐☐\n4 ☐☐☐☐ 2 ☐☐\n4 ☐☐☐☐\n15. COMMON ROOM: This room houses seven\norcs. It is cluttered by miscellaneous debris\nthat they have torn up and discarded, as well\nas firewood and stone circles for cooking.\nHidden in a hole in the northeast corner\n(covered by a stack of fireplace rocks and a\nfoot of earth) is a bag with 10 pp and 400 sp.\n7 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐\nC. HOBGOBLIN LAIR\nThese hobgoblins have taken over what was\ngoing to be an expansion of the funeral crypt at\nD and are renovating it. The interior is a\nmixture of smooth stone where the original\ncarvers completed their work, rough unfinished\nwork where they left off, and some work by\nthe hobgoblins.\nENTRANCE: Twin entrances lead into the first\nchamber where five hobgoblins are bunked on\nguard duty. Each has 1d6 sp.\nAt \"A\" is a wide underground stream being\nused as a moat. Wooden planks about 15' long\n(used to cross it) are stored on the opposite\nside. A loud horn (from an ox) hangs on a peg\nand can be blown to attract someone to come\nput planks across (the hobgoblins at #17 are\ntasked for the job). Other methods can be\nused to cross it; if the players engage in a\nlengthy debate or over-elaborate plan to cross,\nroll 1d6 and on a 5 or 6 two hobgoblins from\n#17 appear to interrupt.\nIn the northwest corner at \"C\" is a crude hide\npainted to resemble stone used for laying\nambushes (i.e. hiding behind the hide and\nletting people get inside the room, then rushing\nout to attack).\n5 Hobgoblins: AC 14, HD 1, #At 1 scimitar, \nDam 1d8, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐\n23"
+      },
+      {
+        "sha256": "2b6f9df6ce935538fdd3d53f5c076f5d052e276d7eaeeb35407ac7b46732f0ed",
+        "bytes": 488590
+      },
+      {
+        "text": "[page 26]\nThe Caves The Chaotic Caves\n16. TRAPPED HALLWAY: Three sets of pillars\nhelp support the 20' high ceiling of this\notherwise innocuous hallway. The hobgoblins\nhave strung thin wires along the floor between\nthe center two. Anyone tripping the wires will\nbe attacked by a heavy stone-headed mallet\nswinging down from behind the pillars (it\nattacks as a 2 HD creature and does 1d8 points\nof damage if it hits) followed a moment later\nby a net covered in bells that covers the hall\nbetween the two pillars. Anyone caught under\nthe net will be tangled for 1d6 rounds and their\nstruggles will cause the bells to ring loudly.\nThere is a good chance hobgoblins from room\n#17 below will hear the bells and come to\ninvestigate.\n17. COMMON ROOM: Six hobgoblins bunk here.\nEach has 1d6 sp. They are not wearing armor\nbut will don it if given time. They have fixed\nthe place up, and are using what was once\ngoing to be platforms for caskets as benches\nand tables. Three fancy, elaborate red funeral\nshrouds with thin gold threading and black\ndetails are being used as hammocks, each\nworth 50 gp.\n6 Hobgoblins: AC 14 armored, 11 unarmored, \nHD 1, #At 1 scimitar, Dam 1d8, Mv 30' armored \nor 40', Sv F1, ML 8, XP 25 ea.\nHP 5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n18. STORE ROOM: Usually this room is locked\n(but not very well – a Thief could pick either\ndoor with ease and the doors can be knocked\nin easily). The chief (in #21) has the key to the\ndoors. It is full of odds and ends and minor\nplunder: clothing, sacks of grains and potatoes,\nhanging dried meats, perhaps some hanging\n\"fresh meat\" in the form of slain foes. Also\nthere are mining tools: picks, chisels, hammers,\netc.\n19. SUB-LEADER: This room has been taken\nover by a skilled and tough hobgoblin, who\nlives in luxury. On the wall are a short bow\nand two quivers of arrows, as well as other\nitems. He has two pouches on his belt\ncontaining 300 ep in one and 300 gp in the\nother. He carries the key to this room on a\nstring made of hair on his belt.\nHobgoblin: AC 14, HD 3, #At 1 scimitar or \n1 shortbow, Dam 1d8 scimitar, 1d6 shortbow, \nMv 30', Sv F3, ML 8, XP 145\nHP 15 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐\n20. GUARD ROOM: The hobgoblins here have\npiled up rubble in the hallway and stockpiled\nsix vials of holy water to fend off the ghouls to\nthe west. Each has 1d6 sp.\n4 Hobgoblins: AC 14, HD 1, #At 1 scimitar, \nDam 1d8, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n21. CHIEF'S ROOM: This chamber contains the\nhobgoblin chief and 3 bodyguards. The chief\nhas the key to the store room at #18. There is\na plain bed, chairs, tables, and other\nfurnishings here.\nA collection of goods on one table includes a\nvial with a Potion of Stone to Flesh (1 use in it).\nA bag tied to the foot of the bed holds 600 gp,\n1,200 sp, and 1,800 cp.\nHobgoblin Chief: AC 15, HD 5, #At 1 scimitar, \nDam 1d8, Mv 20', Sv F5, ML 8, XP 360\nHP 25 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐\n☐☐☐☐☐\n3 Hobgoblins: AC 14, HD 1, #At 1 scimitar, \nDam 1d8, Mv 30', Sv F1, ML 8 (9 while chief is \npresent), XP 25 ea.\nHP 5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐\nD. ABANDONED CRYPTS\nThese are the old funeral crypts, which were\nonce going to be expanded at lair C. Once\nhighly decorated, the facade to the entrance is\nnow in ruin, with much of the marble overlay\nbroken off and scattered about, leaving bare\nstone. A plaque that once held the name of\nthe crypts lies in shards on the ground. Bits of\nbone, scraps of cloth, and chunks of wood\n(some of it varnished) litter the floor and\nclutters every floor inside.\nIn addition to the larger areas, there are five\nsmall, rounded alcoves along the walls (two\neast, three west) which contain pedestals for\nshrines.\n24"
+      },
+      {
+        "sha256": "2a9310589e3ec553ce5dd7a4c5f8c694c21393a4ba0e5d3556b1522946fc3d66",
+        "bytes": 533928
+      },
+      {
+        "text": "[page 27]\nThe Chaotic Caves The Caves\n22. GHOULS: Three ghouls lurk here trying to\nget through the rubble to the hobgoblins in\n#20. They are not interested in skeletons or\nzombies as a possible food source.\n3 Ghouls: AC 14, HD 2*, #At 2 claws, 1 bite, \nDam 1d4 claw, 1d4 bite, all plus paralysis, \nMv 30', Sv F2, ML 9, XP 100 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n9 ☐☐☐☐☐ ☐☐☐☐\n9 ☐☐☐☐☐ ☐☐☐☐\n23. SKELETONS: This space contains six\nskeletons (three on the east and three on the\nwest). They stand like guards stiff at\nattention, and attack intruders on sight. The\narea is cluttered by broken coffins. The\nrubbish contains a silver dagger, 30 gp, and 21\npp.\n6 Skeletons: AC 13 (½ damage from edged \nweapons, 1 point only from arrows or bolts), \nHD 1, #At 1 spear, Dam 1d6, Mv 40', Sv F1, \nML 12, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n24. ZOMBIES: Zombies wait patiently here,\nunder orders to attack and destroy any\nintruders. The area contains empty (old and\nrotten) or smashed coffins. Amid the splinters\nof what appears to have been an ornate\ncabinet are six intact vials of holy water and\n56 gp.\n4 Zombies: AC 12 (½ damage from blunt \nweapons, 1 point only from arrows or bolts), \nHD 2, #At 1 bludgeon, Dam 1d8, Mv 20', Sv F2, \nML 12, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n25. SKELETONS: The skeletons posted here\nattack on sight.\nThe outward facing walls are lined by crypt\nspaces (3 high, 3 wide per 10' section); many\nare empty. Those with anything in them have\nthe remains of poor people and (in total) little\nmore than 26 gp and 49 sp. Hanging out the\ngaping square of one (in plain sight) is a\nnecklace with gems worth 750 gp; the original\nowners will be so glad to have it recovered (as\na sentimental heirloom) that they will pay\n1,000 gp for it, if they are tracked down.\n6 Skeletons: AC 13 (½ damage from edged \nweapons, 1 point only from arrows or bolts), \nHD 1, #At 1 weapon, Dam 1d6, Mv 40', Sv F1, \nML 12, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nE. GOBLIN LAIR\nThese goblins are living the simple life and\nserving as spear fodder for the stronger tribes,\nwho aren't above recruiting them (by force) for\nbattles. Their crudely tunneled-out warren is\ndark and dank. Many halls are 6' to 8' wide\nand just as high.\n26. GUARD POST: Six goblins hunker here,\nready to fight intruders. Each has 1d6 cp. They\ncontrol a net trap which they can drop by\njerking on a rope (it covers the trap area\nmarked on the map at the entrance). Entangled\nopponents will be easily subdued, but can get\nfree in 1d6 rounds if they are left alone. The\nGM should use common sense and an easily\u0002managed die roll to see if any character is\ntrapped. Any who are foolish enough to walk\nright under the net will almost certainly be\ntrapped. More so, the goblins have slings and\nwill pelt anyone who steps out to try to undo\nthe net.\n6 Goblins: AC 14, HD 1-1, #At 1 shortsword or \n1 sling, Dam 1d6 shortsword, 1d4 sling, Mv 20', \nSv F1, ML 7, XP 25 ea.\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n25"
+      },
+      {
+        "sha256": "6c6d457dce28505a2177959a1742c0f4a2aed08f328b5990f7f143baa0f06cb2",
+        "bytes": 451312
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "treasure",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "Town Key",
+          "description": "A trade town at the crossroads of a river and an old paved highway. It offers smithies, merchants, healer/cleric services, horses, wagons, freight, coach and courier services, and docks with a wooden pier and shed where boats may be bought or rented. Most of the town is enclosed by an irregular 15' wooden stockade being replaced by a 15' high, 10' thick stone wall with battlements. Woods to the northwest are being cleared for expansion. East, north, and south gates are heavy wooden gates with a nearby watch hut for three soldiers each. The east gate leads to farms and forest; a cobblestone highway runs north-south through town. There is also a common orchard with apples, pears, pecans, etc.",
+          "encounters": [],
+          "treasure": [],
+          "connections": [],
+          "source_pages": [
+            8
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "1",
+          "description": "Hunters and dog breeders residence with several large pens for hunting and guard dogs.",
+          "encounters": [
+            {
+              "monster": "Hunter father",
+              "count": "1"
+            },
+            {
+              "monster": "Hunter sons",
+              "count": "2"
+            }
+          ],
+          "treasure": [],
+          "connections": [],
+          "source_pages": [
+            8
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "2",
+          "description": "Chicken ranchers and home. A family raising numerous chickens for eggs, meat, and feathers, with coops and a fenced run the chickens can retreat to.",
+          "encounters": [
+            {
+              "monster": "Widow woman",
+              "count": "1"
+            },
+            {
+              "monster": "Older children",
+              "count": "2"
+            }
+          ],
+          "treasure": [],
+          "connections": [],
+          "source_pages": [
+            8
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "3",
+          "description": "A heavily built two-story family residence of large oaken beams, with the upper story overhanging the lower. The occupants do odd jobs for a living.",
+          "encounters": [
+            {
+              "monster": "Father",
+              "count": "1"
+            },
+            {
+              "monster": "Sons",
+              "count": "5"
+            }
+          ],
+          "treasure": [],
+          "connections": [],
+          "source_pages": [
+            8
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "4a",
+          "description": "Smithy. The smith and two apprentices tend the forge, making nails, tacks, and a variety of iron hardware such as hinges, pokers, and railings.",
+          "encounters": [
+            {
+              "monster": "Smith",
+              "count": "1"
+            },
+            {
+              "monster": "Apprentices",
+              "count": "2"
+            }
+          ],
+          "treasure": [],
+          "connections": [],
+          "source_pages": [
+            8
+          ],
+          "confidence": 0.92
+        },
+        {
+          "key": "The Caves",
+          "description": "General cave-region guidance: cave entrances may be placed by the GM and may be scattered. The map as drawn is wooded with clearings. Monsters avoid leaving tracks and local wildlife is scarce. Near entrances, PCs may notice guards, smoke, or cooking smells. Noisy parties outdoors alert the lairs, and monsters may sortie after dark. Underground areas are unlit unless noted, generally silent, with ceilings usually 10-15 feet high. Most room doors are heavy wooden doors with simple latches and can be barred from inside. Steps descend at roughly 1:1 grade. Elevations are intentionally irregular and approximate; tunnels constantly slope up and down.",
+          "encounters": [],
+          "treasure": [],
+          "connections": [],
+          "source_pages": [
+            22
+          ],
+          "confidence": 0.89
+        },
+        {
+          "key": "A",
+          "description": "Orc Lair A. These orcs share guarding duty for the local orc temple with lair B. They are brash, haughty, cruel, tricky, and nasty.",
+          "encounters": [
+            {
+              "monster": "Wandering orcs",
+              "count": "1d6 per hour on 1-2 on 1d6"
+            }
+          ],
+          "treasure": [],
+          "connections": [
+            {
+              "to_key": "B",
+              "direction": "unknown"
+            },
+            {
+              "to_key": "10",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            22
+          ],
+          "confidence": 0.92
+        },
+        {
+          "key": "1",
+          "description": "Entrance to Orc Lair A. A gaping entranceway with two orcs usually standing outside on guard; others are in the first chamber, their usual bunk room.",
+          "encounters": [
+            {
+              "monster": "Orcs",
+              "count": "6"
+            }
+          ],
+          "treasure": [
+            "Each orc has 1d6 sp"
+          ],
+          "connections": [],
+          "source_pages": [
+            22
+          ],
+          "confidence": 0.91
+        },
+        {
+          "key": "2",
+          "description": "Empty room in Orc Lair A. The walls and some of the ceiling collapsed some time ago, making it unfit to live in.",
+          "encounters": [],
+          "treasure": [],
+          "connections": [],
+          "source_pages": [
+            22
+          ],
+          "confidence": 0.97
+        },
+        {
+          "key": "3",
+          "description": "Common room in Orc Lair A used as quarters for a number of orcs, with crude furniture in the center, wooden bunks lining the walls, and sacks of foodstuffs and hanging meat in the rear.",
+          "encounters": [
+            {
+              "monster": "Orcs",
+              "count": "8"
+            }
+          ],
+          "treasure": [
+            "Each orc has 1d6 sp",
+            "12-72 pounds each of vegetables and meat"
+          ],
+          "connections": [],
+          "source_pages": [
+            22,
+            23
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "4",
+          "description": "Wolf pen. Both ends are blocked by full-height wooden fences with narrow rope-lashed gates. Inside are three wolves. The soft earthen floor is littered with wooden water bowls, bones, and offal. The wolves are usually alert and their barking/howling may attract wandering orcs or the jailers in room 5.",
+          "encounters": [
+            {
+              "monster": "Wolves",
+              "count": "3"
+            }
+          ],
+          "treasure": [],
+          "connections": [
+            {
+              "to_key": "5",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            23
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "5",
+          "description": "Door to jail and jail area. The outer room is the quarters of the big, sweaty orc jail warden and two assistants, containing crude furniture and simple wooden or stone interrogation devices. The key to the jail door is usually hung on a hide cord on the wall. The locked eastern door opens into the jail, where captives are held. Currently a bedraggled merchant missing a finger is imprisoned there.",
+          "encounters": [
+            {
+              "monster": "Orc warden",
+              "count": "1"
+            },
+            {
+              "monster": "Orcs",
+              "count": "2"
+            },
+            {
+              "monster": "Merchant prisoner",
+              "count": "1"
+            }
+          ],
+          "treasure": [
+            "Orc warden has 1d6 gp",
+            "Each assistant orc has 1d6 sp",
+            "Rescued merchant rewards party with 100 gp from his home"
+          ],
+          "connections": [
+            {
+              "to_key": "JAIL AREA",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            23
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "6",
+          "description": "Chief's room in Orc Lair A. The strong, shrewd orc leader sits on a large heavily built throne when judging court. A southern sub-room contains a bed and personal furniture. His pets are a mountain lion with a gemmed collar and two wolves, usually chained; four orcs are usually present as guards and servants. The chief has the key to the west temple door in room 9.",
+          "encounters": [
+            {
+              "monster": "Orc chief",
+              "count": "1"
+            },
+            {
+              "monster": "Mountain lion",
+              "count": "1"
+            },
+            {
+              "monster": "Wolves",
+              "count": "2"
+            },
+            {
+              "monster": "Orcs",
+              "count": "4"
+            }
+          ],
+          "treasure": [
+            "Gemmed collar on mountain lion worth 100 gp in gems",
+            "Silk pillow on throne worth 200 gp",
+            "Under throne seat: 671 gp, 1,235 sp, 785 cp",
+            "Potion of Passwall in a stoppered flask inside a padded jar"
+          ],
+          "connections": [
+            {
+              "to_key": "9",
+              "direction": "west"
+            }
+          ],
+          "source_pages": [
+            23,
+            24
+          ],
+          "confidence": 0.96
+        },
+        {
+          "key": "7",
+          "description": "Common room/guard room in Orc Lair A. Several orcs are housed here as a guard post against those in lair B. The room is cluttered with crude furniture, common foodstuffs in bags, and dried meats hanging on strings.",
+          "encounters": [
+            {
+              "monster": "Orcs",
+              "count": "4"
+            }
+          ],
+          "treasure": [
+            "Each orc has 1d6 sp"
+          ],
+          "connections": [
+            {
+              "to_key": "B",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            24
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "8",
+          "description": "Pools fed by underground springs, providing a year-round source of fresh water. They are clean, 6' deep, and otherwise unremarkable.",
+          "encounters": [],
+          "treasure": [],
+          "connections": [],
+          "source_pages": [
+            24
+          ],
+          "confidence": 0.97
+        },
+        {
+          "key": "9",
+          "description": "Shared hallway with a heavy thick wooden door at each end, bound in steel and fitted with heavy locks. Each orc chief (rooms 6 and 13) has the key to the opposite side, so they must cooperate to enter the temple. The temple guards on either side were locked out by a high priest after infighting.",
+          "encounters": [],
+          "treasure": [],
+          "connections": [
+            {
+              "to_key": "6",
+              "direction": "unknown"
+            },
+            {
+              "to_key": "13",
+              "direction": "unknown"
+            },
+            {
+              "to_key": "10",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            24
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "10",
+          "description": "Orc temple cut from living stone and well maintained. It has four fluted ornate pillars, a floor tiled in polished green and red marble, and a 20' high ceiling. On a dais 6' above the floor stands a 12' black basalt statue of a vindictive evil orc god. No steps lead onto the dais.",
+          "encounters": [],
+          "treasure": [
+            "Two red gem eyes in statue, each worth 250 gp"
+          ],
+          "connections": [],
+          "source_pages": [
+            24
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "B",
+          "description": "Orc Lair B. These orcs share temple-guarding duty with lair A and have a cruel sense of humor.",
+          "encounters": [
+            {
+              "monster": "Wandering orcs",
+              "count": "1d6 per hour on 1-2 on 1d6"
+            }
+          ],
+          "treasure": [],
+          "connections": [
+            {
+              "to_key": "A",
+              "direction": "unknown"
+            },
+            {
+              "to_key": "10",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            24
+          ],
+          "confidence": 0.91
+        },
+        {
+          "key": "B Entrance",
+          "description": "Entrance chamber of Orc Lair B. Four orcs are immediately inside along with a hobgoblin who joined up with them looking for greener pastures.",
+          "encounters": [
+            {
+              "monster": "Orcs",
+              "count": "4"
+            },
+            {
+              "monster": "Hobgoblin",
+              "count": "1"
+            }
+          ],
+          "treasure": [
+            "Each has 1d6 sp"
+          ],
+          "connections": [],
+          "source_pages": [
+            24
+          ],
+          "confidence": 0.9
+        },
+        {
+          "key": "11",
+          "description": "Secret safe room known only to the orc chief in room 13. Both secret doors are extremely well hidden and trapped: opening without disarming releases sleep gas in a 10' area and sets off a loud alarm for a minute in the chief's quarters. The chamber contains emergency supplies.",
+          "encounters": [],
+          "treasure": [
+            "Sword",
+            "Pouch with 25 gp",
+            "Food",
+            "Flint and steel",
+            "Skin of water",
+            "Cot",
+            "Cloak"
+          ],
+          "connections": [
+            {
+              "to_key": "13",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            24
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "12",
+          "description": "Guard post at a door with a short corridor beyond acting as a buffer zone in case of attack.",
+          "encounters": [
+            {
+              "monster": "Orcs",
+              "count": "2"
+            }
+          ],
+          "treasure": [
+            "Each orc has 1d6 sp"
+          ],
+          "connections": [],
+          "source_pages": [
+            24
+          ],
+          "confidence": 0.91
+        },
+        {
+          "key": "13",
+          "description": "Chief's quarters in Orc Lair B. The wily orc chief lives here with a war leader and two common orcs. The chief wears the key to the eastern temple door at room 9 on a necklace of pencil-thin gold bars. Treasure is kept in a locked chest with a lethal gas trap that can be disarmed using the necklace. An alarm bell under a heavy chair rings if either trapped secret door in room 11 is opened without disarming it first.",
+          "encounters": [
+            {
+              "monster": "Orc chief",
+              "count": "1"
+            },
+            {
+              "monster": "Orc war leader",
+              "count": "1"
+            },
+            {
+              "monster": "Orcs",
+              "count": "2"
+            }
+          ],
+          "treasure": [
+            "Necklace of pencil-thin gold bars worth 100 gp",
+            "Chest contains 800 gp, 500 ep, 700 sp, Potion of Healing"
+          ],
+          "connections": [
+            {
+              "to_key": "9",
+              "direction": "east"
+            },
+            {
+              "to_key": "11",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            25
+          ],
+          "confidence": 0.96
+        },
+        {
+          "key": "14",
+          "description": "Common room in Orc Lair B. Trash-littered room housing nine orcs, currently amusing themselves by throwing rocks at one of their number while others are bruised.",
+          "encounters": [
+            {
+              "monster": "Orcs",
+              "count": "9"
+            }
+          ],
+          "treasure": [
+            "Each orc has 1d6 sp"
+          ],
+          "connections": [],
+          "source_pages": [
+            25
+          ],
+          "confidence": 0.92
+        },
+        {
+          "key": "15",
+          "description": "Common room in Orc Lair B housing seven orcs. It is cluttered with debris they have torn up and discarded, plus firewood and stone cooking circles. A hidden cache lies in the northeast corner beneath fireplace rocks and a foot of earth.",
+          "encounters": [
+            {
+              "monster": "Orcs",
+              "count": "7"
+            }
+          ],
+          "treasure": [
+            "Hidden bag with 10 pp and 400 sp"
+          ],
+          "connections": [],
+          "source_pages": [
+            25
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "C",
+          "description": "Hobgoblin Lair. The hobgoblins have taken over what was intended as an expansion of the funeral crypt at D and are renovating it. The interior mixes smooth finished stone, rough unfinished work, and hobgoblin modifications.",
+          "encounters": [],
+          "treasure": [],
+          "connections": [
+            {
+              "to_key": "D",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            25
+          ],
+          "confidence": 0.91
+        },
+        {
+          "key": "C Entrance",
+          "description": "Twin entrances lead into the first chamber where five hobgoblins are bunked on guard duty. At point A is a wide underground stream used as a moat; crossing planks are stored on the opposite side and an ox-horn can be blown to summon hobgoblins from room 17 to place them. Other crossing methods are possible. At point C is a crude hide painted to resemble stone for ambushes.",
+          "encounters": [
+            {
+              "monster": "Hobgoblins",
+              "count": "5"
+            },
+            {
+              "monster": "Possible reinforcing hobgoblins from room 17",
+              "count": "2"
+            }
+          ],
+          "treasure": [
+            "Each hobgoblin has 1d6 sp",
+            "Ox horn alarm"
+          ],
+          "connections": [
+            {
+              "to_key": "17",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            25
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "16",
+          "description": "Trapped hallway with three sets of pillars supporting a 20' ceiling. Thin wires strung between the center pillars trigger a heavy swinging stone-headed mallet, followed by a bell-covered net that entangles victims and makes loud noise. Hobgoblins from room 17 may hear and investigate.",
+          "encounters": [],
+          "treasure": [],
+          "connections": [
+            {
+              "to_key": "17",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            26
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "17",
+          "description": "Common room in the Hobgoblin Lair where six hobgoblins bunk. They are usually unarmored unless given time. The space has been fixed up with former casket platforms used as benches and tables. Three elaborate red funeral shrouds are used as hammocks.",
+          "encounters": [
+            {
+              "monster": "Hobgoblins",
+              "count": "6"
+            }
+          ],
+          "treasure": [
+            "Each hobgoblin has 1d6 sp",
+            "Three red funeral shrouds worth 50 gp each"
+          ],
+          "connections": [],
+          "source_pages": [
+            26
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "18",
+          "description": "Store room, usually locked but poorly secured. The chief in room 21 has the key. It is packed with odds and ends and minor plunder such as clothing, grain, potatoes, dried meats, perhaps slain foes hanging as 'fresh meat,' plus mining tools.",
+          "encounters": [],
+          "treasure": [
+            "Clothing",
+            "Sacks of grains and potatoes",
+            "Hanging dried meats",
+            "Possible hanging slain foes",
+            "Mining tools"
+          ],
+          "connections": [
+            {
+              "to_key": "21",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            26
+          ],
+          "confidence": 0.9
+        },
+        {
+          "key": "19",
+          "description": "Sub-leader's room taken over by a skilled tough hobgoblin who lives in luxury. A short bow and two quivers hang on the wall among other possessions. He carries the key to this room on a hair string on his belt.",
+          "encounters": [
+            {
+              "monster": "Hobgoblin sub-leader",
+              "count": "1"
+            }
+          ],
+          "treasure": [
+            "300 ep in one belt pouch",
+            "300 gp in another belt pouch",
+            "Short bow",
+            "Two quivers of arrows"
+          ],
+          "connections": [],
+          "source_pages": [
+            26
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "20",
+          "description": "Guard room where hobgoblins have piled rubble in the hallway and stockpiled holy water to fend off the ghouls to the west.",
+          "encounters": [
+            {
+              "monster": "Hobgoblins",
+              "count": "4"
+            }
+          ],
+          "treasure": [
+            "Each hobgoblin has 1d6 sp",
+            "Six vials of holy water"
+          ],
+          "connections": [
+            {
+              "to_key": "22",
+              "direction": "west"
+            }
+          ],
+          "source_pages": [
+            26
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "21",
+          "description": "Chief's room containing the hobgoblin chief and three bodyguards. The chief has the key to store room 18. Furnishings include a plain bed, chairs, tables, and other goods.",
+          "encounters": [
+            {
+              "monster": "Hobgoblin chief",
+              "count": "1"
+            },
+            {
+              "monster": "Hobgoblins",
+              "count": "3"
+            }
+          ],
+          "treasure": [
+            "Potion of Stone to Flesh (1 use)",
+            "Bag tied to bed with 600 gp, 1,200 sp, 1,800 cp"
+          ],
+          "connections": [
+            {
+              "to_key": "18",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            26
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "D",
+          "description": "Abandoned Crypts. Old funeral crypts once meant to be expanded toward lair C. The entrance facade is ruined, much marble facing broken away, and the name plaque shattered. Bits of bone, scraps of cloth, and chunks of wood litter the floors. There are also five small rounded alcoves along the walls with shrine pedestals.",
+          "encounters": [],
+          "treasure": [],
+          "connections": [
+            {
+              "to_key": "C",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            26
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "22",
+          "description": "Area where three ghouls lurk, trying to get through the rubble to reach the hobgoblins in room 20. They are not interested in skeletons or zombies as food.",
+          "encounters": [
+            {
+              "monster": "Ghouls",
+              "count": "3"
+            }
+          ],
+          "treasure": [],
+          "connections": [
+            {
+              "to_key": "20",
+              "direction": "unknown"
+            }
+          ],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "23",
+          "description": "Space containing six skeletons, three on the east and three on the west, standing like guards at attention and attacking intruders on sight. The area is cluttered with broken coffins.",
+          "encounters": [
+            {
+              "monster": "Skeletons",
+              "count": "6"
+            }
+          ],
+          "treasure": [
+            "Silver dagger",
+            "30 gp",
+            "21 pp"
+          ],
+          "connections": [],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "24",
+          "description": "Area with zombies waiting under orders to attack and destroy intruders. Contains empty or smashed old coffins and the splinters of what appears to have been an ornate cabinet.",
+          "encounters": [
+            {
+              "monster": "Zombies",
+              "count": "4"
+            }
+          ],
+          "treasure": [
+            "Six intact vials of holy water",
+            "56 gp"
+          ],
+          "connections": [],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "25",
+          "description": "Skeleton post where skeletons attack on sight. The outward-facing walls are lined with crypt spaces, many empty. Occupied niches contain poor burials, but one visible crypt niche holds a valuable gem necklace hanging out in plain sight.",
+          "encounters": [
+            {
+              "monster": "Skeletons",
+              "count": "6"
+            }
+          ],
+          "treasure": [
+            "26 gp and 49 sp total in crypt spaces",
+            "Necklace with gems worth 750 gp",
+            "If returned to original owners, necklace earns 1,000 gp reward"
+          ],
+          "connections": [],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "E",
+          "description": "Goblin Lair. Goblins live here in a simple, dark, dank, crudely tunneled warren. Many halls are 6' to 8' wide and equally high. They often serve as expendable troops for stronger tribes.",
+          "encounters": [],
+          "treasure": [],
+          "connections": [],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.9
+        },
+        {
+          "key": "26",
+          "description": "Guard post in the Goblin Lair. Six goblins wait to fight intruders and control a rope-dropped net trap covering the marked entrance area. Entangled victims are vulnerable and goblins use slings against anyone trying to free them.",
+          "encounters": [
+            {
+              "monster": "Goblins",
+              "count": "6"
+            }
+          ],
+          "treasure": [
+            "Each goblin has 1d6 cp"
+          ],
+          "connections": [],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.94
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 16002,
+      "output_tokens": 4324
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}
