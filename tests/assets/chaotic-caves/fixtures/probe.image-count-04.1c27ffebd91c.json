@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "fingerprint": "1c27ffebd91caa640fa8648248360b97d8daf3fca3ba9c1d43bbf40cd1c1db71",
+  "tag": "probe.image-count-04",
+  "request": {
+    "system": "You read adventure module page images.",
+    "parts": [
+      {
+        "text": "These are 4 pages of an adventure module. Name the highest page number shown."
+      },
+      {
+        "sha256": "d82660a6af3893859e065a1e0117e42ddf20ef35cdb4750899fa0ec728a5f01a",
+        "bytes": 341409
+      },
+      {
+        "sha256": "3d1538586119a37d9388906fffd71c5d1d0c353133999e979a038fe9e7cf7716",
+        "bytes": 211398
+      },
+      {
+        "sha256": "1a394cf07349679a9b10aed5352cb47dc2525cf9e91acb9f864d06f6c3319d7e",
+        "bytes": 578367
+      },
+      {
+        "sha256": "1d5c80394b93a854c99b2a52a30094ddeadd89459d373a6d3419f5454d58b6c6",
+        "bytes": 535360
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "answer": "2"
+    },
+    "usage": {
+      "input_tokens": 3691,
+      "output_tokens": 16
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

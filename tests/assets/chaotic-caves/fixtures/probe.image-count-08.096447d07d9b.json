@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "fingerprint": "096447d07d9b0c4d977abbeb851588c3a3acc0484b11fdb214fb2b5b46bb7777",
+  "tag": "probe.image-count-08",
+  "request": {
+    "system": "You read adventure module page images.",
+    "parts": [
+      {
+        "text": "These are 8 pages of an adventure module. Name the highest page number shown."
+      },
+      {
+        "sha256": "d82660a6af3893859e065a1e0117e42ddf20ef35cdb4750899fa0ec728a5f01a",
+        "bytes": 341409
+      },
+      {
+        "sha256": "3d1538586119a37d9388906fffd71c5d1d0c353133999e979a038fe9e7cf7716",
+        "bytes": 211398
+      },
+      {
+        "sha256": "1a394cf07349679a9b10aed5352cb47dc2525cf9e91acb9f864d06f6c3319d7e",
+        "bytes": 578367
+      },
+      {
+        "sha256": "1d5c80394b93a854c99b2a52a30094ddeadd89459d373a6d3419f5454d58b6c6",
+        "bytes": 535360
+      },
+      {
+        "sha256": "e93231aebb31ffdc3acf5a24987aa79a1039653337c923b4fb1a0bc4cd6d03df",
+        "bytes": 1177941
+      },
+      {
+        "sha256": "764578ca3e458083c8e74a058a34be021ff41685448f8d2662aba5bd8f2ad944",
+        "bytes": 902204
+      },
+      {
+        "sha256": "8475c5f43181462e273bf37d10ddc2e0fecb7a587fcc736ad232652143450963",
+        "bytes": 795775
+      },
+      {
+        "sha256": "210d741654db8183d767f3f8d9678f97b3b0b01f66a9f49aad439e64199d14b3",
+        "bytes": 479949
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "answer": "6"
+    },
+    "usage": {
+      "input_tokens": 7319,
+      "output_tokens": 16
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

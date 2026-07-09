@@ -2,8 +2,10 @@
 
 Fixture files are named `<tag>.<fingerprint[:12]>.json` and carry the artifact
 schema version, the full fingerprint, the tag, a human-reviewable request
-digest (system text and text parts verbatim, images as sha256 + size — so
-fixture diffs are readable in PRs), and the full response.
+digest (system text, text parts, and the JSON Schema verbatim, images as
+sha256 + size — so fixture diffs are readable in PRs and a replay test can
+reconstruct the request from the fixture plus its committed page assets), and
+the full response.
 """
 
 import hashlib
@@ -50,7 +52,7 @@ def _request_digest(request: ModelRequest) -> dict[str, object]:
             parts.append({"text": part.text})
         else:
             parts.append({"sha256": hashlib.sha256(part.png).hexdigest(), "bytes": len(part.png)})
-    return {"system": request.system, "parts": parts}
+    return {"system": request.system, "parts": parts, "schema": request.schema}
 
 
 class FixtureProvider:

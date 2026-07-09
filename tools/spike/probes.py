@@ -195,6 +195,12 @@ class SpikeContext:
             sys.exit(f"committed page {path} missing — run the prepare subcommand first")
         return ImagePart(png=path.read_bytes())
 
+    def committed_page_numbers(self) -> list[int]:
+        numbers = sorted(int(path.stem) for path in self.pages_dir.glob("*.png"))
+        if not numbers:
+            sys.exit(f"no committed pages in {self.pages_dir} — run the prepare subcommand first")
+        return numbers
+
     def committed_text(self, number: int) -> str:
         return (self.pages_dir / f"{number:04d}.txt").read_text(encoding="utf-8")
 
@@ -235,7 +241,8 @@ def cmd_prepare(context: SpikeContext, args: argparse.Namespace) -> None:
 
 
 def cmd_structured(context: SpikeContext, args: argparse.Namespace) -> None:
-    page = context.committed_page(1)
+    committed = context.committed_page_numbers()
+    page = context.committed_page(committed[0])
     run_probe(
         context,
         ModelRequest(
@@ -250,7 +257,7 @@ def cmd_structured(context: SpikeContext, args: argparse.Namespace) -> None:
         ModelRequest(
             tag="probe.survey-schema",
             system="You are surveying a tabletop adventure module. Fill the schema from the pages given.",
-            parts=(page, context.committed_page(2)),
+            parts=(page, context.committed_page(committed[1])),
             schema=SURVEY_SCHEMA,
         ),
     )

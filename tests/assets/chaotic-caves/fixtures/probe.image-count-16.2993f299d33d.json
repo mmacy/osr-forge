@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "fingerprint": "2993f299d33db9f0a02206e5e2838e1852dae0540e19a189fa6ae5359921f287",
+  "tag": "probe.image-count-16",
+  "request": {
+    "system": "You read adventure module page images.",
+    "parts": [
+      {
+        "text": "These are 16 pages of an adventure module. Name the highest page number shown."
+      },
+      {
+        "sha256": "d82660a6af3893859e065a1e0117e42ddf20ef35cdb4750899fa0ec728a5f01a",
+        "bytes": 341409
+      },
+      {
+        "sha256": "3d1538586119a37d9388906fffd71c5d1d0c353133999e979a038fe9e7cf7716",
+        "bytes": 211398
+      },
+      {
+        "sha256": "1a394cf07349679a9b10aed5352cb47dc2525cf9e91acb9f864d06f6c3319d7e",
+        "bytes": 578367
+      },
+      {
+        "sha256": "1d5c80394b93a854c99b2a52a30094ddeadd89459d373a6d3419f5454d58b6c6",
+        "bytes": 535360
+      },
+      {
+        "sha256": "e93231aebb31ffdc3acf5a24987aa79a1039653337c923b4fb1a0bc4cd6d03df",
+        "bytes": 1177941
+      },
+      {
+        "sha256": "764578ca3e458083c8e74a058a34be021ff41685448f8d2662aba5bd8f2ad944",
+        "bytes": 902204
+      },
+      {
+        "sha256": "8475c5f43181462e273bf37d10ddc2e0fecb7a587fcc736ad232652143450963",
+        "bytes": 795775
+      },
+      {
+        "sha256": "210d741654db8183d767f3f8d9678f97b3b0b01f66a9f49aad439e64199d14b3",
+        "bytes": 479949
+      },
+      {
+        "sha256": "6ad66c92d8b415ca0af5b0f272a5adab516ab014b7a035a8d423371cd5069161",
+        "bytes": 497418
+      },
+      {
+        "sha256": "60363966c0aa7161fe88c41f05ad0a4d0d5651814f447b3c1533e7204e8370a8",
+        "bytes": 537825
+      },
+      {
+        "sha256": "cc63e036e5b372d52bbf0f617b2e08eb11e403320fbdea6ded44db8710c50c86",
+        "bytes": 463839
+      },
+      {
+        "sha256": "16f5c5d7f885e36e2b7964a56db69ca55226d3617d1f459695e30f1279dadb77",
+        "bytes": 514849
+      },
+      {
+        "sha256": "e5d3461371d146713d602fdc0fb310821d373e29e9e0e56c546a64a76199496e",
+        "bytes": 503962
+      },
+      {
+        "sha256": "1df85d7d6ac1f75cf272d011d3470f375a970a6e2af695dd5b8a5908986368a8",
+        "bytes": 691527
+      },
+      {
+        "sha256": "d0abe14998a061d3f9120e6902bef020632fc07e848e86a5e9204712e90293e2",
+        "bytes": 578620
+      },
+      {
+        "sha256": "61198487e9f4ca07389f05e00a2ee4ba4576581741bbff3aedf00d90988b3d2d",
+        "bytes": 508458
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "answer": "14"
+    },
+    "usage": {
+      "input_tokens": 14575,
+      "output_tokens": 16
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

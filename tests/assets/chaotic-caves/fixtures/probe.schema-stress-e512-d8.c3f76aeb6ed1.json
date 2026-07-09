@@ -1,0 +1,741 @@
+{
+  "schema_version": 1,
+  "fingerprint": "c3f76aeb6ed13653e5183fa94f0b4f5e084d1f6c8b3556d17faec66341604b1e",
+  "tag": "probe.schema-stress-e512-d8",
+  "request": {
+    "system": "Reply with any document that satisfies the schema.",
+    "parts": [
+      {
+        "text": "Produce a minimal valid document."
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "root": {
+          "$ref": "#/$defs/nest_7"
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "leaf": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "type": "string",
+              "enum": [
+                "option_0000",
+                "option_0001",
+                "option_0002",
+                "option_0003",
+                "option_0004",
+                "option_0005",
+                "option_0006",
+                "option_0007",
+                "option_0008",
+                "option_0009",
+                "option_0010",
+                "option_0011",
+                "option_0012",
+                "option_0013",
+                "option_0014",
+                "option_0015",
+                "option_0016",
+                "option_0017",
+                "option_0018",
+                "option_0019",
+                "option_0020",
+                "option_0021",
+                "option_0022",
+                "option_0023",
+                "option_0024",
+                "option_0025",
+                "option_0026",
+                "option_0027",
+                "option_0028",
+                "option_0029",
+                "option_0030",
+                "option_0031",
+                "option_0032",
+                "option_0033",
+                "option_0034",
+                "option_0035",
+                "option_0036",
+                "option_0037",
+                "option_0038",
+                "option_0039",
+                "option_0040",
+                "option_0041",
+                "option_0042",
+                "option_0043",
+                "option_0044",
+                "option_0045",
+                "option_0046",
+                "option_0047",
+                "option_0048",
+                "option_0049",
+                "option_0050",
+                "option_0051",
+                "option_0052",
+                "option_0053",
+                "option_0054",
+                "option_0055",
+                "option_0056",
+                "option_0057",
+                "option_0058",
+                "option_0059",
+                "option_0060",
+                "option_0061",
+                "option_0062",
+                "option_0063",
+                "option_0064",
+                "option_0065",
+                "option_0066",
+                "option_0067",
+                "option_0068",
+                "option_0069",
+                "option_0070",
+                "option_0071",
+                "option_0072",
+                "option_0073",
+                "option_0074",
+                "option_0075",
+                "option_0076",
+                "option_0077",
+                "option_0078",
+                "option_0079",
+                "option_0080",
+                "option_0081",
+                "option_0082",
+                "option_0083",
+                "option_0084",
+                "option_0085",
+                "option_0086",
+                "option_0087",
+                "option_0088",
+                "option_0089",
+                "option_0090",
+                "option_0091",
+                "option_0092",
+                "option_0093",
+                "option_0094",
+                "option_0095",
+                "option_0096",
+                "option_0097",
+                "option_0098",
+                "option_0099",
+                "option_0100",
+                "option_0101",
+                "option_0102",
+                "option_0103",
+                "option_0104",
+                "option_0105",
+                "option_0106",
+                "option_0107",
+                "option_0108",
+                "option_0109",
+                "option_0110",
+                "option_0111",
+                "option_0112",
+                "option_0113",
+                "option_0114",
+                "option_0115",
+                "option_0116",
+                "option_0117",
+                "option_0118",
+                "option_0119",
+                "option_0120",
+                "option_0121",
+                "option_0122",
+                "option_0123",
+                "option_0124",
+                "option_0125",
+                "option_0126",
+                "option_0127",
+                "option_0128",
+                "option_0129",
+                "option_0130",
+                "option_0131",
+                "option_0132",
+                "option_0133",
+                "option_0134",
+                "option_0135",
+                "option_0136",
+                "option_0137",
+                "option_0138",
+                "option_0139",
+                "option_0140",
+                "option_0141",
+                "option_0142",
+                "option_0143",
+                "option_0144",
+                "option_0145",
+                "option_0146",
+                "option_0147",
+                "option_0148",
+                "option_0149",
+                "option_0150",
+                "option_0151",
+                "option_0152",
+                "option_0153",
+                "option_0154",
+                "option_0155",
+                "option_0156",
+                "option_0157",
+                "option_0158",
+                "option_0159",
+                "option_0160",
+                "option_0161",
+                "option_0162",
+                "option_0163",
+                "option_0164",
+                "option_0165",
+                "option_0166",
+                "option_0167",
+                "option_0168",
+                "option_0169",
+                "option_0170",
+                "option_0171",
+                "option_0172",
+                "option_0173",
+                "option_0174",
+                "option_0175",
+                "option_0176",
+                "option_0177",
+                "option_0178",
+                "option_0179",
+                "option_0180",
+                "option_0181",
+                "option_0182",
+                "option_0183",
+                "option_0184",
+                "option_0185",
+                "option_0186",
+                "option_0187",
+                "option_0188",
+                "option_0189",
+                "option_0190",
+                "option_0191",
+                "option_0192",
+                "option_0193",
+                "option_0194",
+                "option_0195",
+                "option_0196",
+                "option_0197",
+                "option_0198",
+                "option_0199",
+                "option_0200",
+                "option_0201",
+                "option_0202",
+                "option_0203",
+                "option_0204",
+                "option_0205",
+                "option_0206",
+                "option_0207",
+                "option_0208",
+                "option_0209",
+                "option_0210",
+                "option_0211",
+                "option_0212",
+                "option_0213",
+                "option_0214",
+                "option_0215",
+                "option_0216",
+                "option_0217",
+                "option_0218",
+                "option_0219",
+                "option_0220",
+                "option_0221",
+                "option_0222",
+                "option_0223",
+                "option_0224",
+                "option_0225",
+                "option_0226",
+                "option_0227",
+                "option_0228",
+                "option_0229",
+                "option_0230",
+                "option_0231",
+                "option_0232",
+                "option_0233",
+                "option_0234",
+                "option_0235",
+                "option_0236",
+                "option_0237",
+                "option_0238",
+                "option_0239",
+                "option_0240",
+                "option_0241",
+                "option_0242",
+                "option_0243",
+                "option_0244",
+                "option_0245",
+                "option_0246",
+                "option_0247",
+                "option_0248",
+                "option_0249",
+                "option_0250",
+                "option_0251",
+                "option_0252",
+                "option_0253",
+                "option_0254",
+                "option_0255",
+                "option_0256",
+                "option_0257",
+                "option_0258",
+                "option_0259",
+                "option_0260",
+                "option_0261",
+                "option_0262",
+                "option_0263",
+                "option_0264",
+                "option_0265",
+                "option_0266",
+                "option_0267",
+                "option_0268",
+                "option_0269",
+                "option_0270",
+                "option_0271",
+                "option_0272",
+                "option_0273",
+                "option_0274",
+                "option_0275",
+                "option_0276",
+                "option_0277",
+                "option_0278",
+                "option_0279",
+                "option_0280",
+                "option_0281",
+                "option_0282",
+                "option_0283",
+                "option_0284",
+                "option_0285",
+                "option_0286",
+                "option_0287",
+                "option_0288",
+                "option_0289",
+                "option_0290",
+                "option_0291",
+                "option_0292",
+                "option_0293",
+                "option_0294",
+                "option_0295",
+                "option_0296",
+                "option_0297",
+                "option_0298",
+                "option_0299",
+                "option_0300",
+                "option_0301",
+                "option_0302",
+                "option_0303",
+                "option_0304",
+                "option_0305",
+                "option_0306",
+                "option_0307",
+                "option_0308",
+                "option_0309",
+                "option_0310",
+                "option_0311",
+                "option_0312",
+                "option_0313",
+                "option_0314",
+                "option_0315",
+                "option_0316",
+                "option_0317",
+                "option_0318",
+                "option_0319",
+                "option_0320",
+                "option_0321",
+                "option_0322",
+                "option_0323",
+                "option_0324",
+                "option_0325",
+                "option_0326",
+                "option_0327",
+                "option_0328",
+                "option_0329",
+                "option_0330",
+                "option_0331",
+                "option_0332",
+                "option_0333",
+                "option_0334",
+                "option_0335",
+                "option_0336",
+                "option_0337",
+                "option_0338",
+                "option_0339",
+                "option_0340",
+                "option_0341",
+                "option_0342",
+                "option_0343",
+                "option_0344",
+                "option_0345",
+                "option_0346",
+                "option_0347",
+                "option_0348",
+                "option_0349",
+                "option_0350",
+                "option_0351",
+                "option_0352",
+                "option_0353",
+                "option_0354",
+                "option_0355",
+                "option_0356",
+                "option_0357",
+                "option_0358",
+                "option_0359",
+                "option_0360",
+                "option_0361",
+                "option_0362",
+                "option_0363",
+                "option_0364",
+                "option_0365",
+                "option_0366",
+                "option_0367",
+                "option_0368",
+                "option_0369",
+                "option_0370",
+                "option_0371",
+                "option_0372",
+                "option_0373",
+                "option_0374",
+                "option_0375",
+                "option_0376",
+                "option_0377",
+                "option_0378",
+                "option_0379",
+                "option_0380",
+                "option_0381",
+                "option_0382",
+                "option_0383",
+                "option_0384",
+                "option_0385",
+                "option_0386",
+                "option_0387",
+                "option_0388",
+                "option_0389",
+                "option_0390",
+                "option_0391",
+                "option_0392",
+                "option_0393",
+                "option_0394",
+                "option_0395",
+                "option_0396",
+                "option_0397",
+                "option_0398",
+                "option_0399",
+                "option_0400",
+                "option_0401",
+                "option_0402",
+                "option_0403",
+                "option_0404",
+                "option_0405",
+                "option_0406",
+                "option_0407",
+                "option_0408",
+                "option_0409",
+                "option_0410",
+                "option_0411",
+                "option_0412",
+                "option_0413",
+                "option_0414",
+                "option_0415",
+                "option_0416",
+                "option_0417",
+                "option_0418",
+                "option_0419",
+                "option_0420",
+                "option_0421",
+                "option_0422",
+                "option_0423",
+                "option_0424",
+                "option_0425",
+                "option_0426",
+                "option_0427",
+                "option_0428",
+                "option_0429",
+                "option_0430",
+                "option_0431",
+                "option_0432",
+                "option_0433",
+                "option_0434",
+                "option_0435",
+                "option_0436",
+                "option_0437",
+                "option_0438",
+                "option_0439",
+                "option_0440",
+                "option_0441",
+                "option_0442",
+                "option_0443",
+                "option_0444",
+                "option_0445",
+                "option_0446",
+                "option_0447",
+                "option_0448",
+                "option_0449",
+                "option_0450",
+                "option_0451",
+                "option_0452",
+                "option_0453",
+                "option_0454",
+                "option_0455",
+                "option_0456",
+                "option_0457",
+                "option_0458",
+                "option_0459",
+                "option_0460",
+                "option_0461",
+                "option_0462",
+                "option_0463",
+                "option_0464",
+                "option_0465",
+                "option_0466",
+                "option_0467",
+                "option_0468",
+                "option_0469",
+                "option_0470",
+                "option_0471",
+                "option_0472",
+                "option_0473",
+                "option_0474",
+                "option_0475",
+                "option_0476",
+                "option_0477",
+                "option_0478",
+                "option_0479",
+                "option_0480",
+                "option_0481",
+                "option_0482",
+                "option_0483",
+                "option_0484",
+                "option_0485",
+                "option_0486",
+                "option_0487",
+                "option_0488",
+                "option_0489",
+                "option_0490",
+                "option_0491",
+                "option_0492",
+                "option_0493",
+                "option_0494",
+                "option_0495",
+                "option_0496",
+                "option_0497",
+                "option_0498",
+                "option_0499",
+                "option_0500",
+                "option_0501",
+                "option_0502",
+                "option_0503",
+                "option_0504",
+                "option_0505",
+                "option_0506",
+                "option_0507",
+                "option_0508",
+                "option_0509",
+                "option_0510",
+                "option_0511"
+              ]
+            }
+          },
+          "required": [
+            "tag"
+          ],
+          "additionalProperties": false
+        },
+        "nest_0": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/leaf"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/leaf"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_1": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_0"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_0"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_2": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_1"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_1"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_3": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_2"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_2"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_4": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_3"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_3"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_5": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_4"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_4"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_6": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_5"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_5"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        "nest_7": {
+          "type": "object",
+          "properties": {
+            "child": {
+              "$ref": "#/$defs/nest_6"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/nest_6"
+              }
+            }
+          },
+          "required": [
+            "child",
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "response": {
+    "data": {
+      "root": {
+        "child": {
+          "child": {
+            "child": {
+              "child": {
+                "child": {
+                  "child": {
+                    "child": {
+                      "child": {
+                        "tag": "option_0000"
+                      },
+                      "items": []
+                    },
+                    "items": []
+                  },
+                  "items": []
+                },
+                "items": []
+              },
+              "items": []
+            },
+            "items": []
+          },
+          "items": []
+        },
+        "items": []
+      }
+    },
+    "usage": {
+      "input_tokens": 9245,
+      "output_tokens": 157
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

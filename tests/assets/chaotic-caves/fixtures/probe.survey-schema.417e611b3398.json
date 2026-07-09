@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "fingerprint": "417e611b3398bd6697809fc5d9ae8b7ca2c60d43d208ef7c0c02a306c46718c1",
+  "tag": "probe.survey-schema",
+  "request": {
+    "system": "You are surveying a tabletop adventure module. Fill the schema from the pages given.",
+    "parts": [
+      {
+        "sha256": "210d741654db8183d767f3f8d9678f97b3b0b01f66a9f49aad439e64199d14b3",
+        "bytes": 479949
+      },
+      {
+        "sha256": "bb1805a1db28e98cea5c04a5465a8392f6899447fdb1cfdcf1d8985d04a86d4c",
+        "bytes": 496731
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "hooks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "town": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "description"
+          ],
+          "additionalProperties": false
+        },
+        "dungeons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "levels": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "integer"
+                    },
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/area"
+                      }
+                    }
+                  },
+                  "required": [
+                    "number",
+                    "areas"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "levels"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "monster_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "hooks",
+        "town",
+        "dungeons",
+        "monster_names"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "area": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "source_pages": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "room",
+                "corridor",
+                "cave",
+                "landmark",
+                "other"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "name",
+            "source_pages",
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "response": {
+    "data": {
+      "title": "The Chaotic Caves",
+      "hooks": [],
+      "town": {
+        "name": "Town",
+        "description": "A crossroads town at a river and old paved highway, thriving on trade and commerce. It has smithies, merchants, a cleric and healer, horses and wagons for hire, docks by the bridge, and a mostly wooden stockade being replaced by a stone wall. Farms and residences lie both inside and outside the walls, with orchards as common property."
+      },
+      "dungeons": [
+        {
+          "id": "A. Orc Lair",
+          "levels": [
+            {
+              "number": 1,
+              "areas": [
+                {
+                  "key": "1",
+                  "name": "Entrance",
+                  "source_pages": [
+                    20
+                  ],
+                  "kind": "room"
+                },
+                {
+                  "key": "2",
+                  "name": "Empty Room",
+                  "source_pages": [
+                    20
+                  ],
+                  "kind": "room"
+                },
+                {
+                  "key": "3",
+                  "name": "Common Room",
+                  "source_pages": [
+                    20
+                  ],
+                  "kind": "room"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "monster_names": [
+        "Orc"
+      ]
+    },
+    "usage": {
+      "input_tokens": 2044,
+      "output_tokens": 189
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

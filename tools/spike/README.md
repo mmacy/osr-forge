@@ -39,15 +39,22 @@ usage, and the findings document records the deployment's published pricing.
 
 ## Fixture grades
 
-- **Replay-grade** (`structured`, `extract`): built only from the committed
-  page subset in `tests/assets/<module>/pages/` (at most 8 pages, copied there
-  by `prepare`), so tests can replay them through `FixtureProvider` forever.
+- **Replay-grade** (`structured`, `extract`, `auth`): reconstructable from the
+  fixture file alone plus the committed page subset in
+  `tests/assets/<module>/pages/` (at most 8 pages, copied there by `prepare`),
+  so `tests/test_spike_fixtures.py` replays them through `FixtureProvider`
+  forever. Text-only probes (the schema-stress ladder, auth) are replay-grade
+  with no page assets at all.
 - **Evidence-grade** (`images`, `context`): boundary probes over workdir
   renders; their fixtures back claims in the findings doc but replay is not
   promised, and their page renders are not committed.
 
 All fixtures land in `tests/assets/<module>/fixtures/`. Whole-directory budget
-(PDF + pages + fixtures): 10 MiB.
+for *committed* content (pages + fixtures): 10 MiB. Note the BFRPG licensing
+outcome recorded in the phase 0 plan's amendments: the module PDF itself is
+never committed (pointer + sha256 in the module README instead), and `prepare`
+page selections must avoid pages carrying non-licensed artwork — visually
+verify every page before choosing it.
 
 ## Deliverable
 

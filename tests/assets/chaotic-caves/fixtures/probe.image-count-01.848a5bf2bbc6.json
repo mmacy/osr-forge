@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "fingerprint": "848a5bf2bbc6dd9e2a3e855ad756a81471f2a907b9d3e74404456c376eba17c4",
+  "tag": "probe.image-count-01",
+  "request": {
+    "system": "You read adventure module page images.",
+    "parts": [
+      {
+        "text": "These are 1 pages of an adventure module. Name the highest page number shown."
+      },
+      {
+        "sha256": "d82660a6af3893859e065a1e0117e42ddf20ef35cdb4750899fa0ec728a5f01a",
+        "bytes": 341409
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "answer": "No page number is shown."
+    },
+    "usage": {
+      "input_tokens": 970,
+      "output_tokens": 21
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

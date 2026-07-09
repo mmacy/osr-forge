@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "fingerprint": "ea5c7bd092ee68baa61998085ba3e2218b6b1fcddf282e34bfe0ef637324c3ca",
+  "tag": "probe.image-count-32",
+  "request": {
+    "system": "You read adventure module page images.",
+    "parts": [
+      {
+        "text": "These are 32 pages of an adventure module. Name the highest page number shown."
+      },
+      {
+        "sha256": "d82660a6af3893859e065a1e0117e42ddf20ef35cdb4750899fa0ec728a5f01a",
+        "bytes": 341409
+      },
+      {
+        "sha256": "3d1538586119a37d9388906fffd71c5d1d0c353133999e979a038fe9e7cf7716",
+        "bytes": 211398
+      },
+      {
+        "sha256": "1a394cf07349679a9b10aed5352cb47dc2525cf9e91acb9f864d06f6c3319d7e",
+        "bytes": 578367
+      },
+      {
+        "sha256": "1d5c80394b93a854c99b2a52a30094ddeadd89459d373a6d3419f5454d58b6c6",
+        "bytes": 535360
+      },
+      {
+        "sha256": "e93231aebb31ffdc3acf5a24987aa79a1039653337c923b4fb1a0bc4cd6d03df",
+        "bytes": 1177941
+      },
+      {
+        "sha256": "764578ca3e458083c8e74a058a34be021ff41685448f8d2662aba5bd8f2ad944",
+        "bytes": 902204
+      },
+      {
+        "sha256": "8475c5f43181462e273bf37d10ddc2e0fecb7a587fcc736ad232652143450963",
+        "bytes": 795775
+      },
+      {
+        "sha256": "210d741654db8183d767f3f8d9678f97b3b0b01f66a9f49aad439e64199d14b3",
+        "bytes": 479949
+      },
+      {
+        "sha256": "6ad66c92d8b415ca0af5b0f272a5adab516ab014b7a035a8d423371cd5069161",
+        "bytes": 497418
+      },
+      {
+        "sha256": "60363966c0aa7161fe88c41f05ad0a4d0d5651814f447b3c1533e7204e8370a8",
+        "bytes": 537825
+      },
+      {
+        "sha256": "cc63e036e5b372d52bbf0f617b2e08eb11e403320fbdea6ded44db8710c50c86",
+        "bytes": 463839
+      },
+      {
+        "sha256": "16f5c5d7f885e36e2b7964a56db69ca55226d3617d1f459695e30f1279dadb77",
+        "bytes": 514849
+      },
+      {
+        "sha256": "e5d3461371d146713d602fdc0fb310821d373e29e9e0e56c546a64a76199496e",
+        "bytes": 503962
+      },
+      {
+        "sha256": "1df85d7d6ac1f75cf272d011d3470f375a970a6e2af695dd5b8a5908986368a8",
+        "bytes": 691527
+      },
+      {
+        "sha256": "d0abe14998a061d3f9120e6902bef020632fc07e848e86a5e9204712e90293e2",
+        "bytes": 578620
+      },
+      {
+        "sha256": "61198487e9f4ca07389f05e00a2ee4ba4576581741bbff3aedf00d90988b3d2d",
+        "bytes": 508458
+      },
+      {
+        "sha256": "e175fdc12ca8dff5a3e27ac294373a2fbd5a8a8c408d0c7168acd16348bc237d",
+        "bytes": 557016
+      },
+      {
+        "sha256": "be5b337f64d5a26edea4b5ee4985ea365817810131507482553204a5cc267257",
+        "bytes": 530285
+      },
+      {
+        "sha256": "8f410ebc0344fd23ca300a8bc7b3b8d0a440e4e86be1a1ab00103eb7e377bdaa",
+        "bytes": 470029
+      },
+      {
+        "sha256": "fd9b95965d73312944a1b5369bdcad26b6cf8e67a38ee10e11ca32399f57cb71",
+        "bytes": 802684
+      },
+      {
+        "sha256": "3102a1d0e21bee9266e7ff4a219892e6084adbabe09e0c7885609fed4154aeba",
+        "bytes": 212238
+      },
+      {
+        "sha256": "bb1805a1db28e98cea5c04a5465a8392f6899447fdb1cfdcf1d8985d04a86d4c",
+        "bytes": 496731
+      },
+      {
+        "sha256": "9ea8edd51f2e7e20d4072b0b9df8fdc6fbe298466631c35b22350a87e4c7983e",
+        "bytes": 454797
+      },
+      {
+        "sha256": "b0e7046e6fe09505fb8ec6167965e960ee2fb19b0f09abfe4cccd98a9ca69b91",
+        "bytes": 528515
+      },
+      {
+        "sha256": "2b6f9df6ce935538fdd3d53f5c076f5d052e276d7eaeeb35407ac7b46732f0ed",
+        "bytes": 488590
+      },
+      {
+        "sha256": "2a9310589e3ec553ce5dd7a4c5f8c694c21393a4ba0e5d3556b1522946fc3d66",
+        "bytes": 533928
+      },
+      {
+        "sha256": "6c6d457dce28505a2177959a1742c0f4a2aed08f328b5990f7f143baa0f06cb2",
+        "bytes": 451312
+      },
+      {
+        "sha256": "987e9d90a8679b06666b52d422bc8edf7136660a1a212a7300ccd6e877c8dc35",
+        "bytes": 589471
+      },
+      {
+        "sha256": "a321ba52d68467cbd1b808359f837068e3f457dcfb571cbce6dd30e2a01782c9",
+        "bytes": 519082
+      },
+      {
+        "sha256": "c2577d0670e6f8b1234be959cfa5b65e17c1dbb195ed68c37cd04187bfbc380e",
+        "bytes": 432319
+      },
+      {
+        "sha256": "fa13bdd8630a7ca4400d0005768bc4d3c17b94e0d14c3a7f33f9e08fda593451",
+        "bytes": 366967
+      },
+      {
+        "sha256": "d5cbfd47e4e6259b375c22b2fd6de8a78276758f8b185e14b0204e6651f7ddf2",
+        "bytes": 488586
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "answer": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "answer": "30"
+    },
+    "usage": {
+      "input_tokens": 29087,
+      "output_tokens": 16
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

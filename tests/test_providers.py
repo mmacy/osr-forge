@@ -117,6 +117,7 @@ def test_fixture_digest_is_human_reviewable(tmp_path: Path):
     image_digest = fixture["request"]["parts"][1]
     assert set(image_digest) == {"sha256", "bytes"}
     assert image_digest["bytes"] == len(b"not-really-a-png")
+    assert fixture["request"]["schema"] == request.schema
 
 
 def test_fixture_miss_names_the_pinned_diagnostics(tmp_path: Path):
