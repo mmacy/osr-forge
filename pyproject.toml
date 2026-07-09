@@ -1,0 +1,71 @@
+[project]
+name = "osr-forge"
+version = "0.1.0"
+description = "Convert tabletop adventure module PDFs into playable osrlib Adventure documents."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Marsh Macy" }]
+requires-python = ">=3.14"
+dependencies = [
+    "osrlib>=1.1,<2",
+    "pydantic>=2",
+    "pypdfium2>=5",
+    "pillow>=11",
+    "pyyaml>=6",
+    "jsonschema>=4",
+    "openai>=1",
+]
+
+[project.optional-dependencies]
+entra = ["azure-identity>=1"]
+
+[project.urls]
+Repository = "https://github.com/mmacy/osr-forge"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.11",
+    "pyright>=1.1",
+    "types-pyyaml>=6.0.12.20260518",
+    "types-jsonschema>=4.26.0.20260518",
+    "azure-identity>=1.25.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.22,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "osrforge"
+
+[tool.ruff]
+line-length = 120
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "D", "UP", "B", "SIM", "RUF"]
+ignore = [
+    "D105", # missing docstring in magic method — __str__ and friends are self-evident
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+"tools/**" = ["D"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["osrforge"]
+
+[tool.pyright]
+pythonVersion = "3.14"
+include = ["src", "tests"]
+typeCheckingMode = "standard"
+strict = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
