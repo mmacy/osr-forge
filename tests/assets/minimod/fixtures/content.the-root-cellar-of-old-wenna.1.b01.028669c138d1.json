@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "fingerprint": "028669c138d14eac94059f1220fc0bc3aa6c86ac2112c45ddc258103e83fcca4",
+  "tag": "content.the-root-cellar-of-old-wenna.1.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"The Root Cellar of Old Wenna\" (id: the-root-cellar-of-old-wenna), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- 1 | printed key \"1\" | Collapsed stair | pages 3\n- 2 | printed key \"2\" | Turnip store | pages 3\n- 3 | printed key \"3\" | Cider press | pages 3\n- 4 | printed key \"4\" | Flooded gallery | pages 3\n- 5 | printed key \"5\" | Wenna's pantry | pages 5\n- 6 | printed key \"6\" | The deep bin | pages 5\nThis level's map is on page 4.\n"
+      },
+      {
+        "text": "[page 3]\nThe cellar, level 1: areas 1 to 4\n1. Collapsed stair. A 20' x 30' chamber of packed earth. Broken\n steps descend from the surface. 2 giant rats nest in the\n rubble and attack anyone bearing a light.\n2. Turnip store. A 30' x 40' vault lined with rotted bins. A\n goblin scavenger named Snagg picks through the bins and will\n parley if offered food. A corridor continues north to area 3.\n3. Cider press. A 20' x 20' room dominated by a ruined press.\n Under the press bed is a loose flagstone hiding 120 sp and a\n silver locket worth 25 gp.\n4. Flooded gallery. A 40' x 10' gallery ankle-deep in seep\n water. 4 giant centipedes cling to the ceiling beams. A stuck\n door in the east wall leads to area 5."
+      },
+      {
+        "sha256": "d269e150a6c47ed92e03340b812fc7e7c76b9d15125ed8a25396496b9f9c844a",
+        "bytes": 129012
+      },
+      {
+        "text": "[page 5]\nThe cellar, level 1: areas 5 to 6\n5. Wenna's pantry. A 30' x 30' room, shelves still stocked with\n preserves. A skeleton in a scorched apron guards the room,\n attacking anyone who touches the shelves.\n6. The deep bin. A 10' x 10' pit-room reached by ladder. 3\n stirges roost above a heap of grain sacks. Buried in the\n grain: a pot of 200 gp and a potion of healing.\nWandering monsters (1 in 6, check every 2 turns): 1-2 giant\nrats (1d4), 3-4 goblin (1d2), 5-6 giant centipedes (1d2)."
+      },
+      {
+        "sha256": "74ea0968f5d753e2aedd7a7bbf43fb003d64674999f357c86ae471f3565e42ae",
+        "bytes": 97531
+      },
+      {
+        "text": "[page 4]\n"
+      },
+      {
+        "sha256": "f6475973849d7a88a881b912efa4dd7de482816a18567c02c13685ee28baf0c1",
+        "bytes": 11627
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "1",
+                  "2",
+                  "3",
+                  "4",
+                  "5",
+                  "6"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "1",
+          "description": "A 20' x 30' chamber of packed earth. Broken steps descend from the surface. The giant rats nest in the rubble and attack anyone bearing a light.",
+          "encounters": [
+            {
+              "monster": "giant rats",
+              "count_fixed": 2,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "broken steps descending from the surface",
+            "rubble"
+          ],
+          "connections": [
+            {
+              "to_key": "2",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            3
+          ],
+          "confidence": 0.91
+        },
+        {
+          "key": "2",
+          "description": "A 30' x 40' vault lined with rotted bins. A goblin scavenger named Snagg picks through the bins and will parley if offered food.",
+          "encounters": [
+            {
+              "monster": "goblin",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "scavenger named Snagg"
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "rotted bins"
+          ],
+          "connections": [
+            {
+              "to_key": "1",
+              "direction": "north"
+            },
+            {
+              "to_key": "3",
+              "direction": "east"
+            },
+            {
+              "to_key": "4",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            3
+          ],
+          "confidence": 0.9
+        },
+        {
+          "key": "3",
+          "description": "A 20' x 20' room dominated by a ruined press. Under the press bed is a loose flagstone hiding treasure.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [
+            "120 sp",
+            "silver locket worth 25 gp"
+          ],
+          "features": [
+            "ruined press",
+            "loose flagstone under the press bed"
+          ],
+          "connections": [
+            {
+              "to_key": "2",
+              "direction": "west"
+            },
+            {
+              "to_key": "4",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            3
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "4",
+          "description": "A 40' x 10' gallery ankle-deep in seep water. Giant centipedes cling to the ceiling beams. A stuck door in the east wall leads to area 5.",
+          "encounters": [
+            {
+              "monster": "giant centipedes",
+              "count_fixed": 4,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "ankle-deep seep water",
+            "ceiling beams",
+            "stuck door in the east wall"
+          ],
+          "connections": [
+            {
+              "to_key": "2",
+              "direction": "north"
+            },
+            {
+              "to_key": "5",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            3
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "5",
+          "description": "A 30' x 30' room with shelves still stocked with preserves. A skeleton in a scorched apron guards the room, attacking anyone who touches the shelves.",
+          "encounters": [
+            {
+              "monster": "skeleton",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "in a scorched apron"
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "shelves stocked with preserves"
+          ],
+          "connections": [
+            {
+              "to_key": "4",
+              "direction": "west"
+            },
+            {
+              "to_key": "6",
+              "direction": "down"
+            }
+          ],
+          "source_pages": [
+            5
+          ],
+          "confidence": 0.9
+        },
+        {
+          "key": "6",
+          "description": "A 10' x 10' pit-room reached by ladder. Stirges roost above a heap of grain sacks. Treasure is buried in the grain.",
+          "encounters": [
+            {
+              "monster": "stirges",
+              "count_fixed": 3,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "pot of 200 gp",
+            "potion of healing"
+          ],
+          "features": [
+            "ladder access",
+            "heap of grain sacks"
+          ],
+          "connections": [
+            {
+              "to_key": "5",
+              "direction": "up"
+            }
+          ],
+          "source_pages": [
+            5
+          ],
+          "confidence": 0.94
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 3854,
+      "output_tokens": 748
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

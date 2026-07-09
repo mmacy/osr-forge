@@ -1,0 +1,259 @@
+{
+  "schema_version": 1,
+  "fingerprint": "983daa426263aabf929a8c006a389b9b79580e278f130ed6934cbe69ad8b5bfc",
+  "tag": "survey",
+  "request": {
+    "system": "You survey tabletop adventure modules. The user message interleaves every page's extracted text (each headed by a [page N] marker) with that page's image. Fill the survey schema from those pages.\n\nRules:\n- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. The town or home base and its buildings are never dungeons — describe them only in \"town\". Leave \"town.name\" empty only when the module genuinely leaves the town unnamed.\n- One dungeon per independently keyed map: maps connected internally by stairs or shafts are levels of one dungeon; separate lairs or sites with their own maps and entrances are separate dungeons.\n- \"hooks\" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's introduction or background.\n- Each level's \"map_pages\" lists the pages showing that level's map; each area's \"source_pages\" lists the pages describing it. Both refer to the [page N] markers in this request, never to page numbers printed on the pages themselves.\n- An area's \"key\" is the module's printed key for it (like \"5\" or \"4a\"); when an area has no printed key, use its name. \"monster_names\" collects every monster name that appears anywhere in the module.\n",
+    "parts": [
+      {
+        "text": "[page 1]\nThe Root Cellar of Old Wenna\nA one-evening dungeon crawl for characters of level 1.\nAn original mini-module authored as a test asset for osr-forge.\nTo the extent possible under law, the author has dedicated this\nwork to the public domain under CC0 1.0. No rights reserved."
+      },
+      {
+        "sha256": "cc26ab9beaa571930ebd11bcfe01feb05b6d1df9808ea12eda826723bdd4284b",
+        "bytes": 61221
+      },
+      {
+        "text": "[page 2]\nBackground and the village of Wennadale\nOld Wenna's farmhouse burned down a generation ago, but her\nfamous root cellar survives beneath the ruin, and lately things\nhave been crawling out of it at night.\nWennadale is a village of forty souls. The Dry Barrel inn offers\nbeds and rumors; Maro the peddler sells torches, rope, and oil.\nThe cellar mouth lies one mile east of the village green."
+      },
+      {
+        "sha256": "0cf1b976c4cc9275d06618107513c8de621965d782e71741ea0aa5c532134860",
+        "bytes": 79359
+      },
+      {
+        "text": "[page 3]\nThe cellar, level 1: areas 1 to 4\n1. Collapsed stair. A 20' x 30' chamber of packed earth. Broken\n steps descend from the surface. 2 giant rats nest in the\n rubble and attack anyone bearing a light.\n2. Turnip store. A 30' x 40' vault lined with rotted bins. A\n goblin scavenger named Snagg picks through the bins and will\n parley if offered food. A corridor continues north to area 3.\n3. Cider press. A 20' x 20' room dominated by a ruined press.\n Under the press bed is a loose flagstone hiding 120 sp and a\n silver locket worth 25 gp.\n4. Flooded gallery. A 40' x 10' gallery ankle-deep in seep\n water. 4 giant centipedes cling to the ceiling beams. A stuck\n door in the east wall leads to area 5."
+      },
+      {
+        "sha256": "d269e150a6c47ed92e03340b812fc7e7c76b9d15125ed8a25396496b9f9c844a",
+        "bytes": 129012
+      },
+      {
+        "text": "[page 4]\n"
+      },
+      {
+        "sha256": "f6475973849d7a88a881b912efa4dd7de482816a18567c02c13685ee28baf0c1",
+        "bytes": 11627
+      },
+      {
+        "text": "[page 5]\nThe cellar, level 1: areas 5 to 6\n5. Wenna's pantry. A 30' x 30' room, shelves still stocked with\n preserves. A skeleton in a scorched apron guards the room,\n attacking anyone who touches the shelves.\n6. The deep bin. A 10' x 10' pit-room reached by ladder. 3\n stirges roost above a heap of grain sacks. Buried in the\n grain: a pot of 200 gp and a potion of healing.\nWandering monsters (1 in 6, check every 2 turns): 1-2 giant\nrats (1d4), 3-4 goblin (1d2), 5-6 giant centipedes (1d2)."
+      },
+      {
+        "sha256": "74ea0968f5d753e2aedd7a7bbf43fb003d64674999f357c86ae471f3565e42ae",
+        "bytes": 97531
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "hooks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "town": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "description"
+          ],
+          "additionalProperties": false
+        },
+        "dungeons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "levels": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "integer"
+                    },
+                    "map_pages": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    },
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/$defs/area"
+                      }
+                    }
+                  },
+                  "required": [
+                    "number",
+                    "map_pages",
+                    "areas"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "levels"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "monster_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "hooks",
+        "town",
+        "dungeons",
+        "monster_names"
+      ],
+      "additionalProperties": false,
+      "$defs": {
+        "area": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "source_pages": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "room",
+                "corridor",
+                "cave",
+                "landmark",
+                "other"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "name",
+            "source_pages",
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "response": {
+    "data": {
+      "title": "The Root Cellar of Old Wenna",
+      "hooks": [
+        "Things have been crawling out of Old Wenna's surviving root cellar at night.",
+        "Investigate the root cellar beneath the ruins of Old Wenna's farmhouse one mile east of Wennadale."
+      ],
+      "town": {
+        "name": "Wennadale",
+        "description": "A village of forty souls. The Dry Barrel inn offers beds and rumors; Maro the peddler sells torches, rope, and oil. The cellar mouth lies one mile east of the village green."
+      },
+      "dungeons": [
+        {
+          "name": "The Root Cellar of Old Wenna",
+          "levels": [
+            {
+              "number": 1,
+              "map_pages": [
+                4
+              ],
+              "areas": [
+                {
+                  "key": "1",
+                  "name": "Collapsed stair",
+                  "source_pages": [
+                    3
+                  ],
+                  "kind": "room"
+                },
+                {
+                  "key": "2",
+                  "name": "Turnip store",
+                  "source_pages": [
+                    3
+                  ],
+                  "kind": "room"
+                },
+                {
+                  "key": "3",
+                  "name": "Cider press",
+                  "source_pages": [
+                    3
+                  ],
+                  "kind": "room"
+                },
+                {
+                  "key": "4",
+                  "name": "Flooded gallery",
+                  "source_pages": [
+                    3
+                  ],
+                  "kind": "corridor"
+                },
+                {
+                  "key": "5",
+                  "name": "Wenna's pantry",
+                  "source_pages": [
+                    5
+                  ],
+                  "kind": "room"
+                },
+                {
+                  "key": "6",
+                  "name": "The deep bin",
+                  "source_pages": [
+                    5
+                  ],
+                  "kind": "room"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "monster_names": [
+        "giant rats",
+        "goblin",
+        "giant centipedes",
+        "skeleton",
+        "stirges"
+      ]
+    },
+    "usage": {
+      "input_tokens": 5577,
+      "output_tokens": 286
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

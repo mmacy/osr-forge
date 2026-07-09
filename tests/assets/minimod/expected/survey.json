@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "title": "The Root Cellar of Old Wenna",
+  "hooks": [
+    "Things have been crawling out of Old Wenna's surviving root cellar at night.",
+    "Investigate the root cellar beneath the ruins of Old Wenna's farmhouse one mile east of Wennadale."
+  ],
+  "town": {
+    "name": "Wennadale",
+    "description": "A village of forty souls. The Dry Barrel inn offers beds and rumors; Maro the peddler sells torches, rope, and oil. The cellar mouth lies one mile east of the village green."
+  },
+  "dungeons": [
+    {
+      "id": "the-root-cellar-of-old-wenna",
+      "name": "The Root Cellar of Old Wenna",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            4
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Collapsed stair",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                3
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Turnip store",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                3
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Cider press",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                3
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Flooded gallery",
+              "source_label": null,
+              "kind": "corridor",
+              "source_pages": [
+                3
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Wenna's pantry",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                5
+              ]
+            },
+            {
+              "key": "6",
+              "name": "The deep bin",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                5
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [
+    "giant rats",
+    "goblin",
+    "giant centipedes",
+    "skeleton",
+    "stirges"
+  ]
+}

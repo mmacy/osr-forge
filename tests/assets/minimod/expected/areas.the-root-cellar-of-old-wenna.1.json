@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-root-cellar-of-old-wenna",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "1",
+      "description": "A 20' x 30' chamber of packed earth. Broken steps descend from the surface. The giant rats nest in the rubble and attack anyone bearing a light.",
+      "encounters": [
+        {
+          "monster": "giant rats",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "broken steps descending from the surface",
+        "rubble"
+      ],
+      "connections": [
+        {
+          "to_key": "2",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        3
+      ],
+      "confidence": 0.91
+    },
+    {
+      "key": "2",
+      "description": "A 30' x 40' vault lined with rotted bins. A goblin scavenger named Snagg picks through the bins and will parley if offered food.",
+      "encounters": [
+        {
+          "monster": "goblin",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "scavenger named Snagg"
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "rotted bins"
+      ],
+      "connections": [
+        {
+          "to_key": "1",
+          "direction": "north"
+        },
+        {
+          "to_key": "3",
+          "direction": "east"
+        },
+        {
+          "to_key": "4",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        3
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "3",
+      "description": "A 20' x 20' room dominated by a ruined press. Under the press bed is a loose flagstone hiding treasure.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [
+        "120 sp",
+        "silver locket worth 25 gp"
+      ],
+      "features": [
+        "ruined press",
+        "loose flagstone under the press bed"
+      ],
+      "connections": [
+        {
+          "to_key": "2",
+          "direction": "west"
+        },
+        {
+          "to_key": "4",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        3
+      ],
+      "confidence": 0.93
+    },
+    {
+      "key": "4",
+      "description": "A 40' x 10' gallery ankle-deep in seep water. Giant centipedes cling to the ceiling beams. A stuck door in the east wall leads to area 5.",
+      "encounters": [
+        {
+          "monster": "giant centipedes",
+          "count_fixed": 4,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "ankle-deep seep water",
+        "ceiling beams",
+        "stuck door in the east wall"
+      ],
+      "connections": [
+        {
+          "to_key": "2",
+          "direction": "north"
+        },
+        {
+          "to_key": "5",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        3
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "5",
+      "description": "A 30' x 30' room with shelves still stocked with preserves. A skeleton in a scorched apron guards the room, attacking anyone who touches the shelves.",
+      "encounters": [
+        {
+          "monster": "skeleton",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "in a scorched apron"
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "shelves stocked with preserves"
+      ],
+      "connections": [
+        {
+          "to_key": "4",
+          "direction": "west"
+        },
+        {
+          "to_key": "6",
+          "direction": "down"
+        }
+      ],
+      "source_pages": [
+        5
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "6",
+      "description": "A 10' x 10' pit-room reached by ladder. Stirges roost above a heap of grain sacks. Treasure is buried in the grain.",
+      "encounters": [
+        {
+          "monster": "stirges",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "pot of 200 gp",
+        "potion of healing"
+      ],
+      "features": [
+        "ladder access",
+        "heap of grain sacks"
+      ],
+      "connections": [
+        {
+          "to_key": "5",
+          "direction": "up"
+        }
+      ],
+      "source_pages": [
+        5
+      ],
+      "confidence": 0.94
+    }
+  ]
+}
