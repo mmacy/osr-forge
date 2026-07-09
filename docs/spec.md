@@ -116,7 +116,7 @@ geometry:
     reason: Match the printed map; room 7 is 20' x 20' with a stuck east door.
 ```
 
-Supported override kinds in v1: monster remaps, per-area field replacement (description, encounter, trap, treasure, features), area add/remove, geometry (cells, edges, entrance, transitions), and town/module metadata fields. Overrides apply after stage outputs and before validation, so `check` always evaluates the corrected draft.
+Supported override kinds in v1: monster remaps, per-area field replacement (name, description, encounter, trap, treasure, features), area add/remove, geometry (cells, edges, entrance, transitions), and town/module metadata fields. Overrides apply after stage outputs and before validation, so `check` always evaluates the corrected draft.
 
 ## Extraction report
 
@@ -124,6 +124,8 @@ Supported override kinds in v1: monster remaps, per-area field replacement (desc
 
 ```json
 {
+  "schema_version": 1,
+  "osrforge_version": "0.1.0",
   "module": { "title": "The Example Barrow", "pages": 48 },
   "validation": { "passed": false, "errors": ["..."] },
   "areas": [
@@ -141,6 +143,8 @@ Supported override kinds in v1: monster remaps, per-area field replacement (desc
 ```
 
 Flag vocabulary is small and enumerated (geometry synthesized, monster unresolved, low confidence, connection ambiguous, treasure unparsed, page unreadable) so UIs can badge reliably.
+
+`report.json` and `run.json` each carry `schema_version` (osr-forge's own artifact schema version — independent of osrlib's, additive-only within a version) and `osrforge_version` (the producing package version); `adventure.json` needs neither because osrlib's `stamp_document` envelope already versions it.
 
 ## Validation and playability checks
 
