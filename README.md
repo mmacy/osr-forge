@@ -4,7 +4,9 @@ Convert tabletop adventure module PDFs into playable [osrlib](https://github.com
 
 Standalone package + CLI. Consumers need only its artifacts — `adventure.json`, `report.json`, `overrides.yaml`, SVG map previews — or its CLI, regardless of their own tech stack.
 
-**Status:** phase 0 (skeleton and ground truth). See [the specification](docs/spec.md) and [the phase 0 plan](docs/phase-0-plan.md). The pipeline's extraction stages arrive in phase 1; today the package ships the contract types, deterministic preprocessing, the provider seam, and the Foundry capability spike's measured findings ([docs/foundry-capabilities.md](docs/foundry-capabilities.md)) with recorded fixtures from a license-verified module.
+**Status:** phase 1 (extraction). See [the specification](docs/spec.md), [the phase 0 plan](docs/phase-0-plan.md), and [the phase 1 plan](docs/phase-1-plan.md). The package ships the contract types, deterministic preprocessing, the provider seam, and both model-calling extraction stages — survey and content — with recorded fixtures and committed stage caches from a full 48-page milestone run over a license-verified module. A playable draft (monster resolution, geometry, assembly, and the `osrforge` CLI) arrives in phase 2.
+
+Extraction runs are driven manually today via `tools/extract/run_extraction.py` (see [tools/extract/README.md](tools/extract/README.md)); the library entry points are `preprocess()`, `survey()`, and `content()`, each reading and writing the workdir the spec defines.
 
 ## Development quickstart
 
@@ -21,7 +23,19 @@ The full check suite, as CI runs it:
 uv run ruff format --check && uv run ruff check && uv run pyright && uv run pytest
 ```
 
-Tests use no network — model interactions replay from recorded fixtures. The only live-network activity in the repo is the manual Foundry capability spike (`tools/spike/`).
+Tests use no network — model interactions replay from recorded fixtures. The only live-network activity in the repo is manual: the Foundry capability spike (`tools/spike/`) and the extraction runner (`tools/extract/`).
+
+## Pipeline settings
+
+`ConversionSettings` holds the deterministic knobs, echoed into each workdir's `run.json`:
+
+| Knob | Default | Meaning |
+| --- | --- | --- |
+| `render_dpi` | 150 | Page-render resolution (a legibility knob, not a cost knob — see `docs/foundry-capabilities.md`) |
+| `max_pages` | 200 | Source page-count guardrail |
+| `max_source_bytes` | 100 MiB | Source file-size guardrail |
+| `content_batch_pages` | 8 | Content-pass batch size in pages (floor 2) |
+| `survey_max_pages` | 150 | Single-request survey guard; larger sources raise `ExtractionError` until survey chunking lands (phase 4) |
 
 ## Provider configuration
 
