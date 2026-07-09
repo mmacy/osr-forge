@@ -1,0 +1,383 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "i-bugbear-lair",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "58",
+      "description": "Entrance to the bugbear lair. Two bugbears with pole arms stand outside the entranceway, one on each side, and another waits in the niche just inside. Heavy wooden beams support the ceilings of the lair; most ceilings are 15 feet high.",
+      "encounters": [
+        {
+          "monster": "Bugbears",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": "Each carries 1d6 gp."
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each bugbear carries 1d6 gp."
+      ],
+      "features": [
+        "Entranceway",
+        "Niche just inside the entrance",
+        "Heavy wooden beam supports",
+        "15-foot-high ceilings"
+      ],
+      "connections": [
+        {
+          "to_key": "59",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        34
+      ],
+      "confidence": 0.89
+    },
+    {
+      "key": "59",
+      "description": "Both ends of this hall are protected by the same type of mechanism: a swinging frame set with sharp, hard wooden spikes that slashes out when a pressure plate is stepped on. Each person in front might be hit.",
+      "encounters": [],
+      "trap": "Pressure plates at both ends trigger a swinging spiked wooden frame that attacks as a 2 HD monster and deals 2d6 damage to each person hit.",
+      "treasure": [],
+      "features": [
+        "Hall",
+        "Pressure plates at both ends",
+        "Swinging spiked wooden frame trap"
+      ],
+      "connections": [
+        {
+          "to_key": "58",
+          "direction": "west"
+        },
+        {
+          "to_key": "61",
+          "direction": "east"
+        },
+        {
+          "to_key": "60",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        34
+      ],
+      "confidence": 0.86
+    },
+    {
+      "key": "60",
+      "description": "The door to this room is open. Just inside hangs a tarp meant to prevent light from getting in or out. The west side of the tarp has been carefully cultured with yellow mold so that anyone pushing brusquely through it will release spores. The bugbears normally use a pole to lift the tarp aside from a distance. The room contains crates of food, bags of meat, three 50-foot sections of rope, a dozen iron spikes, and other items.",
+      "encounters": [
+        {
+          "monster": "Yellow Mold",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "Cultured on the west side of the hanging tarp just inside the door."
+        }
+      ],
+      "trap": "A hanging tarp just inside the open door is cultured with yellow mold on its west side; pushing through carelessly releases spores affecting all within 10 feet.",
+      "treasure": [],
+      "features": [
+        "Open door",
+        "Hanging tarp just inside the doorway",
+        "Crates of food",
+        "Bags of meat",
+        "Three 50-foot sections of rope",
+        "A dozen iron spikes"
+      ],
+      "connections": [
+        {
+          "to_key": "59",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        34
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "61",
+      "description": "Three bugbears reside here. The east wall is decorated with three long strips of cheap paper covered in bugbear \"chicken-tracks\" writing: prayer scrolls pleading for success in battle and many enemies to feast on.",
+      "encounters": [
+        {
+          "monster": "Bugbears",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": "Each has 1d6 gp on its person."
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each bugbear has 1d6 gp on its person."
+      ],
+      "features": [
+        "Prayer scrolls on the east wall",
+        "Three long strips of cheap paper with bugbear writing"
+      ],
+      "connections": [
+        {
+          "to_key": "59",
+          "direction": "west"
+        },
+        {
+          "to_key": "62",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        34
+      ],
+      "confidence": 0.86
+    },
+    {
+      "key": "62",
+      "description": "This room has benches and tables stacked on the north wall and bunks and boxes on the south wall. It is empty.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Benches stacked on the north wall",
+        "Tables stacked on the north wall",
+        "Bunks on the south wall",
+        "Boxes on the south wall"
+      ],
+      "connections": [
+        {
+          "to_key": "61",
+          "direction": "north"
+        },
+        {
+          "to_key": "63",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        34
+      ],
+      "confidence": 0.81
+    },
+    {
+      "key": "63",
+      "description": "This secret door is well hidden. It opens only when a block in the ceiling overhead is gripped and pulled down; the door swings up, and the latch is reset when it is swung down. The prison and main treasure room are hidden beyond to foil rescuers or plunderers. Captives are blindfolded before entering or exiting this area to keep it secret.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Well-hidden secret door",
+        "Ceiling block trigger",
+        "Door swings up",
+        "Latch resets when swung down"
+      ],
+      "connections": [
+        {
+          "to_key": "62",
+          "direction": "west"
+        },
+        {
+          "to_key": "64",
+          "direction": "south"
+        },
+        {
+          "to_key": "65",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        35
+      ],
+      "confidence": 0.91
+    },
+    {
+      "key": "64",
+      "description": "The door to this room is extremely strong and locked with a high-quality lock; the chief in room 68 has the key. Chests, boxes, and barrels fill the room. A small niche is tucked away on one side of the door frame; unless a blade or similar object is inserted to press the hidden latch, a bladder over the door releases gas into the area outside the door.",
+      "encounters": [],
+      "trap": "A hidden latch in a small niche beside the door frame must be pressed to prevent a gas bladder over the door from releasing gas outside the room; if open flame is nearby, the gas ignites and deals 1d6 damage to all within 10 feet (save vs. Dragon Breath for half). Without flame it is harmless and dissipates in 1d6 turns.",
+      "treasure": [
+        "Shield +1",
+        "Potion of Gaseous Form",
+        "Potion of Healing",
+        "500 gp",
+        "1,400 ep",
+        "200 cp"
+      ],
+      "features": [
+        "Extremely strong locked door",
+        "High-quality lock",
+        "Small niche hidden in the door frame",
+        "Chests",
+        "Boxes",
+        "Barrels"
+      ],
+      "connections": [
+        {
+          "to_key": "63",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        35
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "65",
+      "description": "The prison contains cells a through d and torture room e. The head jailer is usually in and around e with an assistant. The heavy wooden doors to cells a to d are locked and have barred windows for inspection. Area e has stools for guards, iron loops and chains on the walls for victims, and a hot brazier with fireplace poker ready at all times. Cells a and d are empty. Cell b holds a desperate merchant who will pay 200 gp in thanks if returned to town. Cell c contains two completely harmless skeletons of humans or elves.",
+      "encounters": [
+        {
+          "monster": "Bugbears",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": "Head jailer and assistant; each has 3d6 gp on his person."
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each jailer has 3d6 gp on his person.",
+        "A rescued merchant in cell b will pay 200 gp in thanks if returned to town."
+      ],
+      "features": [
+        "Locked heavy wooden cell doors",
+        "Barred windows in cell doors",
+        "Torture room e",
+        "Stools for guards",
+        "Iron loops and chains on the walls",
+        "Hot brazier",
+        "Fireplace poker",
+        "Cell a empty",
+        "Cell b holds a desperate merchant",
+        "Cell c holds two harmless skeletons",
+        "Cell d empty"
+      ],
+      "connections": [
+        {
+          "to_key": "63",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        35
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "66",
+      "description": "Three bugbears reside here. The room is furnished with common rattan furniture, including tables and chairs, and heavy wooden bunks.",
+      "encounters": [
+        {
+          "monster": "Bugbears",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": "Each has 1d6 gp on its person."
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each bugbear has 1d6 gp on its person."
+      ],
+      "features": [
+        "Rattan tables",
+        "Rattan chairs",
+        "Heavy wooden bunks"
+      ],
+      "connections": [
+        {
+          "to_key": "67",
+          "direction": "north"
+        },
+        {
+          "to_key": "68",
+          "direction": "east"
+        },
+        {
+          "to_key": "unknown",
+          "direction": "west"
+        }
+      ],
+      "source_pages": [
+        35
+      ],
+      "confidence": 0.78
+    },
+    {
+      "key": "67",
+      "description": "Listening at this door reveals grunting and snuffling. Inside, a great owlbear is chained to the east wall. It was captured as a cub and raised by the bugbears, considers the lair its home, and defends it ferociously against intruders. The chain is weakly attached to the wall and can easily be ripped out if needed. The bugbears sometimes let it roam free and often take it outside with them.",
+      "encounters": [
+        {
+          "monster": "Owlbear",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Door from which grunting and snuffling can be heard",
+        "Chain attached to east wall",
+        "Weak wall attachment for the chain"
+      ],
+      "connections": [
+        {
+          "to_key": "66",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        35
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "68",
+      "description": "The head bugbear and a small guard of common bugbears reside here among heavy wooden beds, chairs, and tables. The chief wears two keys on a thong around one wrist: one opens the locked door to the west and the other opens the treasure room (64). The locked western door is stout, thick, and iron-bound, but the room beyond it is empty.",
+      "encounters": [
+        {
+          "monster": "Bugbear Chief",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "Wears a necklace with 300 gp and carries two keys on a thong around one wrist."
+        },
+        {
+          "monster": "Bugbears",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": "Each individual has 1d6 gp on its person."
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Chief's necklace worth 300 gp",
+        "Each individual has 1d6 gp on its person.",
+        "Key to the locked western door",
+        "Key to room 64 treasure room"
+      ],
+      "features": [
+        "Heavy wooden beds",
+        "Heavy wooden chairs",
+        "Heavy wooden tables",
+        "Stout thick iron-bound locked door to the west",
+        "Empty room beyond the western door"
+      ],
+      "connections": [
+        {
+          "to_key": "66",
+          "direction": "west"
+        },
+        {
+          "to_key": "64",
+          "direction": "unknown"
+        },
+        {
+          "to_key": "Locked door",
+          "direction": "west"
+        }
+      ],
+      "source_pages": [
+        35
+      ],
+      "confidence": 0.83
+    }
+  ]
+}

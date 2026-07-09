@@ -1,0 +1,471 @@
+{
+  "schema_version": 1,
+  "fingerprint": "1fae36804d7417f8ff7a2efad5c8cb859327836814fdf94350300aaf2b33b704",
+  "tag": "content.h-lizard-man-lair.1.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"H. Lizard Man Lair\" (id: h-lizard-man-lair), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- 50 | printed key \"50\" | North Entrance | pages 32\n- 51 | printed key \"51\" | Empty Chamber | pages 32\n- 52 | printed key \"52\" | Common Room | pages 33\n- 53 | printed key \"53\" | Larder (Food Storage) | pages 33\n- 54 | printed key \"54\" | Main Harem | pages 33\n- 55 | printed key \"55\" | Common Room | pages 34\n- 56 | printed key \"56\" | Guard Post | pages 34\n- 57 | printed key \"57\" | South Entrance | pages 34\nThis level's map is on page 38.\n"
+      },
+      {
+        "text": "[page 32]\nThe Caves The Chaotic Caves\n48. CHIEF'S ROOM: The kobold chief, two\nbodyguards, and four normal kobolds live here.\nThe chief has the key to the store room at #43.\nThe chief wields a silver-bladed hand-axe\nworth about 40 to 50 gp and has a pouch\naround his neck with six 100 gp gems in it.\nEach bodyguard has a golden arm-band on one\narm worth 50 gp. There is a large clay urn in\nback with a wooden lid tied on by rough fiber\nrope, inside which are 306 gp, 312 sp, and\n108 cp.\nKobold Chief: AC 13, HD 2, #At 1 shortsword, \nDam 1d6, Mv 20', Sv F2, ML 7, XP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\n2 Kobold Bodyguards: AC 13, HD 1, \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv F1, ML 8 \n(7 if chief is defeated or leaves the area), \nXP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 Kobolds: AC 13, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv NM, ML 7\n(6 if chief and bodyguards are defeated or \nleave the area), XP 10 ea.\nHP 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n49. ESCAPE ROUTE: As shown on the map, a\npit trap with stakes (2d6 damage) is some 10'\nor 20' from the entranceway: it is covered by a\npretty good false floor, although a careful\nsearch should have a high chance of finding it.\nThe outside exit is in the middle of the woods\nand has been covered by living brush and\ndebris such that it is hard to find.\nScuttling in the brush just outside the entrance\nare seven giant centipedes, attacking anyone\nwho comes near:\n7 Giant Centipedes: AC 11, HD ½ (1d4 HP), \n#At 1 bite, Dam poison, Mv 40', Sv NM, ML 7, \nXP 10 ea.\nHP 2 ☐☐ 3 ☐☐☐ 2 ☐☐ 3 ☐☐☐\n1 ☐ 2 ☐☐ 4 ☐☐☐☐\nH. LIZARD MAN LAIR\nThe lizard man lair is located in a swampy area\nformed where a stream slows down, spreads\nout, and pools in this area. The tunnels of the\nlair are wet and muddy, with water dripping\ndown from the ceiling to form small pools.\nGnarled tree roots grow through the ceiling and\nwalls. The inner chambers are 10' tall and the\nconnecting passages are low (6' or so).\nDECORATION: Each of the lizard men wears a\n25 gp gem on a leather thong around its neck\nas a tribal identifier, and is painted in garish\nred colors.\nSTREAM: The stream is cool and clean, running\nnorthwest to southeast. It has pools up to ten\nfeet deep, shallow places less than a foot\ndeep, and is easily crossed by finding a shallow\nplace. In some places it is overgrown with\nreeds. The bank can rise to a height of 10' or\n20' and is occasionally flat. Normal inhabitants\ninclude crayfish, fish, frogs, beavers, ducks,\nand other animals coming to drink.\n50. NORTH ENTRANCE: Two totem poles flank\nthe rough entrance that has been clawed into\nthe hard, rocky ground. Each is capped with\nthe bleached skull of a bear and feathers.\nThree lizard men (wearing tough hide and bone\narmor) and a giant gecko lizard lounge some\ntwenty feet inside, warding off any intruders.\nThe tunnel slopes down sharply from the\nopening to the first chamber, dropping some\n30' in elevation. There are several boulders\nthere which can be rolled into the hallway and\npacked with mud to prevent flooding.\n3 Lizard Men: AC 15, HD 2, #At 1 spear, \nDam 1d6+1, Mv 20', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\nGiant Gecko Lizard: AC 15, HD 3+1, #At 1 bite, \nDam 1d8, Mv 40', Sv F2, ML 7, XP 145\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n51. EMPTY CHAMBER: An empty chamber,\nstacked with firewood, dry grass for tinder, and\nrocks.\n30"
+      },
+      {
+        "sha256": "d5cbfd47e4e6259b375c22b2fd6de8a78276758f8b185e14b0204e6651f7ddf2",
+        "bytes": 488586
+      },
+      {
+        "text": "[page 33]\nThe Chaotic Caves The Caves\n52. COMMON ROOM: The residence of three\nmales; they are unarmored.\n3 Lizard Men: AC 12, HD 2, #At 1 spear, \nDam 1d6+1, Mv 30', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n53. LARDER (FOOD STORAGE): These two\nchambers are separated from each other and\nthe hallway by reed walls some 3 feet high.\nThe pool of water in the westward one is 2\nfeet deep and contains fish, eels, crawdads,\nand other such creatures, while the other has\nturtles, lizards, and rabbits.\n54. MAIN HAREM: The leader of the lizard men\n(wearing armor of tough hide and bone) resides\nhere with two prime female mates who are\nstatistically indistinguishable from males.\nThere are six young. Other than the leader, all\nare unarmored. The leader has a 100 gp gem\non a thong around his neck which marks him\nas dominant, rather than the 25 gp gem of the\nothers.\nHe also has a leather sack with a drawstring\nhidden in a hole in the center of the north wall,\ncovered over by mud. It contains 20 x 25 gp\ngems, 20 x 10 gp gems, 123 gp, 911 sp, and\n345 cp.\nTwo hollow tree trunks about 1 foot in\ndiameter rise up through the roof and exit\nabove, providing ventilation. The lizard men\nare very crafty and if cornered here they can\ndig out through the ceiling, taking perhaps an\nhour or less to make their escape.\nA fire smolders in one corner, over which\nseveral large rats are slowly smoking. Smoked\nmeats, some vegetables, and other items are\npiled beside them. Several large and well\u0002made hard-baked clay pots and jars are also\nhere. There are hides and furs stacked along\none wall (the most valuable of which are three\nfurs worth 50 gp each). There is also firewood,\ngrasses, and leaves for bedding and fires.\nNote: The author is keeping this module kid\u0002friendly; for adults, the GM might decorate the\nplace with the bones of humans. These lizard\nfolk are not intended to be sweet and friendly.\nHanging almost casually on a peg on a wall is a\nreed whistle (a Whistle of Summoning\nAnimals). When blown, it summons a normal\ncreature for the general area: the GM must\ndecide which one (if there are only smallish\nanimals, it can summon several). It will\noverride their nature for 2d6 turns during\nwhich time they will serve the user to the best\nof their ability (they cannot speak or otherwise\nbehave except by their natural resources, but\nwill understand the user's intentions quite\nclearly). Unless abused, they leave once the\ncharm wears off. Once the whistle has been\nblown three times it loses all of its magic.\nLizard Man Leader: AC 15, HD 3, #At 1 spear, \nDam 1d6+2, Mv 20', Sv F3, ML 11, XP 145\nHP 12 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐\n2 Female Lizard Men: AC 12, HD 2, #At 1 spear, \nDam 1d6+1, Mv 30', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n6 Young Lizard Men: AC 11, HD 1, #At 1 spear, \nDam 1d6, Mv 30', Sv F1, ML 10, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n31"
+      },
+      {
+        "sha256": "6cd399af281730fc8f2aa418e3255166e47416eadc6fe236627363c38096f794",
+        "bytes": 499004
+      },
+      {
+        "text": "[page 34]\nThe Caves The Chaotic Caves\n55. COMMON ROOM: Three males are busy\nhere, readying simple bamboo gigs for a fish\u0002and-frog hunt.\n3 Lizard Men: AC 12, HD 2, #At 1 spear, \nDam 1d6+1, Mv 30', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n56. GUARD POST: Three lizard men (wearing\ntough hide and bone armor) and a giant gecko\nlizard on a thick fiber rope lurk in the dark\nhere, keeping intruders (including animals) out.\nThe tunnel slopes down sharply from the\nopening to here, dropping some 30'. There are\nseveral boulders here which can be rolled into\nthe hallway and packed with mud to prevent\nflooding.\n3 Lizard Men: AC 15, HD 2, #At 1 spear, \nDam 1d6+1, Mv 20', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\nGiant Gecko Lizard: AC 15, HD 3+1, #At 1 bite, \nDam 1d8, Mv 40', Sv F2, ML 7, XP 145\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n57. SOUTH ENTRANCE: This entrance opens\ninto the bank of the stream, which is some 20\nfeet high here. It is flanked by two 9-foot\ntotem poles (featuring crude animals and\nlizards) capped by bear skulls and feathers.\nI. BUGBEAR LAIR\nThese bugbears are planning a takeover of the\nregion. For now they are biding their time and\nwaiting for an opportunity. Heavy wooden\nbeams support the ceilings of the halls of their\nlair, tunneled from the loose, rocky earth by\nskilled hands. Most ceilings are 15 feet high.\n58. ENTRANCE: Two bugbears with pole arms\nstand outside the entranceway, one on each\nside. Another is in the niche inside. Each\ncarries 1d6 gp.\n3 Bugbears: AC 15, HD 3+1, #At 1 polearm, \nDam 1d10+1, Mv 30', Sv F3, ML 9, XP 145 ea.\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n59. SWINGING ARM TRAP: Both ends of this\nhall are protected by a trap. A swinging frame\nset with sharp, hard wooden spikes slashes out\nwhen a pressure plate is stepped on, attacking\nas a 2 HD monster and doing 2d6 points of\ndamage to each person hit. Each person in\nfront might be hit.\n60. STORE ROOM: The door to this room is\nopen. Just inside is a tarp hanging down to\nprevent light from getting in or out, or so it\nmight seem. The tarp has been carefully\ncultured with a yellow mold on the west side\nsuch that anyone pushing brusquely through\nwill cause it to release spores. The bugbears\ntypically use a pole to carefully lift the tarp\naside from a distance. The room contains\ncrates of food, bags of meat, three 50-foot\nsections of rope, a dozen iron spikes and other\nitems.\nYellow Mold: AC Can always be hit, HD 2*, \n#At Spores, Dam All within 10 feet of the mold \nwill be affected by the spores and must save \nvs. Death Ray or take 1d8 points of damage per\nround for 6 rounds, Mv 0, Sv NM, ML N/A, \nXP 100\nHP 8 ☐☐☐☐☐ ☐☐☐\n61. COMMON ROOM: Three bugbears reside\nhere. Each has 1d6 gp on its person. The east\nwall is decorated with three long strips of\ncheap paper scattered with bugbear \"chicken\u0002tracks\" (writing). They are prayer scrolls\npleading for success in battle and many\nenemies to feast on. \n3 Bugbears: AC 15, HD 3+1, #At 1 scimitar, \nDam 1d8+1, Mv 30', Sv F3, ML 9, XP 145 ea.\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n62. EMPTY COMMON ROOM: This room has\nbenches and tables stacked on the north wall\nand bunks and boxes on the south wall. It is\nempty.\n32"
+      },
+      {
+        "sha256": "7a1ad5f707ccbcead52cdf69d1893f2dc837adcea981d53a60bb89aff2763662",
+        "bytes": 483989
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "50",
+                  "51",
+                  "52",
+                  "53",
+                  "54",
+                  "55",
+                  "56",
+                  "57"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "50",
+          "description": "North entrance to the lizard man lair. Two totem poles flank the rough opening, each capped with a bleached bear skull and feathers. The tunnel slopes sharply downward from the entrance to the first chamber, dropping about 30 feet in elevation. Several boulders here can be rolled into the hallway and packed with mud to prevent flooding.",
+          "encounters": [
+            {
+              "monster": "lizard men",
+              "count_fixed": 3,
+              "count_dice": null,
+              "count_note": "wearing tough hide and bone armor"
+            },
+            {
+              "monster": "giant gecko lizard",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "two totem poles capped with bear skulls and feathers",
+            "sloping tunnel descending about 30 feet",
+            "boulders that can be rolled into the hallway and packed with mud to prevent flooding"
+          ],
+          "connections": [
+            {
+              "to_key": "51",
+              "direction": "south"
+            },
+            {
+              "to_key": "outside",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            32
+          ],
+          "confidence": 0.95
+        },
+        {
+          "key": "51",
+          "description": "An empty chamber stacked with firewood, dry grass for tinder, and rocks.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "stored firewood",
+            "dry grass for tinder",
+            "rocks"
+          ],
+          "connections": [
+            {
+              "to_key": "50",
+              "direction": "north"
+            },
+            {
+              "to_key": "52",
+              "direction": "east"
+            },
+            {
+              "to_key": "54",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            32,
+            38
+          ],
+          "confidence": 0.76
+        },
+        {
+          "key": "52",
+          "description": "Common room serving as the residence of three male lizard men; they are unarmored.",
+          "encounters": [
+            {
+              "monster": "lizard men",
+              "count_fixed": 3,
+              "count_dice": null,
+              "count_note": "male; unarmored"
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [],
+          "connections": [
+            {
+              "to_key": "51",
+              "direction": "west"
+            },
+            {
+              "to_key": "53",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            33,
+            38
+          ],
+          "confidence": 0.73
+        },
+        {
+          "key": "53",
+          "description": "Larder and food storage made up of two chambers separated from each other and from the hallway by reed walls about 3 feet high. The western pool is 2 feet deep and contains fish, eels, crawdads, and similar creatures; the other chamber contains turtles, lizards, and rabbits.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "two storage chambers separated by 3-foot-high reed walls",
+            "western pool 2 feet deep",
+            "food animals including fish, eels, crawdads, turtles, lizards, and rabbits"
+          ],
+          "connections": [
+            {
+              "to_key": "52",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            33,
+            38
+          ],
+          "confidence": 0.72
+        },
+        {
+          "key": "54",
+          "description": "Main harem and residence of the lizard man leader with two prime female mates and six young. Other than the leader, all are unarmored. The leader wears armor of tough hide and bone and has a 100 gp gem on a thong around his neck marking his dominance instead of the usual 25 gp tribal gem. A leather sack with a drawstring is hidden in a mud-covered hole in the center of the north wall. Two hollow tree trunks rise through the roof and exit above for ventilation; if cornered, the lizard men can dig out through the ceiling in about an hour or less to escape. A fire smolders in one corner smoking several large rats. Smoked meats, vegetables, large hard-baked clay pots and jars, hides and furs, firewood, grasses, and leaves for bedding and fires are piled here. A reed whistle hangs casually on a peg on the wall; it is a Whistle of Summoning Animals.",
+          "encounters": [
+            {
+              "monster": "lizard man leader",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            },
+            {
+              "monster": "female lizard men",
+              "count_fixed": 2,
+              "count_dice": null,
+              "count_note": "prime female mates; statistically indistinguishable from males; unarmored"
+            },
+            {
+              "monster": "young lizard men",
+              "count_fixed": 6,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "100 gp gem on the leader's neck",
+            "leather sack hidden in a mud-covered hole containing 20 x 25 gp gems, 20 x 10 gp gems, 123 gp, 911 sp, and 345 cp",
+            "three furs worth 50 gp each",
+            "reed whistle (Whistle of Summoning Animals)"
+          ],
+          "features": [
+            "hidden hole in the center of the north wall covered with mud",
+            "two hollow tree trunks through the roof providing ventilation",
+            "ceiling can be dug out for escape in about an hour or less",
+            "smoldering fire with large rats smoking over it",
+            "smoked meats and vegetables",
+            "large hard-baked clay pots and jars",
+            "hides and furs",
+            "firewood, grasses, and leaves for bedding and fires"
+          ],
+          "connections": [
+            {
+              "to_key": "51",
+              "direction": "north"
+            },
+            {
+              "to_key": "55",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            33,
+            38
+          ],
+          "confidence": 0.89
+        },
+        {
+          "key": "55",
+          "description": "Common room where three male lizard men are busy readying simple bamboo gigs for a fish-and-frog hunt.",
+          "encounters": [
+            {
+              "monster": "lizard men",
+              "count_fixed": 3,
+              "count_dice": null,
+              "count_note": "male; unarmored"
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "simple bamboo gigs for fish-and-frog hunting"
+          ],
+          "connections": [
+            {
+              "to_key": "54",
+              "direction": "west"
+            },
+            {
+              "to_key": "56",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            34,
+            38
+          ],
+          "confidence": 0.77
+        },
+        {
+          "key": "56",
+          "description": "Guard post where three armored lizard men and a giant gecko lizard on a thick fiber rope lurk in the dark to keep intruders, including animals, out. The tunnel slopes sharply down from the opening to here, dropping about 30 feet. Several boulders here can be rolled into the hallway and packed with mud to prevent flooding.",
+          "encounters": [
+            {
+              "monster": "lizard men",
+              "count_fixed": 3,
+              "count_dice": null,
+              "count_note": "wearing tough hide and bone armor"
+            },
+            {
+              "monster": "giant gecko lizard",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "on a thick fiber rope"
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "dark guard post",
+            "sloping tunnel descending about 30 feet from the entrance",
+            "boulders that can be rolled into the hallway and packed with mud to prevent flooding",
+            "thick fiber rope for the giant gecko lizard"
+          ],
+          "connections": [
+            {
+              "to_key": "55",
+              "direction": "west"
+            },
+            {
+              "to_key": "57",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            34,
+            38
+          ],
+          "confidence": 0.8
+        },
+        {
+          "key": "57",
+          "description": "South entrance opening into the bank of the stream, which is about 20 feet high here. It is flanked by two 9-foot totem poles featuring crude animals and lizards, capped by bear skulls and feathers.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "entrance opens into a stream bank about 20 feet high",
+            "two 9-foot totem poles with crude animals and lizards",
+            "bear skulls and feathers atop the totem poles"
+          ],
+          "connections": [
+            {
+              "to_key": "56",
+              "direction": "north"
+            },
+            {
+              "to_key": "outside",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            34,
+            38
+          ],
+          "confidence": 0.84
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 7843,
+      "output_tokens": 1551
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

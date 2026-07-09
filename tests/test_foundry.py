@@ -97,6 +97,19 @@ def test_request_mapping():
     assert response_format["json_schema"]["name"] == "probe_trivial"
 
 
+def test_schema_name_truncated_to_service_limit():
+    # The service caps json_schema.name at 64 characters; a long content-batch
+    # tag (observed live on a 52-character survey-coined dungeon slug) must
+    # not 400.
+    provider, client, _ = make_provider([completion('{"title": "x"}')])
+    long_tag = "content." + "-".join(["deep"] * 13) + ".1.b01"
+    assert len(long_tag) > 64
+    request = ModelRequest(tag=long_tag, system="s", parts=(TextPart(text="t"),), schema=SCHEMA)
+    provider.generate(request)
+    name = client.calls[0]["response_format"]["json_schema"]["name"]
+    assert len(name) <= 64
+
+
 def test_response_parsing_and_usage():
     provider, _, _ = make_provider([completion('{"title": "The Example Barrow"}')])
     response = provider.generate(make_request())

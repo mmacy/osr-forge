@@ -7,6 +7,7 @@ additively; later phases add their own members.
 """
 
 __all__ = [
+    "ExtractionError",
     "FixtureMissError",
     "OsrForgeError",
     "PdfError",
@@ -21,6 +22,17 @@ class OsrForgeError(Exception):
 
 class PdfError(OsrForgeError):
     """The source PDF is unreadable, encrypted, or violates a configured limit."""
+
+
+class ExtractionError(OsrForgeError):
+    """The extraction work itself failed: the source exceeds the survey guard, or the survey found nothing.
+
+    Provider failures keep propagating as
+    [`ProviderError`][osrforge.errors.ProviderError]/
+    [`SchemaValidationError`][osrforge.errors.SchemaValidationError]; calling a
+    stage on a workdir whose upstream stage isn't `completed` is programmer
+    misuse and raises stdlib `ValueError`.
+    """
 
 
 class ProviderError(OsrForgeError):

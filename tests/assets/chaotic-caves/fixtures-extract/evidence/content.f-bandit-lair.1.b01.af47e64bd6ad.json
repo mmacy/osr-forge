@@ -1,0 +1,602 @@
+{
+  "schema_version": 1,
+  "fingerprint": "af47e64bd6ad5f99cf6996d48a0e60def7fc116aece4d63d49f7576b46b0b0ff",
+  "tag": "content.f-bandit-lair.1.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"F. Bandit Lair\" (id: f-bandit-lair), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- 32 | printed key \"32\" | East Entrance | pages 29\n- 33 | printed key \"33\" | Common Room | pages 29\n- 34 | printed key \"34\" | Locked Store Room | pages 29\n- 35 | printed key \"35\" | Common Room | pages 29\n- 36 | printed key \"36\" | Leader's Room | pages 29\n- 37 | printed key \"37\" | Stables | pages 30\n- 38 | printed key \"38\" | Dungeon | pages 30\n- 39 | printed key \"39\" | Guard Post | pages 30\n- 40 | printed key \"40\" | Treasure Room | pages 30\n- 41 | printed key \"41\" | Bandit Lieutenant | pages 30\n- 42 | printed key \"42\" | West Entrance | pages 31\nThis level's map is on page 38.\n"
+      },
+      {
+        "text": "[page 29]\nThe Chaotic Caves The Caves\nF. BANDIT LAIR\nThis lair has two entrances: see locations #32\nand #42 on the map. Both are out of sight\nfrom each other in the woods. The denizens of\nthis lair are bandits. They might try to trick an\nadventuring party with clever guises (like\nposing as soldiers sent to help clear-cut the\nmonsters), but they will ambush and attack if\nthey get a chance. They are allies to those in\nthe abandoned mansion fort (see Part Two),\nbut unless interrogated or something odd\nhappens, they will not give that away.\n32. EAST ENTRANCE: Four humans and a dwarf\nstand guard here; on hot days they take cover\njust inside the cave entrance. They each have\na crossbow and a case of bolts which are\ntraded out as the guard changes. Each has\n1d6+6 sp on their person. At night, a dozen\ntorches will be kept just inside the entrance\nalong with a covered bowl of hot coals.\nBandit, Dwarf Fighter 1: AC 13, AB +1, \n#At 1 shortsword or 1 light crossbow, Dam 1d6, \nMv 30', Sv F1D, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐\n4 Bandits, Human Fighter 1: AC 13, AB +1, \n#At 1 shortsword or 1 light crossbow, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n33. COMMON ROOM: Six human fighters are\nbunked here, amid furniture that is light and\neasy to break down and move, but not very\nsturdy. Each has 1d6+6 sp on their person.\nThe room is lit by two common oil lamps\n(wooden bowls with a notch for a wick). Oil is\nbrought in with a wooden cup when needed.\n6 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n34. LOCKED STORE ROOM: The door to this\nroom is heavy and locked; knocking it in will\ntake some time. The deputy to the leader (in\nroom #41) usually has the key. This room\ncontains provisions and loot from raids. A well\nhas been driven down for water, and barrels of\nbeer, bags of grains, vegetables, and other\nsundries can be found. A large clay jug holds\neight gallons of lantern oil and there are three\ndozen torches. \n35. COMMON ROOM: Six bandits reside here.\nEach has 1d6+6 sp on his or her person. The\nroom is lit by two common oil lamps (wooden\nbowls with a notch for a wick). Oil is brought\nin with a wooden cup when needed. \n6 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n36. LEADER'S ROOM: The bandit leader (a\nfighter) is here. He wields a longsword +1,\nwears chainmail +1, and is carrying a shield.\nTwo of his main cronies are also here, each\nwearing normal chain mail. The three of them\nare sitting at a table looking at a map of the\ngeneral area with notes about best prospects\nfor ambushing traders. This room features a\nlantern on a swinging hook and a gallon of\nlantern oil in a wooden jar. The lantern has a\ncontinual light spell cast inside it; it is kept\nfueled in case it is dispelled or countered by a\ncontinual darkness spell. The captain has the\nkey to the storage room at #40.\nUnder the table is a locked strong box\ncontaining 500 gp, 1,000 sp, and 2,000 cp. The\ncaptain has the key to it stuffed in one boot.\nHe has a ring of keys that go to the dungeon\ndoors at #38 on his belt.\nBandit Leader, Human Fighter 4: AC 16 (17), \nAB +3 (+4 with magic longsword), \n#At 1 longsword +1, Dam 1d8+1, Mv 30', Sv F4, \nML 8, XP 240\nHP 16 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐\n2 Bandit Cronies, Human Fighter 2: AC 15, \nAB +2, #At 1 shortsword, Dam 1d6, Mv 20', \nSv F2, ML 8, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n27"
+      },
+      {
+        "sha256": "a321ba52d68467cbd1b808359f837068e3f457dcfb571cbce6dd30e2a01782c9",
+        "bytes": 519082
+      },
+      {
+        "text": "[page 30]\nThe Caves The Chaotic Caves\n37. STABLES: The bandits keep their animals\nhidden here, taking them out to browse during\nthe day. The dotted lines are wooden fences,\nwith gates where needed. \nIn the stalls are two riding horses, two mules,\nand two cows. A wagon, two saddles and\nbridles, and two sets of saddle bags can be\nfound in one corner. The wagon also holds\nseveral large bags of grain, buckets, and other\nitems.\n38. DUNGEON: This is a holding area for\ncaptives and anyone the captain wants to\nthrow into irons. The captain currently has the\nkeys with him in room #36. The contents of\nthe cells are as follows:\nCell \"a\" has three merchants. They are\nnoncombatants and (if rescued and returned to\ntown) one offers a necklace with gems worth\n100 gp, while the other two offer 100 gp each.\nCell \"b\" is empty.\nCell \"c\" contains a recalcitrant bandit, who was\nput here for pilfering and bad-mouthing\neveryone. She knows no boundaries and will\nattempt to get into anyone's good graces\n(posing as the guard of a merchant), only to\nsteal what she can and run off. She has no\narmor and no weapon.\nBandit: AC 11, HD 1, #At 1 fist, Dam 1d3, Mv 40', \nSv F1, ML 8, XP 25\nHP 4 ☐☐☐☐\nCell \"d\" holds three jars of good wine, two jars\nof cheap wine, and a dozen bottles of ale in a\nbox.\nCell \"e\" is empty.\n39. GUARD POST: Three men are always posted\nhere to guard the main loot, with strict\ninstructions as to who to let in. Each has 1d6 +\n6 sp on their person. A common oil lamp\n(wooden bowl with wick) provides light.\n3 Bandits: AC 13, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐\n40. TREASURE ROOM: The best loot is stored\nhere behind a strong, locked door. The bandit\ncaptain in #36 keeps the key. The contents are\nas follows:\n• 10 silver cups worth 10 gp each (100 gp\ntotal)\n• 10 silver plates worth 25 gp each\n(finely engraved and decorated) (250\ngp total)\n• 10 forks and 10 spoons of silver worth\n5 gp each (100 gp value)\n• 1 dress worth 250 gp\n• 3 dresses worth 100 gp each\n41. BANDIT LIEUTENANT: These quarters are\nshared by the bandit leader's deputy and\ncronies (usually the cronies are with the\nleader, see room #36). The lieutenant is an\nElven Thief wearing leather armor and carrying\na dagger and shortsword. A shortbow and\nquiver of arrows is hung on a peg by the door.\nThe main room has tables, couches, and\nfurnishings and items for normal living. The\nthree back rooms (41a, 41b, and 41c, labeled for\nthe GM's convenience) contain beds and other\nitems for personal use. All furniture here is\ncrude and hand made from materials found in\nthe immediate area, not brought by the\nbandits. Each room has a plain oil lamp\n(wooden bowl with notch for wick) and the\nmain room has a wooden jug with a quart of\noil.\nElven Thief 3: AC 14 due to dexterity, \n#At 1 shortsword or 1 shortbow, Dam 1d6, \nMv 30', Sv E-T3, ML 8, XP 145\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n28"
+      },
+      {
+        "sha256": "c2577d0670e6f8b1234be959cfa5b65e17c1dbb195ed68c37cd04187bfbc380e",
+        "bytes": 432319
+      },
+      {
+        "text": "[page 31]\nThe Chaotic Caves The Caves\n42. WEST ENTRANCE: Four humans and a\nHalfling stand guard here (on hot days, they are\nusually inside the cave entrance). They have\ncrossbows and a case of bolts which are\ntraded out as the guard changes. Each has 1d6\n+ 6 sp on his or her person. A dozen torches\nare kept just inside the entrance along with a\ncovered bowl of hot coals.\n5 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐\nG. KOBOLD LAIR\nThese creatures were not invited to the region;\nthey arrived like rats smelling a dead corpse to\nchew on. They are tolerated much the same\nway.\n43. GUARD POST: Nine kobolds hunker\nnervously here. South of them is a locked\nstore room; the chief in room #48 has the key.\nThe store room has dried meat, pickled\nvegetables in clay jars, and other supplies.\n9 Kobolds: AC 13, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv NM, ML 6,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n44. GUARDS: Seven kobolds lounge on benches\nand chairs around tables. None have armor.\n7 Kobolds: AC 11, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 30', Sv NM, ML 6,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐\n45. COMMON ROOM: The doors to this room\nare made of flimsy wooden poles lashed\ntogether; they can be kicked in or heard\nthrough easily. A number of the kobolds (none\nhave armor) inside are keeping normal rats as\n\"pets\" (they eat their pets now and then).\n12 Kobolds: AC 11, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 30', Sv NM, ML 6,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n46. COMMON ROOM: The door to this room is\nrickety and easily kicked in or listened through.\nThe kobolds inside do not have armor.\nOrdinary rats and mice scurry among the litter;\nsome are being cooked on a fire. \n9 Kobolds: AC 11, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 30', Sv NM, ML 6,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n2 ☐☐\n47. TROPHY ROOM: This open chamber is\ndecorated by old metal helmets, clothing hung\non wooden frames like scarecrows, and other\nitems. These are all mementos of opponents\ndefeated in battle. Most of them are not that\nimpressive and some are kobold-sized.\nSECRET DOOR: The secret door (3' wide and 6'\nhigh) in the center of the west wall is well\u0002hidden and takes careful scrutiny to find. It\nopens if a careful grip is taken on one side and\npulled. Only the chief knows it is there.\n29"
+      },
+      {
+        "sha256": "fa13bdd8630a7ca4400d0005768bc4d3c17b94e0d14c3a7f33f9e08fda593451",
+        "bytes": 366967
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "32",
+                  "33",
+                  "34",
+                  "35",
+                  "36",
+                  "37",
+                  "38",
+                  "39",
+                  "40",
+                  "41",
+                  "42"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "32",
+          "description": "East entrance to the bandit lair. Four humans and a dwarf stand guard here; on hot days they take cover just inside the cave entrance. They each have a crossbow and a case of bolts traded out as the guard changes. At night, a dozen torches are kept just inside the entrance along with a covered bowl of hot coals. Each guard carries 1d6+6 sp.",
+          "encounters": [
+            {
+              "monster": "bandit",
+              "count_fixed": 4,
+              "count_dice": null,
+              "count_note": "human guards"
+            },
+            {
+              "monster": "dwarf fighter",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "bandit guard"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each guard has 1d6+6 sp on their person."
+          ],
+          "features": [
+            "Cave entrance",
+            "Dozen torches kept just inside at night",
+            "Covered bowl of hot coals",
+            "Crossbows and bolt cases for the guards"
+          ],
+          "connections": [
+            {
+              "to_key": "33",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            29
+          ],
+          "confidence": 0.94
+        },
+        {
+          "key": "33",
+          "description": "Common room where six human fighters are bunked. The furniture is light and easy to break down and move, but not very sturdy. The room is lit by two common oil lamps, with oil brought in using a wooden cup as needed. Each bandit carries 1d6+6 sp.",
+          "encounters": [
+            {
+              "monster": "bandit",
+              "count_fixed": 6,
+              "count_dice": null,
+              "count_note": "human fighters"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each bandit has 1d6+6 sp on their person."
+          ],
+          "features": [
+            "Light, easily moved furniture",
+            "Two common oil lamps",
+            "Wooden cup used to bring oil"
+          ],
+          "connections": [
+            {
+              "to_key": "32",
+              "direction": "west"
+            },
+            {
+              "to_key": "34",
+              "direction": "east"
+            },
+            {
+              "to_key": "35",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            29
+          ],
+          "confidence": 0.88
+        },
+        {
+          "key": "34",
+          "description": "A heavy locked storeroom; knocking the door in takes some time. The deputy in room 41 usually has the key. It contains provisions and loot from raids.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [
+            "Provisions and loot from raids"
+          ],
+          "features": [
+            "Heavy locked door",
+            "Well for water",
+            "Barrels of beer",
+            "Bags of grain",
+            "Vegetables and other sundries",
+            "Large clay jug holding eight gallons of lantern oil",
+            "Three dozen torches"
+          ],
+          "connections": [
+            {
+              "to_key": "33",
+              "direction": "west"
+            },
+            {
+              "to_key": "36",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            29
+          ],
+          "confidence": 0.9
+        },
+        {
+          "key": "35",
+          "description": "Common room occupied by six bandits. The room is lit by two common oil lamps, with oil brought in using a wooden cup as needed. Each bandit carries 1d6+6 sp.",
+          "encounters": [
+            {
+              "monster": "bandit",
+              "count_fixed": 6,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each bandit has 1d6+6 sp on his or her person."
+          ],
+          "features": [
+            "Two common oil lamps",
+            "Wooden cup used to bring oil"
+          ],
+          "connections": [
+            {
+              "to_key": "33",
+              "direction": "north"
+            },
+            {
+              "to_key": "36",
+              "direction": "east"
+            },
+            {
+              "to_key": "37",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            29
+          ],
+          "confidence": 0.83
+        },
+        {
+          "key": "36",
+          "description": "The bandit leader's room. The leader and two main cronies sit at a table studying a map of the general area with notes about the best prospects for ambushing traders. The leader wields a longsword +1, wears chainmail +1, carries a shield, has the key to room 40, and wears a ring of keys for the dungeon doors in room 38; the key to a locked strongbox is stuffed in one boot. A lantern hangs from a swinging hook; it contains a continual light spell and is kept fueled in case the spell is dispelled or countered by continual darkness. There is also a gallon of lantern oil in a wooden jar.",
+          "encounters": [
+            {
+              "monster": "bandit leader",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "human fighter 4"
+            },
+            {
+              "monster": "bandit cronies",
+              "count_fixed": 2,
+              "count_dice": null,
+              "count_note": "human fighter 2"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Locked strongbox under the table containing 500 gp, 1,000 sp, and 2,000 cp.",
+            "Longsword +1 wielded by the leader.",
+            "Chainmail +1 worn by the leader."
+          ],
+          "features": [
+            "Table with map of the general area and ambush notes",
+            "Lantern on a swinging hook",
+            "Continual light spell inside the lantern",
+            "Wooden jar with a gallon of lantern oil",
+            "Key to treasure room #40 carried by the captain",
+            "Ring of keys to the dungeon doors at #38 on the captain's belt",
+            "Locked strongbox under the table"
+          ],
+          "connections": [
+            {
+              "to_key": "34",
+              "direction": "north"
+            },
+            {
+              "to_key": "35",
+              "direction": "west"
+            },
+            {
+              "to_key": "41",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            29,
+            38
+          ],
+          "confidence": 0.84
+        },
+        {
+          "key": "37",
+          "description": "Stables where the bandits keep their animals hidden, taking them out to browse during the day. The dotted lines on the map are wooden fences, with gates where needed. In one corner are a wagon, two saddles and bridles, and two sets of saddlebags; the wagon also holds several large bags of grain, buckets, and other items.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Wooden fences with gates",
+            "Two riding horses",
+            "Two mules",
+            "Two cows",
+            "Wagon",
+            "Two saddles and bridles",
+            "Two sets of saddlebags",
+            "Several large bags of grain",
+            "Buckets and other stable items"
+          ],
+          "connections": [
+            {
+              "to_key": "35",
+              "direction": "north"
+            },
+            {
+              "to_key": "38",
+              "direction": "east"
+            },
+            {
+              "to_key": "42",
+              "direction": "west"
+            }
+          ],
+          "source_pages": [
+            30
+          ],
+          "confidence": 0.78
+        },
+        {
+          "key": "38",
+          "description": "Dungeon used as a holding area for captives and anyone the captain wants thrown into irons. The captain in room 36 currently has the keys. Cell a holds three merchant prisoners; if rescued and returned to town, one offers a necklace with gems worth 100 gp and the other two offer 100 gp each. Cell b is empty. Cell c holds a recalcitrant bandit imprisoned for pilfering and bad-mouthing everyone; she will try to ingratiate herself with rescuers, posing as a merchant guard, then steal what she can and run. She has no armor and no weapon. Cell d contains three jars of good wine, two jars of cheap wine, and a dozen bottles of ale in a box. Cell e is empty.",
+          "encounters": [
+            {
+              "monster": "bandit",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "unarmed prisoner in cell c"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "If the three merchants are rescued and returned to town: one offers a necklace with gems worth 100 gp, and the other two offer 100 gp each.",
+            "Three jars of good wine",
+            "Two jars of cheap wine",
+            "A dozen bottles of ale in a box"
+          ],
+          "features": [
+            "Holding cells a through e",
+            "Dungeon doors locked; keys held by captain in room 36",
+            "Irons for prisoners"
+          ],
+          "connections": [
+            {
+              "to_key": "37",
+              "direction": "west"
+            },
+            {
+              "to_key": "39",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            30
+          ],
+          "confidence": 0.89
+        },
+        {
+          "key": "39",
+          "description": "Guard post where three men are always stationed to guard the main loot, under strict instructions about who to admit. A common oil lamp provides light. Each guard carries 1d6+6 sp.",
+          "encounters": [
+            {
+              "monster": "bandit",
+              "count_fixed": 3,
+              "count_dice": null,
+              "count_note": "men armed with spears"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each guard has 1d6+6 sp on their person."
+          ],
+          "features": [
+            "Guard post for the main loot",
+            "Common oil lamp"
+          ],
+          "connections": [
+            {
+              "to_key": "38",
+              "direction": "west"
+            },
+            {
+              "to_key": "40",
+              "direction": "east"
+            },
+            {
+              "to_key": "41",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            30
+          ],
+          "confidence": 0.82
+        },
+        {
+          "key": "40",
+          "description": "Treasure room holding the best loot, secured behind a strong locked door. The bandit captain in room 36 keeps the key.",
+          "encounters": [],
+          "trap": null,
+          "treasure": [
+            "10 silver cups worth 10 gp each (100 gp total)",
+            "10 silver plates worth 25 gp each, finely engraved and decorated (250 gp total)",
+            "10 forks and 10 spoons of silver worth 5 gp each (100 gp total value)",
+            "1 dress worth 250 gp",
+            "3 dresses worth 100 gp each"
+          ],
+          "features": [
+            "Strong locked door"
+          ],
+          "connections": [
+            {
+              "to_key": "39",
+              "direction": "west"
+            }
+          ],
+          "source_pages": [
+            30
+          ],
+          "confidence": 0.93
+        },
+        {
+          "key": "41",
+          "description": "Quarters shared by the bandit leader's deputy and cronies, though the cronies are usually with the leader in room 36. The lieutenant is an Elven Thief wearing leather armor and carrying a dagger and shortsword; a shortbow and quiver of arrows hang on a peg by the door. The main room has tables, couches, furnishings, and items for normal living. The three back rooms (41a, 41b, 41c) contain beds and other personal items. All furniture is crude and handmade from local materials. Each room has a plain oil lamp, and the main room has a wooden jug with a quart of oil.",
+          "encounters": [
+            {
+              "monster": "elven thief",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "bandit lieutenant"
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Shortbow and quiver of arrows on a peg by the door",
+            "Main room with tables, couches, and living furnishings",
+            "Three back rooms (41a, 41b, 41c) with beds and personal items",
+            "Crude handmade furniture",
+            "Plain oil lamp in each room",
+            "Wooden jug with a quart of oil in the main room",
+            "Deputy usually has the key to room 34"
+          ],
+          "connections": [
+            {
+              "to_key": "36",
+              "direction": "west"
+            },
+            {
+              "to_key": "39",
+              "direction": "north"
+            }
+          ],
+          "source_pages": [
+            30,
+            38
+          ],
+          "confidence": 0.82
+        },
+        {
+          "key": "42",
+          "description": "West entrance to the bandit lair. Four humans and a halfling stand guard here; on hot days they are usually inside the cave entrance. They have crossbows and a case of bolts traded out as the guard changes. A dozen torches are kept just inside the entrance along with a covered bowl of hot coals. Each guard has 1d6+6 sp on his or her person.",
+          "encounters": [
+            {
+              "monster": "bandit",
+              "count_fixed": 5,
+              "count_dice": null,
+              "count_note": "four humans and a halfling"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each guard has 1d6+6 sp on his or her person."
+          ],
+          "features": [
+            "Cave entrance",
+            "Dozen torches kept just inside the entrance",
+            "Covered bowl of hot coals",
+            "Crossbows and bolt cases for the guards"
+          ],
+          "connections": [
+            {
+              "to_key": "37",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            31
+          ],
+          "confidence": 0.91
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 7652,
+      "output_tokens": 2371
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

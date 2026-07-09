@@ -1,0 +1,9 @@
+The cellar, level 1: areas 5 to 6
+5. Wenna's pantry. A 30' x 30' room, shelves still stocked with
+ preserves. A skeleton in a scorched apron guards the room,
+ attacking anyone who touches the shelves.
+6. The deep bin. A 10' x 10' pit-room reached by ladder. 3
+ stirges roost above a heap of grain sacks. Buried in the
+ grain: a pot of 200 gp and a potion of healing.
+Wandering monsters (1 in 6, check every 2 turns): 1-2 giant
+rats (1d4), 3-4 goblin (1d2), 5-6 giant centipedes (1d2).

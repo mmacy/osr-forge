@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "h-lizard-man-lair",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "50",
+      "description": "North entrance to the lizard man lair. Two totem poles flank the rough opening, each capped with a bleached bear skull and feathers. The tunnel slopes sharply downward from the entrance to the first chamber, dropping about 30 feet in elevation. Several boulders here can be rolled into the hallway and packed with mud to prevent flooding.",
+      "encounters": [
+        {
+          "monster": "lizard men",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": "wearing tough hide and bone armor"
+        },
+        {
+          "monster": "giant gecko lizard",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "two totem poles capped with bear skulls and feathers",
+        "sloping tunnel descending about 30 feet",
+        "boulders that can be rolled into the hallway and packed with mud to prevent flooding"
+      ],
+      "connections": [
+        {
+          "to_key": "51",
+          "direction": "south"
+        },
+        {
+          "to_key": "outside",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        32
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "51",
+      "description": "An empty chamber stacked with firewood, dry grass for tinder, and rocks.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "stored firewood",
+        "dry grass for tinder",
+        "rocks"
+      ],
+      "connections": [
+        {
+          "to_key": "50",
+          "direction": "north"
+        },
+        {
+          "to_key": "52",
+          "direction": "east"
+        },
+        {
+          "to_key": "54",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        32,
+        38
+      ],
+      "confidence": 0.76
+    },
+    {
+      "key": "52",
+      "description": "Common room serving as the residence of three male lizard men; they are unarmored.",
+      "encounters": [
+        {
+          "monster": "lizard men",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": "male; unarmored"
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "51",
+          "direction": "west"
+        },
+        {
+          "to_key": "53",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        33,
+        38
+      ],
+      "confidence": 0.73
+    },
+    {
+      "key": "53",
+      "description": "Larder and food storage made up of two chambers separated from each other and from the hallway by reed walls about 3 feet high. The western pool is 2 feet deep and contains fish, eels, crawdads, and similar creatures; the other chamber contains turtles, lizards, and rabbits.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "two storage chambers separated by 3-foot-high reed walls",
+        "western pool 2 feet deep",
+        "food animals including fish, eels, crawdads, turtles, lizards, and rabbits"
+      ],
+      "connections": [
+        {
+          "to_key": "52",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        33,
+        38
+      ],
+      "confidence": 0.72
+    },
+    {
+      "key": "54",
+      "description": "Main harem and residence of the lizard man leader with two prime female mates and six young. Other than the leader, all are unarmored. The leader wears armor of tough hide and bone and has a 100 gp gem on a thong around his neck marking his dominance instead of the usual 25 gp tribal gem. A leather sack with a drawstring is hidden in a mud-covered hole in the center of the north wall. Two hollow tree trunks rise through the roof and exit above for ventilation; if cornered, the lizard men can dig out through the ceiling in about an hour or less to escape. A fire smolders in one corner smoking several large rats. Smoked meats, vegetables, large hard-baked clay pots and jars, hides and furs, firewood, grasses, and leaves for bedding and fires are piled here. A reed whistle hangs casually on a peg on the wall; it is a Whistle of Summoning Animals.",
+      "encounters": [
+        {
+          "monster": "lizard man leader",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "female lizard men",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": "prime female mates; statistically indistinguishable from males; unarmored"
+        },
+        {
+          "monster": "young lizard men",
+          "count_fixed": 6,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "100 gp gem on the leader's neck",
+        "leather sack hidden in a mud-covered hole containing 20 x 25 gp gems, 20 x 10 gp gems, 123 gp, 911 sp, and 345 cp",
+        "three furs worth 50 gp each",
+        "reed whistle (Whistle of Summoning Animals)"
+      ],
+      "features": [
+        "hidden hole in the center of the north wall covered with mud",
+        "two hollow tree trunks through the roof providing ventilation",
+        "ceiling can be dug out for escape in about an hour or less",
+        "smoldering fire with large rats smoking over it",
+        "smoked meats and vegetables",
+        "large hard-baked clay pots and jars",
+        "hides and furs",
+        "firewood, grasses, and leaves for bedding and fires"
+      ],
+      "connections": [
+        {
+          "to_key": "51",
+          "direction": "north"
+        },
+        {
+          "to_key": "55",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        33,
+        38
+      ],
+      "confidence": 0.89
+    },
+    {
+      "key": "55",
+      "description": "Common room where three male lizard men are busy readying simple bamboo gigs for a fish-and-frog hunt.",
+      "encounters": [
+        {
+          "monster": "lizard men",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": "male; unarmored"
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "simple bamboo gigs for fish-and-frog hunting"
+      ],
+      "connections": [
+        {
+          "to_key": "54",
+          "direction": "west"
+        },
+        {
+          "to_key": "56",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        34,
+        38
+      ],
+      "confidence": 0.77
+    },
+    {
+      "key": "56",
+      "description": "Guard post where three armored lizard men and a giant gecko lizard on a thick fiber rope lurk in the dark to keep intruders, including animals, out. The tunnel slopes sharply down from the opening to here, dropping about 30 feet. Several boulders here can be rolled into the hallway and packed with mud to prevent flooding.",
+      "encounters": [
+        {
+          "monster": "lizard men",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": "wearing tough hide and bone armor"
+        },
+        {
+          "monster": "giant gecko lizard",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "on a thick fiber rope"
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "dark guard post",
+        "sloping tunnel descending about 30 feet from the entrance",
+        "boulders that can be rolled into the hallway and packed with mud to prevent flooding",
+        "thick fiber rope for the giant gecko lizard"
+      ],
+      "connections": [
+        {
+          "to_key": "55",
+          "direction": "west"
+        },
+        {
+          "to_key": "57",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        34,
+        38
+      ],
+      "confidence": 0.8
+    },
+    {
+      "key": "57",
+      "description": "South entrance opening into the bank of the stream, which is about 20 feet high here. It is flanked by two 9-foot totem poles featuring crude animals and lizards, capped by bear skulls and feathers.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "entrance opens into a stream bank about 20 feet high",
+        "two 9-foot totem poles with crude animals and lizards",
+        "bear skulls and feathers atop the totem poles"
+      ],
+      "connections": [
+        {
+          "to_key": "56",
+          "direction": "north"
+        },
+        {
+          "to_key": "outside",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        34,
+        38
+      ],
+      "confidence": 0.84
+    }
+  ]
+}

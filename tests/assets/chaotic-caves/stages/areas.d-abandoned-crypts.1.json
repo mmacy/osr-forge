@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "d-abandoned-crypts",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "22",
+      "description": "Three ghouls lurk here trying to get through the rubble to the hobgoblins in #20. They are not interested in skeletons or zombies as a possible food source.",
+      "encounters": [
+        {
+          "monster": "ghouls",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "rubble blocking passage toward area 20"
+      ],
+      "connections": [
+        {
+          "to_key": "20",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        27,
+        38
+      ],
+      "confidence": 0.91
+    },
+    {
+      "key": "23",
+      "description": "This space contains six skeletons, three on the east and three on the west. They stand like guards stiff at attention and attack intruders on sight. The area is cluttered by broken coffins.",
+      "encounters": [
+        {
+          "monster": "skeletons",
+          "count_fixed": 6,
+          "count_dice": null,
+          "count_note": "three on the east and three on the west"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "silver dagger",
+        "30 gp",
+        "21 pp"
+      ],
+      "features": [
+        "broken coffins"
+      ],
+      "connections": [
+        {
+          "to_key": "25",
+          "direction": "south"
+        },
+        {
+          "to_key": "24",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        27,
+        38
+      ],
+      "confidence": 0.77
+    },
+    {
+      "key": "24",
+      "description": "Zombies wait patiently here under orders to attack and destroy any intruders. The area contains empty old and rotten coffins or smashed coffins. Amid the splinters of what appears to have been an ornate cabinet are six intact vials of holy water and 56 gp.",
+      "encounters": [
+        {
+          "monster": "zombies",
+          "count_fixed": 4,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "six intact vials of holy water",
+        "56 gp"
+      ],
+      "features": [
+        "empty old and rotten coffins",
+        "smashed coffins",
+        "splinters of an ornate cabinet"
+      ],
+      "connections": [
+        {
+          "to_key": "23",
+          "direction": "west"
+        },
+        {
+          "to_key": "25",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        27,
+        38
+      ],
+      "confidence": 0.76
+    },
+    {
+      "key": "25",
+      "description": "The skeletons posted here attack on sight. The outward facing walls are lined by crypt spaces, 3 high and 3 wide per 10' section; many are empty. Those with anything in them have the remains of poor people. Hanging out the gaping square of one crypt, in plain sight, is a necklace with gems worth 750 gp; the original owners will be glad to have it recovered as a sentimental heirloom and will pay 1,000 gp for it if tracked down.",
+      "encounters": [
+        {
+          "monster": "skeletons",
+          "count_fixed": 6,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "26 gp",
+        "49 sp",
+        "necklace with gems worth 750 gp",
+        "the original owners will pay 1,000 gp for the recovered heirloom if tracked down"
+      ],
+      "features": [
+        "outward-facing walls lined by crypt spaces",
+        "many crypt spaces are empty",
+        "occupied crypts contain the remains of poor people"
+      ],
+      "connections": [
+        {
+          "to_key": "23",
+          "direction": "north"
+        },
+        {
+          "to_key": "24",
+          "direction": "north"
+        },
+        {
+          "to_key": "26",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        27,
+        38
+      ],
+      "confidence": 0.69
+    }
+  ]
+}

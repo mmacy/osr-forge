@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-abandoned-manor",
+  "level_number": 2,
+  "areas": [
+    {
+      "key": "98",
+      "description": "Stairway on the manor upper floor with a safety railing. The stairs descend to area #85 on the ground floor. Rooms on this floor have gas lights, windows, torch holders, and 10' ceilings; the stairs rise 20'.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Stairs descending to area 85 on the ground floor",
+        "Safety railing",
+        "Upper floor has gas lighting, windows, and torch holders",
+        "10' ceilings on this floor; stairs rise 20'"
+      ],
+      "connections": [
+        {
+          "to_key": "85",
+          "direction": "down"
+        },
+        {
+          "to_key": "99",
+          "direction": "west"
+        },
+        {
+          "to_key": "102",
+          "direction": "east"
+        },
+        {
+          "to_key": "105",
+          "direction": "north"
+        },
+        {
+          "to_key": "106",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        44,
+        47
+      ],
+      "confidence": 0.91
+    },
+    {
+      "key": "99",
+      "description": "Guest room serving as the residence of the female fighter and one of the male fighters encountered coming down the stairs in area #85. Furnished with a makeshift bed, table, chairs, and similar basics.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [
+        "A locked casket with 345 gp",
+        "Five gems worth 50 gp each"
+      ],
+      "features": [
+        "Makeshift bed",
+        "Table",
+        "Chairs",
+        "Locked casket with a crude lock meant only to indicate tampering"
+      ],
+      "connections": [
+        {
+          "to_key": "98",
+          "direction": "east"
+        },
+        {
+          "to_key": "100",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        44,
+        47
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "100",
+      "description": "Guest room occupied by one of the three fighters encountered on the stairs in area #85. Furnished with a makeshift bed, table, chairs, and similar items. A sack of valuables is hidden under the bed, guarded by the owner's pet snake, which may immediately grab and pull someone under if they investigate unwisely.",
+      "encounters": [
+        {
+          "monster": "Python",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "Owner's pet snake guarding treasure under the bed"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "A sack under the bed containing ten gems worth 50 gp each",
+        "198 gp",
+        "31 sp"
+      ],
+      "features": [
+        "Makeshift bed",
+        "Table",
+        "Chairs",
+        "Sack hidden under the bed"
+      ],
+      "connections": [
+        {
+          "to_key": "99",
+          "direction": "north"
+        },
+        {
+          "to_key": "101",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        44,
+        47
+      ],
+      "confidence": 0.96
+    },
+    {
+      "key": "101",
+      "description": "Guest room now used by one of the clerics from area #106 as a private room. It has makeshift furnishings: bed, table, chairs, and so on. On a chest of drawers, three silver holy symbols are arranged in a worshipful manner around a golden icon of an evil demonic being known for austerity and obedience.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [
+        "Three silver holy symbols worth 25 gp each",
+        "A golden icon worth 100 gp"
+      ],
+      "features": [
+        "Makeshift bed",
+        "Table",
+        "Chairs",
+        "Chest of drawers",
+        "Religious display on the chest of drawers"
+      ],
+      "connections": [
+        {
+          "to_key": "100",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        44,
+        47
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "102",
+      "description": "Guest room claimed by one of the clerics from area #106 as a private room. It contains shabby, slapped-together furniture: bed, table, chairs, and such. A painting of horrors and stark terror hangs on one wall; it has little general value, but a church of good nature might pay about 100 gp for it to burn or use educationally. Beneath it hang items taken from a murdered cleric.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [
+        "A holy symbol with several gems valued at 250 gp",
+        "Three necklaces of gold and silver worth 50 gp each",
+        "A painting of horrors and stark terror that a good church might buy for about 100 gp"
+      ],
+      "features": [
+        "Shabby, slapped-together bed",
+        "Table",
+        "Chairs",
+        "Painting of horrors and stark terror hanging on the wall",
+        "Holy symbol hung beneath the painting",
+        "Three necklaces hung beneath the painting"
+      ],
+      "connections": [
+        {
+          "to_key": "98",
+          "direction": "west"
+        },
+        {
+          "to_key": "103",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        44,
+        45,
+        47
+      ],
+      "confidence": 0.93
+    },
+    {
+      "key": "103",
+      "description": "Guest room now used by the magic-user from area #106 as a private room. Furnishings are an ordinary makeshift bed, table, chairs, and such. The beginnings of an alchemical laboratory for making potions are here, but it is incomplete.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Makeshift bed",
+        "Table",
+        "Chairs",
+        "Incomplete alchemical laboratory for making potions"
+      ],
+      "connections": [
+        {
+          "to_key": "102",
+          "direction": "north"
+        },
+        {
+          "to_key": "104",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        45,
+        47
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "104",
+      "description": "Guest room used as a storage room for various items kept for future use.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Stored tables",
+        "Stored bedding",
+        "Miscellaneous items for future use"
+      ],
+      "connections": [
+        {
+          "to_key": "103",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        45,
+        47
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "105",
+      "description": "Former children's bedroom and nursery. The double doors to this room hang open. A few old toys and cribs lie scattered about under a layer of dust.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Double doors hanging open",
+        "Old toys scattered about",
+        "Cribs",
+        "Dust-covered nursery"
+      ],
+      "connections": [
+        {
+          "to_key": "98",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        45,
+        47
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "106",
+      "description": "Lavish, very large master room now used as the headquarters and treasury of the band. The door is shut, and voices can be heard talking inside. Three human leaders are leaning over a map on a table, planning to use monsters to carve out their own empire; they attack intruders unless the intruders surrender. Several gaslights fed by natural gas taps illuminate the sparse furnishings: a large round table, chairs, and a desk; the original furnishings were looted long ago. The magic-user's spell book is nearby, and it contains the spells he knows. Two large chests in one corner hold the band's war funds.",
+      "encounters": [
+        {
+          "monster": "Human Magic-User 4",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "Human Cleric 3",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": "A small bell hung from a rod on the inside near the top of the door jingles if the door is not opened carefully. The magic-user's spell book cover has a needle trap; save vs. Poison or die.",
+      "treasure": [
+        "Magic-user's spell book containing the spells he knows",
+        "Wand of Magic Missiles (11 charges)",
+        "Ring of Protection +1",
+        "Cloak of Displacement",
+        "Scroll of magic missile",
+        "Scroll of sleep",
+        "2 Potions of Healing",
+        "Potion of Healing",
+        "Potion of Invisibility",
+        "One chest with 1,230 gp, 456 sp, and 983 cp",
+        "One chest with 456 gp, 1,234 sp, and 491 pp"
+      ],
+      "features": [
+        "Shut door",
+        "Small warning bell hung on the inside of the door",
+        "Several gaslights fed by natural gas taps",
+        "Large round table",
+        "Chairs",
+        "Desk",
+        "Map on the table",
+        "Two large chests holding war funds"
+      ],
+      "connections": [
+        {
+          "to_key": "98",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        45,
+        47
+      ],
+      "confidence": 0.97
+    }
+  ]
+}

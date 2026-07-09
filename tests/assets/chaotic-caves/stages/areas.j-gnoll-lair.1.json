@@ -1,0 +1,316 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "j-gnoll-lair",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "69",
+      "description": "The entrance appears unguarded. A dead goblin and two dead bugbears lie outside, dead for several days and only nibbled by small animals and birds. The place is quiet, reeks of desolation, and any tracks are days old. This is a setup for an ambush: gnolls from areas 70 and 71 watch from around the corner at location \"w.\" Depending on intruder actions, those from 70 may charge from the west opening or come out through their door, while those from 71 may use a well-concealed secret door to attack from behind.",
+      "encounters": [],
+      "trap": "Hidden gnoll ambush coordinated from areas 70 and 71; watchers at location \"w\" observe intruders, with gnolls from 70 attacking from the west opening or their room door and gnolls from 71 using a concealed secret door to strike from behind.",
+      "treasure": [],
+      "features": [
+        "Dead goblin outside",
+        "Two dead bugbears outside",
+        "Ambush point at location \"w\"",
+        "Well-concealed secret door used by gnolls from 71"
+      ],
+      "connections": [
+        {
+          "to_key": "70",
+          "direction": "east"
+        },
+        {
+          "to_key": "71",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.92
+    },
+    {
+      "key": "70",
+      "description": "A shabby guard post with three crude benches carved from sections of a large tree. One gnoll is posted at location \"w\" with a gnoll from area 71 and alerts the others here if intruders are detected. Each gnoll carries 1d6 ep.",
+      "encounters": [
+        {
+          "monster": "gnoll",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each gnoll has 1d6 ep."
+      ],
+      "features": [
+        "Shabby furniture",
+        "Three crude benches carved from large tree sections"
+      ],
+      "connections": [
+        {
+          "to_key": "69",
+          "direction": "west"
+        },
+        {
+          "to_key": "72",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "71",
+      "description": "A shabby guard post occupied by three gnolls. One stands watch at location \"w\" alongside a gnoll from area 70 and alerts the others here if intruders are spotted. Each gnoll carries 1d6 ep.",
+      "encounters": [
+        {
+          "monster": "gnoll",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each gnoll has 1d6 ep."
+      ],
+      "features": [
+        "Shabby furniture",
+        "Secret door used for flanking attacks"
+      ],
+      "connections": [
+        {
+          "to_key": "69",
+          "direction": "north"
+        },
+        {
+          "to_key": "72",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "72",
+      "description": "A common room where a group of gnolls lounge, usually bored and bickering. A pet wolf is tied by rope to the northwest corner, fed scraps, and trained as both a guard and war dog; it is likely to hear or smell anyone lingering outside the doors. Each gnoll has 1d6 ep. The unmarked room to the southwest contains crude cots.",
+      "encounters": [
+        {
+          "monster": "gnoll",
+          "count_fixed": 5,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "wolf",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "Pet wolf tied by rope in the northwest corner"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each gnoll has 1d6 ep."
+      ],
+      "features": [
+        "Pet wolf tied by rope to the northwest corner",
+        "Unmarked room to the southwest with crude cots"
+      ],
+      "connections": [
+        {
+          "to_key": "70",
+          "direction": "north"
+        },
+        {
+          "to_key": "71",
+          "direction": "west"
+        },
+        {
+          "to_key": "73",
+          "direction": "south"
+        }
+      ],
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "73",
+      "description": "A natural cavern divided by stone columns. It is otherwise empty, though dripping water has formed pools of clean drinking water.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Stone columns dividing the cavern",
+        "Pools of clean drinking water"
+      ],
+      "connections": [
+        {
+          "to_key": "72",
+          "direction": "north"
+        },
+        {
+          "to_key": "74",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.86
+    },
+    {
+      "key": "74",
+      "description": "The gnoll leader lives here with two mates. The leader fights with a Battle Axe +1 and wears a golden necklace set with gems worth 700 gp. The room is cluttered with junk, including many clay drinking jars, many smashed. One jar contains two keys tied together; they open the treasure room to the south and the storeroom at area 75.",
+      "encounters": [
+        {
+          "monster": "gnoll leader",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "gnoll females",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": "The leader's two mates"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Battle Axe +1",
+        "Golden necklace with gems worth 700 gp",
+        "Two keys tied together opening the treasure room and area 75"
+      ],
+      "features": [
+        "Room full of junk",
+        "Collection of clay drinking jars, many smashed",
+        "Jar containing two tied keys"
+      ],
+      "connections": [
+        {
+          "to_key": "73",
+          "direction": "west"
+        },
+        {
+          "to_key": "treasure-hoard",
+          "direction": "south"
+        },
+        {
+          "to_key": "75",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "treasure-hoard",
+      "description": "The gnoll leader keeps a giant black widow spider here, feeding it rats and kobolds and cleaning up after it. The spider lurks overhead in dusty webs about 10 feet up; the real ceiling is 15 feet high. It had a bad experience with the door trap and avoids it. A strong chest and other boxes hold coins and assorted goods.",
+      "encounters": [
+        {
+          "monster": "Giant Black Widow Spider",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": "The door is trapped with a heavy flint axe-head mounted on a strong wooden bar that swings down; it attacks as a 3 HD monster and deals 1d8+2 damage on a hit.",
+      "treasure": [
+        "Strong chest with 639 gp, 533 sp, and 617 cp",
+        "Assorted goods including food",
+        "About 6 bolts of raw cloth, each worth perhaps 1 to 5 gp",
+        "Other boxed items"
+      ],
+      "features": [
+        "Dust-covered overhead webs about 10' up",
+        "Actual ceiling 15' high",
+        "Strong chest",
+        "Boxes of stored goods"
+      ],
+      "connections": [
+        {
+          "to_key": "74",
+          "direction": "north"
+        }
+      ],
+      "source_pages": [
+        37
+      ],
+      "confidence": 0.96
+    },
+    {
+      "key": "75",
+      "description": "A locked storeroom crammed with barrels, boxes, and bags. The gnoll leader in area 74 has the key. Most of the contents are food or cheap ale.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Locked door",
+        "Barrels, boxes, and bags crammed into the room",
+        "Stores of food and cheap ale"
+      ],
+      "connections": [
+        {
+          "to_key": "74",
+          "direction": "west"
+        }
+      ],
+      "source_pages": [
+        37
+      ],
+      "confidence": 0.92
+    },
+    {
+      "key": "76",
+      "description": "A gnoll stands guard here with the key and has 1d6 ep. The area is used to hold captives for ransom, though there are no prisoners at present. The cell doors are thick wooden bars with one-inch gaps, fitted with iron hinges and locks; the locks are poor quality and easy for a thief to pick. Cell \"a\" is a common cell, cell \"b\" is for segregated prisoners, and area \"c\" is reached by climbing rough-cut steps about 10 feet up. Area \"c\" contains a torture area with a chopping block, hand axe, wooden rack, several wooden sawhorses, a pile of coal beside an iron brazier, and crude iron pokers of various types.",
+      "encounters": [
+        {
+          "monster": "gnoll",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "Guard with the key"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "The gnoll guard has 1d6 ep."
+      ],
+      "features": [
+        "Cell \"a\" common cell",
+        "Cell \"b\" segregated cell",
+        "Thick wooden-bar cell doors with 1-inch gaps",
+        "Iron hinges and locks of poor quality",
+        "Rough-cut steps leading 10' up to area \"c\"",
+        "Torture area",
+        "Chopping block",
+        "Hand axe",
+        "Wooden rack",
+        "Several wooden sawhorses",
+        "Pile of coal",
+        "Iron brazier",
+        "Crude iron pokers"
+      ],
+      "connections": [
+        {
+          "to_key": "72",
+          "direction": "east"
+        }
+      ],
+      "source_pages": [
+        37
+      ],
+      "confidence": 0.73
+    }
+  ]
+}

@@ -1,0 +1,394 @@
+{
+  "schema_version": 1,
+  "fingerprint": "17dec13e0304ffbb7c22ae830b408c475b2054002f11b9da56257364a3e6f723",
+  "tag": "content.e-goblin-lair.1.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"E. Goblin Lair\" (id: e-goblin-lair), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- 26 | printed key \"26\" | Guard Post | pages 27\n- 27 | printed key \"27\" | Common Room | pages 28\n- 28 | printed key \"28\" | Trap | pages 28\n- 29 | printed key \"29\" | Goblin Priest | pages 28\n- 30 | printed key \"30\" | Common Room/Store Room | pages 28\n- 31 | printed key \"31\" | Goblin Chief Room | pages 28\nThis level's map is on page 38.\n"
+      },
+      {
+        "text": "[page 27]\nThe Chaotic Caves The Caves\n22. GHOULS: Three ghouls lurk here trying to\nget through the rubble to the hobgoblins in\n#20. They are not interested in skeletons or\nzombies as a possible food source.\n3 Ghouls: AC 14, HD 2*, #At 2 claws, 1 bite, \nDam 1d4 claw, 1d4 bite, all plus paralysis, \nMv 30', Sv F2, ML 9, XP 100 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n9 ☐☐☐☐☐ ☐☐☐☐\n9 ☐☐☐☐☐ ☐☐☐☐\n23. SKELETONS: This space contains six\nskeletons (three on the east and three on the\nwest). They stand like guards stiff at\nattention, and attack intruders on sight. The\narea is cluttered by broken coffins. The\nrubbish contains a silver dagger, 30 gp, and 21\npp.\n6 Skeletons: AC 13 (½ damage from edged \nweapons, 1 point only from arrows or bolts), \nHD 1, #At 1 spear, Dam 1d6, Mv 40', Sv F1, \nML 12, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n24. ZOMBIES: Zombies wait patiently here,\nunder orders to attack and destroy any\nintruders. The area contains empty (old and\nrotten) or smashed coffins. Amid the splinters\nof what appears to have been an ornate\ncabinet are six intact vials of holy water and\n56 gp.\n4 Zombies: AC 12 (½ damage from blunt \nweapons, 1 point only from arrows or bolts), \nHD 2, #At 1 bludgeon, Dam 1d8, Mv 20', Sv F2, \nML 12, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n25. SKELETONS: The skeletons posted here\nattack on sight.\nThe outward facing walls are lined by crypt\nspaces (3 high, 3 wide per 10' section); many\nare empty. Those with anything in them have\nthe remains of poor people and (in total) little\nmore than 26 gp and 49 sp. Hanging out the\ngaping square of one (in plain sight) is a\nnecklace with gems worth 750 gp; the original\nowners will be so glad to have it recovered (as\na sentimental heirloom) that they will pay\n1,000 gp for it, if they are tracked down.\n6 Skeletons: AC 13 (½ damage from edged \nweapons, 1 point only from arrows or bolts), \nHD 1, #At 1 weapon, Dam 1d6, Mv 40', Sv F1, \nML 12, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nE. GOBLIN LAIR\nThese goblins are living the simple life and\nserving as spear fodder for the stronger tribes,\nwho aren't above recruiting them (by force) for\nbattles. Their crudely tunneled-out warren is\ndark and dank. Many halls are 6' to 8' wide\nand just as high.\n26. GUARD POST: Six goblins hunker here,\nready to fight intruders. Each has 1d6 cp. They\ncontrol a net trap which they can drop by\njerking on a rope (it covers the trap area\nmarked on the map at the entrance). Entangled\nopponents will be easily subdued, but can get\nfree in 1d6 rounds if they are left alone. The\nGM should use common sense and an easily\u0002managed die roll to see if any character is\ntrapped. Any who are foolish enough to walk\nright under the net will almost certainly be\ntrapped. More so, the goblins have slings and\nwill pelt anyone who steps out to try to undo\nthe net.\n6 Goblins: AC 14, HD 1-1, #At 1 shortsword or \n1 sling, Dam 1d6 shortsword, 1d4 sling, Mv 20', \nSv F1, ML 7, XP 25 ea.\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n25"
+      },
+      {
+        "sha256": "6c6d457dce28505a2177959a1742c0f4a2aed08f328b5990f7f143baa0f06cb2",
+        "bytes": 451312
+      },
+      {
+        "text": "[page 28]\nThe Caves The Chaotic Caves\n27. COMMON ROOM: The entrance to this room\nis covered by crude curtains made from\nrawhide and cheap cloth. Inside are seven\ngoblins (they do not have armor) resting on\nsimple but well-made wooden furniture:\nstools, tables, cots, and bedding of common\nfurs. Each has 1d6 cp. \n7 Goblins: AC 11, HD 1-1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 7, XP 25 ea.\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐\n28. TRAP: This pit trap is 10 feet deep and\nvictims take 1d6 damage from falling. The\ncovering is cleverly made and tactics like trying\nto tap for a hollow floor require a standard\ntrap-finding check to see if a faint noise is\nheard, for example.\n29. GOBLIN PRIEST: This old goblin serves as\nthe spiritual adviser for the chief and tribe. He\nis wise, but is also petty and cruel, misguiding\nanyone for his own profit. In his room is a\nPotion of Healing and Scroll of Cure Light\nWounds. He cannot use the scroll, as he is not\nreally a cleric. He wears a silver amulet\nrepresenting a goblin god on a thong around his\nneck (value around 50 gp from a collector). He\ndoes not have armor.\nGoblin: AC 11, HD 1-1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 7, XP 25\nHP 3 ☐☐☐\n30. COMMON ROOM/STORE ROOM: Some 11\ngoblins reside here (they do not have armor).\nEach has 1d6 cp. \n11 Goblins: AC 11, HD 1-1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 7, XP 25 ea.\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐\nIn niches in the southeast wall are six beautiful\nstatues about 1' tall each. They are carved\nfrom rare wood and worth about 25 gp each.\nLarge wicker baskets are stacked along the\nback wall, each filled with wheat grain, flour,\nvegetables, dried meats and other items.\n31. GOBLIN CHIEF ROOM: The goblin chief and\nthree other goblins inhabit this room. The\nchief wields a Shortsword +1. The north,\nsouth, and east walls are covered by curtains\nassembled from a hodgepodge of bed linens,\ntapestries, and some hides.\nUnder an overturned bucket in the northeast\ncorner behind the curtains is a bag with 131 gp,\n456 sp, and 872 cp. In the southeast corner, a\nhole was dug out and a very clever covering\nmade which is hard to find (make a “find\nsecret door” check or the equivalent for a\nsearch). Buried in it is a simple wooden box\ncontaining another 472 gp, 178 sp, and 1,234 cp.\nGoblin King: AC 15, HD 5-5, \n#At 1 shortsword +1, Dam 1d6+2, Mv 10', Sv F5, \nML 9, XP 360\nHP 18 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n3 Goblins: AC 14, HD 1-1, #At 1 shortsword, \nDam 1d6, Mv 20', Sv F1, ML 9 (7 if king is dead \nor leaves), XP 25 ea.\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐\n26"
+      },
+      {
+        "sha256": "987e9d90a8679b06666b52d422bc8edf7136660a1a212a7300ccd6e877c8dc35",
+        "bytes": 589471
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "26",
+                  "27",
+                  "28",
+                  "29",
+                  "30",
+                  "31"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": "string"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "direction"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "26",
+          "description": "Guard post at the entrance to the goblin warren. Six goblins hunker here ready to fight intruders. Each carries 1d6 cp. They control a net trap by jerking a rope and will use slings to pelt anyone who steps out to try to undo the net. The warren is dark and dank, with many halls 6' to 8' wide and just as high.",
+          "encounters": [
+            {
+              "monster": "goblin",
+              "count_fixed": 6,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": "A rope-triggered net trap covers the marked entrance area. Entangled victims are easily subdued, though if left alone they can free themselves in 1d6 rounds. Anyone walking directly under the net is almost certainly trapped.",
+          "treasure": [
+            "Each goblin has 1d6 cp."
+          ],
+          "features": [
+            "Rope control for the net trap at the entrance"
+          ],
+          "connections": [
+            {
+              "to_key": "27",
+              "direction": "east"
+            },
+            {
+              "to_key": "28",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.88
+        },
+        {
+          "key": "27",
+          "description": "Common room whose entrance is covered by crude curtains made from rawhide and cheap cloth. Inside, seven unarmored goblins rest on simple but well-made wooden furniture: stools, tables, cots, and bedding of common furs. Each carries 1d6 cp.",
+          "encounters": [
+            {
+              "monster": "goblin",
+              "count_fixed": 7,
+              "count_dice": null,
+              "count_note": "unarmored"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each goblin has 1d6 cp."
+          ],
+          "features": [
+            "Crude rawhide and cheap-cloth curtains over the entrance",
+            "Wooden stools, tables, cots, and bedding of common furs"
+          ],
+          "connections": [
+            {
+              "to_key": "26",
+              "direction": "west"
+            },
+            {
+              "to_key": "29",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            28
+          ],
+          "confidence": 0.9
+        },
+        {
+          "key": "28",
+          "description": "A concealed pit trap in the goblin lair passage.",
+          "encounters": [],
+          "trap": "A 10-foot-deep pit trap. Victims take 1d6 damage from the fall. Its covering is cleverly made; detecting it by tapping for a hollow floor requires a standard trap-finding check to notice a faint noise.",
+          "treasure": [],
+          "features": [
+            "Cleverly concealed pit cover"
+          ],
+          "connections": [
+            {
+              "to_key": "26",
+              "direction": "north"
+            },
+            {
+              "to_key": "29",
+              "direction": "east"
+            },
+            {
+              "to_key": "30",
+              "direction": "south"
+            }
+          ],
+          "source_pages": [
+            28
+          ],
+          "confidence": 0.78
+        },
+        {
+          "key": "29",
+          "description": "Room of the old goblin priest, spiritual adviser to the chief and tribe. He is wise but petty and cruel, and misguides others for his own profit. He does not have armor and is not really a cleric, so he cannot use the scroll found here.",
+          "encounters": [
+            {
+              "monster": "goblin",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": "old goblin priest; unarmored"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Potion of Healing",
+            "Scroll of Cure Light Wounds",
+            "Silver amulet representing a goblin god, worth about 50 gp to a collector"
+          ],
+          "features": [],
+          "connections": [
+            {
+              "to_key": "27",
+              "direction": "west"
+            },
+            {
+              "to_key": "28",
+              "direction": "south"
+            },
+            {
+              "to_key": "31",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            28
+          ],
+          "confidence": 0.89
+        },
+        {
+          "key": "30",
+          "description": "Common room and store room inhabited by eleven unarmored goblins. Large wicker baskets are stacked along the back wall, filled with wheat grain, flour, vegetables, dried meats, and other items. In niches in the southeast wall stand six beautiful 1-foot-tall statues carved from rare wood. Each goblin carries 1d6 cp.",
+          "encounters": [
+            {
+              "monster": "goblin",
+              "count_fixed": 11,
+              "count_dice": null,
+              "count_note": "unarmored"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Each goblin has 1d6 cp.",
+            "Six rare-wood statues, about 1' tall, worth about 25 gp each"
+          ],
+          "features": [
+            "Large wicker baskets stacked along the back wall containing food stores",
+            "Niches in the southeast wall"
+          ],
+          "connections": [
+            {
+              "to_key": "28",
+              "direction": "north"
+            },
+            {
+              "to_key": "31",
+              "direction": "east"
+            }
+          ],
+          "source_pages": [
+            28
+          ],
+          "confidence": 0.89
+        },
+        {
+          "key": "31",
+          "description": "Room of the goblin chief. The chief and three other goblins live here. The chief wields a Shortsword +1. The north, south, and east walls are covered by curtains made from a hodgepodge of bed linens, tapestries, and hides. Under an overturned bucket in the northeast corner behind the curtains is one cache; another cache is buried in a dug-out hole in the southeast corner under a very clever covering that is hard to find.",
+          "encounters": [
+            {
+              "monster": "goblin king",
+              "count_fixed": 1,
+              "count_dice": null,
+              "count_note": null
+            },
+            {
+              "monster": "goblin",
+              "count_fixed": 3,
+              "count_dice": null,
+              "count_note": "ML 9, or 7 if king is dead or leaves"
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "Shortsword +1",
+            "Bag under overturned bucket in northeast corner containing 131 gp, 456 sp, and 872 cp",
+            "Buried wooden box in hidden southeast hole containing 472 gp, 178 sp, and 1,234 cp"
+          ],
+          "features": [
+            "Curtains covering the north, south, and east walls",
+            "Overturned bucket in the northeast corner",
+            "Hidden dug-out cache in the southeast corner with a clever covering, found like a secret door",
+            "Simple wooden box buried in the southeast cache"
+          ],
+          "connections": [
+            {
+              "to_key": "29",
+              "direction": "west"
+            },
+            {
+              "to_key": "30",
+              "direction": "west"
+            }
+          ],
+          "source_pages": [
+            28
+          ],
+          "confidence": 0.82
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 5667,
+      "output_tokens": 1231
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}
