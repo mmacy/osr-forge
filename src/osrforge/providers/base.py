@@ -10,7 +10,7 @@ its retry budget, so callers trust `response.data`.
 import hashlib
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 import jsonschema
@@ -64,7 +64,7 @@ class ModelRequest:
     tag: str
     system: str
     parts: tuple[TextPart | ImagePart, ...]
-    schema: dict[str, object] = field(default_factory=dict[str, object])
+    schema: dict[str, object]
 
     def __post_init__(self) -> None:
         if not _TAG_PATTERN.match(self.tag):

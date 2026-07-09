@@ -4,7 +4,7 @@ Convert tabletop adventure module PDFs into playable [osrlib](https://github.com
 
 Standalone package + CLI. Consumers need only its artifacts — `adventure.json`, `report.json`, `overrides.yaml`, SVG map previews — or its CLI, regardless of their own tech stack.
 
-**Status:** phase 0 (skeleton and ground truth). See [the specification](docs/spec.md) and [the phase 0 plan](docs/phase-0-plan.md). The pipeline's extraction stages arrive in phase 1; today the package ships the contract types, deterministic preprocessing, and the provider seam.
+**Status:** phase 0 (skeleton and ground truth). See [the specification](docs/spec.md) and [the phase 0 plan](docs/phase-0-plan.md). The pipeline's extraction stages arrive in phase 1; today the package ships the contract types, deterministic preprocessing, and the provider seam. The Foundry capability spike (`tools/spike/`) has not yet run — it needs live Azure credentials — so `docs/foundry-capabilities.md` and the spike-module fixtures don't exist yet.
 
 ## Development quickstart
 

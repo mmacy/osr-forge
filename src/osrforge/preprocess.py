@@ -36,7 +36,12 @@ def _render_pages(pdf: pdfium.PdfDocument, workdir: Workdir, settings: Conversio
         page = pdf[index]
         try:
             bitmap = page.render(scale=scale)
-            image = bitmap.to_pil().convert("RGB")
+            try:
+                # convert("RGB") copies the pixel data, so the native bitmap
+                # can be released before the PNG encode.
+                image = bitmap.to_pil().convert("RGB")
+            finally:
+                bitmap.close()
             image.save(workdir.page_png(index + 1))
             textpage = page.get_textpage()
             try:
@@ -97,7 +102,12 @@ def preprocess(pdf_path: Path, workdir_path: Path, settings: ConversionSettings)
         if workdir.pages_dir.exists():
             shutil.rmtree(workdir.pages_dir)
         workdir.pages_dir.mkdir()
-        _render_pages(pdf, workdir, settings)
+        try:
+            _render_pages(pdf, workdir, settings)
+        except pdfium.PdfiumError as error:
+            # A partially corrupt source can open cleanly and still fail
+            # mid-render; that is the same runtime failure as a corrupt open.
+            raise PdfError(f"source failed during page rendering: {pdf_path}") from error
     finally:
         pdf.close()
 

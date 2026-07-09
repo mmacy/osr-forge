@@ -180,6 +180,10 @@ class FoundryProvider:
                 last_error = error
                 retry_after = _retry_after_seconds(error)
                 delay = retry_after if retry_after is not None else min(2.0**attempt, _MAX_BACKOFF_SECONDS)
+            except openai.APIError as error:
+                # The catch-all net for the SDK's other failure shapes (e.g.
+                # APIResponseValidationError) — not retryable transport trouble.
+                raise ProviderError(f"Foundry request {request.tag!r} failed: {error}") from error
             if attempt + 1 < _TRANSPORT_ATTEMPTS:
                 self._sleep(delay)
         raise ProviderError(
@@ -219,6 +223,8 @@ class FoundryProvider:
                     output_tokens=completion.usage.completion_tokens,
                 )
             model_id = completion.model
+            if not completion.choices:
+                raise ProviderError(f"Foundry returned no choices for {request.tag!r}")
             content = completion.choices[0].message.content or ""
             try:
                 data: object = json.loads(content)

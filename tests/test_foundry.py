@@ -147,6 +147,24 @@ def test_connection_error_retries():
     assert sleeps == [1.0]
 
 
+def test_other_api_errors_raise_immediately():
+    error = openai.APIResponseValidationError(
+        response=httpx.Response(200, request=httpx.Request("POST", "https://example")), body=None
+    )
+    provider, client, sleeps = make_provider([error])
+    with pytest.raises(ProviderError):
+        provider.generate(make_request())
+    assert sleeps == []
+    assert len(client.calls) == 1
+
+
+def test_empty_choices_raises_provider_error():
+    empty = completion('{"title": "x"}').model_copy(update={"choices": []})
+    provider, _, _ = make_provider([empty])
+    with pytest.raises(ProviderError, match="no choices"):
+        provider.generate(make_request())
+
+
 def test_auth_failure_raises_immediately():
     provider, client, sleeps = make_provider([status_error(401)])
     with pytest.raises(ProviderError):

@@ -5,6 +5,7 @@ UI needs. Nothing produces one until phase 2 — this module ships the wire
 format so consumers and tests can pin it early.
 """
 
+import re
 from enum import StrEnum
 from typing import Annotated
 
@@ -105,6 +106,12 @@ def _no_slash(value: str) -> str:
     return value
 
 
+# ASCII digits without a leading zero: address strings key override entries, so
+# every level number must have exactly one spelling ("01" or a Unicode digit
+# would alias "1" as a distinct key in a human-edited file).
+_LEVEL_NUMBER_PATTERN = re.compile(r"^[1-9][0-9]*$")
+
+
 class AreaAddress(BaseModel):
     """A keyed area's address: `<dungeon-id>/<level-number>/<area-key>`.
 
@@ -142,8 +149,8 @@ class AreaAddress(BaseModel):
         if len(parts) != 3:
             raise ValueError(f"area address must be <dungeon-id>/<level-number>/<area-key>: {value!r}")
         dungeon_id, level, area_key = parts
-        if not level.isdigit():
-            raise ValueError(f"level number must be a positive integer: {value!r}")
+        if not _LEVEL_NUMBER_PATTERN.match(level):
+            raise ValueError(f"level number must be a positive integer without leading zeros: {value!r}")
         return cls(dungeon_id=dungeon_id, level_number=int(level), area_key=area_key)
 
     def __str__(self) -> str:
@@ -181,8 +188,8 @@ class LevelAddress(BaseModel):
         if len(parts) != 2:
             raise ValueError(f"level address must be <dungeon-id>/<level-number>: {value!r}")
         dungeon_id, level = parts
-        if not level.isdigit():
-            raise ValueError(f"level number must be a positive integer: {value!r}")
+        if not _LEVEL_NUMBER_PATTERN.match(level):
+            raise ValueError(f"level number must be a positive integer without leading zeros: {value!r}")
         return cls(dungeon_id=dungeon_id, level_number=int(level))
 
     def __str__(self) -> str:

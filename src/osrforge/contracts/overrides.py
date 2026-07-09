@@ -46,7 +46,10 @@ __all__ = [
 Reason = Annotated[str, StringConstraints(min_length=1)]
 """The required justification on every override entry."""
 
-_EDGE_KEY_PATTERN = re.compile(r"^\d+,\d+:(north|south|east|west)$")
+# ASCII digits without leading zeros, for the same aliasing reason as the
+# address grammar: edge keys key override entries, so each coordinate gets
+# exactly one spelling.
+_EDGE_KEY_PATTERN = re.compile(r"^(0|[1-9][0-9]*),(0|[1-9][0-9]*):(north|south|east|west)$")
 
 
 def _validate_edge_key(value: str) -> str:

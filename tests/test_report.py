@@ -111,10 +111,30 @@ def test_level_address_round_trips():
     assert str(address) == "barrow/2"
 
 
-@pytest.mark.parametrize("value", ["barrow/1", "barrow/1/7/8", "barrow/one/7", "barrow/0/7", "/1/7", "barrow/1/"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "barrow/1",
+        "barrow/1/7/8",
+        "barrow/one/7",
+        "barrow/0/7",
+        "/1/7",
+        "barrow/1/",
+        # Non-canonical digit spellings would alias the same area under two
+        # override keys, so only ASCII digits without leading zeros pass.
+        "barrow/01/7",
+        "barrow/١/7",  # noqa: RUF001 — Arabic-Indic digit, deliberately non-ASCII
+    ],
+)
 def test_area_address_rejects_malformed(value: str):
     with pytest.raises(ValueError):
         AreaAddress.parse(value)
+
+
+@pytest.mark.parametrize("value", ["barrow/01", "barrow/٢", "barrow/0"])
+def test_level_address_rejects_non_canonical_numbers(value: str):
+    with pytest.raises(ValueError):
+        LevelAddress.parse(value)
 
 
 def test_address_components_reject_slash():

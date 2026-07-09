@@ -115,7 +115,7 @@ def test_geometry_keys_must_be_level_addresses():
         Overrides.model_validate({"geometry": {"barrow/1/7": {"reason": "not a level address"}}})
 
 
-@pytest.mark.parametrize("key", ["5,2:up", "5;2:east", "east", "5,2", "-1,2:east"])
+@pytest.mark.parametrize("key", ["5,2:up", "5;2:east", "east", "5,2", "-1,2:east", "05,2:east", "٥,2:east"])  # noqa: RUF001
 def test_geometry_edge_key_grammar_rejects(key: str):
     with pytest.raises(ValidationError):
         GeometryOverride.model_validate(

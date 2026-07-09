@@ -309,28 +309,39 @@ def cmd_images(context: SpikeContext, args: argparse.Namespace) -> None:
 
 def cmd_context(context: SpikeContext, args: argparse.Namespace) -> None:
     run = context.workdir.read_run()
-    numbers = list(range(1, run.page_count + 1))
-    while numbers:
+
+    def attempt(count: int) -> bool:
         parts: list[TextPart | ImagePart] = [
-            TextPart(text=f"The whole module: {len(numbers)} pages of text, then their images.")
+            TextPart(text=f"{count} pages of an adventure module: their text, then their images.")
         ]
-        for n in numbers:
+        for n in range(1, count + 1):
             parts.append(TextPart(text=f"[page {n}]\n" + context.workdir.page_txt(n).read_text(encoding="utf-8")))
-        parts.extend(context.workdir_page(n) for n in numbers)
-        ok = run_probe(
+        parts.extend(context.workdir_page(n) for n in range(1, count + 1))
+        return run_probe(
             context,
             ModelRequest(
-                tag=f"probe.context-{len(numbers):02d}pages",
+                tag=f"probe.context-{count:02d}pages",
                 system="You read whole adventure modules.",
                 parts=tuple(parts),
                 schema=TRIVIAL_SCHEMA,
             ),
         )
-        if ok:
-            print(f"    context ceiling: >= {len(numbers)} pages fit")
-            return
-        numbers = numbers[: len(numbers) // 2]  # bisect down to the practical ceiling
-    print("    even a single page failed — investigate before recording findings")
+
+    if attempt(run.page_count):
+        print(f"    context ceiling: the whole module ({run.page_count} pages) fits in one request")
+        return
+    # Bisect between the largest known-good count and the smallest known-bad one.
+    known_good, known_bad = 0, run.page_count
+    while known_bad - known_good > 1:
+        mid = (known_good + known_bad) // 2
+        if attempt(mid):
+            known_good = mid
+        else:
+            known_bad = mid
+    if known_good == 0:
+        print("    even a single page failed — investigate before recording findings")
+    else:
+        print(f"    context ceiling: {known_good} pages fit; {known_bad} pages fail")
 
 
 def cmd_extract(context: SpikeContext, args: argparse.Namespace) -> None:
@@ -381,14 +392,19 @@ def cmd_auth(context: SpikeContext, args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    # Shared options live on a parent parser so they parse after the
+    # subcommand, exactly as the README documents the invocations.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--module-dir", type=Path, required=True, help="the fenced spike-module asset directory")
+    common.add_argument("--workdir", type=Path, default=Path("spike-module.forge"), help="preprocess workdir")
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--module-dir", type=Path, required=True, help="the fenced spike-module asset directory")
-    parser.add_argument("--workdir", type=Path, default=Path("spike-module.forge"), help="preprocess workdir")
     subcommands = parser.add_subparsers(dest="command", required=True)
-    prepare = subcommands.add_parser("prepare", help="preprocess the module and commit the replay-grade page subset")
+    prepare = subcommands.add_parser(
+        "prepare", parents=[common], help="preprocess the module and commit the replay-grade page subset"
+    )
     prepare.add_argument("--pages", type=int, nargs="*", help=f"page numbers to commit (max {REPLAY_PAGE_LIMIT})")
     for name in ("structured", "images", "context", "extract", "auth"):
-        subcommands.add_parser(name)
+        subcommands.add_parser(name, parents=[common])
     args = parser.parse_args()
 
     context = SpikeContext(args.module_dir, args.workdir)
