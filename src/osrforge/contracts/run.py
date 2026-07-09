@@ -90,3 +90,27 @@ class RunMeta(BaseModel):
     provider: str | None = None
     model_id: str | None = None
     stages: dict[Stage, StageStatus]
+
+    def with_stage(self, stage: Stage, status: StageStatus) -> RunMeta:
+        """Return a copy with one stage's status replaced.
+
+        Args:
+            stage: The stage to update.
+            status: Its new status entry.
+
+        Returns:
+            A new `RunMeta`; this one is unchanged.
+        """
+        return self.model_copy(update={"stages": {**self.stages, stage: status}})
+
+    def with_model(self, provider: str, model_id: str) -> RunMeta:
+        """Return a copy with the provider and model identity set.
+
+        Args:
+            provider: The provider class name, e.g. `FoundryProvider`.
+            model_id: The model identifier the service returned.
+
+        Returns:
+            A new `RunMeta`; this one is unchanged.
+        """
+        return self.model_copy(update={"provider": provider, "model_id": model_id})

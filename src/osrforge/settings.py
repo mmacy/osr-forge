@@ -28,3 +28,21 @@ class ConversionSettings(BaseModel):
 
     max_source_bytes: int = Field(default=100 * 1024 * 1024, ge=1)
     """Maximum source file size in bytes (100 MiB)."""
+
+    content_batch_pages: int = Field(default=8, ge=2)
+    """Content-pass batch size in pages.
+
+    The default comes from the spike's 8-page batches (~16K input) producing
+    clean per-area output. The floor is 2: the content planner's sliding-window
+    stride is `content_batch_pages - 1`, so a floor of 1 would stall the
+    planner on the same page forever.
+    """
+
+    survey_max_pages: int = Field(default=150, ge=1)
+    """The single-request survey guard.
+
+    Per `docs/foundry-capabilities.md`, beyond ~150 pages the whole-module
+    survey request crosses the 272K-token pricing cliff. Survey chunking past
+    this guard is phase 4's; until then a larger source raises
+    [`ExtractionError`][osrforge.errors.ExtractionError].
+    """
