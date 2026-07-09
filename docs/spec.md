@@ -2,7 +2,7 @@
 
 A standalone Python package and CLI that converts tabletop adventure module PDFs into playable [osrlib](https://github.com/mmacy/osrlib-python) `Adventure` documents. Input: a B/X-compatible module PDF. Output: a draft `adventure.json` validated against the real osrlib models, an extraction report describing what the pipeline was and wasn't sure about, and an overrides file through which humans correct the draft reproducibly.
 
-osr-forge is front-end-agnostic by contract, not by implementation: it's Python (it must import osrlib to validate natively), but its consumers only need its artifacts — JSON and YAML files any stack can read — or its CLI. The first consumer is the osr-web app (`~/repos/osr-tui`), which wraps it in a conversion worker and builds a graphical review UI over the same contracts.
+osr-forge is front-end-agnostic by contract, not by implementation: it's Python (it must import osrlib to validate natively), but its consumers only need its artifacts — JSON and YAML files any stack can read — or its CLI. The first consumer is the osr-web app (`~/repos/osr-web`), which wraps it in a conversion worker and builds a graphical review UI over the same contracts.
 
 ## Goals
 
@@ -194,7 +194,7 @@ Provider settings come from an explicit settings object (library) or environment
 ## Tooling and packaging
 
 - Python ≥ 3.14 (osrlib's floor), managed with `uv`; `ruff` format/lint, `pyright`, `pytest`.
-- Dependencies: `osrlib` (compatible-range pin, `>=1.1,<2`), `pypdfium2` (rendering + text extraction; permissive license, unlike PyMuPDF's AGPL), `pyyaml`, the OpenAI-compatible client for the Foundry adapter, `azure-identity` (optional extra).
+- Dependencies: `osrlib` (compatible-range pin, `>=1.1,<2`), `pypdfium2` (rendering + text extraction; permissive license, unlike PyMuPDF's AGPL), `pillow` (PNG encoding for rendered pages — pypdfium2 produces raw bitmaps, not image files), `pyyaml`, `jsonschema` (provider-side validation of structured-output responses), the OpenAI-compatible client for the Foundry adapter, `azure-identity` (optional extra).
 - Package name `osr-forge` (import `osrforge`) — both it and `osrforge` are unclaimed on PyPI as of 2026-07-08. MIT license; the package ships no game content (osrlib's OGL data stays in osrlib).
 
 ## Roadmap
