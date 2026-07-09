@@ -2,7 +2,7 @@
 
 A standalone Python package and CLI that converts tabletop adventure module PDFs into playable [osrlib](https://github.com/mmacy/osrlib-python) `Adventure` documents. Input: a B/X-compatible module PDF. Output: a draft `adventure.json` validated against the real osrlib models, an extraction report describing what the pipeline was and wasn't sure about, and an overrides file through which humans correct the draft reproducibly.
 
-osr-forge is front-end-agnostic by contract, not by implementation: it's Python (it must import osrlib to validate natively), but its consumers only need its artifacts — JSON and YAML files any stack can read — or its CLI. The first consumer is the osr-web app (`~/repos/osr-tui`), which wraps it in a conversion worker and builds a graphical review UI over the same contracts.
+osr-forge is front-end-agnostic by contract, not by implementation: it's Python (it must import osrlib to validate natively), but its consumers only need its artifacts — JSON and YAML files any stack can read — or its CLI. The first consumer is the osr-web app (`~/repos/osr-web`), which wraps it in a conversion worker and builds a graphical review UI over the same contracts.
 
 ## Goals
 
@@ -116,7 +116,7 @@ geometry:
     reason: Match the printed map; room 7 is 20' x 20' with a stuck east door.
 ```
 
-Supported override kinds in v1: monster remaps, per-area field replacement (description, encounter, trap, treasure, features), area add/remove, geometry (cells, edges, entrance, transitions), and town/module metadata fields. Overrides apply after stage outputs and before validation, so `check` always evaluates the corrected draft.
+Supported override kinds in v1: monster remaps, per-area field replacement (name, description, encounter, trap, treasure, features), area add/remove, geometry (cells, edges, entrance, transitions), and town/module metadata fields. Overrides apply after stage outputs and before validation, so `check` always evaluates the corrected draft.
 
 ## Extraction report
 
@@ -124,6 +124,8 @@ Supported override kinds in v1: monster remaps, per-area field replacement (desc
 
 ```json
 {
+  "schema_version": 1,
+  "osrforge_version": "0.1.0",
   "module": { "title": "The Example Barrow", "pages": 48 },
   "validation": { "passed": false, "errors": ["..."] },
   "areas": [
@@ -141,6 +143,8 @@ Supported override kinds in v1: monster remaps, per-area field replacement (desc
 ```
 
 Flag vocabulary is small and enumerated (geometry synthesized, monster unresolved, low confidence, connection ambiguous, treasure unparsed, page unreadable) so UIs can badge reliably.
+
+`report.json` and `run.json` each carry `schema_version` (osr-forge's own artifact schema version — independent of osrlib's, additive-only within a version) and `osrforge_version` (the producing package version); `adventure.json` needs neither because osrlib's `stamp_document` envelope already versions it.
 
 ## Validation and playability checks
 
@@ -194,7 +198,7 @@ Provider settings come from an explicit settings object (library) or environment
 ## Tooling and packaging
 
 - Python ≥ 3.14 (osrlib's floor), managed with `uv`; `ruff` format/lint, `pyright`, `pytest`.
-- Dependencies: `osrlib` (compatible-range pin, `>=1.1,<2`), `pypdfium2` (rendering + text extraction; permissive license, unlike PyMuPDF's AGPL), `pyyaml`, the OpenAI-compatible client for the Foundry adapter, `azure-identity` (optional extra).
+- Dependencies: `osrlib` (compatible-range pin, `>=1.1,<2`), `pypdfium2` (rendering + text extraction; permissive license, unlike PyMuPDF's AGPL), `pillow` (PNG encoding for rendered pages — pypdfium2 produces raw bitmaps, not image files), `pyyaml`, `jsonschema` (provider-side validation of structured-output responses), the OpenAI-compatible client for the Foundry adapter, `azure-identity` (optional extra).
 - Package name `osr-forge` (import `osrforge`) — both it and `osrforge` are unclaimed on PyPI as of 2026-07-08. MIT license; the package ships no game content (osrlib's OGL data stays in osrlib).
 
 ## Roadmap
