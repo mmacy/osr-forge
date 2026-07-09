@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "fingerprint": "983daa426263aabf929a8c006a389b9b79580e278f130ed6934cbe69ad8b5bfc",
+  "fingerprint": "753df1be3868212ff48e348403bea74bd9e6742a11d10bb9726bf42b1fb62d3f",
   "tag": "survey",
   "request": {
-    "system": "You survey tabletop adventure modules. The user message interleaves every page's extracted text (each headed by a [page N] marker) with that page's image. Fill the survey schema from those pages.\n\nRules:\n- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. The town or home base and its buildings are never dungeons — describe them only in \"town\". Leave \"town.name\" empty only when the module genuinely leaves the town unnamed.\n- One dungeon per independently keyed map: maps connected internally by stairs or shafts are levels of one dungeon; separate lairs or sites with their own maps and entrances are separate dungeons.\n- \"hooks\" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's introduction or background.\n- Each level's \"map_pages\" lists the pages showing that level's map; each area's \"source_pages\" lists the pages describing it. Both refer to the [page N] markers in this request, never to page numbers printed on the pages themselves.\n- An area's \"key\" is the module's printed key for it (like \"5\" or \"4a\"); when an area has no printed key, use its name. \"monster_names\" collects every monster name that appears anywhere in the module.\n",
+    "system": "You survey tabletop adventure modules. The user message interleaves every page's extracted text (each headed by a [page N] marker) with that page's image. Fill the survey schema from those pages.\n\nRules:\n- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. The town or home base and its buildings are never dungeons — describe them only in \"town\". Leave \"town.name\" empty only when the module genuinely leaves the town unnamed.\n- One dungeon per independently keyed site: maps connected internally by stairs or shafts are levels of one dungeon; separate lairs or sites with their own maps and entrances are separate dungeons, even when they are drawn together on one regional map or share a running area-number sequence (a module keying \"A. Orc Lair\", \"B. Goblin Lair\" describes separate dungeons).\n- \"hooks\" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's introduction or background.\n- Each level's \"map_pages\" lists the pages showing that level's map; each area's \"source_pages\" lists the pages describing it. Both refer to the [page N] markers in this request, never to page numbers printed on the pages themselves.\n- An area's \"key\" is the module's printed key for it (like \"5\" or \"4a\"); when an area has no printed key, use its name. \"monster_names\" collects every monster name that appears anywhere in the module.\n",
     "parts": [
       {
         "text": "[page 1]\nThe Root Cellar of Old Wenna\nA one-evening dungeon crawl for characters of level 1.\nAn original mini-module authored as a test asset for osr-forge.\nTo the extent possible under law, the author has dedicated this\nwork to the public domain under CC0 1.0. No rights reserved."
@@ -173,7 +173,7 @@
       "title": "The Root Cellar of Old Wenna",
       "hooks": [
         "Things have been crawling out of Old Wenna's surviving root cellar at night.",
-        "Investigate the root cellar beneath the ruins of Old Wenna's farmhouse one mile east of Wennadale."
+        "The cellar beneath the burned farmhouse lies one mile east of Wennadale and invites investigation."
       ],
       "town": {
         "name": "Wennadale",
@@ -251,8 +251,8 @@
       ]
     },
     "usage": {
-      "input_tokens": 5577,
-      "output_tokens": 286
+      "input_tokens": 5619,
+      "output_tokens": 282
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

@@ -5,7 +5,7 @@
   "areas": [
     {
       "key": "1",
-      "description": "A 20' x 30' chamber of packed earth. Broken steps descend from the surface. The giant rats nest in the rubble and attack anyone bearing a light.",
+      "description": "A 20' x 30' chamber of packed earth. Broken steps descend from the surface.",
       "encounters": [
         {
           "monster": "giant rats",
@@ -18,7 +18,7 @@
       "treasure": [],
       "features": [
         "broken steps descending from the surface",
-        "rubble"
+        "rubble nest"
       ],
       "connections": [
         {
@@ -29,7 +29,7 @@
       "source_pages": [
         3
       ],
-      "confidence": 0.91
+      "confidence": 0.92
     },
     {
       "key": "2",
@@ -64,11 +64,11 @@
       "source_pages": [
         3
       ],
-      "confidence": 0.9
+      "confidence": 0.88
     },
     {
       "key": "3",
-      "description": "A 20' x 20' room dominated by a ruined press. Under the press bed is a loose flagstone hiding treasure.",
+      "description": "A 20' x 20' room dominated by a ruined press.",
       "encounters": [],
       "trap": null,
       "treasure": [
@@ -92,17 +92,17 @@
       "source_pages": [
         3
       ],
-      "confidence": 0.93
+      "confidence": 0.91
     },
     {
       "key": "4",
-      "description": "A 40' x 10' gallery ankle-deep in seep water. Giant centipedes cling to the ceiling beams. A stuck door in the east wall leads to area 5.",
+      "description": "A 40' x 10' gallery ankle-deep in seep water.",
       "encounters": [
         {
           "monster": "giant centipedes",
           "count_fixed": 4,
           "count_dice": null,
-          "count_note": null
+          "count_note": "cling to the ceiling beams"
         }
       ],
       "trap": null,
@@ -129,13 +129,13 @@
     },
     {
       "key": "5",
-      "description": "A 30' x 30' room with shelves still stocked with preserves. A skeleton in a scorched apron guards the room, attacking anyone who touches the shelves.",
+      "description": "A 30' x 30' room, shelves still stocked with preserves.",
       "encounters": [
         {
           "monster": "skeleton",
           "count_fixed": 1,
           "count_dice": null,
-          "count_note": "in a scorched apron"
+          "count_note": "in a scorched apron; attacks anyone who touches the shelves"
         }
       ],
       "trap": null,
@@ -156,17 +156,17 @@
       "source_pages": [
         5
       ],
-      "confidence": 0.9
+      "confidence": 0.89
     },
     {
       "key": "6",
-      "description": "A 10' x 10' pit-room reached by ladder. Stirges roost above a heap of grain sacks. Treasure is buried in the grain.",
+      "description": "A 10' x 10' pit-room reached by ladder.",
       "encounters": [
         {
           "monster": "stirges",
           "count_fixed": 3,
           "count_dice": null,
-          "count_note": null
+          "count_note": "roost above a heap of grain sacks"
         }
       ],
       "trap": null,

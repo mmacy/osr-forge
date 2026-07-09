@@ -48,8 +48,10 @@ Rules:
 - A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. The town or home base and its \
 buildings are never dungeons — describe them only in "town". Leave "town.name" empty only when the module \
 genuinely leaves the town unnamed.
-- One dungeon per independently keyed map: maps connected internally by stairs or shafts are levels of one \
-dungeon; separate lairs or sites with their own maps and entrances are separate dungeons.
+- One dungeon per independently keyed site: maps connected internally by stairs or shafts are levels of one \
+dungeon; separate lairs or sites with their own maps and entrances are separate dungeons, even when they are \
+drawn together on one regional map or share a running area-number sequence (a module keying "A. Orc Lair", \
+"B. Goblin Lair" describes separate dungeons).
 - "hooks" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's \
 introduction or background.
 - Each level's "map_pages" lists the pages showing that level's map; each area's "source_pages" lists the \
