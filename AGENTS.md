@@ -52,3 +52,5 @@ osr-forge is pre-release: there is no frozen public API yet, so refactor freely 
 ## Licensing
 
 Package code is MIT. osr-forge ships no game content — osrlib's OGL data stays in osrlib, and the eval corpus references adventures by pointer + hash, never by bundled PDF.
+
+The fences bind the repo and the wheel, not users: converting a privately owned, non-redistributable module locally is the primary use case and must never be constrained by them. The design corollary: no pipeline feature may persist module text outside the user's workdir — anything that does (fixture recording) stays opt-in, developer-facing, and out of the conversion path.
