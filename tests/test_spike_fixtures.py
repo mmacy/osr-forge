@@ -26,7 +26,8 @@ REPLAY_GRADE_TAGS = {
     "probe.schema-stress-e512-d8",
     "probe.extract-survey",
     "probe.extract-content",
-    "probe.auth",
+    "probe.auth-key",
+    "probe.auth-entra",
 }
 
 

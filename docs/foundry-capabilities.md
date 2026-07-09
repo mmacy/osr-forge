@@ -26,13 +26,16 @@ non-strict) is **accepted, honored in practice, but not guaranteed**:
 
 - A trivial schema, a survey-shaped schema (nested arrays, enums, `$defs`,
   `additionalProperties: false`), and stress schemas up to **512-value enums
-  with 16-level `$ref` nesting** (`probe.schema-stress-e512-d8`, a ~21 KB
-  fixture) all returned schema-valid JSON on the first attempt (fixtures:
-  `probe.trivial`, `probe.survey-schema`, `probe.schema-stress-e16-d2`,
-  `-e128-d4`, `-e512-d8`).
-- At **2000-value enums with 32-level nesting** the model returned
+  with 8-level `$ref` nesting** (`probe.schema-stress-e512-d8`; ~9 KB
+  canonical schema, 21 KB as a pretty-printed fixture) all returned
+  schema-valid JSON on the first attempt (fixtures: `probe.trivial`,
+  `probe.survey-schema`, `probe.schema-stress-e16-d2`, `-e128-d4`,
+  `-e512-d8`).
+- At **2000-value enums with 16-level nesting** the model returned
   schema-invalid JSON (a missing required property) on all three adapter
-  attempts. The service accepted the oversized schema without a 400 — it did
+  attempts. That failure confounds enum size with nesting depth, so neither
+  dimension's individual ceiling is pinned — only that the combination is past
+  it. The service accepted the oversized schema without a 400 — it did
   not hard-enforce it — so the failure surfaced as the adapter's
   `SchemaValidationError`. No fixture exists for this probe because recording
   persists only successful exchanges; the probe log is the evidence, and the
@@ -90,9 +93,13 @@ fixtures are phase 1's seed corpus, not a quality bar — the eval harness
 
 ## Auth
 
-Both paths work against the live deployment (`probe.auth`): API key, and Entra
-ID via `DefaultAzureCredential` (picked up the Azure CLI credential; the
-identity needs a data-plane role such as Cognitive Services OpenAI User).
+Both paths work against the live deployment, each behind its own fixture
+(`probe.auth-key`, `probe.auth-entra`): API key, and Entra ID via
+`DefaultAzureCredential` (picked up the Azure CLI credential; the identity
+needs a data-plane role such as Cognitive Services OpenAI User). The requests
+differ per path so the fixtures record separately — a fixture proves its
+request succeeded, not which credential carried it, so the probe log remains
+the evidence that each mode was exercised.
 
 ## Quirks
 
@@ -115,7 +122,7 @@ identity needs a data-plane role such as Cognitive Services OpenAI User).
   output at ~$0.05/batch input. Batch size can be tuned for prompt-focus, not
   for limits — even 32-page batches are proven safe on the image side.
 - **Schema budget**: keep extraction schemas at or below the proven
-  e512-d8 scale (~20 KB canonical, enums ≤ 512, nesting ≤ 16 `$ref` levels) —
+  e512-d8 scale (~9 KB canonical, enums ≤ 512, nesting ≤ 8 `$ref` levels) —
   far above what survey/content schemas need. Do not lean on native
   enforcement; the validate-and-retry path stays mandatory.
 - **`estimate` heuristics (phase 3)**: input ≈ pages × (~905 image tokens +

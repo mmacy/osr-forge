@@ -382,20 +382,20 @@ def cmd_extract(context: SpikeContext, args: argparse.Namespace) -> None:
 def cmd_auth(context: SpikeContext, args: argparse.Namespace) -> None:
     import os
 
+    # Distinct tags per auth path: the tag participates in the fingerprint, so
+    # each path gets its own fixture file instead of idempotently overwriting
+    # the other's.
+    mode = "key" if os.environ.get("OSRFORGE_FOUNDRY_API_KEY") else "entra"
     request = ModelRequest(
-        tag="probe.auth",
+        tag=f"probe.auth-{mode}",
         system="Reply with the single word 'ok'.",
-        parts=(TextPart(text="Auth check."),),
+        parts=(TextPart(text=f"Auth check over the {mode} path."),),
         schema=TRIVIAL_SCHEMA,
     )
-    if os.environ.get("OSRFORGE_FOUNDRY_API_KEY"):
-        print("key auth:")
-        run_probe(context, request)
-        print("Entra auth: unset OSRFORGE_FOUNDRY_API_KEY and re-run this subcommand")
-    else:
-        print("Entra auth:")
-        run_probe(context, request)
-        print("key auth: set OSRFORGE_FOUNDRY_API_KEY and re-run this subcommand")
+    print(f"{mode} auth:")
+    run_probe(context, request)
+    other = "unset OSRFORGE_FOUNDRY_API_KEY" if mode == "key" else "set OSRFORGE_FOUNDRY_API_KEY"
+    print(f"for the other path: {other} and re-run this subcommand")
 
 
 def main() -> None:
