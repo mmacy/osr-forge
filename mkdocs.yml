@@ -1,0 +1,124 @@
+site_name: osr-forge
+site_url: https://mmacy.github.io/osr-forge/
+site_description: >-
+  Convert tabletop adventure module PDFs into playable osrlib Adventure
+  documents: an LLM-assisted extraction pipeline, deterministic geometry
+  synthesis, and a reproducible human correction loop.
+repo_url: https://github.com/mmacy/osr-forge
+repo_name: mmacy/osr-forge
+
+theme:
+  name: material
+  palette:
+    # Light/dark toggle: the button flips between the two schemes and the site
+    # remembers the reader's choice.
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  # Explicit heading ids ({ #anchor }) so generated pages can carry stable
+  # cross-reference anchors via autorefs.
+  - attr_list
+  # Syntax highlighting for fenced and inline code, exactly osrlib's set.
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  # Snippets excerpt real repo files (--8<-- markers); check_paths fails the
+  # build when a marker disappears.
+  - pymdownx.snippets:
+      base_path: [.]
+      check_paths: true
+
+# The design documents live in docs/ beside the site pages but are not part of
+# the published site.
+exclude_docs: |
+  spec.md
+  phase-*-plan.md
+  foundry-capabilities.md
+
+strict: true
+
+# `mkdocs serve` watches docs/ and mkdocs.yml by default, not the package
+# source; the API reference is generated from src/ docstrings.
+watch:
+  - src
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    absolute_links: warn
+    unrecognized_links: warn
+    anchors: warn
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Install: getting-started/install.md
+      - A first conversion: getting-started/first-conversion.md
+  - Guides:
+      - The correction loop: guides/correction-loop.md
+      - Settings and rerun: guides/settings-and-rerun.md
+      - Provider setup: guides/provider-setup.md
+  - Reference:
+      - CLI: reference/cli.md
+      - The workdir and artifacts: reference/workdir-artifacts.md
+      - Badge vocabularies: reference/vocabulary.md
+      - API: reference/api/
+  - Evals: evals.md
+  - Licensing: licensing.md
+
+plugins:
+  - search
+  # Explicit, so heading anchors register as cross-reference targets.
+  - autorefs
+  - gen-files:
+      scripts:
+        - tools/docs/gen_api_reference.py
+        - tools/docs/gen_vocabulary.py
+  - literate-nav
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          # Remote inventories: pydantic covers the model surface, python the
+          # stdlib, and osrlib's published reference resolves the osrlib
+          # symbols osr-forge docstrings reference constantly.
+          inventories:
+            - https://docs.pydantic.dev/latest/objects.inv
+            - https://docs.python.org/3/objects.inv
+            - https://mmacy.github.io/osrlib-python/objects.inv
+          options:
+            docstring_style: google
+            # Render the model fields, not only methods: for the frozen
+            # pydantic contracts the typed fields are the API surface a
+            # consumer reads. Hide the pydantic machinery and every
+            # underscore-prefixed name.
+            show_if_no_docstring: true
+            filters:
+              - "!^_"
+              - "!^model_config$"
+              - "!^model_fields$"
+              - "!^model_computed_fields$"
+            show_root_heading: false
+            show_source: false
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            line_length: 120
+            merge_init_into_class: true
