@@ -1,8 +1,10 @@
 """Pipeline settings.
 
-Later knobs (content-pass batch size, fuzzy threshold, top-k) are added by the
-phases that consume them — an unread setting is dead accommodation.
+Later knobs are added by the phases that consume them — an unread setting is
+dead accommodation.
 """
+
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -45,4 +47,29 @@ class ConversionSettings(BaseModel):
     survey request crosses the 272K-token pricing cliff. Survey chunking past
     this guard is phase 4's; until then a larger source raises
     [`ExtractionError`][osrforge.errors.ExtractionError].
+    """
+
+    monster_fuzzy_threshold: float = Field(default=0.85, gt=0.0, le=1.0)
+    """The fuzzy tier's auto-accept floor.
+
+    Pinned against measured catalog pairs, not taste: it accepts the observed
+    true matches `normal man` → `Normal Human` (0.909) and `yellow mold` →
+    `Yellow Mould` (0.957) and rejects the observed false neighbours
+    `giant bee` → `Giant Bat` (0.778) and `gray jelly` → `Ochre Jelly` (0.667).
+    The bar is high because a false accept silently substitutes the wrong
+    monster into a playable draft, while a false reject merely routes the name
+    to the LLM tier, which sees the right candidates anyway.
+    """
+
+    monster_llm_top_k: int = Field(default=8, ge=1)
+    """Candidate templates offered per name in the monster-resolution LLM tier."""
+
+    unresolved_fallback: Literal["best-effort", "omit"] = "best-effort"
+    """What assembly puts in the draft where resolution or parsing came up empty.
+
+    `best-effort` substitutes a flagged, level-appropriate monster stand-in from
+    osrlib's shipped encounter tables and an unguarded-treasure roll; `omit`
+    leaves the gap. The default is a pinned project decision (issue #6): a
+    nerfed dungeon plays worse than approximate content, and every stand-in
+    stays flagged and overridable, so review rigor is unchanged.
     """

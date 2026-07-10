@@ -92,6 +92,11 @@ class Workdir:
         return self.stages_dir / f"areas.{dungeon_id}.{level_number}.json"
 
     @property
+    def monsters_json(self) -> Path:
+        """The monsters stage's cache."""
+        return self.stages_dir / "monsters.json"
+
+    @property
     def overrides_yaml(self) -> Path:
         """The human correction file."""
         return self.root / "overrides.yaml"
@@ -110,6 +115,21 @@ class Workdir:
     def adventure_json(self) -> Path:
         """The stamped osrlib adventure document."""
         return self.root / "adventure.json"
+
+    def preview_svg(self, dungeon_id: str, level_number: int) -> Path:
+        """Return the preview path for one level.
+
+        Filename unambiguity is again guaranteed by the canonical slug alphabet
+        — no dots or slashes in dungeon ids.
+
+        Args:
+            dungeon_id: The canonical dungeon id.
+            level_number: The 1-based level number.
+
+        Returns:
+            `previews/<dungeon>.<level>.svg`.
+        """
+        return self.previews_dir / f"{dungeon_id}.{level_number}.svg"
 
     def page_png(self, page_number: int) -> Path:
         """Return the render path for a page.
@@ -136,9 +156,11 @@ class Workdir:
     def area_caches(self) -> list[Path]:
         """Return every content-stage cache file, sorted.
 
-        Only the per-level `areas.*.json` caches — not `survey.json` (or
-        phase 2's `monsters.json`): both extraction stages clear exactly these
-        when a re-run may have orphaned them.
+        Only the per-level `areas.*.json` caches — not `survey.json` or
+        `monsters.json`. The upstream stages' clearing rule: `survey()` (on
+        success) and `content()` (upfront) unlink these *and* `monsters.json`
+        — a re-run of either can change the encounter-name population,
+        orphaning old resolutions exactly as it orphans old area caches.
 
         Returns:
             The `stages/areas.*.json` paths, sorted by name.

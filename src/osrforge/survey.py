@@ -322,10 +322,11 @@ def filter_index_to_pages(index: SurveyIndex, page_numbers: Iterable[int]) -> Su
 def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
     """Run stage 1: survey the whole module and write `stages/survey.json`.
 
-    Stale `stages/areas.*.json` caches are deleted only on success — a re-run
-    survey can change canonical ids, orphaning old content caches, but a
-    transient provider failure on a re-run leaves the previous consistent
-    survey-plus-content cache set intact.
+    Stale `stages/areas.*.json` caches and `stages/monsters.json` are deleted
+    only on success — a re-run survey can change canonical ids and the
+    encounter-name population, orphaning the downstream caches, but a transient
+    provider failure on a re-run leaves the previous consistent cache set
+    intact.
 
     Args:
         workdir: A workdir whose preprocess stage is `completed`.
@@ -360,5 +361,6 @@ def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
         workdir.stages_dir.mkdir(parents=True, exist_ok=True)
         for stale in workdir.area_caches():
             stale.unlink()
+        workdir.monsters_json.unlink(missing_ok=True)
         write_json_artifact(workdir.survey_json, index)
     return index

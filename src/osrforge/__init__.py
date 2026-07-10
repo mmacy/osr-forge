@@ -4,6 +4,8 @@ The public façade re-exports only the names the library API promises. Everythin
 else is imported from its home module — one home per symbol.
 """
 
+from osrforge.assemble import assemble
+from osrforge.convert import convert
 from osrforge.settings import ConversionSettings
 
-__all__ = ["ConversionSettings"]
+__all__ = ["ConversionSettings", "assemble", "convert"]

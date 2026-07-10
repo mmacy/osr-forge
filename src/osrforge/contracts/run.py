@@ -40,7 +40,8 @@ class Stage(StrEnum):
     They do not name the `stages/` cache files — the spec's workdir layout pins
     those separately, and only the model-calling stages have caches. Geometry is
     deterministic and recomputed inside every assembly rather than cached; its
-    `run.json` entry completes with assembly (reading to be confirmed by phase 2).
+    `run.json` entry completes inside every `assemble()`, tracked separately so
+    a failure in the build leaves an honest `geometry: completed`.
     """
 
     PREPROCESS = "preprocess"

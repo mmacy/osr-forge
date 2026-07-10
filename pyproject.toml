@@ -20,6 +20,9 @@ dependencies = [
 [project.optional-dependencies]
 entra = ["azure-identity>=1"]
 
+[project.scripts]
+osrforge = "osrforge.cli:main"
+
 [project.urls]
 Repository = "https://github.com/mmacy/osr-forge"
 
