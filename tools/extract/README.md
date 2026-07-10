@@ -98,6 +98,25 @@ uv run tools/extract/run_extraction.py goldens \
     --page-count 48
 ```
 
+## The JN1 correction session (phase 3)
+
+The corrected-goldens flow is the goldens flow plus the committed correction
+file: `--overrides` copies it into the fabricated workdir before assembly, and
+the command runs `check` after assembly, printing findings. With
+`--overrides`, the written `report.json` is the post-`check` report (findings
+merged — the corrected goldens' gate); without it, the post-assemble report
+(the uncorrected gate). Re-bless `expected-corrected/` after any deliberate
+change to assembly, overrides semantics, the lint, osrlib, or the correction
+file itself — never hand-edit:
+
+```sh
+uv run tools/extract/run_extraction.py goldens \
+    --stages-dir tests/assets/chaotic-caves/stages \
+    --out tests/assets/chaotic-caves/expected-corrected \
+    --page-count 48 \
+    --overrides tests/assets/chaotic-caves/overrides.yaml
+```
+
 ## The milestone TUI session
 
 `run_converted_tui.py` runs osrlib's example TUI crawler (from the checkout at

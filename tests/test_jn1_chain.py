@@ -1,11 +1,17 @@
-"""The JN1 back-half chain: monsters fixture replay over the committed caches, then assembly to goldens.
+"""The JN1 back-half chain and the phase 3 milestone gate — zero network.
 
 The monsters request is text-only (names plus catalog candidates — no page
 images), so it replays with zero network from the committed stage caches, the
 installed osrlib catalog, and the prompt code alone; no page assets are
-fabricated. Both tests skip until the JN1 monsters recording session lands
+fabricated. The tests skip until the JN1 monsters recording session lands
 `stages/monsters.json` (see `tools/extract/README.md`) — the skip is the
 honest state while the recording is pending, never a silent pass.
+
+The milestone gate is staged to match who writes what: `assemble` emits
+`findings: ()` by design while the committed corrected report carries
+`check`'s findings, so the two writers are gated separately — assemble twice
+against the corrected adventure and previews (intermediate report
+byte-stable), then check against the committed post-check report.
 """
 
 import shutil
@@ -15,6 +21,8 @@ from pathlib import Path
 import pytest
 
 from osrforge.assemble import assemble
+from osrforge.check import check
+from osrforge.contracts.report import ExtractionReport
 from osrforge.contracts.run import RunMeta, Stage, StageStatus, TokenUsage
 from osrforge.monsters import monsters
 from osrforge.providers.fixtures import FixtureProvider
@@ -77,3 +85,33 @@ def test_assembly_matches_the_jn1_goldens(tmp_path: Path):
     produced = {path.name: path.read_bytes() for path in sorted(workdir.previews_dir.iterdir())}
     goldens = {path.name: path.read_bytes() for path in sorted((expected / "previews").iterdir())}
     assert produced == goldens
+
+
+@recorded
+def test_the_correction_milestone_gate(tmp_path: Path):
+    """The phase 3 milestone, machine-checked: a bad draft fixed to publishable entirely through overrides.yaml."""
+    workdir = jn1_workdir(tmp_path / "jn1.forge", monsters_completed=True)
+    shutil.copyfile(JN1 / "overrides.yaml", workdir.overrides_yaml)
+    corrected = JN1 / "expected-corrected"
+
+    def assert_draft_matches_the_corrected_goldens() -> None:
+        assert workdir.adventure_json.read_bytes() == (corrected / "adventure.json").read_bytes()
+        produced = {path.name: path.read_bytes() for path in sorted(workdir.previews_dir.iterdir())}
+        goldens = {path.name: path.read_bytes() for path in sorted((corrected / "previews").iterdir())}
+        assert produced == goldens
+
+    assemble(workdir.root)
+    assert_draft_matches_the_corrected_goldens()
+    intermediate_report = workdir.report_json.read_bytes()
+    assemble(workdir.root)
+    assert_draft_matches_the_corrected_goldens()
+    assert workdir.report_json.read_bytes() == intermediate_report
+
+    findings = check(workdir.root)
+    # The committed corrected report is the post-check report — the session's
+    # accepted warnings are thereby byte-pinned.
+    assert workdir.report_json.read_bytes() == (corrected / "report.json").read_bytes()
+    assert [finding for finding in findings if finding.severity == "error"] == []
+    report = ExtractionReport.model_validate_json(workdir.report_json.read_text(encoding="utf-8"))
+    assert report.validation.passed
+    assert report.monsters.unresolved == ()

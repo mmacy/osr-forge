@@ -181,6 +181,7 @@ def cmd_goldens(args: argparse.Namespace) -> None:
     import tempfile
     from datetime import UTC, datetime
 
+    from osrforge.check import check
     from osrforge.contracts.run import Stage, StageStatus
 
     stages_dir: Path = args.stages_dir
@@ -189,6 +190,8 @@ def cmd_goldens(args: argparse.Namespace) -> None:
     workdir.stages_dir.mkdir(parents=True)
     for path in sorted(stages_dir.glob("*.json")):
         shutil.copyfile(path, workdir.stages_dir / path.name)
+    if args.overrides is not None:
+        shutil.copyfile(args.overrides, workdir.overrides_yaml)
     stages = {stage: StageStatus() for stage in Stage}
     for stage in (Stage.PREPROCESS, Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS):
         stages[stage] = StageStatus(
@@ -208,6 +211,16 @@ def cmd_goldens(args: argparse.Namespace) -> None:
     )
     result = assemble(root)
     print(f"validation: {'passed' if result.report.validation.passed else 'FAILED'}")
+    # The uncorrected goldens' report is the post-assemble report (their CI
+    # gate byte-compares assemble's own output); the corrected goldens' report
+    # is the post-check report, findings merged — two writers, gated
+    # separately, so snapshot before check and restore for the plain flow.
+    report_after_assemble = workdir.report_json.read_bytes()
+    findings = check(root)
+    for finding in findings:
+        print(f"{finding.severity} {finding.id.value} {finding.location} {finding.message}")
+    if args.overrides is None:
+        workdir.report_json.write_bytes(report_after_assemble)
     out: Path = args.out
     (out / "previews").mkdir(parents=True, exist_ok=True)
     shutil.copyfile(workdir.adventure_json, out / "adventure.json")
@@ -271,6 +284,12 @@ def main() -> None:
     goldens.add_argument("--page-count", type=int, required=True, help="the module's page count (report.module.pages)")
     goldens.add_argument("--source-sha256", default="00" * 32, help="cosmetic; artifacts do not embed it")
     goldens.add_argument("--source-bytes", type=int, default=1, help="cosmetic; artifacts do not embed it")
+    goldens.add_argument(
+        "--overrides",
+        type=Path,
+        default=None,
+        help="an overrides.yaml copied into the fabricated workdir before assembly (the corrected-goldens flow)",
+    )
 
     args = parser.parse_args()
     {"full": cmd_full, "excerpt": cmd_excerpt, "monsters": cmd_monsters, "goldens": cmd_goldens}[args.command](args)

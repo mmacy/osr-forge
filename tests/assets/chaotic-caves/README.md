@@ -40,6 +40,15 @@ whose request digests embed module text (also licensed):
   text derives from the module's licensed text. Phase 2's `monsters.json`
   joins them once the JN1 monsters recording session runs (see
   `tools/extract/README.md`).
+- `overrides.yaml` — the phase 3 correction session's file: every entry a
+  genuine correction with its reason, checked against the module's printed
+  stat blocks and maps. It is itself a test asset — the milestone gate
+  byte-compares `assemble` over caches + this file against
+  `expected-corrected/`, so editing it re-blesses those goldens (see
+  `tests/assets/README.md` for the command).
+- `expected-corrected/` — the corrected goldens: the post-overrides
+  `adventure.json` and `previews/`, plus the post-`check` `report.json`
+  (findings merged; the session's accepted warnings byte-pinned).
 
 ## The JN1 monsters fixture's couplings
 

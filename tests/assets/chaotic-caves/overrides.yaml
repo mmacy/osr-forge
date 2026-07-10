@@ -1,0 +1,113 @@
+# JN1 The Chaotic Caves (r28) — the phase 3 correction session's file.
+#
+# Worked against the committed stage caches through the documented loop
+# (read report.json and the previews, edit this file, assemble && check,
+# repeat). Every entry cites the module page it was checked against; the
+# stat-block comparisons are against the OSE SRD catalog osrlib ships.
+# Text quoted or adapted from the module is CC BY-SA 4.0 (see README.md).
+
+monsters:
+  "gray jelly":
+    template_id: grey_ooze
+    reason: >-
+      The module's stat block (p. 19: AC 12, HD 3*, Dam 2d8, Mv 1') matches
+      Grey Ooze (HD 3*, 2d8, near-immobile), not the LLM's Ochre Jelly pick
+      (HD 5*, 2d6).
+  "tentacle worm":
+    template_id: carcass_crawler
+    reason: >-
+      The module's stat block (p. 14: AC 13, HD 3*, 6 tentacles, paralysis)
+      is the carcass crawler under another name.
+  "giant gecko lizard":
+    template_id: gecko
+    reason: >-
+      Identical stat block (p. 30: AC 15, HD 3+1, bite 1d8) — OSE's Gecko is
+      the giant gecko lizard; the extracted name just didn't fuzzy-match.
+  "orc war leader":
+    template_id: orc
+    reason: >-
+      A 2 HD orc (p. 13/23); the catalog has no orc leader variant, and the
+      base orc is the same creature. The leader's extra hit die and +1 damage
+      are lost — acceptable for a lieutenant.
+  "elven thief":
+    template_id: elf_monster
+    reason: >-
+      The bandit lieutenant is an Elven Thief 3 (p. 28); the catalog's elf
+      entry is the elf NPC under arms. The two thief levels are lost.
+  "fighters":
+    template_id: veteran_2
+    reason: >-
+      The manor hall's three fighters are F2s (p. 41: "3 Fighters: AC 15,
+      F2, Dam 1d8"); OSE's Veteran (2) is the 2nd-level fighter NPC.
+  "human fighter 1":
+    template_id: veteran_1
+    reason: >-
+      The band's foot troops are 1st-level human fighters (pp. 39-42); OSE's
+      Veteran (1) is the 1st-level fighter NPC.
+  "human fighter 2":
+    template_id: veteran_2
+    reason: >-
+      The sergeants and the smith are 2nd-level fighters (p. 41); OSE's
+      Veteran (2) is the 2nd-level fighter NPC.
+  "human cleric 3":
+    template_id: acolyte
+    reason: >-
+      The catalog's only NPC cleric. The module's C3 in plate with mace
+      (p. 43) is the acolyte's exact kit two levels up.
+  "human magic-user 4":
+    template_id: medium
+    reason: >-
+      The catalog's only arcane NPC (MU1). The module's MU4 (p. 43) loses
+      three levels; the alternative is inventing a monster, which osr-forge
+      never does.
+
+areas:
+  the-abandoned-manor/1/95:
+    description: >-
+      Servant quarters, enlarged by tearing down the inner partitions, now
+      occupied in part by foot troops, most of whom are eating or elsewhere.
+      (The module keys 94 to 97 as one shared entry.)
+    reason: >-
+      Map-only key: the printed entry (p. 42) is the shared "94 to 97.
+      SERVANT QUARTERS" text; the extraction emitted a thin extrapolation at
+      0.8 confidence. Replaced with the printed shared text.
+  the-abandoned-manor/1/96:
+    description: >-
+      Servant quarters, enlarged by tearing down the inner partitions, now
+      occupied in part by foot troops, most of whom are eating or elsewhere.
+      (The module keys 94 to 97 as one shared entry.)
+    reason: >-
+      Map-only key: the printed entry (p. 42) is the shared "94 to 97.
+      SERVANT QUARTERS" text; the extraction emitted a thin extrapolation at
+      0.8 confidence. Replaced with the printed shared text.
+
+geometry:
+  halfling-home/1:
+    areas:
+      h2:
+        # The printed living room (map p. 19, 1 square = 5') spans the width
+        # of the burrow under H3/H4 — five 10' cells by two.
+        cells: [[3, 9], [4, 9], [5, 9], [6, 9], [7, 9], [3, 10], [4, 10], [5, 10], [6, 10], [7, 10]]
+      h3:
+        # The 15' x 17' dining room (p. 14) sits north of the living room's
+        # west half on the printed map, not west of it in a chain.
+        cells: [[5, 7], [6, 7], [5, 8], [6, 8]]
+    edges:
+      # h3's interior and its opening south into h2.
+      "6,7:west": { kind: open }
+      "6,8:west": { kind: open }
+      "5,8:north": { kind: open }
+      "6,8:north": { kind: open }
+      "5,9:north": { kind: open }
+      # h2's second row, opened where the old corridor never ran.
+      "5,10:west": { kind: open }
+      "6,10:west": { kind: open }
+      "5,10:north": { kind: open }
+      # The round green front door (H1, p. 14): "locked, but is old and
+      # rotten, and can be easily knocked in" — a stuck door in play (no key
+      # exists anywhere; forcing is the module's own remedy).
+      "8,9:east": { kind: door, door: { stuck: true } }
+    reason: >-
+      Match the printed halfling-home map (p. 19): H2 is the wide living
+      room, H3 the dining room north of it, and the front door at H1 is
+      knock-in-able, not open.
