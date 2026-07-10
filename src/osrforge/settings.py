@@ -53,12 +53,13 @@ class ConversionSettings(BaseModel):
     """
 
     survey_max_pages: int = Field(default=150, ge=1)
-    """The single-request survey guard.
+    """The survey chunk size in pages.
 
-    Per `docs/foundry-capabilities.md`, beyond ~150 pages the whole-module
-    survey request crosses the 272K-token pricing cliff. Survey chunking past
-    this guard is phase 4's; until then a larger source raises
-    [`ExtractionError`][osrforge.errors.ExtractionError].
+    A source at or under this many pages surveys in one request; a larger
+    source surveys in contiguous page windows of this size, merged before
+    normalization. Per `docs/foundry-capabilities.md`, beyond ~150 pages the
+    whole-module survey request's image tokens alone approach the 272K-token
+    pricing cliff — the default keeps a typical window under it.
     """
 
     monster_fuzzy_threshold: float = Field(default=0.85, gt=0.0, le=1.0)

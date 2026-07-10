@@ -162,7 +162,7 @@ def convert(
 
     Raises:
         PdfError: If preprocessing rejects the source.
-        ExtractionError: If the survey guard trips or the survey finds nothing.
+        ExtractionError: If the survey finds nothing.
         ProviderError: On provider transport, auth, or rate-limit exhaustion.
         SchemaValidationError: If the provider exhausts its schema budget.
         OverrideError: If an existing `overrides.yaml` entry cannot take effect.

@@ -263,16 +263,16 @@ class TestEstimateCommand:
                 page_count=200,
                 text_tokens=100,
                 image_tokens=181_000,
-                survey_input_tokens=183_100,
+                survey_window_count=2,
+                survey_input_tokens=187_100,
                 survey_output_tokens=14_000,
                 content_input_tokens=226_375,
                 content_output_tokens=110_000,
                 monsters_input_tokens=5_000,
                 monsters_output_tokens=500,
-                input_tokens=414_475,
+                input_tokens=418_475,
                 output_tokens=124_500,
                 usd=2.9,
-                exceeds_survey_guard=True,
             )
 
         monkeypatch.setattr(cli, "estimate", fake_estimate)
@@ -280,5 +280,7 @@ class TestEstimateCommand:
         assert seen["workdir"] == Path("huge.forge")
         out = capsys.readouterr().out
         assert "pages: 200" in out
+        assert "(2 windows)" in out
         assert "estimated cost: $2.90" in out
-        assert "exceeds the survey guard" in out
+        # The guard warning is gone from the table — larger sources chunk.
+        assert "survey guard" not in out

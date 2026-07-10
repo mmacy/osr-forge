@@ -1,4 +1,4 @@
-"""Stage 1: the survey pass — one structured-output request over the whole module.
+"""Stage 1: the survey pass — one structured-output request over the whole module, or chunked page windows.
 
 The survey identifies title, hooks, town info, dungeons, levels, keyed areas
 with page locations, and every monster name — the index that plans the content
@@ -6,10 +6,18 @@ passes. Normalization to canonical ids and keys happens here, at the source:
 `contracts/report.py` pins the address grammar, and the content stage's cache
 filenames and per-batch key enums need canonical forms before content runs.
 
+Sources at or under `survey_max_pages` pages survey in one request whose bytes
+are identical to what every committed fixture was recorded against — chunking
+is purely additive. Larger sources split into contiguous page windows of that
+size, each request carrying a window-naming preamble, and the windows' raw
+answers merge deterministically ([`merge_survey_answers`][osrforge.survey.merge_survey_answers])
+before one `normalize_survey` pass.
+
 Every system-prompt rule is pinned against an observed failure in the phase 0
 spike fixtures; see the phase 1 plan before changing one.
 """
 
+import copy
 import re
 import unicodedata
 from collections.abc import Iterable, Sequence
@@ -33,11 +41,14 @@ from osrforge.workdir import Workdir, track_stage, write_json_artifact
 __all__ = [
     "SURVEY_SCHEMA",
     "SURVEY_SYSTEM",
+    "build_chunked_survey_request",
     "build_survey_request",
     "canonical_slug",
     "filter_index_to_pages",
+    "merge_survey_answers",
     "normalize_survey",
     "survey",
+    "survey_windows",
 ]
 
 SURVEY_SYSTEM = """\
@@ -138,6 +149,200 @@ def build_survey_request(parts: Sequence[TextPart | ImagePart]) -> ModelRequest:
         The request, tagged `survey`.
     """
     return ModelRequest(tag="survey", system=SURVEY_SYSTEM, parts=tuple(parts), schema=SURVEY_SCHEMA)
+
+
+def build_chunked_survey_request(
+    parts: Sequence[TextPart | ImagePart], first_page: int, last_page: int, page_count: int
+) -> ModelRequest:
+    """Build one chunked-survey window's request: the survey prompt plus a window-naming preamble.
+
+    The preamble is appended only here — the single-request path goes through
+    [`build_survey_request`][osrforge.survey.build_survey_request] untouched,
+    which is what keeps every committed fixture valid. The schema and tag are
+    the single-request path's; distinct windows still produce distinct request
+    fingerprints because their pages (and this preamble) differ.
+
+    Args:
+        parts: The window's interleaved page parts, from
+            [`page_request_parts`][osrforge.pages.page_request_parts].
+        first_page: The window's first page (1-based, absolute).
+        last_page: The window's last page (1-based, absolute).
+        page_count: The whole source's page count.
+
+    Returns:
+        The request, tagged `survey`.
+    """
+    preamble = (
+        f"\nThis request carries pages {first_page}-{last_page} of a {page_count}-page module; the other pages "
+        "arrive in separate requests. Survey only what these pages show — report the dungeons, levels, keyed "
+        "areas, and monster names these pages describe, and leave out anything they don't.\n"
+    )
+    return ModelRequest(tag="survey", system=SURVEY_SYSTEM + preamble, parts=tuple(parts), schema=SURVEY_SCHEMA)
+
+
+def survey_windows(page_count: int, window_size: int) -> tuple[tuple[int, int], ...]:
+    """Split pages 1..page_count into contiguous, disjoint windows of at most `window_size` pages.
+
+    No overlap, pinned: overlapping windows would double-extract boundary areas
+    and force the merge to arbitrate conflicting duplicates of the same key; a
+    dungeon spanning a boundary is already covered because each window reports
+    the parts it saw and the merge unions them.
+
+    Args:
+        page_count: The source's page count.
+        window_size: The window size (`survey_max_pages`).
+
+    Returns:
+        `(first, last)` page pairs, 1-based and inclusive: `(1, K)`,
+        `(K+1, 2K)`, … A source at or under `window_size` yields one window.
+    """
+    return tuple((first, min(first + window_size - 1, page_count)) for first in range(1, page_count + 1, window_size))
+
+
+def _first_nonempty(values: Iterable[str]) -> str:
+    return next((value for value in values if value), "")
+
+
+def _union_into(accumulated: list[Any], incoming: Iterable[Any]) -> None:
+    """Append unseen items in incoming order — union in first-seen order."""
+    seen = set(accumulated)
+    for item in incoming:
+        if item not in seen:
+            accumulated.append(item)
+            seen.add(item)
+
+
+def _merge_town(answers: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """The town joins as a unit: first entry with a name, else first with a description, else empty."""
+    towns = [cast(dict[str, Any], answer["town"]) for answer in answers]
+    for town in towns:
+        if town["name"]:
+            return copy.deepcopy(town)
+    for town in towns:
+        if town["description"]:
+            return copy.deepcopy(town)
+    return {"name": "", "description": ""}
+
+
+def _merge_areas(accumulated: list[dict[str, Any]], incoming: Sequence[dict[str, Any]]) -> None:
+    """Join one window's areas into an accumulated level, occurrence-indexed on the key's slug."""
+    occurrences: dict[str, list[dict[str, Any]]] = {}
+    for area in accumulated:
+        slug = canonical_slug(cast(str, area["key"]))
+        if slug:
+            occurrences.setdefault(slug, []).append(area)
+    seen: dict[str, int] = {}
+    for area in incoming:
+        slug = canonical_slug(cast(str, area["key"]))
+        if slug:
+            position = seen.get(slug, 0)
+            seen[slug] = position + 1
+            candidates = occurrences.get(slug, [])
+            if position < len(candidates):
+                # First occurrence wins every scalar field; pages union.
+                _union_into(
+                    cast(list[int], candidates[position]["source_pages"]), cast(list[int], area["source_pages"])
+                )
+                continue
+        accumulated.append(copy.deepcopy(area))
+
+
+def _merge_levels(accumulated: list[dict[str, Any]], incoming: Sequence[dict[str, Any]]) -> None:
+    """Join one window's levels into an accumulated dungeon, occurrence-indexed on `number`."""
+    occurrences: dict[int, list[dict[str, Any]]] = {}
+    for level in accumulated:
+        occurrences.setdefault(cast(int, level["number"]), []).append(level)
+    seen: dict[int, int] = {}
+    for level in incoming:
+        number = cast(int, level["number"])
+        position = seen.get(number, 0)
+        seen[number] = position + 1
+        candidates = occurrences.get(number, [])
+        if position < len(candidates):
+            target = candidates[position]
+            _union_into(cast(list[int], target["map_pages"]), cast(list[int], level["map_pages"]))
+            _merge_areas(cast(list[dict[str, Any]], target["areas"]), cast(list[dict[str, Any]], level["areas"]))
+        else:
+            accumulated.append(copy.deepcopy(level))
+
+
+def _merge_dungeons(accumulated: list[dict[str, Any]], incoming: Sequence[dict[str, Any]]) -> None:
+    """Join one window's dungeons into the accumulator, occurrence-indexed on the name's slug.
+
+    The occurrence lists are snapshotted before this window is processed, so
+    entries from the same window can never join each other: a window's n-th
+    occurrence of a slug either joins the accumulator's pre-existing n-th
+    occurrence or appends, and an appended entry is invisible to its own
+    window's later occurrences.
+    """
+    occurrences: dict[str, list[dict[str, Any]]] = {}
+    for dungeon in accumulated:
+        slug = canonical_slug(cast(str, dungeon["name"]))
+        if slug:
+            occurrences.setdefault(slug, []).append(dungeon)
+    seen: dict[str, int] = {}
+    for dungeon in incoming:
+        slug = canonical_slug(cast(str, dungeon["name"]))
+        if slug:
+            position = seen.get(slug, 0)
+            seen[slug] = position + 1
+            candidates = occurrences.get(slug, [])
+            if position < len(candidates):
+                target = candidates[position]
+                _merge_levels(
+                    cast(list[dict[str, Any]], target["levels"]), cast(list[dict[str, Any]], dungeon["levels"])
+                )
+                continue
+        accumulated.append(copy.deepcopy(dungeon))
+
+
+def merge_survey_answers(answers: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Merge chunked-survey windows' schema-valid raw answers into one raw answer, deterministically.
+
+    The merge happens at the raw level so the merged dict flows through
+    [`normalize_survey`][osrforge.survey.normalize_survey] exactly once —
+    merging normalized indexes would fight reserve-then-bump uniquing (a key
+    bumped to `5-2` in one window and not the other could never re-join).
+
+    Join rules, pinned: entries from the same window never join with each
+    other — intra-window multiplicity is preserved verbatim (duplicate slugs
+    denote genuinely distinct entities under reserve-then-bump). Across
+    windows, entities join occurrence-indexed: a later window's *n*-th
+    occurrence of a join key joins the accumulator's *n*-th occurrence, and
+    occurrences past the accumulator's count append as new entries. Join keys:
+    dungeons on `canonical_slug(name)`, levels on `number` within a joined
+    dungeon, areas on `canonical_slug(key)` within a joined level. An empty
+    slug never joins — two empty slugs carry no evidence of identity, so each
+    empty-slug entry stays distinct and takes `normalize_survey`'s positional
+    fallback. On a join, the first occurrence wins every scalar field;
+    `source_pages` and `map_pages` union in first-seen order. `title` and
+    `town` take the first non-empty occurrence in window order (`town` as a
+    unit: first entry with a non-empty name, else first with a non-empty
+    description, else empty); `hooks` concatenate deduplicated by exact
+    string; `monster_names` union in first-seen order.
+
+    Args:
+        answers: The windows' raw answers in window order, each already
+            validated against [`SURVEY_SCHEMA`][osrforge.survey.SURVEY_SCHEMA].
+            The inputs are not mutated.
+
+    Returns:
+        One merged raw answer, shaped exactly like a single window's.
+    """
+    dungeons: list[dict[str, Any]] = []
+    hooks: list[str] = []
+    monster_names: list[str] = []
+    for answer in answers:
+        _union_into(hooks, cast(list[str], answer["hooks"]))
+        _union_into(monster_names, cast(list[str], answer["monster_names"]))
+        _merge_dungeons(dungeons, cast(list[dict[str, Any]], answer["dungeons"]))
+    return {
+        "title": _first_nonempty(cast(str, answer["title"]) for answer in answers),
+        "hooks": hooks,
+        "town": _merge_town(answers),
+        "dungeons": dungeons,
+        "monster_names": monster_names,
+    }
 
 
 def canonical_slug(text: str) -> str:
@@ -320,7 +525,17 @@ def filter_index_to_pages(index: SurveyIndex, page_numbers: Iterable[int]) -> Su
 
 
 def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
-    """Run stage 1: survey the whole module and write `stages/survey.json`.
+    """Run stage 1: survey the module and write `stages/survey.json`.
+
+    A source at or under `survey_max_pages` pages surveys in one request built
+    by [`build_survey_request`][osrforge.survey.build_survey_request] —
+    byte-identical to the pre-chunking request, which the committed fixture
+    replay gates prove. A larger source surveys in
+    [`survey_windows`][osrforge.survey.survey_windows]-sized chunks whose raw
+    answers merge through
+    [`merge_survey_answers`][osrforge.survey.merge_survey_answers] before the
+    one `normalize_survey` pass. Page markers stay absolute in both modes, so
+    downstream stages see the same page-number space either way.
 
     Stale `stages/areas.*.json` caches and `stages/monsters.json` are deleted
     only on success — a re-run survey can change canonical ids and the
@@ -338,8 +553,7 @@ def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
     Raises:
         ValueError: If the preprocess stage is not `completed` (programmer
             misuse).
-        ExtractionError: If the source exceeds the `survey_max_pages` guard
-            (before any model call), or the survey finds no dungeons or areas.
+        ExtractionError: If the survey finds no dungeons or areas.
         ProviderError: On provider transport, auth, or rate-limit exhaustion.
         SchemaValidationError: If the provider exhausts its schema budget.
     """
@@ -347,17 +561,21 @@ def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
     preprocess_status = run.stages.get(Stage.PREPROCESS)
     if preprocess_status is None or preprocess_status.status != "completed":
         raise ValueError("survey requires a completed preprocess stage")
-    if run.page_count > run.settings.survey_max_pages:
-        raise ExtractionError(
-            f"source has {run.page_count} pages, over the {run.settings.survey_max_pages}-page survey guard "
-            "(survey chunking is a later phase)"
-        )
     with track_stage(workdir, Stage.SURVEY) as tracker:
-        request = build_survey_request(page_request_parts(workdir, range(1, run.page_count + 1)))
-        response = provider.generate(request)
-        tracker.add_usage(response.usage)
-        tracker.set_model(type(provider).__name__, response.model_id)
-        index = normalize_survey(cast(dict[str, Any], response.data), run.page_count)
+        windows = survey_windows(run.page_count, run.settings.survey_max_pages)
+        answers: list[dict[str, Any]] = []
+        for first_page, last_page in windows:
+            parts = page_request_parts(workdir, range(first_page, last_page + 1))
+            if len(windows) == 1:
+                request = build_survey_request(parts)
+            else:
+                request = build_chunked_survey_request(parts, first_page, last_page, run.page_count)
+            response = provider.generate(request)
+            tracker.add_usage(response.usage)
+            tracker.set_model(type(provider).__name__, response.model_id)
+            answers.append(cast(dict[str, Any], response.data))
+        raw = answers[0] if len(windows) == 1 else merge_survey_answers(answers)
+        index = normalize_survey(raw, run.page_count)
         workdir.stages_dir.mkdir(parents=True, exist_ok=True)
         for stale in workdir.area_caches():
             stale.unlink()

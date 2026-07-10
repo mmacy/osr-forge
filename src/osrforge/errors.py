@@ -26,7 +26,7 @@ class PdfError(OsrForgeError):
 
 
 class ExtractionError(OsrForgeError):
-    """The extraction work itself failed: the source exceeds the survey guard, or the survey found nothing.
+    """The extraction work itself failed: the survey found no dungeons or no keyed areas.
 
     Provider failures keep propagating as
     [`ProviderError`][osrforge.errors.ProviderError]/
