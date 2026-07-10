@@ -1,0 +1,519 @@
+# Hand-checked structural ground truth for JN2 The Monkey Isle (r22),
+# authored from the printed module: the keyed ruin sites R1-R6 (pp. 18-32)
+# and their printed maps (pp. 37-44). The villages (V1-V9), wilderness
+# encounters (1-20), ocean encounters (O1-O8), and the undefined R7/R8 are
+# not keyed adventuring sites and are out of truth scope. Structural facts
+# only — printed keys, creature names, and codes ride the CC BY-SA 4.0
+# attribution in tools/eval/README.md, which records the authoring
+# conventions.
+dungeons:
+  - name: Human Sacrifice
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: human fighter
+                template: veteran_1
+                count: 16
+            connections: ["2"]
+            treasure:
+              present: true
+          - key: "2"
+            treasure:
+              present: false
+          - key: "3"
+            connections: ["2", "4", "5"]
+            treasure:
+              present: false
+          - key: "4"
+            connections: ["3"]
+            treasure:
+              present: false
+          - key: "5"
+            connections: ["3"]
+            treasure:
+              present: false
+          - key: "6"
+            encounters:
+              - name: human fighter
+                template: veteran_1
+                count: 10
+            treasure:
+              present: true
+          - key: "7"
+            treasure:
+              present: false
+          - key: "8"
+            treasure:
+              present: false
+          - key: "9"
+            treasure:
+              present: false
+          - key: "10"
+            connections: ["9"]
+            treasure:
+              present: false
+          - key: "11"
+            treasure:
+              present: false
+          - key: "12"
+            connections: ["2", "13"]
+            treasure:
+              present: true
+          - key: "13"
+            connections: ["12", "14", "18"]
+            treasure:
+              present: false
+          - key: "14"
+            encounters:
+              - name: human cleric
+                count: 1
+              - name: human fighter
+                template: veteran_2
+                count: 3
+              - name: human fighter
+                template: veteran_1
+                count: 12
+              - name: giant octopus
+                template: octopus_giant
+                count: 1
+            connections: ["13"]
+            treasure:
+              present: true
+          - key: "15"
+            connections: ["16"]
+            treasure:
+              present: false
+          - key: "16"
+            encounters:
+              - name: giant parasitic wasp
+                count: 8
+            connections: ["15", "17"]
+            treasure:
+              present: true
+          - key: "17"
+            connections: ["16", "18"]
+            treasure:
+              present: false
+          - key: "18"
+            connections: ["17", "13"]
+            treasure:
+              present: true
+  - name: Reed Marsh Temple
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+            treasure:
+              present: false
+          - key: "2"
+            connections: ["1", "3", "4", "5"]
+            treasure:
+              present: true
+          - key: "3"
+            encounters:
+              - name: komodo dragon
+                count: 8
+            connections: ["2"]
+            treasure:
+              present: false
+          - key: "4"
+            connections: ["2"]
+            treasure:
+              present: false
+          - key: "5"
+            connections: ["2", "6", "7"]
+            treasure:
+              present: false
+          - key: "6"
+            encounters:
+              - name: skeleton
+                template: skeleton
+            connections: ["5"]
+            treasure:
+              present: false
+          - key: "7"
+            connections: ["5", "8"]
+            treasure:
+              present: false
+          - key: "8"
+            encounters:
+              - name: necrotic ooze
+                count: 5
+            connections: ["7"]
+            treasure:
+              present: true
+      - number: 2
+        areas:
+          - key: "9"
+            connections: ["10", "11"]
+            treasure:
+              present: false
+          - key: "10"
+            connections: ["9"]
+            treasure:
+              present: false
+          - key: "11"
+            encounters:
+              - name: giant bat
+                template: giant_bat
+                count: 12
+            connections: ["9", "12", "13"]
+            treasure:
+              present: true
+          - key: "12"
+            connections: ["11"]
+            treasure:
+              present: false
+          - key: "13"
+            connections: ["11", "14"]
+            treasure:
+              present: false
+          - key: "14"
+            connections: ["13"]
+            treasure:
+              present: false
+  - name: Lake Side Temple
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: python
+                template: rock_python
+                count: 3
+            connections: ["2"]
+            treasure:
+              present: false
+          - key: "2"
+            encounters:
+              - name: giant scorpion
+                template: scorpion_giant
+                count: 4
+            connections: ["1", "3", "5"]
+            treasure:
+              present: false
+          - key: "3"
+            connections: ["2", "4"]
+            treasure:
+              present: false
+          - key: "4"
+            connections: ["3"]
+            treasure:
+              present: false
+          - key: "5"
+            connections: ["2", "6", "8"]
+            treasure:
+              present: false
+          - key: "6"
+            encounters:
+              - name: skeleton
+                template: skeleton
+                count: 12
+              - name: zombie
+                template: zombie
+                count: 6
+            connections: ["5"]
+            treasure:
+              present: true
+          - key: "7"
+            treasure:
+              present: false
+          - key: "8"
+            encounters:
+              - name: ogre
+                template: ogre
+                count: 4
+            treasure:
+              present: true
+          - key: "9"
+            connections: ["8"]
+            treasure:
+              present: false
+          - key: "10"
+            encounters:
+              - name: evil sect witch doctor
+                count: 1
+              - name: native
+                count: 2
+              - name: native
+                count: 10
+              - name: pit viper
+                template: pit_viper
+                count: 3
+            connections: ["8"]
+            treasure:
+              present: true
+          - key: "11"
+            treasure:
+              present: false
+          - key: "12"
+            treasure:
+              present: false
+          - key: "13"
+            connections: ["12", "14"]
+            treasure:
+              present: false
+          - key: "14"
+            encounters:
+              - name: giant crab
+                template: crab_giant
+                count: 5
+              - name: giant crab offspring
+                template: crab_giant
+                count: 8
+            connections: ["13"]
+            treasure:
+              present: true
+  - name: Temple Complex with Simians
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: baboon
+                template: rock_baboon
+                count: 3
+            treasure:
+              present: true
+          - key: "2"
+            encounters:
+              - name: baboon
+                template: rock_baboon
+                count: 6
+            connections: ["1"]
+            treasure:
+              present: false
+          - key: "3"
+            encounters:
+              - name: gorilla
+                count: 3
+              - name: chimpanzee
+                count: 1
+              - name: baboon
+                template: rock_baboon
+                count: 2
+            treasure:
+              present: true
+          - key: "4"
+            encounters:
+              - name: giant bola spider
+                count: 2
+            treasure:
+              present: false
+          - key: "5"
+            encounters:
+              - name: gorilla
+                count: 2
+              - name: hyena
+                count: 3
+            connections: ["4"]
+            treasure:
+              present: true
+          - key: "6"
+            connections: ["4", "7"]
+            treasure:
+              present: false
+          - key: "7"
+            encounters:
+              - name: baboon
+                template: rock_baboon
+                count: 7
+            connections: ["6", "8"]
+            treasure:
+              present: true
+          - key: "8"
+            connections: ["7", "9"]
+            treasure:
+              present: false
+          - key: "9"
+            encounters:
+              - name: orangutan cleric
+                count: 1
+              - name: orangutan
+                count: 2
+              - name: gorilla
+                count: 2
+              - name: baboon
+                template: rock_baboon
+                count: 2
+            connections: ["8"]
+            treasure:
+              present: true
+  - name: Underwater Exploration
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: nixie
+                template: nixie
+                count: 4
+            treasure:
+              present: false
+          - key: "2"
+            encounters:
+              - name: mako shark
+                template: mako_shark
+                count: 1
+            treasure:
+              present: true
+          - key: "3"
+            encounters:
+              - name: giant waterbug
+                count: 2
+            treasure:
+              present: true
+          - key: "4"
+            encounters:
+              - name: giant diving bell spider
+                count: 3
+            treasure:
+              present: true
+          - key: "5"
+            encounters:
+              - name: giant eel
+                count: 1
+            treasure:
+              present: false
+          - key: "6"
+            encounters:
+              - name: giant jellyfish
+                count: 1
+            treasure:
+              present: false
+          - key: "7"
+            connections: ["6", "8"]
+            treasure:
+              present: false
+          - key: "8"
+            encounters:
+              - name: giant two-headed snake
+                count: 1
+            connections: ["7", "9", "10"]
+            treasure:
+              present: false
+          - key: "9"
+            encounters:
+              - name: troglodyte
+                template: troglodyte
+                count: 6
+            connections: ["8"]
+            treasure:
+              present: false
+          - key: "10"
+            encounters:
+              - name: troglodyte
+                template: troglodyte
+                count: 6
+            treasure:
+              present: false
+          - key: "11"
+            treasure:
+              present: false
+          - key: "12"
+            encounters:
+              - name: troglodyte
+                template: troglodyte
+                count: 9
+            treasure:
+              present: false
+          - key: "13"
+            encounters:
+              - name: troglodyte chief
+                count: 1
+              - name: troglodyte
+                template: troglodyte
+                count: 3
+            treasure:
+              present: true
+          - key: "14"
+            encounters:
+              - name: troglodyte priest
+                count: 1
+              - name: troglodyte
+                template: troglodyte
+                count: 2
+            treasure:
+              present: false
+          - key: "15"
+            treasure:
+              present: false
+  - name: Dragon Harbor
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            treasure:
+              present: false
+          - key: "2"
+            encounters:
+              - name: human magic-user
+                count: 1
+              - name: human fighter
+                template: veteran_3
+                count: 3
+            treasure:
+              present: false
+          - key: "3"
+            encounters:
+              - name: giant wolf spider
+                count: 8
+            treasure:
+              present: false
+          - key: "4"
+            encounters:
+              - name: giant trapdoor spider
+                count: 1
+              - name: jaguar
+                count: 1
+            treasure:
+              present: false
+          - key: "5"
+            treasure:
+              present: false
+          - key: 6a
+            treasure:
+              present: false
+          - key: 6b
+            treasure:
+              present: false
+          - key: 6c
+            treasure:
+              present: false
+          - key: 6d
+            treasure:
+              present: false
+          - key: "7"
+            encounters:
+              - name: crocodile
+                template: normal_crocodile
+            treasure:
+              present: false
+          - key: 8a
+            treasure:
+              present: false
+          - key: 8b
+            treasure:
+              present: false
+          - key: "9"
+            encounters:
+              - name: megatherium
+                count: 1
+            treasure:
+              present: false
+          - key: "10"
+            encounters:
+              - name: red dragon
+                template: red_dragon
+                count: 1
+            treasure:
+              present: true
+          - key: "11"
+            treasure:
+              present: false
+          - key: "12"
+            treasure:
+              present: false

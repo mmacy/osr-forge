@@ -1,0 +1,18 @@
+# JN1 The Chaotic Caves, Release 28 — the phase 0/1 evidence module. The PDF
+# is never committed (its artwork carve-out; see
+# tests/assets/chaotic-caves/README.md); this manifest is the corpus's whole
+# redistribution surface for it.
+title: JN1 The Chaotic Caves
+source_url: https://www.basicfantasy.org (Adventure Modules -> JN1 The Chaotic Caves, Release 28)
+sha256: 37e6325ad0ebd52077aedb9f7f247511709d80bb8a25e4dd8c95da83d2730240
+pages: 48
+license:
+  spdx: CC-BY-SA-4.0
+  verified: >-
+    2026-07-09 (phase 0 procedure, recorded in
+    tests/assets/chaotic-caves/README.md): the PDF's own license page (page 2)
+    states CC BY-SA 4.0 for all textual materials, maps, floorplans, diagrams,
+    charts, and forms, with the non-licensed-artwork carve-out that keeps the
+    as-published PDF out of this repo; the sole copyright holder, J.D. Neal,
+    appears on the Basic Fantasy Project relicensing consent list (verified
+    via the Wayback Machine snapshot of 2025-04-18).
