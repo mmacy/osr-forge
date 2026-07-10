@@ -37,7 +37,26 @@ whose request digests embed module text (also licensed):
   promise — their requests reference uncommitted workdir renders).
 - `stages/` — the stage caches (`survey.json`, `areas.<dungeon>.<level>.json`)
   the milestone run produced; the credibility-floor test gates them. Their
-  text derives from the module's licensed text.
+  text derives from the module's licensed text. Phase 2's `monsters.json`
+  joins them once the JN1 monsters recording session runs (see
+  `tools/extract/README.md`).
+
+## The JN1 monsters fixture's couplings
+
+The phase 2 monsters recording (`fixtures-extract/replay/monsters.*.json`) is
+replay-grade: the request is text-only — unresolved names plus candidate
+lists, no page images — so tests reconstruct it from the committed stage
+caches, the installed osrlib catalog, and the prompt code. Two couplings
+follow:
+
+- The candidate lists derive from the osrlib catalog, so an osrlib upgrade
+  that changes the catalog strands the fixture. Acceptable: CI installs from
+  the committed lockfile, and the golden compatibility gate fails first on any
+  osrlib bump.
+- The request's name population is exactly what resolution tiers 1-3 left
+  unresolved, so a `MONSTER_ALIASES` edit covering a JN1 name changes the
+  request fingerprint and strands the fixture too. The alias table is seeded
+  before the recording session; later growth re-records.
 
 Everything in this directory derived from the module is distributed under
 CC BY-SA 4.0 with attribution to J.D. Neal and the Basic Fantasy Project.
