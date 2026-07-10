@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "resolutions": {
+    "bandit": {
+      "template_id": "bandit",
+      "method": "exact"
+    },
+    "bandit cronies": {
+      "template_id": "bandit",
+      "method": "llm"
+    },
+    "bandit leader": {
+      "template_id": "bandit",
+      "method": "llm"
+    },
+    "bugbear chief": {
+      "template_id": "bugbear",
+      "method": "llm"
+    },
+    "bugbears": {
+      "template_id": "bugbear",
+      "method": "exact"
+    },
+    "dwarf fighter": {
+      "template_id": "dwarf_monster",
+      "method": "llm"
+    },
+    "elven thief": {
+      "template_id": null,
+      "method": "unresolved"
+    },
+    "female lizard men": {
+      "template_id": "lizard_man",
+      "method": "llm"
+    },
+    "fighters": {
+      "template_id": null,
+      "method": "unresolved"
+    },
+    "ghouls": {
+      "template_id": "ghoul",
+      "method": "exact"
+    },
+    "giant black widow spider": {
+      "template_id": "black_widow",
+      "method": "llm"
+    },
+    "giant cave locust": {
+      "template_id": "cave_locust",
+      "method": "llm"
+    },
+    "giant centipedes": {
+      "template_id": "centipede_giant",
+      "method": "exact"
+    },
+    "giant fire beetles": {
+      "template_id": "fire_beetle",
+      "method": "llm"
+    },
+    "giant gecko lizard": {
+      "template_id": null,
+      "method": "unresolved"
+    },
+    "giant rats": {
+      "template_id": "giant_rat",
+      "method": "exact"
+    },
+    "giant shrews": {
+      "template_id": "shrew_giant",
+      "method": "exact"
+    },
+    "giant weasel": {
+      "template_id": "weasel_giant",
+      "method": "exact"
+    },
+    "gnoll": {
+      "template_id": "gnoll",
+      "method": "exact"
+    },
+    "gnoll females": {
+      "template_id": "gnoll",
+      "method": "llm"
+    },
+    "gnoll leader": {
+      "template_id": "gnoll",
+      "method": "llm"
+    },
+    "goblin": {
+      "template_id": "goblin",
+      "method": "exact"
+    },
+    "goblin king": {
+      "template_id": "goblin",
+      "method": "llm"
+    },
+    "gray jelly": {
+      "template_id": "ochre_jelly",
+      "method": "llm"
+    },
+    "hobgoblin": {
+      "template_id": "hobgoblin",
+      "method": "exact"
+    },
+    "hobgoblin chief": {
+      "template_id": "hobgoblin",
+      "method": "llm"
+    },
+    "hobgoblins": {
+      "template_id": "hobgoblin",
+      "method": "exact"
+    },
+    "human cleric 3": {
+      "template_id": null,
+      "method": "unresolved"
+    },
+    "human fighter 1": {
+      "template_id": null,
+      "method": "unresolved"
+    },
+    "human fighter 2": {
+      "template_id": null,
+      "method": "unresolved"
+    },
+    "human magic-user 4": {
+      "template_id": null,
+      "method": "unresolved"
+    },
+    "kobold": {
+      "template_id": "kobold",
+      "method": "exact"
+    },
+    "kobold bodyguards": {
+      "template_id": "kobold",
+      "method": "llm"
+    },
+    "kobold chief": {
+      "template_id": "kobold",
+      "method": "llm"
+    },
+    "lizard man leader": {
+      "template_id": "lizard_man",
+      "method": "llm"
+    },
+    "lizard men": {
+      "template_id": "lizard_man",
+      "method": "alias"
+    },
+    "minotaur": {
+      "template_id": "minotaur",
+      "method": "exact"
+    },
+    "mountain lion": {
+      "template_id": "mountain_lion",
+      "method": "exact"
+    },
+    "ogre": {
+      "template_id": "ogre",
+      "method": "exact"
+    },
+    "orc": {
+      "template_id": "orc",
+      "method": "exact"
+    },
+    "orc chief": {
+      "template_id": "orc",
+      "method": "llm"
+    },
+    "orc war leader": {
+      "template_id": null,
+      "method": "unresolved"
+    },
+    "orc warden": {
+      "template_id": "orc",
+      "method": "llm"
+    },
+    "owlbear": {
+      "template_id": "owl_bear",
+      "method": "exact"
+    },
+    "python": {
+      "template_id": "rock_python",
+      "method": "llm"
+    },
+    "sea snake": {
+      "template_id": "sea_snake",
+      "method": "exact"
+    },
+    "skeletons": {
+      "template_id": "skeleton",
+      "method": "exact"
+    },
+    "stirges": {
+      "template_id": "stirge",
+      "method": "exact"
+    },
+    "tentacle worm": {
+      "template_id": null,
+      "method": "unresolved"
+    },
+    "wight": {
+      "template_id": "wight",
+      "method": "exact"
+    },
+    "wolf": {
+      "template_id": "normal_wolf",
+      "method": "alias"
+    },
+    "yellow mold": {
+      "template_id": "yellow_mould",
+      "method": "fuzzy"
+    },
+    "young lizard men": {
+      "template_id": "lizard_man",
+      "method": "llm"
+    },
+    "zombie": {
+      "template_id": "zombie",
+      "method": "exact"
+    },
+    "zombies": {
+      "template_id": "zombie",
+      "method": "exact"
+    }
+  }
+}
