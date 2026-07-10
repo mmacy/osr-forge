@@ -183,15 +183,15 @@ class TestCheckExitCodes:
         tmp_path: Path,
         findings: tuple[LintFinding, ...],
         passed: bool,
-    ) -> tuple[int | None, str]:
+    ) -> tuple[int | str | None, str]:
         root = tmp_path / "mod.forge"
         write_report(root, passed)
         monkeypatch.setattr(cli, "check", lambda workdir: findings)
-        code: int | None = 0
+        code: int | str | None = 0
         try:
             cli.main(["check", "--workdir", str(root)])
         except SystemExit as excinfo:
-            code = excinfo.code  # pyright: ignore[reportAttributeAccessIssue]
+            code = excinfo.code
         return code, ""
 
     def test_clean_check_exits_zero(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):

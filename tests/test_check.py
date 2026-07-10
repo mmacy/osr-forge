@@ -7,6 +7,7 @@ injects the mismatch by widening the deterministic flavor to locked doors.
 """
 
 import json
+from importlib import import_module
 from pathlib import Path
 
 import pytest
@@ -24,7 +25,6 @@ from osrlib.crawl.dungeon import (
 )
 from osrlib.versioning import stamp_document
 
-import osrforge.check as check_module
 from osrforge.check import check
 from osrforge.contracts.report import (
     ExtractionReport,
@@ -35,6 +35,10 @@ from osrforge.contracts.report import (
 )
 from osrforge.contracts.run import TokenUsage
 from osrforge.workdir import Workdir, write_json_artifact
+
+# The package façade re-exports the `check` *function* as an attribute of
+# `osrforge`, shadowing the module attribute — resolve the module itself.
+check_module = import_module("osrforge.check")
 
 ASSETS = Path(__file__).parent / "assets"
 
