@@ -15,7 +15,7 @@ from pydantic import ValidationError
 
 from conftest import ScriptedProvider
 from osrforge.contracts.run import Stage
-from osrforge.convert import RUNNABLE_STAGES, StageEvent, rerun
+from osrforge.convert import KNOB_STAGES, RUNNABLE_STAGES, StageEvent, rerun
 from osrforge.errors import PdfError, ProviderError
 from osrforge.preprocess import preprocess
 from osrforge.providers.fixtures import FixtureProvider
@@ -136,6 +136,12 @@ def test_drift_guard_rejects_upstream_knobs_and_allows_downstream(tmp_path: Path
     # Same-stage and downstream knobs pass the guard.
     result = rerun(root, Stage.ASSEMBLE, settings_updates={"unresolved_fallback": "best-effort"})
     assert result.report.validation.passed
+
+
+def test_knob_stage_table_covers_exactly_the_settings_fields():
+    # A knob added to ConversionSettings without an owning stage would make
+    # the drift guard raise a bare KeyError instead of a named error.
+    assert sorted(KNOB_STAGES) == sorted(ConversionSettings.model_fields)
 
 
 def test_unknown_knob_is_a_validation_error(tmp_path: Path):

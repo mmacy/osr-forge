@@ -94,9 +94,16 @@ def _reachable(adventure: Adventure, *, include_secret: bool) -> set[_Node]:
     levels = {(dungeon.id, level.number): level for dungeon in adventure.dungeons for level in dungeon.levels}
     seeds: list[_Node] = []
     for dungeon in adventure.dungeons:
-        for level in dungeon.levels:
-            if level.entrance is not None and level.in_bounds(level.entrance):
-                seeds.append((dungeon.id, level.number, level.entrance))
+        # Only the first entrance-bearing level is a play seed — osrlib's
+        # EnterDungeon uses exactly this expression, and an override-authored
+        # second entrance must not manufacture phantom reachability.
+        entrance_level = next((level for level in dungeon.levels if level.entrance is not None), None)
+        if (
+            entrance_level is not None
+            and entrance_level.entrance is not None
+            and entrance_level.in_bounds(entrance_level.entrance)
+        ):
+            seeds.append((dungeon.id, entrance_level.number, entrance_level.entrance))
     visited: set[_Node] = set(seeds)
     queue = deque(seeds)
     while queue:
@@ -273,7 +280,8 @@ def _disengage(state: _DelveState) -> str:
     In osrlib a pursued evasion leaves the session in encounter mode and
     further `Evade` commands reject `already_evading`; `Wait` is what advances
     pursuit. Returns `"exploring"`, `"battle"` (battle pre-empted — pursuit can
-    end at the party's heels), or `"budget"` (the per-encounter budget ran out).
+    end at the party's heels), `"budget"` (the per-encounter budget ran out),
+    or `"cap"` (the per-dungeon command cap ended the attempt).
     """
     spent = 0
     evaded = False
@@ -286,7 +294,9 @@ def _disengage(state: _DelveState) -> str:
         state.execute(Evade() if not evaded else Wait())
         evaded = True
         spent += 1
-    return "exploring" if state.session.mode is SessionMode.EXPLORING else "budget"
+    if state.session.mode is SessionMode.EXPLORING:
+        return "exploring"
+    return "cap" if state.capped else "budget"
 
 
 def _party_position(session: GameSession) -> Position | None:
@@ -366,6 +376,8 @@ def _walk(
         outcome = _disengage(state)
         if outcome == "battle":
             return finding(LintCheck.DELVE_INCOMPLETE, "warning", "battle opened and pre-empted the walk")
+        if outcome == "cap":
+            return finding(LintCheck.DELVE_INCOMPLETE, "warning", "the delve hit the per-dungeon command cap")
         if outcome == "budget":
             return finding(LintCheck.DELVE_INCOMPLETE, "warning", "an encounter exhausted its disengage budget")
         expected = target
@@ -388,15 +400,12 @@ def _delve_dungeon(adventure: Adventure, dungeon: DungeonSpec) -> list[LintFindi
         return [finding(LintCheck.DELVE_BLOCKED, "error", f"EnterDungeon rejected: {entered.rejections[0].code}")]
     outcome = _disengage(state)
     if outcome != "exploring":
-        return [
-            finding(
-                LintCheck.DELVE_INCOMPLETE,
-                "warning",
-                "the entrance encounter could not be evaded"
-                if outcome == "budget"
-                else "battle opened at the entrance",
-            )
-        ]
+        messages = {
+            "battle": "battle opened at the entrance",
+            "budget": "the entrance encounter could not be evaded",
+            "cap": "the delve hit the per-dungeon command cap",
+        }
+        return [finding(LintCheck.DELVE_INCOMPLETE, "warning", messages[outcome])]
 
     parents, distances = _deterministic_bfs(entrance_level, entrance_level.entrance)
     best_distance = max(distances.values())
