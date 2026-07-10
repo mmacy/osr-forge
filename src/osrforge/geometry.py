@@ -465,7 +465,11 @@ def _place_child(
     routed = _routed_candidate(parent_cells, child_size, occupied)
     if routed is not None:
         return routed
-    raise AssertionError("no placement candidate in any direction — the parent room is fully enclosed (a code bug)")
+    # Exhaustion here means the placement algorithm walled the parent in with
+    # its own earlier placements — an algorithm limitation, not a data
+    # condition; the routed fallback makes it unreachable on every corpus
+    # tested (it explores the whole free region around the parent).
+    raise AssertionError("placement exhausted: no free corridor route out of the parent room in any direction")
 
 
 @dataclass
@@ -595,8 +599,9 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
     Args:
         index: The normalized survey index.
         levels: The available content caches; a level absent here gets
-            default-sized rooms and no connections (assembly guarantees
-            completeness; the preview path tolerates gaps).
+            default-sized rooms and no connections. Assembly and the preview
+            path both enforce cache completeness upstream — the tolerance
+            serves direct callers (tests, future partial-cache paths).
 
     Returns:
         One result per survey level, in survey order, postconditions asserted.
@@ -631,6 +636,24 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
             rooms, paths = _normalize_placement(placement)
             placed[level.number] = (rooms, paths, disconnected)
 
+        # An area's transition cells assign in link derivation order: its Nth
+        # transition takes its Nth cell (wrapping) — an area carrying both up-
+        # and down-stairs would otherwise stack two specs on one cell, and
+        # osrlib's `transition_at` returns only the first, shadowing the
+        # second staircase in play. Both sides of a link share the assignment
+        # so the reciprocal pair stays aligned (`UseStairs` needs a transition
+        # back on the arrival cell).
+        occupancy: dict[tuple[int, str], int] = {}
+        link_positions: list[tuple[Position, Position]] = []
+        for link in links:
+            ends: list[Position] = []
+            for level_number, area_key in ((link.source_level, link.source_key), (link.target_level, link.target_key)):
+                cells = placed[level_number][0][area_key]
+                slot = occupancy.get((level_number, area_key), 0)
+                occupancy[(level_number, area_key)] = slot + 1
+                ends.append(cells[slot % len(cells)])
+            link_positions.append((ends[0], ends[1]))
+
         for level in dungeon.levels:
             rooms, paths, disconnected = placed[level.number]
             room_cells = {cell for cells in rooms.values() for cell in cells}
@@ -642,15 +665,15 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
             width = max((x for x, _ in all_cells), default=0) + 1
             height = max((y for _, y in all_cells), default=0) + 1
             transitions: list[TransitionSpec] = []
-            for link in links:
+            for link, (source_position, target_position) in zip(links, link_positions, strict=True):
                 if link.source_level == level.number:
                     transitions.append(
                         TransitionSpec(
                             kind="stairs_up" if link.up else "stairs_down",
-                            position=rooms[link.source_key][0],
+                            position=source_position,
                             to_dungeon_id=dungeon.id,
                             to_level_number=link.target_level,
-                            to_position=placed[link.target_level][0][link.target_key][0],
+                            to_position=target_position,
                             to_facing=GridDirection.NORTH,
                         )
                     )
@@ -658,10 +681,10 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
                     transitions.append(
                         TransitionSpec(
                             kind="stairs_down" if link.up else "stairs_up",
-                            position=rooms[link.target_key][0],
+                            position=target_position,
                             to_dungeon_id=dungeon.id,
                             to_level_number=link.source_level,
-                            to_position=placed[link.source_level][0][link.source_key][0],
+                            to_position=source_position,
                             to_facing=GridDirection.NORTH,
                         )
                     )

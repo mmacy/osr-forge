@@ -105,7 +105,9 @@ def parse_treasure(strings: tuple[str, ...]) -> ParsedTreasure:
     `<N> <cp|sp|ep|gp|pp>` with no digits outside them → coins summed per
     denomination; `treasure type <A-V>` → a generated-treasure letter.
     Anything else is unparsed — assembly flags it and (under `best-effort`)
-    compensates with an unguarded-treasure roll.
+    compensates with an unguarded-treasure roll. A string that is empty after
+    stripping is skipped outright: it carries no information to flag, and the
+    frozen phase 1 schema does not forbid it, so it must not crash assembly.
 
     Args:
         strings: The area's cached treasure strings.
@@ -120,6 +122,8 @@ def parse_treasure(strings: tuple[str, ...]) -> ParsedTreasure:
     unparsed: list[str] = []
     for raw in strings:
         text = raw.strip()
+        if not text:
+            continue
         if _DICE_SCAN.search(text) or _EACH_PER.search(text):
             unparsed.append(raw)
             continue
@@ -194,12 +198,18 @@ def _build_encounter(
     """Merge an area's cache encounters into one `KeyedEncounter`, applying the unresolved fallback.
 
     Returns the encounter (or `None`) and the area's unresolved names in
-    derivation order.
+    derivation order. An encounter whose name normalizes to empty is skipped
+    with a `low_confidence` flag — the frozen phase 1 schema does not forbid an
+    empty monster string, there is nothing to resolve or stand in for, and the
+    monsters stage excludes it from the resolution population the same way.
     """
     keyed: list[KeyedMonster] = []
     unresolved: list[str] = []
     for encounter in content.encounters:
         name = normalize_monster_name(encounter.monster)
+        if not name:
+            count_flags.append(format_flag(Flag.LOW_CONFIDENCE, "unnamed encounter"))
+            continue
         resolution = resolutions.resolutions.get(name)
         if resolution is None:
             raise ValueError(f"the monsters cache has no resolution for {name!r} — a stale cache; re-run monsters")
@@ -456,12 +466,14 @@ def assemble(workdir_path: Path) -> AssembleResult:
     if not workdir.monsters_json.is_file():
         raise ValueError(f"the monsters cache is missing: {workdir.monsters_json}")
     resolutions = MonsterResolutions.model_validate_json(workdir.monsters_json.read_text(encoding="utf-8"))
+    # The empty name is excluded exactly as the monsters stage excludes it
+    # from the resolution population.
     population = {
         normalize_monster_name(encounter.monster)
         for level in levels
         for area in level.areas
         for encounter in area.encounters
-    }
+    } - {""}
     missing = population - resolutions.resolutions.keys()
     if missing:
         raise ValueError(f"the monsters cache is stale — unresolved names: {sorted(missing)}; re-run monsters")

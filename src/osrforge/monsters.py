@@ -258,15 +258,19 @@ def build_monsters_request(
 
 
 def _encounter_names(levels: Sequence[LevelContent]) -> list[str]:
-    """The normalized resolution population: every keyed encounter name, deduplicated, sorted."""
-    return sorted(
-        {
-            normalize_monster_name(encounter.monster)
-            for level in levels
-            for area in level.areas
-            for encounter in area.encounters
-        }
-    )
+    """The normalized resolution population: every keyed encounter name, deduplicated, sorted.
+
+    A name that normalizes to empty is excluded — the frozen phase 1 schema
+    does not forbid an empty monster string, and there is nothing to resolve;
+    assembly skips the same encounters with a flag.
+    """
+    names = {
+        normalize_monster_name(encounter.monster)
+        for level in levels
+        for area in level.areas
+        for encounter in area.encounters
+    }
+    return sorted(names - {""})
 
 
 def monsters(workdir: Workdir, provider: ModelProvider) -> MonsterResolutions:

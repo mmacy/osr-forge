@@ -541,3 +541,36 @@ class TestAssembleStage:
         workdir.areas_json("lair", 1).unlink()
         with pytest.raises(ValueError, match="content cache is missing"):
             assemble(workdir.root)
+
+
+class TestSchemaValidEmptyStrings:
+    """The frozen phase 1 schema forbids neither an empty treasure string nor an
+    empty monster name — assembly must be total over validated caches."""
+
+    def test_empty_treasure_string_is_skipped_without_a_flag(self):
+        parsed = parse_treasure(("", "   ", "120 sp"))
+        assert parsed.unparsed == ()
+        assert parsed.coins.sp == 120
+
+    def test_empty_treasure_string_does_not_trigger_the_unguarded_fallback(self):
+        result = draft([make_area("1", treasure=["", "  "])])
+        spec = area_spec(result, "1")
+        assert spec.treasure is None
+        assert spec.features == ()
+        assert all(not flag.startswith("treasure_unparsed") for flag in area_report(result, "1").flags)
+
+    @pytest.mark.parametrize("fallback", ["best-effort", "omit"])
+    def test_empty_monster_name_is_skipped_with_a_flag(self, fallback: str):
+        result = draft(
+            [make_area("1", encounters=[encounter("", fixed=2), encounter("goblin", fixed=1)])],
+            resolutions_for(goblin="goblin"),
+            fallback=fallback,
+        )
+        (keyed,) = keyed_monsters(result, "1")
+        assert keyed.template_id == "goblin"
+        assert "low_confidence:unnamed encounter" in area_report(result, "1").flags
+        assert result.unresolved == ()
+
+    def test_area_with_only_an_unnamed_encounter_gets_no_encounter(self):
+        result = draft([make_area("1", encounters=[encounter("  ", fixed=1)])])
+        assert area_spec(result, "1").encounter is None

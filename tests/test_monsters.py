@@ -306,3 +306,9 @@ class TestMonstersStage:
         run = workdir.read_run()
         assert run.stages[Stage.MONSTERS].status == "failed"
         assert not workdir.monsters_json.exists()
+
+
+def test_empty_names_are_excluded_from_the_population(tmp_path: Path):
+    workdir = stage_workdir(tmp_path / "mod.forge", {"1": ["", "  ", "goblin"]})
+    result = monsters(workdir, PoisonedProvider())
+    assert set(result.resolutions) == {"goblin"}

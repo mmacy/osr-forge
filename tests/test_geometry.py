@@ -30,7 +30,7 @@ def test_dimension_parser(text: str, expected: tuple[int, int] | None):
     assert parse_dimensions(text) == expected
 
 
-def make_index(areas: list[str], connections_only: bool = False) -> SurveyIndex:
+def make_index(areas: list[str]) -> SurveyIndex:
     return SurveyIndex.model_validate(
         {
             "schema_version": 1,
@@ -345,6 +345,79 @@ class TestTransitions:
         # the strong claim is entrance stays on level 1 only).
         assert results[0].entrance is not None
         assert level_2.entrance is None
+
+    def test_an_area_with_two_transitions_gets_two_distinct_cells(self):
+        # A three-level shaft through one mid-level area: without per-area cell
+        # assignment both specs would stack on the first cell, and osrlib's
+        # `transition_at` would shadow the second staircase in play.
+        index = SurveyIndex.model_validate(
+            {
+                "schema_version": 1,
+                "title": "Mod",
+                "hooks": [],
+                "town": {"name": "Town", "description": ""},
+                "dungeons": [
+                    {
+                        "id": "shaft",
+                        "name": "Shaft",
+                        "levels": [
+                            {
+                                "number": number,
+                                "map_pages": [],
+                                "areas": [
+                                    {
+                                        "key": key,
+                                        "name": key,
+                                        "source_label": None,
+                                        "kind": "room",
+                                        "source_pages": [],
+                                    }
+                                ],
+                            }
+                            for number, key in ((1, "top"), (2, "middle"), (3, "bottom"))
+                        ],
+                    }
+                ],
+                "monster_names": [],
+            }
+        )
+
+        def level(number: int, key: str, connections: list[dict[str, str]]) -> LevelContent:
+            return LevelContent.model_validate(
+                {
+                    "schema_version": 1,
+                    "dungeon_id": "shaft",
+                    "level_number": number,
+                    "areas": [
+                        {
+                            "key": key,
+                            "description": "",
+                            "encounters": [],
+                            "trap": None,
+                            "treasure": [],
+                            "features": [],
+                            "connections": connections,
+                            "source_pages": [],
+                            "confidence": 0.9,
+                        }
+                    ],
+                }
+            )
+
+        contents = [
+            level(1, "top", [{"to_key": "middle", "direction": "down"}]),
+            level(2, "middle", [{"to_key": "bottom", "direction": "down"}]),
+            level(3, "bottom", []),
+        ]
+        results = synthesize_geometry(index, contents)
+        middle = results[1]
+        assert len(middle.transitions) == 2
+        positions = [transition.position for transition in middle.transitions]
+        assert len(set(positions)) == 2
+        # The reciprocal pairs stay aligned: each far side targets the cell
+        # carrying the mirror spec.
+        for transition in results[0].transitions:
+            assert transition.to_position in positions
 
 
 class TestPostconditionsOverTheCommittedCorpora:
