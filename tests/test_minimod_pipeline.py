@@ -3,18 +3,23 @@
 The workdir is fabricated from the committed page renders the fixtures were
 recorded against (minimod's whole 5-page workdir is representable from
 committed assets), so the stage functions build fingerprint-identical requests
-and FixtureProvider answers them. The committed golden caches pin the
-normalized stage output byte-for-byte.
+and FixtureProvider answers them. The committed goldens pin the full chain —
+stage caches, `adventure.json`, `report.json`, and the preview —
+byte-for-byte. The monsters stage makes no model call: minimod's whole name
+population resolves in the exact tier, and no monsters fixture exists for
+FixtureProvider to answer with, so a call would fail loudly.
 """
 
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
+from osrforge.assemble import assemble
 from osrforge.content import content
 from osrforge.contracts.report import AreaAddress
 from osrforge.contracts.run import RunMeta, Stage, StageStatus
 from osrforge.contracts.stages import CANONICAL_SLUG_PATTERN, LevelContent, SurveyIndex
+from osrforge.monsters import monsters
 from osrforge.providers.fixtures import FixtureProvider
 from osrforge.settings import ConversionSettings
 from osrforge.survey import survey
@@ -51,28 +56,56 @@ def run_pipeline(root: Path) -> dict[str, bytes]:
     provider = FixtureProvider(MINIMOD / "fixtures")
     survey(workdir, provider)
     content(workdir, provider)
-    return {path.name: path.read_bytes() for path in sorted(workdir.stages_dir.iterdir())}
+    monsters(workdir, provider)
+    assemble(root)
+    produced = {f"stages/{path.name}": path.read_bytes() for path in sorted(workdir.stages_dir.iterdir())}
+    produced |= {f"previews/{path.name}": path.read_bytes() for path in sorted(workdir.previews_dir.iterdir())}
+    produced["adventure.json"] = workdir.adventure_json.read_bytes()
+    produced["report.json"] = workdir.report_json.read_bytes()
+    return produced
 
 
-def test_pipeline_is_byte_stable_and_matches_the_goldens(tmp_path: Path):
+def golden_files() -> dict[str, bytes]:
+    # expected/ mirrors the workdir: stage caches at the top level (survey,
+    # areas, monsters), artifacts by name, previews under previews/.
+    goldens: dict[str, bytes] = {}
+    for path in sorted((MINIMOD / "expected").rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(MINIMOD / "expected").as_posix()
+        if relative in ("adventure.json", "report.json") or relative.startswith("previews/"):
+            goldens[relative] = path.read_bytes()
+        else:
+            goldens[f"stages/{relative}"] = path.read_bytes()
+    return goldens
+
+
+def test_full_chain_is_byte_stable_and_matches_the_goldens(tmp_path: Path):
     first = run_pipeline(tmp_path / "one.forge")
     second = run_pipeline(tmp_path / "two.forge")
     assert first == second
-    goldens = {path.name: path.read_bytes() for path in sorted((MINIMOD / "expected").iterdir())}
-    assert first == goldens
+    assert first == golden_files()
 
 
-def test_run_json_records_both_stages_with_usage_and_identity(tmp_path: Path):
+def test_run_json_records_every_stage_with_usage_and_identity(tmp_path: Path):
     workdir = minimod_workdir(tmp_path / "mod.forge")
     provider = FixtureProvider(MINIMOD / "fixtures")
     survey(workdir, provider)
     content(workdir, provider)
+    monsters(workdir, provider)
+    assemble(workdir.root)
     run = workdir.read_run()
     for stage in (Stage.SURVEY, Stage.CONTENT):
         status = run.stages[stage]
         assert status.status == "completed"
         assert status.usage is not None
         assert status.usage.input_tokens > 0 and status.usage.output_tokens > 0
+    for stage in (Stage.MONSTERS, Stage.GEOMETRY, Stage.ASSEMBLE):
+        status = run.stages[stage]
+        assert status.status == "completed"
+        # Deterministic work: usage recorded, and zero (monsters made no call).
+        assert status.usage is not None
+        assert status.usage.input_tokens == 0 and status.usage.output_tokens == 0
     assert run.provider == "FixtureProvider"
     assert run.model_id == "gpt-5.4-2026-03-05"
 

@@ -102,7 +102,7 @@ def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
     try:
         args.handler(args)
-    except (OsrForgeError, ValidationError, ValueError) as error:
+    except (OsrForgeError, ValidationError, ValueError, FileNotFoundError) as error:
         sys.exit(f"osrforge: {error}")
 
 

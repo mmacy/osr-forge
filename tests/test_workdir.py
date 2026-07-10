@@ -19,6 +19,9 @@ def test_layout_paths():
     assert workdir.adventure_json == Path("my-module.forge/adventure.json")
     assert workdir.page_png(7) == Path("my-module.forge/pages/0007.png")
     assert workdir.page_txt(123) == Path("my-module.forge/pages/0123.txt")
+    assert workdir.monsters_json == Path("my-module.forge/stages/monsters.json")
+    assert workdir.areas_json("barrow", 2) == Path("my-module.forge/stages/areas.barrow.2.json")
+    assert workdir.preview_svg("barrow", 2) == Path("my-module.forge/previews/barrow.2.svg")
 
 
 def test_pinned_json_writer_format(tmp_path: Path):
@@ -54,3 +57,18 @@ def test_settings_are_frozen_and_strict():
     assert settings.max_source_bytes == 100 * 1024 * 1024
     with pytest.raises(ValidationError):
         ConversionSettings.model_validate({"render_api": 300})  # typo'd knob is rejected, not ignored
+
+
+def test_phase_2_settings_knobs_defaults_and_bounds():
+    settings = ConversionSettings()
+    assert settings.monster_fuzzy_threshold == 0.85
+    assert settings.monster_llm_top_k == 8
+    assert settings.unresolved_fallback == "best-effort"
+    with pytest.raises(ValidationError):
+        ConversionSettings(monster_fuzzy_threshold=0.0)  # gt 0
+    with pytest.raises(ValidationError):
+        ConversionSettings(monster_fuzzy_threshold=1.01)  # le 1
+    with pytest.raises(ValidationError):
+        ConversionSettings(monster_llm_top_k=0)  # ge 1
+    with pytest.raises(ValidationError):
+        ConversionSettings(unresolved_fallback="invent")  # type: ignore[arg-type]

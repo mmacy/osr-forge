@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "resolutions": {
+    "giant centipedes": {
+      "template_id": "centipede_giant",
+      "method": "exact"
+    },
+    "giant rats": {
+      "template_id": "giant_rat",
+      "method": "exact"
+    },
+    "goblin": {
+      "template_id": "goblin",
+      "method": "exact"
+    },
+    "skeleton": {
+      "template_id": "skeleton",
+      "method": "exact"
+    },
+    "stirges": {
+      "template_id": "stirge",
+      "method": "exact"
+    }
+  }
+}

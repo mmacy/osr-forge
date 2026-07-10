@@ -276,3 +276,12 @@ class TestSurveyStage:
         )
         with pytest.raises(ValueError, match="preprocess"):
             survey(workdir, ScriptedProvider([]))
+
+
+def test_success_clears_the_monsters_cache_too(tmp_path: Path):
+    workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=2)
+    workdir.stages_dir.mkdir()
+    stale_monsters = workdir.monsters_json
+    stale_monsters.write_text("{}", encoding="utf-8")
+    survey(workdir, ScriptedProvider([raw_survey()]))
+    assert not stale_monsters.exists()

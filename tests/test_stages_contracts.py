@@ -7,6 +7,8 @@ from osrforge.contracts.stages import (
     AreaContent,
     AreaEncounter,
     LevelContent,
+    MonsterResolution,
+    MonsterResolutions,
     SurveyArea,
     SurveyDungeon,
     SurveyIndex,
@@ -139,3 +141,43 @@ def test_encounter_count_fields_are_independent():
     neither = AreaEncounter(monster="orc")
     assert both.count_fixed == 2 and both.count_dice == "2d4"
     assert neither.count_fixed is None and neither.count_dice is None and neither.count_note is None
+
+
+class TestMonsterResolutions:
+    def make(self) -> MonsterResolutions:
+        return MonsterResolutions(
+            resolutions={
+                "zombie": MonsterResolution(template_id="zombie", method="exact"),
+                "gray jelly": MonsterResolution(template_id=None, method="unresolved"),
+                "wolf": MonsterResolution(template_id="normal_wolf", method="alias"),
+            }
+        )
+
+    def test_round_trips(self):
+        cache = self.make()
+        assert MonsterResolutions.model_validate(cache.model_dump(mode="json")) == cache
+
+    def test_keys_are_sorted_ascending(self):
+        cache = self.make()
+        assert list(cache.resolutions) == ["gray jelly", "wolf", "zombie"]
+
+    def test_frozen(self):
+        cache = self.make()
+        with pytest.raises(ValidationError):
+            cache.schema_version = 2  # type: ignore[misc]
+
+    def test_unknown_keys_rejected(self):
+        with pytest.raises(ValidationError):
+            MonsterResolutions.model_validate({"resolutions": {}, "surprise": 1})
+        with pytest.raises(ValidationError):
+            MonsterResolution.model_validate({"template_id": "orc", "method": "exact", "tier": 1})
+
+    def test_template_id_iff_resolved(self):
+        with pytest.raises(ValidationError):
+            MonsterResolution(template_id=None, method="exact")
+        with pytest.raises(ValidationError):
+            MonsterResolution(template_id="orc", method="unresolved")
+
+    def test_carries_schema_version_only(self):
+        assert "schema_version" in MonsterResolutions.model_fields
+        assert "osrforge_version" not in MonsterResolutions.model_fields

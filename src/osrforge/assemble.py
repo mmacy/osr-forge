@@ -17,6 +17,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from osrlib.core.dice import parse as parse_dice
 from osrlib.core.items import Coins
 from osrlib.core.tables import EncounterTable, MonsterEncounterEntry
 from osrlib.crawl.adventure import Adventure, TownSpec, validate_adventure
@@ -168,12 +169,14 @@ def _keyed_monster(template_id: str, encounter: AreaEncounter, name: str, flags:
     dice = encounter.count_dice
     if dice is not None:
         try:
-            return KeyedMonster(template_id=template_id, count_dice=dice)
-        except ValueError:
+            parse_dice(dice)
+        except ContentValidationError:
             # Unreachable through the extraction schema's DICE_PATTERN (a
             # strict subset of osrlib's grammar) — defense in depth. The cache
             # is never rewritten; the dice are discarded in memory only.
             flags.append(format_flag(Flag.LOW_CONFIDENCE, f"unparseable count for {name}"))
+        else:
+            return KeyedMonster(template_id=template_id, count_dice=dice)
     if encounter.count_fixed is not None:
         return KeyedMonster(template_id=template_id, count_fixed=encounter.count_fixed)
     flags.append(format_flag(Flag.LOW_CONFIDENCE, f"count unstated for {name}"))

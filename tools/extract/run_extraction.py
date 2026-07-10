@@ -1,4 +1,4 @@
-"""Live extraction runs: preprocess → survey → content with the real Foundry adapter.
+"""Live extraction runs: preprocess → survey → content → monsters → assemble with the real Foundry adapter.
 
 Manual, live-network, repo-only — never packaged, never in CI; see
 tools/extract/README.md for the recording sessions. Recording is opt-in via
@@ -8,11 +8,23 @@ leave no recorded module text behind.
 
 import argparse
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any, cast
 
+from osrlib.data import load_monsters
+
+from osrforge.assemble import assemble
 from osrforge.content import build_batch_request, content, plan_content_batches
 from osrforge.contracts.run import RunMeta, TokenUsage
+from osrforge.contracts.stages import LevelContent, MonsterResolution, MonsterResolutions, SurveyIndex
+from osrforge.monsters import (
+    build_monsters_request,
+    deterministic_resolutions,
+    llm_candidates,
+    monsters,
+    normalize_monster_name,
+)
 from osrforge.pages import page_request_parts
 from osrforge.preprocess import preprocess
 from osrforge.providers.base import ModelProvider
@@ -20,7 +32,7 @@ from osrforge.providers.fixtures import RecordingProvider
 from osrforge.providers.foundry import FoundryProvider, FoundrySettings
 from osrforge.settings import ConversionSettings
 from osrforge.survey import build_survey_request, filter_index_to_pages, normalize_survey, survey
-from osrforge.workdir import Workdir
+from osrforge.workdir import Workdir, write_json_artifact
 
 # Azure OpenAI GlobalStandard, <=272K-token requests, per docs/foundry-capabilities.md.
 INPUT_USD_PER_TOKEN = 2.50 / 1_000_000
@@ -74,7 +86,23 @@ def cmd_full(args: argparse.Namespace) -> None:
             f"content {level_content.dungeon_id}/{level_content.level_number}: "
             f"{extracted} areas extracted, {with_pages} with source pages"
         )
+    resolutions = monsters(workdir, provider)
+    print_resolution_summary(resolutions)
+    result = assemble(args.workdir)
+    validation = result.report.validation
+    print(f"validation: {'passed' if validation.passed else 'FAILED'}")
+    for error in validation.errors:
+        print(f"  {error}")
     print_run_summary(workdir.read_run())
+
+
+def print_resolution_summary(resolutions: MonsterResolutions) -> None:
+    tiers = Counter(resolution.method for resolution in resolutions.resolutions.values())
+    total = len(resolutions.resolutions)
+    print(f"monsters: {total} names — " + ", ".join(f"{tier}={tiers[tier]}" for tier in sorted(tiers)))
+    unresolved = sorted(name for name, entry in resolutions.resolutions.items() if entry.template_id is None)
+    if unresolved:
+        print(f"unresolved: {unresolved}")
 
 
 def cmd_excerpt(args: argparse.Namespace) -> None:
@@ -104,6 +132,53 @@ def cmd_excerpt(args: argparse.Namespace) -> None:
     print(f"content usage: in={batch_response.usage.input_tokens} out={batch_response.usage.output_tokens}")
     data = cast(dict[str, Any], batch_response.data)
     print(f"content areas returned: {[entry['key'] for entry in data['areas']]}")
+
+
+def cmd_monsters(args: argparse.Namespace) -> None:
+    # The monsters request is text-only and derives entirely from committed
+    # stage caches plus the installed catalog, so it records replay-grade over
+    # a bare stages directory — no fabricated workdir needed.
+    stages_dir: Path = args.stages_dir
+    index = SurveyIndex.model_validate_json((stages_dir / "survey.json").read_text(encoding="utf-8"))
+    levels = [
+        LevelContent.model_validate_json(path.read_text(encoding="utf-8"))
+        for path in sorted(stages_dir.glob("areas.*.json"))
+    ]
+    planned = {(dungeon.id, level.number) for dungeon in index.dungeons for level in dungeon.levels}
+    cached = {(level.dungeon_id, level.level_number) for level in levels}
+    if planned != cached:
+        sys.exit(f"stage caches do not cover the survey: missing {sorted(planned - cached)}")
+    names = sorted(
+        {
+            normalize_monster_name(encounter.monster)
+            for level in levels
+            for area in level.areas
+            for encounter in area.encounters
+        }
+    )
+    settings = ConversionSettings()
+    catalog = load_monsters()
+    resolutions = deterministic_resolutions(names, catalog, settings.monster_fuzzy_threshold)
+    remaining = [name for name in names if name not in resolutions]
+    print(f"{len(names)} names; tiers 1-3 resolved {len(resolutions)}, {len(remaining)} to the LLM tier")
+    if remaining:
+        provider = make_provider(args.record_fixtures)
+        request = build_monsters_request(
+            [(name, llm_candidates(name, catalog, settings.monster_llm_top_k)) for name in remaining]
+        )
+        response = provider.generate(request)
+        print(f"monsters usage: in={response.usage.input_tokens} out={response.usage.output_tokens}")
+        answers = cast(dict[str, dict[str, Any]], response.data)
+        for name in remaining:
+            template_id = cast(str | None, answers[name]["template_id"])
+            if template_id is None:
+                resolutions[name] = MonsterResolution(template_id=None, method="unresolved")
+            else:
+                resolutions[name] = MonsterResolution(template_id=template_id, method="llm")
+    cache = MonsterResolutions(resolutions=resolutions)
+    write_json_artifact(stages_dir / "monsters.json", cache)
+    print_resolution_summary(cache)
+    print(f"wrote {stages_dir / 'monsters.json'}")
 
 
 def main() -> None:
@@ -136,8 +211,24 @@ def main() -> None:
         help="the replay fixture directory (e.g. tests/assets/<module>/fixtures-extract/replay)",
     )
 
+    monsters_parser = subcommands.add_parser(
+        "monsters", help="resolve one stage directory's encounter names, recording the LLM pass"
+    )
+    monsters_parser.add_argument(
+        "--stages-dir",
+        type=Path,
+        required=True,
+        help="a stages directory holding survey.json and areas.*.json (e.g. tests/assets/chaotic-caves/stages)",
+    )
+    monsters_parser.add_argument(
+        "--record-fixtures",
+        type=Path,
+        default=None,
+        help="record the LLM exchange as a fixture into this directory (opt-in; embeds monster names)",
+    )
+
     args = parser.parse_args()
-    {"full": cmd_full, "excerpt": cmd_excerpt}[args.command](args)
+    {"full": cmd_full, "excerpt": cmd_excerpt, "monsters": cmd_monsters}[args.command](args)
 
 
 if __name__ == "__main__":
