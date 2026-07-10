@@ -27,7 +27,8 @@ from osrlib.versioning import check_document
 ASSETS = Path(__file__).parent / "assets"
 SEED = 20260709
 
-GOLDEN_ADVENTURES = sorted(ASSETS.glob("*/expected/adventure.json"))
+# Both golden sets — uncorrected and corrected — must load and play.
+GOLDEN_ADVENTURES = sorted(ASSETS.glob("*/expected*/adventure.json"))
 
 
 def seeded_party() -> Party:
@@ -47,7 +48,7 @@ def evade_if_met(session: GameSession) -> None:
         session.execute(Evade())
 
 
-@pytest.mark.parametrize("golden", GOLDEN_ADVENTURES, ids=lambda path: path.parent.parent.name)
+@pytest.mark.parametrize("golden", GOLDEN_ADVENTURES, ids=lambda path: f"{path.parent.parent.name}/{path.parent.name}")
 def test_converted_golden_loads_and_plays(golden: Path):
     document = json.loads(golden.read_text(encoding="utf-8"))
     adventure = Adventure.model_validate(check_document(document, "adventure"))

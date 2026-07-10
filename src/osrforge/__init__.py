@@ -5,7 +5,9 @@ else is imported from its home module — one home per symbol.
 """
 
 from osrforge.assemble import assemble
+from osrforge.check import check
 from osrforge.convert import convert
+from osrforge.estimate import estimate
 from osrforge.settings import ConversionSettings
 
-__all__ = ["ConversionSettings", "assemble", "convert"]
+__all__ = ["ConversionSettings", "assemble", "check", "convert", "estimate"]

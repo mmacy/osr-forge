@@ -4,7 +4,7 @@ Later knobs are added by the phases that consume them — an unread setting is
 dead accommodation.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -30,6 +30,18 @@ class ConversionSettings(BaseModel):
 
     max_source_bytes: int = Field(default=100 * 1024 * 1024, ge=1)
     """Maximum source file size in bytes (100 MiB)."""
+
+    blank_page_renders: tuple[Annotated[int, Field(ge=1)], ...] = ()
+    """Page numbers whose renders are emitted as blank white PNGs (text layer still extracted).
+
+    The manual workaround the B3 verification run proved out: Azure's image
+    content-safety filter can reject a page's render wholesale, and blanking
+    that one render lets the conversion proceed on its text layer. Preprocess
+    rejects page numbers beyond the source's page count
+    ([`PdfError`][osrforge.errors.PdfError] — a reference to page 99 of a
+    48-page module is a wrong-file-shaped mistake), and assembly flags each
+    blanked page `page_unreadable` in the report.
+    """
 
     content_batch_pages: int = Field(default=8, ge=2)
     """Content-pass batch size in pages.

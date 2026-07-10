@@ -32,6 +32,7 @@ from osrforge.survey import canonical_slug
 __all__ = [
     "DEFAULT_ROOM_CELLS",
     "LevelGeometry",
+    "edge_sort_key",
     "parse_dimensions",
     "synthesize_geometry",
 ]
@@ -572,6 +573,24 @@ def _edge_direction(from_cell: Position, to_cell: Position) -> GridDirection:
     raise AssertionError(f"cells {from_cell} and {to_cell} are not orthogonally adjacent")
 
 
+def edge_sort_key(key: str) -> tuple[int, int, str]:
+    """The pinned edge-map key ordering — `(y, x, side)` over canonical keys.
+
+    Synthesis emits its edge map in this order, and override application
+    (phase 3) re-sorts the merged map with it, so the serialized `edges` dict
+    stays byte-stable regardless of where an edge came from.
+
+    Args:
+        key: A canonical edge key, `x,y:side`.
+
+    Returns:
+        The sort key.
+    """
+    coordinates, _, side = key.partition(":")
+    x, _, y = coordinates.partition(",")
+    return (int(y), int(x), side)
+
+
 def _open_edges(rooms: dict[str, tuple[Position, ...]], paths: list[list[Position]]) -> dict[str, Edge]:
     """The `open` edge map: within-room adjacency plus every corridor path, canonically keyed."""
     keys: set[str] = set()
@@ -584,13 +603,7 @@ def _open_edges(rooms: dict[str, tuple[Position, ...]], paths: list[list[Positio
     for path in paths:
         for from_cell, to_cell in pairwise(path):
             keys.add(edge_key(from_cell, _edge_direction(from_cell, to_cell)))
-
-    def sort_key(key: str) -> tuple[int, int, str]:
-        coordinates, _, side = key.partition(":")
-        x, _, y = coordinates.partition(",")
-        return (int(y), int(x), side)
-
-    return {key: Edge(kind=EdgeKind.OPEN) for key in sorted(keys, key=sort_key)}
+    return {key: Edge(kind=EdgeKind.OPEN) for key in sorted(keys, key=edge_sort_key)}
 
 
 def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> tuple[LevelGeometry, ...]:

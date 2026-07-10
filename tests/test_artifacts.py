@@ -10,6 +10,7 @@ from osrlib.data import load_equipment, load_monsters
 from osrlib.versioning import check_document
 
 from osrforge.assemble import assemble, render_previews
+from osrforge.check import check
 from test_assemble import assembled_workdir
 
 ASSETS = Path(__file__).parent / "assets"
@@ -18,7 +19,8 @@ ASSETS = Path(__file__).parent / "assets"
 # phase 0 pin, live now that report production exists.
 ISO_TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}")
 
-GOLDEN_ADVENTURES = sorted(ASSETS.glob("*/expected/adventure.json"))
+# Both golden sets — uncorrected and corrected — ride the compatibility gate.
+GOLDEN_ADVENTURES = sorted(ASSETS.glob("*/expected*/adventure.json"))
 
 
 def pure_artifacts(root: Path) -> dict[str, bytes]:
@@ -47,6 +49,9 @@ def test_no_pure_artifact_contains_a_timestamp(tmp_path: Path):
         assert not ISO_TIMESTAMP.search(data.decode("utf-8")), f"timestamp-shaped content in {name}"
     # run.json is operational metadata — timestamps are legal there and only there.
     assert ISO_TIMESTAMP.search(workdir.run_json.read_text(encoding="utf-8"))
+    # The guard extends over the check-rewritten report.
+    check(workdir.root)
+    assert not ISO_TIMESTAMP.search(workdir.report_json.read_text(encoding="utf-8"))
 
 
 def test_preview_command_rewrites_previews_only(tmp_path: Path):
@@ -64,6 +69,7 @@ def test_goldens_exist_for_every_expected_module():
     # The compatibility gate below runs per discovered golden; pin the
     # discovery so a vanished golden fails loudly instead of silently passing.
     assert ASSETS / "minimod" / "expected" / "adventure.json" in GOLDEN_ADVENTURES
+    assert ASSETS / "chaotic-caves" / "expected-corrected" / "adventure.json" in GOLDEN_ADVENTURES
 
 
 @pytest.mark.parametrize("golden", GOLDEN_ADVENTURES, ids=lambda path: path.parent.parent.name)

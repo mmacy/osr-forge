@@ -14,6 +14,7 @@ from osrforge.contracts.overrides import (
     TownOverride,
     load_overrides,
 )
+from osrforge.errors import OverrideError
 
 # The spec's own overrides example (docs/spec.md § Overrides), verbatim —
 # keeping the spec and the models honest against each other.
@@ -72,6 +73,46 @@ def test_load_overrides_reads_yaml(tmp_path: Path):
     path.write_text(SPEC_OVERRIDES_EXAMPLE, encoding="utf-8")
     overrides = load_overrides(path)
     assert overrides.monsters["hobgoblin chieftain"].reason.startswith("No SRD template")
+
+
+def test_load_overrides_rejects_duplicate_keys_naming_key_and_line(tmp_path: Path):
+    path = tmp_path / "overrides.yaml"
+    path.write_text(
+        "areas:\n"
+        "  barrow/1/7:\n"
+        "    description: first correction\n"
+        "    reason: one\n"
+        "  barrow/1/7:\n"
+        "    description: second correction\n"
+        "    reason: two\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(OverrideError) as excinfo:
+        load_overrides(path)
+    assert "barrow/1/7" in str(excinfo.value)
+    assert "line 5" in str(excinfo.value)
+
+
+def test_load_overrides_rejects_nested_duplicate_keys(tmp_path: Path):
+    path = tmp_path / "overrides.yaml"
+    path.write_text(
+        "geometry:\n"
+        "  barrow/1:\n"
+        "    edges:\n"
+        '      "5,2:east": {kind: wall}\n'
+        '      "5,2:east": {kind: open}\n'
+        "    reason: duplicate edge key\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(OverrideError, match="duplicate key"):
+        load_overrides(path)
+
+
+def test_load_overrides_still_raises_yaml_error_on_broken_syntax(tmp_path: Path):
+    path = tmp_path / "overrides.yaml"
+    path.write_text("areas:\n  barrow/1/7: [unclosed\n", encoding="utf-8")
+    with pytest.raises(yaml.YAMLError):
+        load_overrides(path)
 
 
 @pytest.mark.parametrize("reason", ["", None])

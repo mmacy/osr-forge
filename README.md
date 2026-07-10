@@ -4,17 +4,31 @@ Convert tabletop adventure module PDFs into playable [osrlib](https://github.com
 
 Standalone package + CLI. Consumers need only its artifacts — `adventure.json`, `report.json`, `overrides.yaml`, SVG map previews — or its CLI, regardless of their own tech stack.
 
-**Status:** phase 2 (a playable draft). See [the specification](docs/spec.md) and the plans for [phase 0](docs/phase-0-plan.md), [phase 1](docs/phase-1-plan.md), and [phase 2](docs/phase-2-plan.md). The package runs the whole pipeline: preprocessing, the survey and content extraction stages, monster resolution against the osrlib catalog, deterministic geometry synthesis, and assembly producing `adventure.json`, `report.json`, and SVG previews that pass `validate_adventure`. The correction loop (overrides application, `rerun`, playability lint, `estimate`) arrives in phase 3.
+**Status:** phase 3 (the correction loop). See [the specification](docs/spec.md) and the plans for [phase 0](docs/phase-0-plan.md), [phase 1](docs/phase-1-plan.md), [phase 2](docs/phase-2-plan.md), and [phase 3](docs/phase-3-plan.md). The package runs the whole pipeline — preprocessing, the survey and content extraction stages, monster resolution against the osrlib catalog, deterministic geometry synthesis, and assembly — plus the human correction loop: overrides application, `rerun`/resume, the playability lint with its smoke delve, and cost estimation. The eval corpus, docs site, and PyPI release arrive in phase 4.
 
-The library entry points are `convert()` (the full chain, with per-stage progress events) and `assemble()` (pure re-assembly from cached stage outputs); the `osrforge` console script wraps them:
+The library entry points are `convert()`, `assemble()`, `check()`, and `estimate()`; the `osrforge` console script wraps them:
 
 ```sh
+osrforge estimate my-module.pdf           # preprocess only; rough token/cost estimate
 osrforge convert my-module.pdf            # full pipeline into ./my-module.forge
-osrforge assemble --workdir my-module.forge   # stage caches → artifacts, pure
+osrforge assemble --workdir my-module.forge   # stage caches + overrides → artifacts, pure
+osrforge check --workdir my-module.forge      # validate_adventure + the playability lint
 osrforge preview --workdir my-module.forge    # regenerate the SVG maps only
+osrforge rerun assemble --workdir my-module.forge   # resume any stage through assemble
 ```
 
 Recording sessions and live verification runs are driven via `tools/extract/run_extraction.py` (see [tools/extract/README.md](tools/extract/README.md)).
+
+## The correction loop
+
+Conversion produces a *draft* — every gap and guess called out in `report.json` — and corrections live in `overrides.yaml`, never in hand-edits to generated output (a fresh `convert` leaves a commented template there). The loop:
+
+1. Read `report.json` (flags, findings, the monsters summary) and eyeball `previews/*.svg` against the printed map.
+2. Edit `overrides.yaml`: monster remaps, per-area field replacement, area adds and removes, geometry (cells, edges, entrance, transitions), town/module metadata. Every entry carries a `reason`, and every entry must take effect — a typo'd address fails assembly loudly instead of silently doing nothing.
+3. `osrforge assemble && osrforge check` — re-assembly is pure and instant (no model calls), and `check` exits 0 once validation passes and no error-severity finding remains.
+4. Repeat until publishable.
+
+Settings changes on an existing workdir go through `rerun --set` — for example, `osrforge rerun preprocess --set 'blank_page_renders=[21]'` blanks a render Azure's content filter rejects, or `osrforge rerun assemble --set unresolved_fallback=omit` flips the stand-in policy without re-rolling the model.
 
 ## Development quickstart
 
@@ -42,11 +56,14 @@ Tests use no network — model interactions replay from recorded fixtures. The o
 | `render_dpi` | 150 | Page-render resolution (a legibility knob, not a cost knob — see `docs/foundry-capabilities.md`) |
 | `max_pages` | 200 | Source page-count guardrail |
 | `max_source_bytes` | 100 MiB | Source file-size guardrail |
+| `blank_page_renders` | `()` | Page numbers whose renders are emitted as blank white PNGs (text layer still extracted) — the content-safety-filter workaround; each blanked page is flagged `page_unreadable` in the report |
 | `content_batch_pages` | 8 | Content-pass batch size in pages (floor 2) |
 | `survey_max_pages` | 150 | Single-request survey guard; larger sources raise `ExtractionError` until survey chunking lands (phase 4) |
 | `monster_fuzzy_threshold` | 0.85 | Monster resolution's fuzzy-tier auto-accept floor, pinned against measured catalog pairs |
 | `monster_llm_top_k` | 8 | Candidate templates offered per name in the monster-resolution LLM tier |
 | `unresolved_fallback` | `best-effort` | Where resolution or parsing came up empty: flagged level-band monster stand-ins and unguarded-treasure rolls (`best-effort`), or leave the gap (`omit`) |
+
+On an existing workdir, change a knob with `rerun --set KEY=VALUE`: the update lands in the `run.json` settings echo before the chain runs, and a knob owned by a stage upstream of the rerun stage is rejected with the stage to rerun instead.
 
 ## Provider configuration
 

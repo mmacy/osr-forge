@@ -47,3 +47,34 @@ or editing an extraction prompt or schema strands `pages/`, `fixtures/`, and
 `expected/` together — request fingerprints hash the page bytes and the prompt
 text. Re-record the whole set via the minimod session commands in
 `tools/extract/README.md`; never rebuild fixture requests from fresh renders.
+
+## chaotic-caves/
+
+*JN1 The Chaotic Caves* — the real-module evidence set; see
+`chaotic-caves/README.md` for provenance, license, and the committed layout.
+Two entries specific to the correction loop (phase 3):
+
+- `overrides.yaml` — the phase 3 correction session's file, and itself a test
+  asset: the milestone gate assembles the committed caches plus this file and
+  byte-compares against `expected-corrected/`. **Editing it re-blesses the
+  corrected goldens** (regenerate via the documented command below). CC BY-SA
+  text derived from the module rides the directory's existing license fence.
+- `expected-corrected/` — the corrected goldens: `adventure.json` and
+  `previews/` as `assemble` writes them over caches + overrides, and
+  `report.json` as `check` rewrites it (the post-check report, findings
+  merged — the session's accepted warnings are byte-pinned here).
+
+The corrected-goldens re-bless rule: after any deliberate change to assembly,
+overrides semantics, the lint, or osrlib, regenerate — never hand-edit:
+
+```sh
+uv run tools/extract/run_extraction.py goldens \
+    --stages-dir tests/assets/chaotic-caves/stages \
+    --out tests/assets/chaotic-caves/expected-corrected \
+    --page-count 48 \
+    --overrides tests/assets/chaotic-caves/overrides.yaml
+```
+
+The uncorrected `expected/` goldens regenerate with the same command minus
+`--overrides` (their `report.json` is the post-assemble report; the runner
+handles the difference).

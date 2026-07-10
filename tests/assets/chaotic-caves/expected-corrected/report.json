@@ -30,11 +30,11 @@
       ],
       "confidence": 0.97,
       "flags": [
-        "geometry_synthesized",
-        "monster_unresolved:tentacle worm → fire_beetle",
         "treasure_unparsed:On the long-dead body: a silver dagger, 2 vials of holy water, 1 Potion of Healing, and a leather pouch with 3 cp."
       ],
-      "overridden": []
+      "overridden": [
+        "cells"
+      ]
     },
     {
       "id": "halfling-home/1/h3",
@@ -43,10 +43,10 @@
         21
       ],
       "confidence": 0.96,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
+      "flags": [],
+      "overridden": [
+        "cells"
+      ]
     },
     {
       "id": "halfling-home/1/h4",
@@ -540,7 +540,6 @@
       "confidence": 0.91,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:orc war leader → halfling_monster",
         "connection_ambiguous:unresolved target 9",
         "treasure_unparsed:Potion of Healing"
       ],
@@ -917,8 +916,7 @@
       ],
       "confidence": 0.82,
       "flags": [
-        "geometry_synthesized",
-        "monster_unresolved:elven thief → skeleton"
+        "geometry_synthesized"
       ],
       "overridden": []
     },
@@ -1022,7 +1020,6 @@
       "confidence": 0.95,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:giant gecko lizard → skeleton",
         "connection_ambiguous:unresolved target outside"
       ],
       "overridden": []
@@ -1098,8 +1095,7 @@
       ],
       "confidence": 0.8,
       "flags": [
-        "geometry_synthesized",
-        "monster_unresolved:giant gecko lizard → skeleton"
+        "geometry_synthesized"
       ],
       "overridden": []
     },
@@ -1380,8 +1376,6 @@
       "confidence": 0.96,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human fighter 2 → acolyte",
-        "monster_unresolved:human fighter 1 → gecko",
         "treasure_unparsed:Each human fighter has 1d6 gp"
       ],
       "overridden": []
@@ -1470,10 +1464,7 @@
       ],
       "confidence": 0.95,
       "flags": [
-        "geometry_synthesized",
-        "monster_unresolved:fighters → dwarf_monster",
-        "monster_unresolved:human fighter 2 → acolyte",
-        "monster_unresolved:human fighter 1 → gecko"
+        "geometry_synthesized"
       ],
       "overridden": []
     },
@@ -1510,8 +1501,6 @@
       "confidence": 0.94,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human fighter 2 → acolyte",
-        "monster_unresolved:human fighter 1 → gecko",
         "treasure_unparsed:Each occupant has 2d6 gp on him"
       ],
       "overridden": []
@@ -1525,7 +1514,6 @@
       "confidence": 0.94,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human fighter 1 → gecko",
         "treasure_unparsed:Each occupant has 2d6 gp on him"
       ],
       "overridden": []
@@ -1586,8 +1574,7 @@
       ],
       "confidence": 0.9,
       "flags": [
-        "geometry_synthesized",
-        "monster_unresolved:human fighter 1 → gecko"
+        "geometry_synthesized"
       ],
       "overridden": []
     },
@@ -1601,7 +1588,9 @@
       "flags": [
         "geometry_synthesized"
       ],
-      "overridden": []
+      "overridden": [
+        "description"
+      ]
     },
     {
       "id": "the-abandoned-manor/1/96",
@@ -1613,7 +1602,9 @@
       "flags": [
         "geometry_synthesized"
       ],
-      "overridden": []
+      "overridden": [
+        "description"
+      ]
     },
     {
       "id": "the-abandoned-manor/1/97",
@@ -1624,7 +1615,6 @@
       "confidence": 0.92,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human fighter 1 → gecko",
         "treasure_unparsed:Each occupant has 2d6 gp on him"
       ],
       "overridden": []
@@ -1739,8 +1729,6 @@
       "confidence": 0.97,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human magic-user 4 → grey_ooze",
-        "monster_unresolved:human cleric 3 → lizard_man",
         "treasure_unparsed:Magic-user's spell book containing the spells he knows",
         "treasure_unparsed:Wand of Magic Missiles (11 charges)",
         "treasure_unparsed:Ring of Protection +1",
@@ -1757,18 +1745,8 @@
     }
   ],
   "monsters": {
-    "resolved": 46,
-    "unresolved": [
-      "elven thief",
-      "fighters",
-      "giant gecko lizard",
-      "human cleric 3",
-      "human fighter 1",
-      "human fighter 2",
-      "human magic-user 4",
-      "orc war leader",
-      "tentacle worm"
-    ]
+    "resolved": 55,
+    "unresolved": []
   },
   "usage": {
     "input_tokens": 0,
@@ -1777,5 +1755,84 @@
   "flags": [
     "low_confidence:town name unstated"
   ],
-  "findings": []
+  "findings": [
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "halfling-home",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "cave-of-horrors",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "crypt",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "a-orc-lair",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "b-orc-lair",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "c-hobgoblin-lair",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "d-abandoned-crypts",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "e-goblin-lair",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "f-bandit-lair",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "g-kobold-lair",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "h-lizard-man-lair",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "i-bugbear-lair",
+      "message": "battle opened and pre-empted the walk"
+    },
+    {
+      "id": "delve_incomplete",
+      "severity": "warning",
+      "location": "j-gnoll-lair",
+      "message": "battle opened and pre-empted the walk"
+    }
+  ]
 }
