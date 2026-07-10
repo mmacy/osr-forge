@@ -7,6 +7,28 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Marsh Macy" }]
 requires-python = ">=3.14"
+keywords = [
+    "bx",
+    "osr",
+    "ttrpg",
+    "adventure-module",
+    "pdf-conversion",
+    "llm",
+    "osrlib",
+    "dungeon",
+    "old-school-essentials",
+]
+# Python :: 3.14 only — the version CI tests (osrlib's rule); no License ::
+# classifier beside the SPDX expression, per PEP 639.
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Games/Entertainment :: Role-Playing",
+    "Typing :: Typed",
+]
 dependencies = [
     "osrlib>=1.1,<2",
     "pydantic>=2",
@@ -25,6 +47,9 @@ osrforge = "osrforge.cli:main"
 
 [project.urls]
 Repository = "https://github.com/mmacy/osr-forge"
+Documentation = "https://mmacy.github.io/osr-forge/"
+Issues = "https://github.com/mmacy/osr-forge/issues"
+Changelog = "https://github.com/mmacy/osr-forge/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = [

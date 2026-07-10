@@ -1,0 +1,161 @@
+# Tag-driven release: gate, build once, audit and smoke the artifact on both
+# OSes, publish to PyPI via trusted publishing, and cut the GitHub Release from
+# the changelog. Any failure before the publish job leaves PyPI untouched:
+# delete the tag, fix on a branch, re-tag. The releasing runbook in AGENTS.md
+# has the full procedure.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  # A tag on an unbumped tree dies here before any matrix spins up.
+  check-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag matches the pyproject version
+        run: |
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match pyproject version $version"
+            exit 1
+          fi
+
+  # The standing gate, duplicated from ci.yml (a tag push triggers no CI run,
+  # so the release re-proves the tree itself). Keep these two jobs in sync
+  # with ci.yml by hand.
+  test:
+    needs: check-tag
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+      - run: uv sync --locked
+      - run: uv run ruff format --check
+      - run: uv run ruff check
+      - run: uv run pyright
+      - run: uv run pytest
+
+  docs:
+    needs: check-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+      - run: uv sync --locked
+      - run: uv run mkdocs build --strict
+
+  # Build once; everything downstream — the smoke, the publish — consumes this
+  # exact artifact, so what publishes is byte-for-byte what was audited.
+  build:
+    needs: [test, docs]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Build
+        run: uv build
+
+      - name: Audit the artifact contents
+        run: python3 tools/release/check_dist.py dist "${GITHUB_REF_NAME#v}"
+
+      - name: Upload the dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # The wheel is pure Python, but the smoke is cheap and mirrors the support
+  # matrix CI promises: one build, two install proofs.
+  install-smoke:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Download the dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Install the wheel into a fresh venv and smoke it
+        run: |
+          uv venv --python 3.14 smoke-venv
+          uv pip install --python smoke-venv/bin/python dist/osr_forge-*.whl
+          smoke-venv/bin/python tools/release/install_smoke.py "${GITHUB_REF_NAME#v}"
+
+  # OIDC trusted publishing: no credentials anywhere in the repository. The
+  # pypi environment and the pending publisher on pypi.org are the one-time
+  # manual setup — see the releasing runbook in AGENTS.md.
+  publish:
+    needs: install-smoke
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/osr-forge/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download the dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  # The GitHub Release carries the tagged version's changelog section verbatim.
+  # If this job alone fails after a successful publish, recover by hand with
+  # `gh release create` — the publication stands.
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract the changelog section
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v ver="$version" '
+            $0 ~ "^## \\[" ver "\\]" { found = 1; next }
+            found && (/^## / || /^\[[^]]+\]: /) { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "osr-forge ${GITHUB_REF_NAME#v}" --notes-file release-notes.md
