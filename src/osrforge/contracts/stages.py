@@ -250,8 +250,13 @@ class LevelContent(BaseModel):
         return _canonical(value)
 
 
-ResolutionMethod = Literal["exact", "alias", "fuzzy", "llm", "unresolved"]
-"""How a monster name resolved: one of the spec's four tiers, or not at all."""
+ResolutionMethod = Literal["exact", "alias", "fuzzy", "llm", "unresolved", "override"]
+"""How a monster name resolved: one of the spec's four tiers, not at all, or a human override.
+
+`override` appears only in memory, when a monster override supersedes a cached
+resolution during assembly — the `monsters.json` cache is written by the
+monsters stage alone and never contains it.
+"""
 
 
 class MonsterResolution(BaseModel):

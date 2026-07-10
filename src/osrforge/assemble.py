@@ -1,15 +1,24 @@
-"""Stage 5: assembly — the `Adventure` build, `validate_adventure`, report production, and artifact writing.
+"""Stage 5: assembly — overrides application, the `Adventure` build, validation, report production, artifact writing.
 
 Assembly is pure: `adventure.json`, `report.json`, and the previews are a
-deterministic function of the cached stage outputs. Overrides are **not** read
-in phase 2 — application is phase 3's charter — so until then assembly is a
-pure function of the stage caches alone, and `report.json`'s per-area
-`overridden` stays empty.
+deterministic function of the cached stage outputs *plus `overrides.yaml`* —
+the spec's core guarantee verbatim. `overrides.yaml` is loaded once and
+threaded through; every override addressing error surfaces before any stage
+tracking or artifact write, so a correction file that cannot take effect fails
+the command without touching the workdir.
 
-Two sequential trackings: `geometry` around synthesis, then `assemble` around
-the build, validation, and artifact writes — so a failure in the second leaves
-an honest `geometry: completed`. Neither stage touches a provider; usage stays
-zero and `run.json`'s provider identity is untouched.
+Two sequential trackings: `geometry` around synthesis and geometry-override
+application, then `assemble` around the build, validation, and artifact writes
+— so a failure in the second leaves an honest `geometry: completed`. Neither
+stage touches a provider; usage stays zero and `run.json`'s provider identity
+is untouched.
+
+Flags describe the built draft — the unifying rule: because overrides replace
+inputs to the build, every flag falls out of the path actually taken (an
+overridden encounter emits no monster or count flags; overridden cells drop
+`geometry_synthesized`; an overridden title emits no default flag), while
+extraction facts — `confidence`, `source_pages`, connection flags — persist
+regardless.
 """
 
 import hashlib
@@ -29,6 +38,7 @@ from osrlib.crawl.dungeon import (
     KeyedEncounter,
     KeyedMonster,
     LevelSpec,
+    Position,
     TrapEffect,
     TrapSpec,
     ValuableSpec,
@@ -37,6 +47,7 @@ from osrlib.data import load_encounter_tables, load_equipment, load_monsters
 from osrlib.errors import ContentValidationError
 from osrlib.versioning import stamp_document
 
+from osrforge.contracts.overrides import AreaOverride, ModuleOverride, TownOverride, load_overrides
 from osrforge.contracts.report import (
     AreaReport,
     ExtractionReport,
@@ -56,6 +67,14 @@ from osrforge.contracts.stages import (
 )
 from osrforge.geometry import LevelGeometry, synthesize_geometry
 from osrforge.monsters import encounter_names, normalize_monster_name
+from osrforge.overrides import (
+    AREA_OVERRIDE_FIELDS,
+    OverridePlan,
+    apply_level_overrides,
+    apply_monster_overrides,
+    effective_roster,
+    plan_overrides,
+)
 from osrforge.previews import render_level_svg
 from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
@@ -236,35 +255,82 @@ def _build_area(
     resolutions: MonsterResolutions,
     table: EncounterTable,
     settings: ConversionSettings,
+    override: AreaOverride | None,
+    cells_overridden: bool,
 ) -> tuple[AreaSpec, AreaReport, list[str]]:
-    """Build one `AreaSpec` and its report entry; returns them plus the area's unresolved names."""
+    """Build one `AreaSpec` and its report entry; returns them plus the area's unresolved names.
+
+    An overridden field replaces the cache-derived value before any parsing —
+    an overridden `encounter` skips encounter building entirely, an overridden
+    `trap` skips the trap mapping, and the treasure grammar runs only for the
+    slots (`treasure`, `features`) not overridden, so every flag falls out of
+    the build path actually taken. When `content` is `None` (the phase 1
+    placeholder: the model skipped the area twice, or the level had no pages —
+    the survey index remains the authority on what exists), the `not extracted`
+    flag persists even under overrides: it describes extraction, like
+    `confidence` and `source_pages`, which also stay the cache's.
+    """
     cells = geometry.areas[area_key]
+    fields = {name for name in AREA_OVERRIDE_FIELDS if override is not None and name in override.model_fields_set}
     low_confidence: list[str] = []
     monster_flags: list[str] = []
     treasure_flags: list[str] = []
     unresolved: list[str] = []
 
     if content is None:
-        # The placeholder phase 1 pinned: the model skipped the area twice, or
-        # the level had no pages — the survey index remains the authority on
-        # what exists.
         low_confidence.append(format_flag(Flag.LOW_CONFIDENCE, "not extracted"))
-        spec = AreaSpec(id=area_key, name=area_name, description="", cells=cells)
         confidence = 0.0
         source_pages = survey_pages
     else:
+        confidence = content.confidence
+        source_pages = content.source_pages
+
+    name = area_name
+    if override is not None and "name" in fields:
+        name = override.name if override.name is not None else ""
+    description = content.description if content is not None else ""
+    if override is not None and "description" in fields:
+        description = override.description if override.description is not None else ""
+
+    if override is not None and "encounter" in fields:
+        # The osrlib payload is used verbatim; the human's word is the last word.
+        encounter = override.encounter
+    elif content is not None:
         encounter, unresolved = _build_encounter(content, resolutions, table, settings, low_confidence, monster_flags)
+    else:
+        encounter = None
+
+    if override is not None and "trap" in fields:
+        trap = override.trap
+    elif content is not None and content.trap is not None:
+        trap = TrapSpec(kind="room", trigger="enter", affects="triggerer", effect=TrapEffect(manual=content.trap))
+    else:
         trap = None
-        if content.trap is not None:
-            trap = TrapSpec(kind="room", trigger="enter", affects="triggerer", effect=TrapEffect(manual=content.trap))
-        features = [
+
+    # The treasure grammar has two outputs and each override controls exactly
+    # one: `treasure` owns the AreaSpec.treasure slot (letters or the
+    # best-effort unguarded fallback), `features` owns the final features tuple
+    # wholesale — the mapped `-f{n}` features *and* the parsed `-treasure`
+    # cache. The grammar runs only for the slots not overridden; leftovers it
+    # did produce still describe strings the draft couldn't place.
+    treasure_overridden = "treasure" in fields
+    features_overridden = "features" in fields
+    parsed = None
+    if not (treasure_overridden and features_overridden):
+        parsed = parse_treasure(content.treasure if content is not None else ())
+        treasure_flags.extend(format_flag(Flag.TREASURE_UNPARSED, text) for text in parsed.unparsed)
+
+    if features_overridden:
+        assert override is not None
+        features: tuple[FeatureSpec, ...] = override.features if override.features is not None else ()
+    elif content is not None:
+        assert parsed is not None
+        feature_list = [
             FeatureSpec(id=f"{area_key}-f{number}", kind="custom", description=text)
             for number, text in enumerate(content.features, start=1)
         ]
-        parsed = parse_treasure(content.treasure)
-        treasure_flags.extend(format_flag(Flag.TREASURE_UNPARSED, text) for text in parsed.unparsed)
         if parsed.coins.total_coins or parsed.valuables:
-            features.append(
+            feature_list.append(
                 FeatureSpec(
                     id=f"{area_key}-treasure",
                     kind="treasure_cache",
@@ -272,23 +338,32 @@ def _build_area(
                     valuables=parsed.valuables,
                 )
             )
+        features = tuple(feature_list)
+    else:
+        features = ()
+
+    if treasure_overridden:
+        assert override is not None
+        treasure = override.treasure
+    else:
+        assert parsed is not None
         treasure = None
         if parsed.letters:
             treasure = AreaTreasureSpec(letters=parsed.letters)
         elif parsed.unparsed and settings.unresolved_fallback == "best-effort":
+            # The fallback never fires for an area whose treasure is overridden.
             treasure = AreaTreasureSpec(unguarded=True)
-        spec = AreaSpec(
-            id=area_key,
-            name=area_name,
-            description=content.description,
-            cells=cells,
-            encounter=encounter,
-            features=tuple(features),
-            trap=trap,
-            treasure=treasure,
-        )
-        confidence = content.confidence
-        source_pages = content.source_pages
+
+    spec = AreaSpec(
+        id=area_key,
+        name=name,
+        description=description,
+        cells=cells,
+        encounter=encounter,
+        features=features,
+        trap=trap,
+        treasure=treasure,
+    )
 
     connection_flags = [
         format_flag(Flag.CONNECTION_AMBIGUOUS, f"unresolved target {to_key}")
@@ -305,11 +380,37 @@ def _build_area(
             format_flag(Flag.CONNECTION_AMBIGUOUS, "not connected to the entrance in the extracted graph")
         )
 
-    flags = [format_flag(Flag.GEOMETRY_SYNTHESIZED)]
+    flags: list[str] = []
+    if not cells_overridden:
+        flags.append(format_flag(Flag.GEOMETRY_SYNTHESIZED))
     for group in (low_confidence, monster_flags, connection_flags, treasure_flags):
         flags.extend(dict.fromkeys(group))
-    report = AreaReport(id=address, source_pages=source_pages, confidence=confidence, flags=tuple(flags))
+    overridden = [name for name in AREA_OVERRIDE_FIELDS if name in fields]
+    if cells_overridden:
+        overridden.append("cells")
+    report = AreaReport(
+        id=address,
+        source_pages=source_pages,
+        confidence=confidence,
+        flags=tuple(flags),
+        overridden=tuple(overridden),
+    )
     return spec, report, unresolved
+
+
+def _build_added_area(area_key: str, override: AreaOverride, cells: tuple[Position, ...]) -> AreaSpec:
+    """Build a human-authored added area — the one place a human statement *is* the extraction."""
+    fields = override.model_fields_set
+    return AreaSpec(
+        id=area_key,
+        name=override.name if override.name is not None else "",
+        description=override.description if override.description is not None else "",
+        cells=cells,
+        encounter=override.encounter if "encounter" in fields else None,
+        features=override.features if "features" in fields and override.features is not None else (),
+        trap=override.trap if "trap" in fields else None,
+        treasure=override.treasure if "treasure" in fields else None,
+    )
 
 
 @dataclass(frozen=True)
@@ -322,31 +423,61 @@ class DraftResult:
     unresolved: tuple[str, ...]
 
 
+def _overridden_text(extracted: str, override: TownOverride | ModuleOverride | None, field: str) -> str:
+    """One replaceable text field: absent leaves the extracted value, `null` clears it.
+
+    A cleared field returns the build to its extracted-empty path, so the
+    default (and its `low_confidence:… unstated` flag) applies exactly as it
+    would to an extraction that came up empty.
+    """
+    if override is None or field not in override.model_fields_set:
+        return extracted
+    value: str | None = getattr(override, field)
+    return value if value is not None else ""
+
+
+def _tombstone(address: str, survey_pages: tuple[int, ...], content: AreaContent | None) -> AreaReport:
+    """A removed area's report entry: id, cache facts, no flags — nothing was built."""
+    return AreaReport(
+        id=address,
+        source_pages=content.source_pages if content is not None else survey_pages,
+        confidence=content.confidence if content is not None else 0.0,
+        flags=(),
+        overridden=("removed",),
+    )
+
+
 def build_draft(
     index: SurveyIndex,
     levels: tuple[LevelContent, ...],
     resolutions: MonsterResolutions,
     geometries: tuple[LevelGeometry, ...],
     settings: ConversionSettings,
+    plan: OverridePlan | None = None,
 ) -> DraftResult:
-    """Build the draft adventure and per-area reports from validated caches — pure.
+    """Build the draft adventure and per-area reports from validated caches plus overrides — pure.
 
     Args:
         index: The survey cache.
         levels: Every level's content cache, in survey order.
-        resolutions: The monsters cache; every keyed encounter name must have
-            an entry.
-        geometries: The synthesized geometry, in survey order.
-        settings: The run's settings echo (`unresolved_fallback`).
+        resolutions: The monsters cache, monster overrides already applied;
+            every keyed encounter name must have an entry.
+        geometries: The effective geometry (synthesized, overrides applied),
+            in survey order.
+        settings: The run's settings echo (`unresolved_fallback`,
+            `blank_page_renders`).
+        plan: The resolved override plan; `None` means no correction file.
 
     Returns:
-        The draft, its per-area reports in survey order, the module-scope
-        flags, and the sorted unresolved names.
+        The draft, its per-area reports in survey order (removed areas keep a
+        tombstone entry; added areas append after their level's survey areas),
+        the module-scope flags, and the sorted unresolved names.
 
     Raises:
         ValueError: If an encounter name is missing from the resolutions — a
             stale cache (`convert`'s ordering makes it unreachable).
     """
+    plan = plan if plan is not None else OverridePlan()
     module_flags: list[str] = []
     # Pure by construction: the settings echo in `run.json` is already an
     # assembly input, so the blanked-page flags derive from it, not from
@@ -355,15 +486,30 @@ def build_draft(
         format_flag(Flag.PAGE_UNREADABLE, f"page {page} render blanked")
         for page in sorted(set(settings.blank_page_renders))
     )
-    name = index.title
+    name = _overridden_text(index.title, plan.module, "name")
     if not name:
         name = "Untitled module"
         module_flags.append(format_flag(Flag.LOW_CONFIDENCE, "module title unstated"))
-    town_name = index.town.name
+    description = _overridden_text("", plan.module, "description")
+    hooks = index.hooks
+    if plan.module is not None and "hooks" in plan.module.model_fields_set:
+        hooks = plan.module.hooks if plan.module.hooks is not None else ()
+    town_name = _overridden_text(index.town.name, plan.town, "name")
     if not town_name:
         town_name = "Town"
         module_flags.append(format_flag(Flag.LOW_CONFIDENCE, "town name unstated"))
-    town = TownSpec(name=town_name, description=index.town.description)
+    services: tuple[str, ...] = ()
+    if plan.town is not None and "services" in plan.town.model_fields_set:
+        services = plan.town.services if plan.town.services is not None else ()
+    travel_turns: dict[str, int] = {}
+    if plan.town is not None and "travel_turns" in plan.town.model_fields_set:
+        travel_turns = plan.town.travel_turns if plan.town.travel_turns is not None else {}
+    town = TownSpec(
+        name=town_name,
+        description=_overridden_text(index.town.description, plan.town, "description"),
+        services=services,
+        travel_turns=travel_turns,
+    )
 
     contents = {(level.dungeon_id, level.level_number): level for level in levels}
     geometry_by_address = {(geometry.dungeon_id, geometry.level_number): geometry for geometry in geometries}
@@ -376,13 +522,20 @@ def build_draft(
         level_specs: list[LevelSpec] = []
         for survey_level in survey_dungeon.levels:
             geometry = geometry_by_address[(survey_dungeon.id, survey_level.number)]
+            level_plan = plan.levels.get((survey_dungeon.id, survey_level.number))
             content = contents.get((survey_dungeon.id, survey_level.number))
             content_by_key = {area.key: area for area in content.areas} if content is not None else {}
             table = tables.for_level(survey_level.number)
             areas: list[AreaSpec] = []
             for survey_area in survey_level.areas:
+                address = f"{survey_dungeon.id}/{survey_level.number}/{survey_area.key}"
+                if level_plan is not None and survey_area.key in level_plan.removed:
+                    area_reports.append(
+                        _tombstone(address, survey_area.source_pages, content_by_key.get(survey_area.key))
+                    )
+                    continue
                 spec, report, area_unresolved = _build_area(
-                    address=f"{survey_dungeon.id}/{survey_level.number}/{survey_area.key}",
+                    address=address,
                     area_key=survey_area.key,
                     area_name=survey_area.name,
                     survey_pages=survey_area.source_pages,
@@ -391,10 +544,23 @@ def build_draft(
                     resolutions=resolutions,
                     table=table,
                     settings=settings,
+                    override=level_plan.area_overrides.get(survey_area.key) if level_plan is not None else None,
+                    cells_overridden=level_plan is not None and survey_area.key in level_plan.cells,
                 )
                 areas.append(spec)
                 area_reports.append(report)
                 unresolved.update(area_unresolved)
+            for added_key, added_override in level_plan.adds if level_plan is not None else ():
+                areas.append(_build_added_area(added_key, added_override, geometry.areas[added_key]))
+                area_reports.append(
+                    AreaReport(
+                        id=f"{survey_dungeon.id}/{survey_level.number}/{added_key}",
+                        source_pages=(),
+                        confidence=1.0,
+                        flags=(),
+                        overridden=("added",),
+                    )
+                )
             level_specs.append(
                 LevelSpec(
                     number=survey_level.number,
@@ -408,7 +574,7 @@ def build_draft(
             )
         dungeons.append(DungeonSpec(id=survey_dungeon.id, name=survey_dungeon.name, levels=tuple(level_specs)))
 
-    adventure = Adventure(name=name, description="", hooks=index.hooks, town=town, dungeons=tuple(dungeons))
+    adventure = Adventure(name=name, description=description, hooks=hooks, town=town, dungeons=tuple(dungeons))
     return DraftResult(
         adventure=adventure,
         area_reports=tuple(area_reports),
@@ -449,11 +615,12 @@ def _load_caches(workdir: Workdir) -> tuple[SurveyIndex, tuple[LevelContent, ...
 
 
 def assemble(workdir_path: Path) -> AssembleResult:
-    """Run stage 5: geometry synthesis, the adventure build, validation, and the artifact writes.
+    """Run stage 5: overrides application, geometry synthesis, the adventure build, validation, and the artifact writes.
 
     Args:
         workdir_path: The workdir root; its monsters stage must be `completed`
-            and every stage cache present.
+            and every stage cache present. `overrides.yaml`, when present, is
+            applied — a missing file is an empty overrides set.
 
     Returns:
         The draft adventure and its extraction report, as written to
@@ -463,6 +630,8 @@ def assemble(workdir_path: Path) -> AssembleResult:
         ValueError: If the monsters stage is not `completed`, a cache is
             missing, or the monsters cache is stale against the content caches
             (programmer misuse — `convert`'s ordering makes these unreachable).
+        OverrideError: If an override entry cannot take effect — raised before
+            any `run.json` or artifact write.
     """
     workdir = Workdir(workdir_path)
     run = workdir.read_run()
@@ -476,11 +645,17 @@ def assemble(workdir_path: Path) -> AssembleResult:
     missing = set(encounter_names(levels)) - resolutions.resolutions.keys()
     if missing:
         raise ValueError(f"the monsters cache is stale — unresolved names: {sorted(missing)}; re-run monsters")
+    overrides = load_overrides(workdir.overrides_yaml)
+    resolutions = apply_monster_overrides(resolutions, overrides)
+    plan = plan_overrides(index, overrides)
 
     with track_stage(workdir, Stage.GEOMETRY):
-        geometries = synthesize_geometry(index, levels)
+        geometries = tuple(
+            apply_level_overrides(geometry, plan.levels.get((geometry.dungeon_id, geometry.level_number)))
+            for geometry in synthesize_geometry(index, levels)
+        )
     with track_stage(workdir, Stage.ASSEMBLE):
-        draft = build_draft(index, levels, resolutions, geometries, run.settings)
+        draft = build_draft(index, levels, resolutions, geometries, run.settings, plan)
         validation = _run_validation(draft.adventure)
         resolved_count = sum(1 for resolution in resolutions.resolutions.values() if resolution.template_id is not None)
         usage = TokenUsage()
@@ -515,10 +690,11 @@ def _write_previews(workdir: Workdir, adventure: Adventure) -> None:
 def render_previews(workdir_path: Path) -> tuple[Path, ...]:
     """Regenerate the SVG previews alone — `osrforge preview`.
 
-    Re-runs geometry synthesis over the survey and content caches and rewrites
-    `previews/` only, touching neither the other artifacts nor `run.json`.
-    The rendered bytes are identical to assembly's — the renderer reads only
-    geometry-visible fields.
+    Re-runs geometry synthesis and override application over the survey and
+    content caches plus `overrides.yaml` and rewrites `previews/` only,
+    touching neither the other artifacts nor `run.json`. The rendered bytes
+    are identical to assembly's — previews follow the draft, so corrected
+    cells and override-authored doors render here too.
 
     Args:
         workdir_path: The workdir root; the survey and content caches must be
@@ -529,23 +705,31 @@ def render_previews(workdir_path: Path) -> tuple[Path, ...]:
 
     Raises:
         ValueError: If the survey or a level's content cache is missing.
+        OverrideError: If an override entry cannot take effect.
     """
     workdir = Workdir(workdir_path)
     index, levels = _load_caches(workdir)
-    geometries = synthesize_geometry(index, levels)
+    overrides = load_overrides(workdir.overrides_yaml)
+    plan = plan_overrides(index, overrides)
+    geometries = tuple(
+        apply_level_overrides(geometry, plan.levels.get((geometry.dungeon_id, geometry.level_number)))
+        for geometry in synthesize_geometry(index, levels)
+    )
     geometry_by_address = {(geometry.dungeon_id, geometry.level_number): geometry for geometry in geometries}
     workdir.previews_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for dungeon in index.dungeons:
         for survey_level in dungeon.levels:
             geometry = geometry_by_address[(dungeon.id, survey_level.number)]
+            level_plan = plan.levels.get((dungeon.id, survey_level.number))
             level = LevelSpec(
                 number=survey_level.number,
                 width=geometry.width,
                 height=geometry.height,
                 edges=geometry.edges,
                 areas=tuple(
-                    AreaSpec(id=area.key, name=area.name, cells=geometry.areas[area.key]) for area in survey_level.areas
+                    AreaSpec(id=key, name=name, cells=geometry.areas[key])
+                    for key, name in effective_roster(survey_level, level_plan)
                 ),
                 transitions=geometry.transitions,
                 entrance=geometry.entrance,
