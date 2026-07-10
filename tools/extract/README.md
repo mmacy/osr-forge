@@ -86,10 +86,17 @@ uv run tools/extract/run_extraction.py monsters \
     --record-fixtures tests/assets/chaotic-caves/fixtures-extract/replay
 ```
 
-Then produce the JN1 goldens by assembling over the committed caches (a
-fabricated workdir; see the JN1 golden test in `tests/` for the exact shape)
-and commit `expected/adventure.json`, `expected/report.json`, and
-`expected/previews/` inside the fenced directory's 10 MiB budget.
+Then produce the JN1 goldens by assembling over the committed caches
+(`tests/test_jn1_chain.py` byte-compares against exactly this fabrication —
+any drift fails there loudly) and commit them inside the fenced directory's
+10 MiB budget:
+
+```sh
+uv run tools/extract/run_extraction.py goldens \
+    --stages-dir tests/assets/chaotic-caves/stages \
+    --out tests/assets/chaotic-caves/expected \
+    --page-count 48
+```
 
 ## Verification runs (nothing committed)
 

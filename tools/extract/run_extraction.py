@@ -181,6 +181,54 @@ def cmd_monsters(args: argparse.Namespace) -> None:
     print(f"wrote {stages_dir / 'monsters.json'}")
 
 
+def cmd_goldens(args: argparse.Namespace) -> None:
+    # Assemble over a committed stages directory (monsters.json included) into
+    # golden artifacts. The fabricated run.json carries zero usage and pinned
+    # placeholders — artifacts embed none of it except page_count, which is
+    # why it is an argument. The byte-compare test over the produced goldens
+    # is the drift alarm if this fabrication ever diverges from the test's.
+    import shutil
+    import tempfile
+    from datetime import UTC, datetime
+
+    from osrforge.contracts.run import Stage, StageStatus
+
+    stages_dir: Path = args.stages_dir
+    root = Path(tempfile.mkdtemp()) / "goldens.forge"
+    workdir = Workdir(root)
+    workdir.stages_dir.mkdir(parents=True)
+    for path in sorted(stages_dir.glob("*.json")):
+        shutil.copyfile(path, workdir.stages_dir / path.name)
+    stages = {stage: StageStatus() for stage in Stage}
+    for stage in (Stage.PREPROCESS, Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS):
+        stages[stage] = StageStatus(
+            status="completed",
+            started_at=datetime(2026, 7, 9, 12, 0, 0, tzinfo=UTC),
+            finished_at=datetime(2026, 7, 9, 12, 0, 5, tzinfo=UTC),
+            usage=TokenUsage(),
+        )
+    workdir.write_run(
+        RunMeta(
+            source_sha256=args.source_sha256,
+            source_bytes=args.source_bytes,
+            page_count=args.page_count,
+            settings=ConversionSettings(),
+            stages=stages,
+        )
+    )
+    result = assemble(root)
+    print(f"validation: {'passed' if result.report.validation.passed else 'FAILED'}")
+    out: Path = args.out
+    (out / "previews").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(workdir.adventure_json, out / "adventure.json")
+    shutil.copyfile(workdir.report_json, out / "report.json")
+    for svg in sorted(workdir.previews_dir.iterdir()):
+        shutil.copyfile(svg, out / "previews" / svg.name)
+    shutil.rmtree(root)
+    total = sum(path.stat().st_size for path in out.rglob("*") if path.is_file())
+    print(f"wrote goldens into {out} ({total / 1024:.0f} KiB)")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -227,8 +275,15 @@ def main() -> None:
         help="record the LLM exchange as a fixture into this directory (opt-in; embeds monster names)",
     )
 
+    goldens = subcommands.add_parser("goldens", help="assemble a committed stages directory into golden artifacts")
+    goldens.add_argument("--stages-dir", type=Path, required=True, help="the committed stages directory")
+    goldens.add_argument("--out", type=Path, required=True, help="the expected/ directory to write goldens into")
+    goldens.add_argument("--page-count", type=int, required=True, help="the module's page count (report.module.pages)")
+    goldens.add_argument("--source-sha256", default="00" * 32, help="cosmetic; artifacts do not embed it")
+    goldens.add_argument("--source-bytes", type=int, default=1, help="cosmetic; artifacts do not embed it")
+
     args = parser.parse_args()
-    {"full": cmd_full, "excerpt": cmd_excerpt, "monsters": cmd_monsters}[args.command](args)
+    {"full": cmd_full, "excerpt": cmd_excerpt, "monsters": cmd_monsters, "goldens": cmd_goldens}[args.command](args)
 
 
 if __name__ == "__main__":
