@@ -18,6 +18,7 @@ from osrforge.assemble import assemble
 from osrforge.content import build_batch_request, content, plan_content_batches
 from osrforge.contracts.run import RunMeta, TokenUsage
 from osrforge.contracts.stages import LevelContent, MonsterResolution, MonsterResolutions, SurveyIndex
+from osrforge.estimate import INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN
 from osrforge.monsters import (
     build_monsters_request,
     deterministic_resolutions,
@@ -33,10 +34,6 @@ from osrforge.providers.foundry import FoundryProvider, FoundrySettings
 from osrforge.settings import ConversionSettings
 from osrforge.survey import build_survey_request, filter_index_to_pages, normalize_survey, survey
 from osrforge.workdir import Workdir, write_json_artifact
-
-# Azure OpenAI GlobalStandard, <=272K-token requests, per docs/foundry-capabilities.md.
-INPUT_USD_PER_TOKEN = 2.50 / 1_000_000
-OUTPUT_USD_PER_TOKEN = 15.00 / 1_000_000
 
 
 def make_provider(record_dir: Path | None) -> ModelProvider:
