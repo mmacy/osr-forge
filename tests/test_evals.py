@@ -681,6 +681,44 @@ class TestHarnessPlumbing:
         # The genuine file passes.
         verify_source(manifest, ASSETS / "minimod" / "minimod.pdf")
 
+    def test_truth_files_reject_duplicate_key_slugs_per_level(self):
+        with pytest.raises(ValidationError, match="unique per level"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "4a"
+            treasure:
+              present: false
+          - key: "4A"
+            treasure:
+              present: false
+"""
+            )
+
+    def test_truth_files_reject_duplicate_level_numbers(self):
+        with pytest.raises(ValidationError, match="unique per dungeon"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            treasure:
+              present: false
+      - number: 1
+        areas:
+          - key: "2"
+            treasure:
+              present: false
+"""
+            )
+
     def test_truth_files_reject_unknown_keys(self):
         with pytest.raises(ValidationError):
             truth_from_yaml(

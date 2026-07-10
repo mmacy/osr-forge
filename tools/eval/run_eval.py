@@ -19,6 +19,7 @@ from osrforge.evals import (
     ModuleMetrics,
     ModuleScore,
     RunInfo,
+    Scoreboard,
     corpus_means,
     load_manifest,
     load_scoreboard,
@@ -70,6 +71,9 @@ def _run_usage(run: RunMeta) -> TokenUsage:
 
 
 def _run_usd(run: RunMeta) -> float:
+    # Base-tier pricing over the aggregated usage: per-request tiers are not
+    # reconstructable post hoc, and every v1 corpus member sits far under the
+    # 272K cliff. Run-metadata context, not a metric.
     usage = _run_usage(run)
     return usage.input_tokens * INPUT_USD_PER_TOKEN + usage.output_tokens * OUTPUT_USD_PER_TOKEN
 
@@ -121,8 +125,10 @@ def cmd_score(args: argparse.Namespace) -> None:
         metrics=metrics,
     )
     scoreboard = load_scoreboard(SCOREBOARD)
-    scoreboard = scoreboard.model_copy(
-        update={"modules": dict(sorted({**scoreboard.modules, args.module_id: score}.items()))}
+    # Reconstruct rather than model_copy: construction runs the key-sorting validator.
+    scoreboard = Scoreboard(
+        schema_version=scoreboard.schema_version,
+        modules={**scoreboard.modules, args.module_id: score},
     )
     save_scoreboard(SCOREBOARD, scoreboard)
     print(f"updated {SCOREBOARD}")

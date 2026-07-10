@@ -20,7 +20,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from osrforge.assemble import parse_treasure
 from osrforge.contracts.stages import AreaContent, LevelContent, MonsterResolutions, SurveyIndex
@@ -112,12 +112,25 @@ class TruthArea(BaseModel):
 
 
 class TruthLevel(BaseModel):
-    """One printed level."""
+    """One printed level.
+
+    Area keys must be unique per level under `canonical_slug` (empty slugs
+    are exempt — they take distinct positional fallbacks): the scorer matches
+    areas by slug, and a duplicate would silently attribute the second area's
+    facts to the first.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     number: int = Field(ge=1)
     areas: tuple[TruthArea, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _key_slugs_unique(self) -> TruthLevel:
+        slugs = [slug for area in self.areas if (slug := canonical_slug(area.key))]
+        if len(set(slugs)) != len(slugs):
+            raise ValueError(f"truth area keys must be unique per level under canonical_slug: {slugs}")
+        return self
 
 
 class TruthDungeon(BaseModel):
@@ -127,6 +140,13 @@ class TruthDungeon(BaseModel):
 
     name: str
     levels: tuple[TruthLevel, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _level_numbers_unique(self) -> TruthDungeon:
+        numbers = [level.number for level in self.levels]
+        if len(set(numbers)) != len(numbers):
+            raise ValueError(f"truth level numbers must be unique per dungeon: {numbers}")
+        return self
 
 
 class ModuleTruth(BaseModel):
@@ -399,7 +419,8 @@ def _align_dungeons(truth: ModuleTruth, index: SurveyIndex) -> dict[int, int]:
             overlap = len(truth_keys & extracted_keys)
             if overlap == 0:
                 continue
-            ratio = SequenceMatcher(None, truth_name_slug, index.dungeons[extracted_position].id).ratio()
+            extracted_name_slug = canonical_slug(index.dungeons[extracted_position].name)
+            ratio = SequenceMatcher(None, truth_name_slug, extracted_name_slug).ratio()
             candidate = (overlap, ratio, -extracted_position)
             if best is None or candidate > best:
                 best = candidate
