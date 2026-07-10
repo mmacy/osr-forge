@@ -30,6 +30,7 @@ __all__ = [
     "MONSTER_ALIASES",
     "build_monsters_request",
     "deterministic_resolutions",
+    "encounter_names",
     "llm_candidates",
     "monsters",
     "monsters_schema",
@@ -257,12 +258,21 @@ def build_monsters_request(
     )
 
 
-def _encounter_names(levels: Sequence[LevelContent]) -> list[str]:
-    """The normalized resolution population: every keyed encounter name, deduplicated, sorted.
+def encounter_names(levels: Sequence[LevelContent]) -> list[str]:
+    """Return the normalized resolution population: every keyed encounter name, deduplicated, sorted.
 
     A name that normalizes to empty is excluded — the frozen phase 1 schema
     does not forbid an empty monster string, and there is nothing to resolve;
-    assembly skips the same encounters with a flag.
+    assembly skips the same encounters with a flag. Public because it is *the*
+    population rule: the stage, assembly's stale-cache check, and the
+    extraction runner must all agree on it, or a recorded fixture's request
+    fingerprint could drift from what the stage builds.
+
+    Args:
+        levels: The content caches to collect names from.
+
+    Returns:
+        The normalized names, deduplicated and ascending.
     """
     names = {
         normalize_monster_name(encounter.monster)
@@ -310,7 +320,7 @@ def monsters(workdir: Workdir, provider: ModelProvider) -> MonsterResolutions:
             levels.append(LevelContent.model_validate_json(cache.read_text(encoding="utf-8")))
     catalog = load_monsters()
     with track_stage(workdir, Stage.MONSTERS) as tracker:
-        names = _encounter_names(levels)
+        names = encounter_names(levels)
         resolutions = deterministic_resolutions(names, catalog, run.settings.monster_fuzzy_threshold)
         remaining = [name for name in names if name not in resolutions]
         if remaining:

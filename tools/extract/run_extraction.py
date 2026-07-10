@@ -21,9 +21,9 @@ from osrforge.contracts.stages import LevelContent, MonsterResolution, MonsterRe
 from osrforge.monsters import (
     build_monsters_request,
     deterministic_resolutions,
+    encounter_names,
     llm_candidates,
     monsters,
-    normalize_monster_name,
 )
 from osrforge.pages import page_request_parts
 from osrforge.preprocess import preprocess
@@ -148,14 +148,7 @@ def cmd_monsters(args: argparse.Namespace) -> None:
     cached = {(level.dungeon_id, level.level_number) for level in levels}
     if planned != cached:
         sys.exit(f"stage caches do not cover the survey: missing {sorted(planned - cached)}")
-    names = sorted(
-        {
-            normalize_monster_name(encounter.monster)
-            for level in levels
-            for area in level.areas
-            for encounter in area.encounters
-        }
-    )
+    names = encounter_names(levels)
     settings = ConversionSettings()
     catalog = load_monsters()
     resolutions = deterministic_resolutions(names, catalog, settings.monster_fuzzy_threshold)

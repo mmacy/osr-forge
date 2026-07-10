@@ -55,7 +55,7 @@ from osrforge.contracts.stages import (
     SurveyIndex,
 )
 from osrforge.geometry import LevelGeometry, synthesize_geometry
-from osrforge.monsters import normalize_monster_name
+from osrforge.monsters import encounter_names, normalize_monster_name
 from osrforge.previews import render_level_svg
 from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
@@ -466,15 +466,7 @@ def assemble(workdir_path: Path) -> AssembleResult:
     if not workdir.monsters_json.is_file():
         raise ValueError(f"the monsters cache is missing: {workdir.monsters_json}")
     resolutions = MonsterResolutions.model_validate_json(workdir.monsters_json.read_text(encoding="utf-8"))
-    # The empty name is excluded exactly as the monsters stage excludes it
-    # from the resolution population.
-    population = {
-        normalize_monster_name(encounter.monster)
-        for level in levels
-        for area in level.areas
-        for encounter in area.encounters
-    } - {""}
-    missing = population - resolutions.resolutions.keys()
+    missing = set(encounter_names(levels)) - resolutions.resolutions.keys()
     if missing:
         raise ValueError(f"the monsters cache is stale — unresolved names: {sorted(missing)}; re-run monsters")
 
