@@ -93,7 +93,10 @@ def preprocess(pdf_path: Path, workdir_path: Path, settings: ConversionSettings)
 
     workdir = Workdir(workdir_path)
     workdir.root.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(pdf_path, workdir.source_pdf)
+    if not (workdir.source_pdf.exists() and pdf_path.samefile(workdir.source_pdf)):
+        # `rerun preprocess` reads the workdir's own source.pdf, where a
+        # verbatim copyfile would raise SameFileError.
+        shutil.copyfile(pdf_path, workdir.source_pdf)
     source_sha256 = _sha256(workdir.source_pdf)
 
     started_at = datetime.now(UTC)
