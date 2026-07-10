@@ -20,6 +20,7 @@ from osrforge.providers.base import ModelRequest, ModelResponse
 from osrforge.providers.fixtures import FixtureProvider
 from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir
+from test_minimod_pipeline import golden_files
 
 # The package façade re-exports the `convert` *function* as an attribute of
 # `osrforge`, shadowing the module attribute — resolve the module itself.
@@ -90,10 +91,14 @@ def test_full_chain_events_and_result(tmp_path: Path, monkeypatch: pytest.Monkey
     assert monsters_usage is not None and monsters_usage.input_tokens == 0
     for stage in chain:
         assert next(event for event in events if event.stage is stage and event.status == "running").usage is None
+    # The DoD's byte gate for the literal convert(): every produced artifact
+    # matches the committed goldens.
     workdir = Workdir(tmp_path / "mod.forge")
-    assert workdir.adventure_json.is_file()
-    assert workdir.report_json.is_file()
-    assert workdir.preview_svg("the-root-cellar-of-old-wenna", 1).is_file()
+    produced = {f"stages/{path.name}": path.read_bytes() for path in sorted(workdir.stages_dir.iterdir())}
+    produced |= {f"previews/{path.name}": path.read_bytes() for path in sorted(workdir.previews_dir.iterdir())}
+    produced["adventure.json"] = workdir.adventure_json.read_bytes()
+    produced["report.json"] = workdir.report_json.read_bytes()
+    assert produced == golden_files()
 
 
 def test_stage_failure_emits_failed_and_keeps_upstream(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

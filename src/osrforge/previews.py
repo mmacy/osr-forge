@@ -88,15 +88,17 @@ def render_level_svg(dungeon_id: str, level: LevelSpec) -> str:
     active = area_cells | corridor_cells
 
     parts: list[str] = []
-    width_px = level.width * CELL_PX + 2 * _PAD
+    title = f"{dungeon_id} level {level.number}"
+    # 8 px per character over-estimates a 12 px monospace advance, so the
+    # title never clips on a narrow grid.
+    width_px = max(level.width * CELL_PX, len(title) * 8) + 2 * _PAD
     height_px = level.height * CELL_PX + 2 * _PAD + _TITLE_HEIGHT
     parts.append(
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width_px}" height="{height_px}" '
         f'viewBox="0 0 {width_px} {height_px}">'
     )
     parts.append(
-        f'<text x="{_PAD}" y="{_PAD + 4}" font-family="monospace" font-size="12" fill="{_TEXT_FILL}">'
-        f"{dungeon_id} level {level.number}</text>"
+        f'<text x="{_PAD}" y="{_PAD + 4}" font-family="monospace" font-size="12" fill="{_TEXT_FILL}">{title}</text>'
     )
     for area in level.areas:
         for cell in area.cells:
@@ -136,8 +138,12 @@ def render_level_svg(dungeon_id: str, level: LevelSpec) -> str:
         )
     for area in level.areas:
         x, y = _cell_origin(area.cells[0])
+        # The halo keeps a label legible over the entrance ring or a glyph
+        # sharing its cell; paint-order draws the stroke under the fill.
         parts.append(
-            f'<text x="{x + 3}" y="{y + 10}" font-family="monospace" font-size="8" fill="{_TEXT_FILL}">{area.id}</text>'
+            f'<text x="{x + 3}" y="{y + 10}" font-family="monospace" font-size="8" '
+            f'paint-order="stroke" stroke="{_CORRIDOR_FILL}" stroke-width="2" fill="{_TEXT_FILL}">'
+            f"{area.id}</text>"
         )
     parts.append("</svg>")
     return "\n".join(parts) + "\n"
