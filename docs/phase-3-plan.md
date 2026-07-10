@@ -144,6 +144,41 @@ The heuristics, pinned from measured behavior (`docs/foundry-capabilities.md` an
 6. The runner extension and the JN1 correction session (work item 7) — last among code, so the session exercises shipped behavior; goldens freeze against final semantics.
 7. README updates (new subcommands, knobs, the correction-loop walkthrough) and a final pass tracing every phase 3 roadmap contract to code and tests or to a named deferral.
 
+## Amendment: implementation record (2026-07-09)
+
+### Estimate calibration
+
+Against the four measured runs, comparing the survey + content halves of the formula with the measured totals (all four predate the monsters stage), the input deltas land well inside the ±40% band:
+
+| Module | Pages | Text tokens | Predicted in | Measured in | Δ in | Predicted out | Measured out | Δ out |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| JN1 The Chaotic Caves | 48 | 30,019 | 167,283 | 186,744 | −10% | 29,760 | 31,763 | −6% |
+| The Hole in the Oak | 48 | 16,121 | 136,013 | 139,272 | −2% | 29,760 | 16,089 | +85% |
+| B3 Palace of the Silver Princess | 36 | 36,536 | 157,511 | 121,495 | +30% | 22,320 | 16,632 | +34% |
+| DCC #81 | 36 | 30,588 | 144,128 | 118,184 | +22% | 22,320 | 14,869 | +50% |
+
+The flat monsters constant (5,000/500) against JN1's separately measured 4,305/340: +16% / +47%. Output deltas run wide (the 550/page dense-page constant overshoots sparse modules like Hole in the Oak by +85%) — the band contract is on input tokens, where the money is, and all four hold.
+
+### The correction session
+
+Worked against the committed JN1 caches through the documented loop. The session's research phase — reading `report.json`, the previews, the module's printed stat blocks and the halfling-home map — happened before the first `assemble && check`, and the loop then converged in one iteration: iteration 1 came back `validation: passed`, zero error findings, `monsters.unresolved` empty, and 13 `delve_incomplete` warnings. Every correction and its reason is in the committed `overrides.yaml`; the notable calls:
+
+- **`gray jelly → grey_ooze`** — the debatable LLM call, corrected: the module's stat block (AC 12, HD 3\*, Dam 2d8, Mv 1′) is Grey Ooze, not Ochre Jelly (HD 5\*, 2d6).
+- **`giant gecko lizard → gecko`** — an identical stat block; the extracted name simply didn't fuzzy-match the catalog's short name.
+- **The classed NPCs** map to OSE's NPC monsters (`veteran_1`/`veteran_2`, `acolyte`, `medium`, `elf_monster`), each reason recording what is lost (levels, the war leader's extra hit die).
+- **Manor 95/96** are real rooms, not artifacts — the module keys "94 to 97" as one shared entry — so they get description corrections quoting the printed shared text, not removals.
+- **Halfling-home** is the geometry correction: h2 becomes the printed wide living room, h3 the dining room north of it, and H1's "locked, but … old and rotten, and can be easily knocked in" front door is authored as a stuck door (forcing is the module's own remedy; no key exists anywhere). The door is authored in east-form (`"8,9:east"`), exercising canonicalization in the milestone file itself.
+
+**Accepted warnings:** the 13 `delve_incomplete` findings ("battle opened and pre-empted the walk"), one per dungeon — under the pinned seed, a wandering or keyed encounter's attacks stance opens battle early in every walk. That is JN1's monster density, not a geometry defect (the plan's own severity ruling), and the committed post-`check` report byte-pins all 13. Final report state: validation passed, 55 resolved / 0 unresolved monsters, zero `monster_unresolved` flags, `overridden` entries on h2/h3 (`cells`) and 95/96 (`description`).
+
+### Implementation decisions the plan left open
+
+- **`ResolutionMethod` grows `"override"`** (additive): the in-memory replaced resolution needed an honest method value; the `monsters.json` cache never contains it (the monsters stage alone writes the cache).
+- **Town/module `null` semantics:** an explicit `null` clears the extracted value, returning the build to its extracted-empty path — the default and its `low_confidence:… unstated` flag apply exactly as for an extraction that came up empty. (Value replacement suppresses the flag, per the plan.)
+- **A third `delve_incomplete` cause:** the party relocated mid-walk (a trap or transition fired). The walk's position assumption is void, nothing is provably wrong, and silence would hide the early end — the warning severity's "geometry up to that point played" reading covers it.
+- **The goldens runner's two reports:** `goldens` always runs `check` and prints findings; the *written* `report.json` is the post-`check` report exactly when `--overrides` is given (the corrected gate's writer) and the post-assemble report otherwise (the uncorrected gate byte-compares assemble's own output, which emits `findings: ()` by design).
+- **Golden re-bless for the additive `findings` field:** adding `findings: []` to every assembled report changed `report.json` bytes; the minimod and uncorrected JN1 goldens were regenerated by their documented flows in work item 1.
+
 ## Definition of done
 
 - `uv sync && uv run ruff format --check && uv run ruff check && uv run pyright && uv run pytest` passes locally and in CI on both OSes, with no network use in any test.

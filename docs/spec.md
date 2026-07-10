@@ -118,6 +118,14 @@ geometry:
 
 Supported override kinds in v1: monster remaps, per-area field replacement (name, description, encounter, trap, treasure, features), area add/remove, geometry (cells, edges, entrance, transitions), and town/module metadata fields. Overrides apply after stage outputs and before validation, so `check` always evaluates the corrected draft.
 
+Three application rules complete the contract:
+
+- Monster override keys match extracted names under the same normalization the monsters stage uses (casefold, whitespace collapsed) — `"Hobgoblin  Chieftain"` still hits `"hobgoblin chieftain"`.
+- Every override entry must take effect or assembly fails with a named error — no silent no-ops in a correction file.
+- An area *add* (an entry addressing an area the draft doesn't have) must carry `name`, `description`, and a geometry override supplying its cells.
+
+Duplicate YAML mapping keys are rejected at load: in a hand-edited correction file a repeated key means two contradictory corrections, and one of them silently losing is the worst outcome.
+
 ## Extraction report
 
 `report.json` is regenerated on every assembly and is the complete input a review UI needs:
@@ -139,13 +147,23 @@ Supported override kinds in v1: monster remaps, per-area field replacement (name
   ],
   "monsters": { "resolved": 11, "unresolved": ["hobgoblin chieftain"] },
   "usage": { "input_tokens": 412000, "output_tokens": 88000 },
-  "flags": ["low_confidence:town name unstated"]
+  "flags": ["low_confidence:town name unstated"],
+  "findings": [
+    {
+      "id": "secret_only_access",
+      "severity": "warning",
+      "location": "barrow/1/9",
+      "message": "every path into this area passes through a secret door"
+    }
+  ]
 }
 ```
 
 Module-scope conditions with no per-area home — a defaulted adventure title or town name — land in the top-level `flags` array, using the same flag grammar as per-area flags.
 
 Flag vocabulary is small and enumerated (geometry synthesized, monster unresolved, low confidence, connection ambiguous, treasure unparsed, page unreadable) so UIs can badge reliably.
+
+`findings` is empty from `assemble()` (stale lint about a changed draft is worse than none; re-assembly wipes findings by design) and populated by `check()`, which rewrites `report.json` with the findings merged.
 
 `report.json` and `run.json` each carry `schema_version` (osr-forge's own artifact schema version — independent of osrlib's, additive-only within a version) and `osrforge_version` (the producing package version); `adventure.json` needs neither because osrlib's `stamp_document` envelope already versions it.
 
@@ -156,20 +174,32 @@ Flag vocabulary is small and enumerated (geometry synthesized, monster unresolve
 - **Content validation:** `validate_adventure(adventure, load_monsters(), load_equipment())` — osrlib's own fail-fast gate for dangling references and structural problems.
 - **Playability lint:** static graph checks the engine doesn't enforce but players feel — every area reachable from the entrance, no orphan cells, level transitions land on valid cells both ways, at least one non-secret path into each keyed area (secret-only access is a warning, not an error, since some modules intend it) — plus a smoke delve: build a seeded `GameSession` with a throwaway party, `EnterDungeon`, and execute a handful of `MoveParty`/`OpenDoor` commands along a computed path to prove the geometry actually plays. Full automated playthroughs are future work.
 
-Findings are structured (id, severity, location, message) and merged into `report.json`.
+Findings are structured (id, severity, location, message) and merged into `report.json`. The finding vocabulary, enumerated:
+
+| id | severity | meaning |
+| --- | --- | --- |
+| `edge_invalid` | error | an edge-map key osrlib would silently ignore — malformed, non-canonical, or referencing an out-of-bounds cell |
+| `area_unreachable` | error | no path from any entrance reaches the area (doors of any state count as passable) |
+| `orphan_cell` | warning | a non-area cell that renders as corridor but no path reaches it |
+| `secret_only_access` | warning | every path into the area passes through a secret door |
+| `transition_unpaired` | warning | stairs whose target cell has no transition back (trapdoors and chutes are exempt — one-way by design) |
+| `delve_blocked` | error | the smoke delve's static model and the engine disagree on a step |
+| `delve_incomplete` | warning | the delve ended early — battle opened or a budget ran out; module difficulty, not a geometry defect |
+
+The smoke delve's shape, pinned: per dungeon, a fresh seeded session on the entrance level, walking the *deterministic* subgraph (open edges plus plain doors — no stuck, locked, or secret) to the farthest reachable cell, evading encounters, and taking one reachable transition. A clean delve emits nothing.
 
 ## CLI
 
 ```text
-osrforge convert <module.pdf> [--workdir DIR] [--provider foundry]
-osrforge rerun <stage> [--workdir DIR]      # re-run one stage using cached upstream outputs
+osrforge convert <module.pdf> [--workdir DIR] [--provider foundry] [--set KEY=VALUE]
+osrforge rerun <stage> [--workdir DIR] [--set KEY=VALUE]  # re-run one stage — and everything downstream of it — from cached upstream outputs
 osrforge assemble [--workdir DIR]           # pure: stage outputs + overrides → artifacts
 osrforge check [--workdir DIR]              # validate_adventure + playability lint
 osrforge preview [--workdir DIR]            # regenerate the SVG maps
-osrforge estimate <module.pdf>              # preprocess only; rough token/cost estimate
+osrforge estimate <module.pdf> [--workdir DIR]  # preprocess only; rough token/cost estimate
 ```
 
-`convert` is `preprocess → survey → content → monsters → assemble` with per-stage status written to `run.json`; a failure stops there, keeps everything upstream, and `rerun` resumes. The intended human loop after conversion is: look at `report.json` and the previews → edit `overrides.yaml` → `osrforge assemble && osrforge check` → repeat until clean.
+`convert` is `preprocess → survey → content → monsters → assemble` with per-stage status written to `run.json`; a failure stops there, keeps everything upstream, and `rerun` resumes. The intended human loop after conversion is: look at `report.json` and the previews → edit `overrides.yaml` → `osrforge assemble && osrforge check` → repeat until clean. `--set` is the repeatable settings channel (values parse as YAML); `rerun --set` rejects a knob owned by a stage upstream of the rerun stage — the drifted settings echo would otherwise lie about how upstream artifacts were produced.
 
 `estimate` prices a conversion before any model call using page counts, extracted-text volume, and image-token heuristics for the configured provider; hosts surface it as a confirmation ("converting this 48-page module will cost roughly $X").
 
@@ -189,7 +219,9 @@ findings = check(workdir)
 
 ## Configuration
 
-Provider settings come from an explicit settings object (library) or environment/config file (CLI): Foundry endpoint, deployment name, auth mode (key vs. Entra ID). Pipeline knobs with sane defaults: render DPI, max pages, content-pass batch size, fuzzy-match threshold, top-k for LLM monster matching, and the unresolved-content fallback policy (`best-effort`, the default — flagged level-band monster stand-ins and unguarded-treasure rolls where resolution or parsing came up empty — vs. `omit`). No global state.
+Provider settings come from an explicit settings object (library) or environment/config file (CLI): Foundry endpoint, deployment name, auth mode (key vs. Entra ID). Pipeline knobs with sane defaults: render DPI, max pages, content-pass batch size, fuzzy-match threshold, top-k for LLM monster matching, blank-page renders (page numbers whose renders are emitted as blank white PNGs, text layer still extracted — the content-safety-filter workaround), and the unresolved-content fallback policy (`best-effort`, the default — flagged level-band monster stand-ins and unguarded-treasure rolls where resolution or parsing came up empty — vs. `omit`). No global state.
+
+Changing settings on an existing workdir goes through `rerun --set`, guarded by a knob→owning-stage map: a knob owned by a stage upstream of the rerun stage is rejected with the stage to rerun instead.
 
 ## Testing and evals
 
