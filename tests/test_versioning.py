@@ -3,6 +3,7 @@ from importlib import metadata
 from osrforge.errors import (
     FixtureMissError,
     OsrForgeError,
+    OverrideError,
     PdfError,
     ProviderError,
     SchemaValidationError,
@@ -19,7 +20,7 @@ def test_osrforge_version_matches_package_metadata():
 
 
 def test_every_typed_exception_derives_from_osrforgeerror():
-    for exception_type in (PdfError, ProviderError, SchemaValidationError, FixtureMissError):
+    for exception_type in (PdfError, ProviderError, SchemaValidationError, FixtureMissError, OverrideError):
         assert issubclass(exception_type, OsrForgeError)
 
 

@@ -9,6 +9,8 @@ from osrforge.contracts.report import (
     ExtractionReport,
     Flag,
     LevelAddress,
+    LintCheck,
+    LintFinding,
     ModuleInfo,
     MonsterSummary,
     ValidationResult,
@@ -36,7 +38,15 @@ SPEC_REPORT_EXAMPLE = """
   ],
   "monsters": { "resolved": 11, "unresolved": ["hobgoblin chieftain"] },
   "usage": { "input_tokens": 412000, "output_tokens": 88000 },
-  "flags": ["low_confidence:town name unstated"]
+  "flags": ["low_confidence:town name unstated"],
+  "findings": [
+    {
+      "id": "secret_only_access",
+      "severity": "warning",
+      "location": "barrow/1/9",
+      "message": "every path into this area passes through a secret door"
+    }
+  ]
 }
 """
 
@@ -66,6 +76,29 @@ def test_spec_report_example_parses_verbatim():
     assert report.areas[0].id == "barrow/1/7"
     assert report.areas[0].flags == ("geometry_synthesized", "monster_unresolved:hobgoblin chieftain")
     assert report.flags == ("low_confidence:town name unstated",)
+    assert report.findings[0].id is LintCheck.SECRET_ONLY_ACCESS
+    assert report.findings[0].severity == "warning"
+
+
+def test_findings_default_empty_and_round_trip():
+    without_findings = {key: value for key, value in json.loads(SPEC_REPORT_EXAMPLE).items() if key != "findings"}
+    assert ExtractionReport.model_validate(without_findings).findings == ()
+    finding = LintFinding(id=LintCheck.EDGE_INVALID, severity="error", location="barrow/1", message="bad key")
+    assert LintFinding.model_validate(finding.model_dump(mode="json")) == finding
+
+
+def test_lint_finding_is_frozen_and_rejects_unknowns():
+    finding = LintFinding(id=LintCheck.DELVE_BLOCKED, severity="error", location="barrow", message="stuck")
+    with pytest.raises(ValidationError):
+        finding.severity = "warning"  # pyright: ignore[reportAttributeAccessIssue]
+    with pytest.raises(ValidationError):
+        LintFinding.model_validate(
+            {"id": "delve_blocked", "severity": "error", "location": "b", "message": "m", "extra": 1}
+        )
+    with pytest.raises(ValidationError):
+        LintFinding.model_validate({"id": "not_a_check", "severity": "error", "location": "b", "message": "m"})
+    with pytest.raises(ValidationError):
+        LintFinding.model_validate({"id": "delve_blocked", "severity": "fatal", "location": "b", "message": "m"})
 
 
 def test_module_flags_default_empty_and_reject_unknown_prefixes():
