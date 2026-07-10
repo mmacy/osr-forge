@@ -308,6 +308,23 @@ class TestUnresolvedFallback:
         assert len(entries) == 19
         assert len(table.rows) == 20
 
+    def test_packed_pool_takes_the_first_id(self):
+        # A stand-in landing on a packed-variant row (Veteran over
+        # veteran_1..3) takes the pool's first id — in the shipped data,
+        # each pool's lowest variant.
+        from osrforge.assemble import _stand_in_template
+
+        table = TABLES.for_level(2)
+        entries = [row.entry for row in table.rows if isinstance(row.entry, MonsterEncounterEntry)]
+        packed = next(index for index, entry in enumerate(entries) if len(entry.monster_ids) > 1)
+        name = next(
+            f"name-{salt}"
+            for salt in range(10_000)
+            if int.from_bytes(hashlib.sha256(f"name-{salt}".encode()).digest()[:8], "big") % len(entries) == packed
+        )
+        assert _stand_in_template(name, table) == entries[packed].monster_ids[0]
+        assert entries[packed].monster_ids[0] == "veteran_1"
+
     def test_hash_pick_is_stable_for_a_fixed_name(self):
         first = draft(
             [make_area("1", encounters=[encounter("gray jelly", fixed=1)])], resolutions_for(**{"gray_jelly": None})
