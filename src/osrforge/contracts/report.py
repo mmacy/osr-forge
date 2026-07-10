@@ -7,7 +7,7 @@ format so consumers and tests can pin it early.
 
 import re
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
@@ -23,6 +23,8 @@ __all__ = [
     "FlagString",
     "LevelAddress",
     "LevelAddressString",
+    "LintCheck",
+    "LintFinding",
     "ModuleInfo",
     "MonsterSummary",
     "ValidationResult",
@@ -214,6 +216,39 @@ LevelAddressString = Annotated[str, AfterValidator(_validate_level_address_strin
 """A level address in its serialized `<dungeon-id>/<level-number>` form."""
 
 
+class LintCheck(StrEnum):
+    """The playability lint's finding ids.
+
+    A published vocabulary UIs badge on, like
+    [`Flag`][osrforge.contracts.report.Flag]: growing it is additive, renaming
+    a member is a schema-version event.
+    """
+
+    EDGE_INVALID = "edge_invalid"
+    AREA_UNREACHABLE = "area_unreachable"
+    ORPHAN_CELL = "orphan_cell"
+    SECRET_ONLY_ACCESS = "secret_only_access"
+    TRANSITION_UNPAIRED = "transition_unpaired"
+    DELVE_BLOCKED = "delve_blocked"
+    DELVE_INCOMPLETE = "delve_incomplete"
+
+
+class LintFinding(BaseModel):
+    """One structured playability finding, as merged into `report.json` by `check`.
+
+    Severity is a field rather than a function of the id: the id→severity table
+    is the producer's pin (`check`), so the contract needn't change if a check's
+    severity is ever re-judged.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: LintCheck
+    severity: Literal["error", "warning"]
+    location: str
+    message: str
+
+
 class ModuleInfo(BaseModel):
     """The source module's identity in the report."""
 
@@ -258,6 +293,9 @@ class ExtractionReport(BaseModel):
 
     `flags` carries module-scope conditions with no per-area home — a defaulted
     adventure title or town name — in the same flag grammar as per-area flags.
+    `findings` is empty from `assemble()` (stale lint about a changed draft is
+    worse than none; re-assembly wipes findings by design) and populated by
+    `check()`.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -270,3 +308,4 @@ class ExtractionReport(BaseModel):
     monsters: MonsterSummary
     usage: TokenUsage
     flags: tuple[FlagString, ...] = ()
+    findings: tuple[LintFinding, ...] = ()

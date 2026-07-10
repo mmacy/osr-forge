@@ -13,8 +13,9 @@ clear.** Pydantic's unset-vs-`None` distinction models this exactly — check
 """
 
 import re
+from collections.abc import Hashable
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any, cast
 
 import yaml
 from osrlib.crawl.dungeon import (
@@ -30,6 +31,7 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
 from pydantic import Field as PydanticField
 
 from osrforge.contracts.report import AreaAddressString, LevelAddressString
+from osrforge.errors import OverrideError
 
 __all__ = [
     "AreaGeometryOverride",
@@ -167,13 +169,32 @@ class Overrides(BaseModel):
     module: ModuleOverride | None = None
 
 
+class _DuplicateKeyRejectingLoader(yaml.SafeLoader):
+    """A `SafeLoader` whose mapping constructor raises on a repeated key.
+
+    In a human-edited correction file a duplicate key means two contradictory
+    corrections, and one of them silently losing is the worst outcome —
+    pyyaml's default last-wins behavior is exactly the phase 0 gap this closes.
+    """
+
+    def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Hashable, Any]:
+        seen: set[Hashable] = set()
+        for key_node, _ in node.value:
+            key = cast(Hashable, self.construct_object(key_node, deep=deep))  # pyright: ignore[reportUnknownMemberType]
+            if key in seen:
+                raise OverrideError(
+                    f"duplicate key {key!r} on line {key_node.start_mark.line + 1} — "
+                    "two entries for one key are contradictory corrections"
+                )
+            seen.add(key)
+        return super().construct_mapping(node, deep)
+
+
 def load_overrides(path: Path) -> Overrides:
     """Load an overrides file, or the empty `Overrides` when it doesn't exist.
 
-    Parsing uses `yaml.safe_load` only; the result is model-validated, so typos
-    and payloads osrlib would reject fail here. Known gap, deferred to phase 3's
-    application work: pyyaml's default loader silently keeps the last of
-    duplicate YAML keys.
+    Parsing uses a safe loader that rejects duplicate mapping keys; the result
+    is model-validated, so typos and payloads osrlib would reject fail here.
 
     Args:
         path: The `overrides.yaml` path. A missing file is an empty overrides set.
@@ -182,12 +203,14 @@ def load_overrides(path: Path) -> Overrides:
         The validated overrides.
 
     Raises:
+        OverrideError: If the document repeats a mapping key — two contradictory
+            corrections, one of which would silently lose.
         pydantic.ValidationError: If the document doesn't match the contract.
         yaml.YAMLError: If the file is not valid YAML.
     """
     if not path.exists():
         return Overrides()
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = yaml.load(path.read_text(encoding="utf-8"), Loader=_DuplicateKeyRejectingLoader)
     if data is None:
         return Overrides()
     return Overrides.model_validate(data)

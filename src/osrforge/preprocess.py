@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pypdfium2 as pdfium
+from PIL import Image
 
 from osrforge.contracts.run import RunMeta, Stage, StageStatus
 from osrforge.errors import PdfError
@@ -32,6 +33,7 @@ def _sha256(path: Path) -> str:
 def _render_pages(pdf: pdfium.PdfDocument, workdir: Workdir, settings: ConversionSettings) -> int:
     scale = settings.render_dpi / 72
     page_count = len(pdf)
+    blanked = set(settings.blank_page_renders)
     for index in range(page_count):
         page = pdf[index]
         try:
@@ -42,6 +44,10 @@ def _render_pages(pdf: pdfium.PdfDocument, workdir: Workdir, settings: Conversio
                 image = bitmap.to_pil().convert("RGB")
             finally:
                 bitmap.close()
+            if index + 1 in blanked:
+                # The blank replaces the pixels at the page's normal render
+                # size — downstream image handling stays uniform.
+                image = Image.new("RGB", image.size, "white")
             image.save(workdir.page_png(index + 1))
             textpage = page.get_textpage()
             try:
@@ -99,6 +105,11 @@ def preprocess(pdf_path: Path, workdir_path: Path, settings: ConversionSettings)
         page_count = len(pdf)
         if page_count > settings.max_pages:
             raise PdfError(f"source has {page_count} pages, over the {settings.max_pages}-page limit: {pdf_path}")
+        out_of_range = sorted(page for page in settings.blank_page_renders if page > page_count)
+        if out_of_range:
+            raise PdfError(
+                f"blank_page_renders names pages {out_of_range} but the source has only {page_count}: {pdf_path}"
+            )
         if workdir.pages_dir.exists():
             shutil.rmtree(workdir.pages_dir)
         workdir.pages_dir.mkdir()

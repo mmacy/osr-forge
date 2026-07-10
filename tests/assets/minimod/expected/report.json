@@ -86,5 +86,6 @@
     "input_tokens": 9473,
     "output_tokens": 964
   },
-  "flags": []
+  "flags": [],
+  "findings": []
 }

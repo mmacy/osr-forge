@@ -348,6 +348,13 @@ def build_draft(
             stale cache (`convert`'s ordering makes it unreachable).
     """
     module_flags: list[str] = []
+    # Pure by construction: the settings echo in `run.json` is already an
+    # assembly input, so the blanked-page flags derive from it, not from
+    # inspecting render bytes.
+    module_flags.extend(
+        format_flag(Flag.PAGE_UNREADABLE, f"page {page} render blanked")
+        for page in sorted(set(settings.blank_page_renders))
+    )
     name = index.title
     if not name:
         name = "Untitled module"

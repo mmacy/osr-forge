@@ -1776,5 +1776,6 @@
   },
   "flags": [
     "low_confidence:town name unstated"
-  ]
+  ],
+  "findings": []
 }

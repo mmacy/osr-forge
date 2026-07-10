@@ -10,6 +10,7 @@ __all__ = [
     "ExtractionError",
     "FixtureMissError",
     "OsrForgeError",
+    "OverrideError",
     "PdfError",
     "ProviderError",
     "SchemaValidationError",
@@ -32,6 +33,18 @@ class ExtractionError(OsrForgeError):
     [`SchemaValidationError`][osrforge.errors.SchemaValidationError]; calling a
     stage on a workdir whose upstream stage isn't `completed` is programmer
     misuse and raises stdlib `ValueError`.
+    """
+
+
+class OverrideError(OsrForgeError):
+    """An override entry cannot take effect.
+
+    An unknown monster name, an unknown area or level address that isn't a
+    well-formed add, contradictory entries, an edge collision after
+    canonicalization, or a duplicate YAML key. The division of labor, pinned:
+    addressing errors are loud (this error); content validity flows to the
+    report — a dangling `template_id` takes effect and `validate_adventure`
+    reports it in `report.json`.
     """
 
 
