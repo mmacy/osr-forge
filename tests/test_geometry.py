@@ -370,4 +370,41 @@ class TestPostconditionsOverTheCommittedCorpora:
             if geometry.entrance is not None:
                 by_dungeon.setdefault(geometry.dungeon_id, []).append(geometry.level_number)
         for dungeon in index.dungeons:
-            assert by_dungeon[dungeon.id] == [dungeon.levels[0].number]
+            assert by_dungeon[dungeon.id] == [min(level.number for level in dungeon.levels)]
+
+    def test_entrance_is_on_the_lowest_numbered_level_even_when_survey_lists_it_later(self):
+        index = SurveyIndex.model_validate(
+            {
+                "schema_version": 1,
+                "title": "Mod",
+                "hooks": [],
+                "town": {"name": "Town", "description": ""},
+                "dungeons": [
+                    {
+                        "id": "lair",
+                        "name": "Lair",
+                        "levels": [
+                            {
+                                "number": 2,
+                                "map_pages": [],
+                                "areas": [
+                                    {"key": "9", "name": "9", "source_label": None, "kind": "room", "source_pages": []}
+                                ],
+                            },
+                            {
+                                "number": 1,
+                                "map_pages": [],
+                                "areas": [
+                                    {"key": "1", "name": "1", "source_label": None, "kind": "room", "source_pages": []}
+                                ],
+                            },
+                        ],
+                    }
+                ],
+                "monster_names": [],
+            }
+        )
+        results = synthesize_geometry(index, [])
+        entrances = {geometry.level_number: geometry.entrance for geometry in results}
+        assert entrances[1] is not None
+        assert entrances[2] is None

@@ -605,7 +605,9 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
     results: list[LevelGeometry] = []
     for dungeon in index.dungeons:
         resolutions, links = _resolve_dungeon_connections(dungeon, contents)
-        entrance_level = next((level.number for level in dungeon.levels if level.areas), None)
+        # The dungeon's entrance lives on its lowest-numbered level (with any
+        # areas at all) — survey order is not guaranteed number-sorted.
+        entrance_level = min((level.number for level in dungeon.levels if level.areas), default=None)
         transition_areas: dict[int, list[str]] = {}
         for link in links:
             transition_areas.setdefault(link.source_level, []).append(link.source_key)
