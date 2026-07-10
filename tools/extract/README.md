@@ -18,6 +18,9 @@ recorded fixture — re-record with the commands below, and never rebuild
 fixture requests from fresh page renders: PNG bytes are stable only for a
 locked pdfium+Pillow pair, so a dependency bump strands them too. Each fixture
 set is committed together with the exact page renders it was recorded against.
+The same prompt, schema, or `MONSTER_ALIASES` edits that strand fixtures also
+re-run the eval sweep and commit the updated scoreboard in the same PR — one
+workflow, two obligations; see `tools/eval/README.md`.
 
 ## The minimod recording session
 

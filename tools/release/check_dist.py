@@ -56,9 +56,8 @@ def forbidden_members(members: list[str], skip_leading: int) -> list[str]:
     offenders = []
     for member in members:
         parts = Path(member).parts[skip_leading:]
-        if any(part in FORBIDDEN_DIRS for part in parts) or member.endswith(FORBIDDEN_SUFFIXES):
-            offenders.append(member)
-        elif member.endswith(".json") and "fixture" in member.lower():
+        fixture_json = member.endswith(".json") and "fixture" in member.lower()
+        if any(part in FORBIDDEN_DIRS for part in parts) or member.endswith(FORBIDDEN_SUFFIXES) or fixture_json:
             offenders.append(member)
     return offenders
 
@@ -90,9 +89,7 @@ def check_wheel(wheel_path: Path, version: str, project: dict, errors: list[str]
             errors.append("wheel is missing osrforge/py.typed")
 
         # The wheel carries osrforge/** and its dist-info only — no other roots.
-        strays = sorted(
-            member for member in members if not member.startswith(("osrforge/", f"{dist_info}/"))
-        )
+        strays = sorted(member for member in members if not member.startswith(("osrforge/", f"{dist_info}/")))
         if strays:
             errors.append(f"wheel carries files outside osrforge/ and its dist-info: {strays}")
 
