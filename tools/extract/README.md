@@ -98,6 +98,21 @@ uv run tools/extract/run_extraction.py goldens \
     --page-count 48
 ```
 
+## The milestone TUI session
+
+`run_converted_tui.py` runs osrlib's example TUI crawler (from the checkout at
+`~/repos/osrlib-python`) with its `build_adventure()` swapped for a converted
+`adventure.json` — the phase 2 milestone's literal substitution. Interactive,
+or reproducible with the TUI's own `--script`:
+
+```sh
+uv run tools/extract/run_converted_tui.py jn1.forge/adventure.json --seed 11
+```
+
+The procedure is verified against converted minimod: enter, fight the keyed
+entrance encounter, walk to a parsed treasure cache, take it, return to town
+for the XP award, and sell the loot.
+
 ## Verification runs (nothing committed)
 
 Licensed, non-redistributable modules run live with recording off; evidence
