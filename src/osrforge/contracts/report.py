@@ -254,7 +254,11 @@ class MonsterSummary(BaseModel):
 
 
 class ExtractionReport(BaseModel):
-    """The `report.json` document, mirroring the spec's example."""
+    """The `report.json` document, mirroring the spec's example.
+
+    `flags` carries module-scope conditions with no per-area home — a defaulted
+    adventure title or town name — in the same flag grammar as per-area flags.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -265,3 +269,4 @@ class ExtractionReport(BaseModel):
     areas: tuple[AreaReport, ...] = ()
     monsters: MonsterSummary
     usage: TokenUsage
+    flags: tuple[FlagString, ...] = ()

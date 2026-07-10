@@ -35,7 +35,8 @@ SPEC_REPORT_EXAMPLE = """
     }
   ],
   "monsters": { "resolved": 11, "unresolved": ["hobgoblin chieftain"] },
-  "usage": { "input_tokens": 412000, "output_tokens": 88000 }
+  "usage": { "input_tokens": 412000, "output_tokens": 88000 },
+  "flags": ["low_confidence:town name unstated"]
 }
 """
 
@@ -55,6 +56,7 @@ def make_report() -> ExtractionReport:
         ),
         monsters=MonsterSummary(resolved=11, unresolved=("hobgoblin chieftain",)),
         usage=TokenUsage(input_tokens=412000, output_tokens=88000),
+        flags=("low_confidence:town name unstated",),
     )
 
 
@@ -63,6 +65,14 @@ def test_spec_report_example_parses_verbatim():
     assert report.schema_version == 1
     assert report.areas[0].id == "barrow/1/7"
     assert report.areas[0].flags == ("geometry_synthesized", "monster_unresolved:hobgoblin chieftain")
+    assert report.flags == ("low_confidence:town name unstated",)
+
+
+def test_module_flags_default_empty_and_reject_unknown_prefixes():
+    without_flags = {key: value for key, value in json.loads(SPEC_REPORT_EXAMPLE).items() if key != "flags"}
+    assert ExtractionReport.model_validate(without_flags).flags == ()
+    with pytest.raises(ValidationError):
+        ExtractionReport.model_validate({**json.loads(SPEC_REPORT_EXAMPLE), "flags": ["not_a_flag"]})
 
 
 def test_report_round_trips():

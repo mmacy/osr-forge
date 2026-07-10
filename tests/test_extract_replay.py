@@ -65,5 +65,7 @@ def test_excerpt_chain_replays_deterministically():
 
 
 def test_replay_directory_holds_exactly_the_chain_fixtures():
+    # The excerpt chain's two fixtures plus phase 2's JN1 monsters recording
+    # (replayed by tests/test_jn1_chain.py over the committed stage caches).
     tags = sorted(json.loads(path.read_text(encoding="utf-8"))["tag"] for path in REPLAY_DIR.glob("*.json"))
-    assert tags == ["content.orc-lair-a.1.b01", "survey"]
+    assert tags == ["content.orc-lair-a.1.b01", "monsters", "survey"]

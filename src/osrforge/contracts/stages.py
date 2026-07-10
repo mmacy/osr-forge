@@ -1,7 +1,7 @@
-"""Stage-cache contracts: the `stages/survey.json` and `stages/areas.<dungeon>.<level>.json` wire formats.
+"""Stage-cache contracts: the `stages/survey.json`, `areas.<dungeon>.<level>.json`, and `monsters.json` wire formats.
 
 Stage caches are cross-phase wire formats — content reads survey's cache, and
-phase 2's monsters and assemble stages read both — so their models live here,
+the monsters and assemble stages read both — so their models live here,
 in the established home for anything serialized between phases. No stage module
 ever imports another stage module.
 
@@ -38,6 +38,9 @@ __all__ = [
     "AreaKind",
     "Direction",
     "LevelContent",
+    "MonsterResolution",
+    "MonsterResolutions",
+    "ResolutionMethod",
     "SurveyArea",
     "SurveyDungeon",
     "SurveyIndex",
@@ -179,11 +182,13 @@ class AreaEncounter(BaseModel):
     """One extracted encounter: a monster name plus what the module said about count.
 
     The three count fields are independent optionals; the cache stores what the
-    model said. Phase 2's monsters stage owns the mapping onto osrlib's
+    model said. Assembly's encounter builder owns the mapping onto osrlib's
     exactly-one-of rule (prefer dice when both are set; flag when neither is)
-    and demotes any `count_dice` osrlib's dice parser still rejects to
-    `count_note` plus a flag — defense in depth behind the extraction schema's
-    [`DICE_PATTERN`][osrforge.contracts.stages.DICE_PATTERN].
+    and discards in memory any `count_dice` osrlib's dice parser still rejects,
+    flagging the area — defense in depth behind the extraction schema's
+    [`DICE_PATTERN`][osrforge.contracts.stages.DICE_PATTERN]. The mapping lives
+    in assembly, not the monsters stage: counts are per-encounter facts, and the
+    monsters cache is keyed per-name.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -243,3 +248,43 @@ class LevelContent(BaseModel):
     @classmethod
     def _id_canonical(cls, value: str) -> str:
         return _canonical(value)
+
+
+ResolutionMethod = Literal["exact", "alias", "fuzzy", "llm", "unresolved"]
+"""How a monster name resolved: one of the spec's four tiers, or not at all."""
+
+
+class MonsterResolution(BaseModel):
+    """One extracted name's resolution against the osrlib monster catalog."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    template_id: str | None = None
+    method: ResolutionMethod
+
+    @model_validator(mode="after")
+    def _template_iff_resolved(self) -> MonsterResolution:
+        if (self.template_id is None) != (self.method == "unresolved"):
+            raise ValueError("template_id must be set exactly when the method is not 'unresolved'")
+        return self
+
+
+class MonsterResolutions(BaseModel):
+    """The `stages/monsters.json` cache: every keyed encounter name's resolution.
+
+    Keys are **normalized names** (casefolded, internal whitespace collapsed,
+    stripped — `normalize_monster_name`), sorted ascending for byte stability.
+    Normalization is the point: modules spell the same monster `"Zombies"` and
+    `"zombies"`, one resolution must serve both, and phase 3's override matching
+    (`overrides.yaml` `monsters:` keys) normalizes the same way.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: int = SCHEMA_VERSION
+    resolutions: dict[str, MonsterResolution]
+
+    @field_validator("resolutions")
+    @classmethod
+    def _keys_sorted(cls, value: dict[str, MonsterResolution]) -> dict[str, MonsterResolution]:
+        return dict(sorted(value.items()))

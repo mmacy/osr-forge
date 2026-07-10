@@ -4,9 +4,17 @@ Convert tabletop adventure module PDFs into playable [osrlib](https://github.com
 
 Standalone package + CLI. Consumers need only its artifacts — `adventure.json`, `report.json`, `overrides.yaml`, SVG map previews — or its CLI, regardless of their own tech stack.
 
-**Status:** phase 1 (extraction). See [the specification](docs/spec.md), [the phase 0 plan](docs/phase-0-plan.md), and [the phase 1 plan](docs/phase-1-plan.md). The package ships the contract types, deterministic preprocessing, the provider seam, and both model-calling extraction stages — survey and content — with recorded fixtures and committed stage caches from a full 48-page milestone run over a license-verified module. A playable draft (monster resolution, geometry, assembly, and the `osrforge` CLI) arrives in phase 2.
+**Status:** phase 2 (a playable draft). See [the specification](docs/spec.md) and the plans for [phase 0](docs/phase-0-plan.md), [phase 1](docs/phase-1-plan.md), and [phase 2](docs/phase-2-plan.md). The package runs the whole pipeline: preprocessing, the survey and content extraction stages, monster resolution against the osrlib catalog, deterministic geometry synthesis, and assembly producing `adventure.json`, `report.json`, and SVG previews that pass `validate_adventure`. The correction loop (overrides application, `rerun`, playability lint, `estimate`) arrives in phase 3.
 
-Extraction runs are driven manually today via `tools/extract/run_extraction.py` (see [tools/extract/README.md](tools/extract/README.md)); the library entry points are `preprocess()`, `survey()`, and `content()`, each reading and writing the workdir the spec defines.
+The library entry points are `convert()` (the full chain, with per-stage progress events) and `assemble()` (pure re-assembly from cached stage outputs); the `osrforge` console script wraps them:
+
+```sh
+osrforge convert my-module.pdf            # full pipeline into ./my-module.forge
+osrforge assemble --workdir my-module.forge   # stage caches → artifacts, pure
+osrforge preview --workdir my-module.forge    # regenerate the SVG maps only
+```
+
+Recording sessions and live verification runs are driven via `tools/extract/run_extraction.py` (see [tools/extract/README.md](tools/extract/README.md)).
 
 ## Development quickstart
 
@@ -36,6 +44,9 @@ Tests use no network — model interactions replay from recorded fixtures. The o
 | `max_source_bytes` | 100 MiB | Source file-size guardrail |
 | `content_batch_pages` | 8 | Content-pass batch size in pages (floor 2) |
 | `survey_max_pages` | 150 | Single-request survey guard; larger sources raise `ExtractionError` until survey chunking lands (phase 4) |
+| `monster_fuzzy_threshold` | 0.85 | Monster resolution's fuzzy-tier auto-accept floor, pinned against measured catalog pairs |
+| `monster_llm_top_k` | 8 | Candidate templates offered per name in the monster-resolution LLM tier |
+| `unresolved_fallback` | `best-effort` | Where resolution or parsing came up empty: flagged level-band monster stand-ins and unguarded-treasure rolls (`best-effort`), or leave the gap (`omit`) |
 
 ## Provider configuration
 

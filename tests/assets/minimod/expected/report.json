@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "osrforge_version": "0.1.0",
+  "module": {
+    "title": "The Root Cellar of Old Wenna",
+    "pages": 5
+  },
+  "validation": {
+    "passed": true,
+    "errors": []
+  },
+  "areas": [
+    {
+      "id": "the-root-cellar-of-old-wenna/1/1",
+      "source_pages": [
+        3
+      ],
+      "confidence": 0.92,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "the-root-cellar-of-old-wenna/1/2",
+      "source_pages": [
+        3
+      ],
+      "confidence": 0.88,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "the-root-cellar-of-old-wenna/1/3",
+      "source_pages": [
+        3
+      ],
+      "confidence": 0.91,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "the-root-cellar-of-old-wenna/1/4",
+      "source_pages": [
+        3
+      ],
+      "confidence": 0.95,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "the-root-cellar-of-old-wenna/1/5",
+      "source_pages": [
+        5
+      ],
+      "confidence": 0.89,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "the-root-cellar-of-old-wenna/1/6",
+      "source_pages": [
+        5
+      ],
+      "confidence": 0.94,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:potion of healing"
+      ],
+      "overridden": []
+    }
+  ],
+  "monsters": {
+    "resolved": 5,
+    "unresolved": []
+  },
+  "usage": {
+    "input_tokens": 9473,
+    "output_tokens": 964
+  },
+  "flags": []
+}

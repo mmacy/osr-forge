@@ -1,11 +1,11 @@
 # Extraction runner
 
-Drives real `preprocess` → `survey` → `content` runs with `FoundryProvider`.
-Manual, live-network, repo-only — never packaged, never in CI, exactly like
-`tools/spike/`. Requires the `OSRFORGE_FOUNDRY_ENDPOINT` and
-`OSRFORGE_FOUNDRY_DEPLOYMENT` environment variables (plus
-`OSRFORGE_FOUNDRY_API_KEY` for key auth; without it, Entra ID via
-`DefaultAzureCredential`).
+Drives real `preprocess` → `survey` → `content` → `monsters` → `assemble`
+runs with `FoundryProvider`. Manual, live-network, repo-only — never
+packaged, never in CI, exactly like `tools/spike/`. Requires the
+`OSRFORGE_FOUNDRY_ENDPOINT` and `OSRFORGE_FOUNDRY_DEPLOYMENT` environment
+variables (plus `OSRFORGE_FOUNDRY_API_KEY` for key auth; without it, Entra ID
+via `DefaultAzureCredential`).
 
 Recording is opt-in via `--record-fixtures`: fixture request digests embed
 module text verbatim, so verification runs over non-redistributable modules
@@ -22,16 +22,20 @@ set is committed together with the exact page renders it was recorded against.
 ## The minimod recording session
 
 Records real `survey()` + `content()` runs over the CC0 minimod, then commits
-the exact page renders, the fixtures, and the golden stage caches the
-pipeline-replay test pins byte-for-byte:
+the exact page renders, the fixtures, and the full-chain goldens the
+pipeline-replay test pins byte-for-byte. The monsters stage records nothing —
+minimod's whole name population resolves in the exact tier, so it makes no
+model call:
 
 ```sh
 uv run tools/extract/run_extraction.py full tests/assets/minimod/minimod.pdf \
     --workdir minimod.forge \
     --record-fixtures tests/assets/minimod/fixtures
-mkdir -p tests/assets/minimod/pages tests/assets/minimod/expected
+mkdir -p tests/assets/minimod/pages tests/assets/minimod/expected/previews
 cp minimod.forge/pages/* tests/assets/minimod/pages/
 cp minimod.forge/stages/*.json tests/assets/minimod/expected/
+cp minimod.forge/adventure.json minimod.forge/report.json tests/assets/minimod/expected/
+cp minimod.forge/previews/* tests/assets/minimod/expected/previews/
 rm -rf minimod.forge
 ```
 
@@ -65,6 +69,49 @@ mkdir -p tests/assets/chaotic-caves/stages
 cp jn1.forge/stages/*.json tests/assets/chaotic-caves/stages/
 rm -rf jn1.forge
 ```
+
+## The JN1 monsters session (replay-grade)
+
+Resolves the committed JN1 stage caches' encounter names, recording the one
+LLM request (text-only — unresolved names plus catalog candidates, so it
+replays with zero network from committed assets alone) and writing the
+produced `monsters.json` beside the other caches. **Sequencing rule:** the
+`MONSTER_ALIASES` table must be final before this session — a later alias
+edit covering a JN1 name changes the request fingerprint and strands the
+fixture (see the asset README's couplings section):
+
+```sh
+uv run tools/extract/run_extraction.py monsters \
+    --stages-dir tests/assets/chaotic-caves/stages \
+    --record-fixtures tests/assets/chaotic-caves/fixtures-extract/replay
+```
+
+Then produce the JN1 goldens by assembling over the committed caches
+(`tests/test_jn1_chain.py` byte-compares against exactly this fabrication —
+any drift fails there loudly) and commit them inside the fenced directory's
+10 MiB budget:
+
+```sh
+uv run tools/extract/run_extraction.py goldens \
+    --stages-dir tests/assets/chaotic-caves/stages \
+    --out tests/assets/chaotic-caves/expected \
+    --page-count 48
+```
+
+## The milestone TUI session
+
+`run_converted_tui.py` runs osrlib's example TUI crawler (from the checkout at
+`~/repos/osrlib-python`) with its `build_adventure()` swapped for a converted
+`adventure.json` — the phase 2 milestone's literal substitution. Interactive,
+or reproducible with the TUI's own `--script`:
+
+```sh
+uv run tools/extract/run_converted_tui.py jn1.forge/adventure.json --seed 11
+```
+
+The procedure is verified against converted minimod: enter, fight the keyed
+entrance encounter, walk to a parsed treasure cache, take it, return to town
+for the XP award, and sell the loot.
 
 ## Verification runs (nothing committed)
 

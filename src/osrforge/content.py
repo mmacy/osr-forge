@@ -395,10 +395,10 @@ def content(workdir: Workdir, provider: ModelProvider) -> tuple[LevelContent, ..
 
     Reads `stages/survey.json` rather than taking the index as a parameter —
     the cache is the contract, matching `rerun` semantics. Stale
-    `stages/areas.*.json` are deleted first (unlike survey's clear-on-success,
-    because the incremental per-level writes could otherwise leave a stale
-    mixture), and each level's cache is written as the level completes, so a
-    mid-stage failure keeps finished levels.
+    `stages/areas.*.json` and `stages/monsters.json` are deleted first (unlike
+    survey's clear-on-success, because the incremental per-level writes could
+    otherwise leave a stale mixture), and each level's cache is written as the
+    level completes, so a mid-stage failure keeps finished levels.
 
     Args:
         workdir: A workdir whose survey stage is `completed`.
@@ -424,6 +424,7 @@ def content(workdir: Workdir, provider: ModelProvider) -> tuple[LevelContent, ..
     with track_stage(workdir, Stage.CONTENT) as tracker:
         for stale in workdir.area_caches():
             stale.unlink()
+        workdir.monsters_json.unlink(missing_ok=True)
         for plan in plan_content_batches(index, run.settings.content_batch_pages):
             level = _extract_level(workdir, provider, plan, run.page_count, tracker)
             workdir.stages_dir.mkdir(parents=True, exist_ok=True)
