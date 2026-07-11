@@ -436,17 +436,22 @@ class RunInfo(BaseModel):
 
 
 class ModuleScore(BaseModel):
-    """One module's scoreboard entry: the run that produced it, its non-default knobs, and its metrics.
+    """One module's scoreboard entry: the run that produced it, its yardstick, its knobs, and its metrics.
 
-    `settings_overrides` echoes the scored workdir's non-default
-    `ConversionSettings` knobs as `key=value` strings (knob names and page
-    numbers, never module text) — a run measured with, say, a blanked page is
-    visible in the record instead of being an invisible special condition.
+    `truth_sha256` hashes the `truth.yaml` the metrics were scored against —
+    recorded at score time so a truth edit between scoring and publishing is
+    detectable, and the published pin always names the yardstick that
+    actually produced the numbers. `settings_overrides` echoes the scored
+    workdir's non-default `ConversionSettings` knobs as `key=value` strings
+    (knob names and page numbers, never module text) — a run measured with,
+    say, a blanked page is visible in the record instead of being an
+    invisible special condition.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     run: RunInfo
+    truth_sha256: str
     settings_overrides: tuple[str, ...] = ()
     metrics: ModuleMetrics
 
@@ -466,7 +471,7 @@ class Scoreboard(BaseModel):
 
 
 def load_scoreboard(path: Path) -> Scoreboard:
-    """Load the committed scoreboard.
+    """Load a corpus's scoreboard.
 
     Args:
         path: The `scoreboard.json` path.
@@ -586,35 +591,43 @@ def publish_module(
     module_id: str,
     manifest: CorpusManifest,
     private_board: Scoreboard,
-    truth_sha256: str,
+    current_truth_sha256: str,
     committed_ids: Collection[str],
 ) -> ByomScoreboard:
     """Copy one private scoreboard entry onto the committed BYOM board.
 
     The deliberate, outward-facing act, separate from scoring. The chain of
-    custody holds because only scored entries are copied, and scoring runs
-    under the source-integrity check.
+    custody holds because only scored entries are copied, scoring runs under
+    the source-integrity check, and the published yardstick pin is the hash
+    recorded *at score time* — a truth edited after scoring is refused, not
+    silently paired with stale metrics.
 
     Args:
         board: The current committed BYOM board.
         module_id: The private corpus module id to publish.
         manifest: The module's manifest (identity plus provenance).
         private_board: The private corpus's scoreboard.
-        truth_sha256: The hash of the module's `truth.yaml` — the yardstick pin.
+        current_truth_sha256: The hash of the module's `truth.yaml` as it
+            stands now, compared against the score-time hash.
         committed_ids: The committed corpus's module ids (the shared-namespace guard).
 
     Returns:
         A new board with the module's entry added or replaced.
 
     Raises:
-        ValueError: On any pinned refusal — no scored entry for the id,
-            missing truth provenance, id collision with a committed corpus
-            member, or (on update) a title mismatch with the entry being
-            replaced.
+        ValueError: On any pinned refusal — no scored entry for the id, a
+            truth file that changed since scoring, missing truth provenance,
+            id collision with a committed corpus member, or (on update) a
+            title mismatch with the entry being replaced.
     """
     score = private_board.modules.get(module_id)
     if score is None:
         raise ValueError(f"no scored entry for {module_id!r} in the private scoreboard — score before publishing")
+    if score.truth_sha256 != current_truth_sha256:
+        raise ValueError(
+            f"{module_id!r}'s truth.yaml changed since its entry was scored — re-score before publishing, "
+            "so the published metrics and yardstick pin describe the same truth"
+        )
     if manifest.truth_provenance is None:
         raise ValueError(
             f"{module_id!r} has no truth_provenance in its manifest — unverified truth can be scored locally, "
@@ -637,7 +650,7 @@ def publish_module(
         edition=manifest.edition,
         pages=manifest.pages,
         run=score.run,
-        truth_sha256=truth_sha256,
+        truth_sha256=score.truth_sha256,
         settings_overrides=score.settings_overrides,
         metrics=score.metrics,
     )

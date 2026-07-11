@@ -131,7 +131,8 @@ def _print_metrics(module_id: str, metrics: ModuleMetrics) -> None:
 def cmd_score(args: argparse.Namespace) -> None:
     member = module_dir(args.corpus, args.module_id)
     manifest = load_manifest(member / "manifest.yaml")
-    truth = load_truth(member / "truth.yaml")
+    truth_path = member / "truth.yaml"
+    truth = load_truth(truth_path)
     workdir = Workdir(args.workdir)
     run = workdir.read_run()
     # The chain of custody: the workdir must hold the file the truth was
@@ -156,6 +157,7 @@ def cmd_score(args: argparse.Namespace) -> None:
             output_tokens=usage.output_tokens,
             usd=round(_run_usd(run), 4),
         ),
+        truth_sha256=hashlib.sha256(truth_path.read_bytes()).hexdigest(),
         settings_overrides=settings_overrides(run.settings),
         metrics=metrics,
     )
@@ -212,7 +214,6 @@ def _report_byom() -> None:
 def cmd_publish(args: argparse.Namespace) -> None:
     member = module_dir(args.corpus, args.module_id)
     manifest = load_manifest(member / "manifest.yaml")
-    truth_sha256 = hashlib.sha256((member / "truth.yaml").read_bytes()).hexdigest()
     private_board = load_scoreboard(scoreboard_path(args.corpus))
     committed_ids = {child.name for child in DEFAULT_CORPUS.iterdir() if child.is_dir()}
     board = publish_module(
@@ -220,7 +221,7 @@ def cmd_publish(args: argparse.Namespace) -> None:
         module_id=args.module_id,
         manifest=manifest,
         private_board=private_board,
-        truth_sha256=truth_sha256,
+        current_truth_sha256=hashlib.sha256((member / "truth.yaml").read_bytes()).hexdigest(),
         committed_ids=committed_ids,
     )
     save_byom_scoreboard(BYOM_SCOREBOARD, board)

@@ -23,7 +23,10 @@ never from pipeline output — reading `survey.json` before writing a module's
 truth file would contaminate the measurement with the thing being measured.
 The discipline was never "a human must do it"; it is "the measuring
 instrument must be independent of the system under test": agents author,
-an adversarial pass verifies, and humans audit.
+an adversarial pass verifies, and humans audit. (Each member's manifest
+records which verification legs its truth actually received — the committed
+v1 truths predate the adversarial pass, and their `truth_provenance` blocks
+say so rather than claiming it retroactively.)
 
 The v1 members: **minimod** (the in-repo CC0 test module — the zero-cost smoke
 of the whole harness), **JN1 The Chaotic Caves** (CC BY-SA 4.0), and **JN2 The

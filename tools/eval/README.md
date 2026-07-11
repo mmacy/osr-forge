@@ -30,7 +30,30 @@ A corpus member is a directory, `corpus/<module-id>/`, holding two files:
 Every *committed* member pins `sha256` and carries `license` and
 `truth_provenance`, with treasure asserted on every area — a repo test
 enforces all of it, so the gating corpus never thins out by accident. The
-optional postures below exist for private corpora.
+optional postures in the next section exist for private corpora.
+
+The v1 members: `minimod` (CC0, authored in-repo — the zero-cost smoke of the
+whole harness), `jn1-chaotic-caves` (CC BY-SA 4.0), and `jn2-monkey-isle`
+(CC BY-SA 4.0, the held-out member — the first module the extraction prompts
+were never developed against, and therefore v1's only honest quality number).
+BF1 Morgansfort, the plan's named third candidate, failed the phase 0 license
+verification: its copyright line is "Chris Gonnerman and Contributors", and
+credited contributor Nicholas Plant does not appear on the project's
+relicensing consent list (checked against the Wayback Machine snapshot of
+2025-04-18, the newest available), so the CC BY-SA grant could not be cleanly
+relied on for the module's text; JN2, the pinned fallback, passed (sole
+copyright holder, same verified pattern as JN1). All v1 members share BFRPG
+layout conventions — a standing limitation; corpus diversity is future,
+additive growth. Growing the corpus is additive: a new module is a manifest, a
+truth file, and a sweep — no code.
+
+Fetching stays manual: manifests carry source URLs, but URLs rot, the sha256
+check is the integrity gate, and the harness takes no HTTP dependency.
+
+Text derived from the CC BY-SA modules (printed keys, creature names, codes in
+their truth files) is distributed under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) with
+attribution to J.D. Neal and the Basic Fantasy Project.
 
 ## Private (BYOM) corpora
 
@@ -59,42 +82,21 @@ differences, all pinned by phase 5:
   `corpus/scoreboard.json`, a private corpus's sits beside its members.
 - **Publishing is explicit.** `run_eval.py publish <module-id> --corpus DIR`
   copies the module's scored entry — identity metadata, the run block, the
-  `truth.yaml` hash (the yardstick pin), non-default settings knobs, and the
-  metrics; aggregate counts and ratios only, never module text — onto the
-  committed BYOM board, `byom-scoreboard.json`. Publish refuses a module with
-  no scored entry, a manifest without `truth_provenance`, an id colliding
-  with a committed corpus member, or (on update) a title mismatch with the
-  entry being replaced. When a module is run more than once, the *first*
-  run's scores publish and later runs are recorded in the phase amendment —
-  the board holds one current entry per module; history is git's job.
+  `truth.yaml` hash recorded at score time (the yardstick pin), non-default
+  settings knobs, and the metrics; aggregate counts and ratios only, never
+  module text — onto the committed BYOM board, `byom-scoreboard.json`.
+  Publish refuses a module with no scored entry, a truth file edited since
+  its entry was scored, a manifest without `truth_provenance`, an id
+  colliding with a committed corpus member, or (on update) a title mismatch
+  with the entry being replaced. When a module is run more than once, the
+  *first* run's scores publish and later runs are recorded in the phase
+  amendment — the board holds one current entry per module; history is
+  git's job.
 - **Advisory standing.** The regression rule binds the committed corpus
   scoreboard only. BYOM entries refresh best-effort by whoever owns the
   module; a stale entry is visible via its `osrforge_version` stamp, never
   blocking. The board answers "how does it perform in general," not "may
   this PR merge."
-
-The v1 members: `minimod` (CC0, authored in-repo — the zero-cost smoke of the
-whole harness), `jn1-chaotic-caves` (CC BY-SA 4.0), and `jn2-monkey-isle`
-(CC BY-SA 4.0, the held-out member — the first module the extraction prompts
-were never developed against, and therefore v1's only honest quality number).
-BF1 Morgansfort, the plan's named third candidate, failed the phase 0 license
-verification: its copyright line is "Chris Gonnerman and Contributors", and
-credited contributor Nicholas Plant does not appear on the project's
-relicensing consent list (checked against the Wayback Machine snapshot of
-2025-04-18, the newest available), so the CC BY-SA grant could not be cleanly
-relied on for the module's text; JN2, the pinned fallback, passed (sole
-copyright holder, same verified pattern as JN1). All v1 members share BFRPG
-layout conventions — a standing limitation; corpus diversity is future,
-additive growth. Growing the corpus is additive: a new module is a manifest, a
-truth file, and a sweep — no code.
-
-Fetching stays manual: manifests carry source URLs, but URLs rot, the sha256
-check is the integrity gate, and the harness takes no HTTP dependency.
-
-Text derived from the CC BY-SA modules (printed keys, creature names, codes in
-their truth files) is distributed under
-[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) with
-attribution to J.D. Neal and the Basic Fantasy Project.
 
 ## Authoring discipline
 

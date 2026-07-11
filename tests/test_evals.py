@@ -826,13 +826,17 @@ def test_scoring_is_deterministic(tmp_path: Path):
         run=RunInfo(
             date="2026-07-10", model_id="gpt-5.4", osrforge_version="0.1.0", input_tokens=1, output_tokens=1, usd=0.01
         ),
+        truth_sha256="ab" * 32,
         metrics=first,
     )
     board = Scoreboard(modules={"synthetic": score})
     out = tmp_path / "scoreboard.json"
     save_scoreboard(out, board)
     first_bytes = out.read_bytes()
-    save_scoreboard(out, Scoreboard(modules={"synthetic": ModuleScore(run=score.run, metrics=second)}))
+    save_scoreboard(
+        out,
+        Scoreboard(modules={"synthetic": ModuleScore(run=score.run, truth_sha256="ab" * 32, metrics=second)}),
+    )
     assert out.read_bytes() == first_bytes
 
 
@@ -989,7 +993,11 @@ dungeons:
             date="2026-07-10", model_id="gpt-5.4", osrforge_version="0.1.0", input_tokens=10, output_tokens=2, usd=0.5
         )
         board = Scoreboard(
-            modules={"minimod": ModuleScore(run=run, metrics=score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH))}
+            modules={
+                "minimod": ModuleScore(
+                    run=run, truth_sha256="ab" * 32, metrics=score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH)
+                )
+            }
         )
         save_scoreboard(path, board)
         assert load_scoreboard(path) == board
@@ -1029,14 +1037,15 @@ def private_module_fixtures(tmp_path: Path) -> tuple[Path, CorpusManifest, Modul
             },
         }
     )
+    truth_sha256 = hashlib.sha256(truth_path.read_bytes()).hexdigest()
     score = ModuleScore(
         run=RunInfo(
             date="2026-07-10", model_id="gpt-5.4", osrforge_version="0.1.0", input_tokens=10, output_tokens=2, usd=0.5
         ),
+        truth_sha256=truth_sha256,
         settings_overrides=("blank_page_renders=[21]",),
         metrics=score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH),
     )
-    truth_sha256 = hashlib.sha256(truth_path.read_bytes()).hexdigest()
     return module_dir, manifest, score, truth_sha256
 
 
@@ -1048,7 +1057,7 @@ class TestPublish:
             module_id="some-retail-module",
             manifest=manifest,
             private_board=Scoreboard(modules={"some-retail-module": score}),
-            truth_sha256=truth_sha256,
+            current_truth_sha256=truth_sha256,
             committed_ids={"minimod", "jn1-chaotic-caves", "jn2-monkey-isle"},
         )
         entry = board.modules["some-retail-module"]
@@ -1075,7 +1084,7 @@ class TestPublish:
                 module_id="some-retail-module",
                 manifest=manifest,
                 private_board=Scoreboard(),
-                truth_sha256=truth_sha256,
+                current_truth_sha256=truth_sha256,
                 committed_ids=set(),
             )
 
@@ -1088,7 +1097,7 @@ class TestPublish:
                 module_id="some-retail-module",
                 manifest=bare,
                 private_board=Scoreboard(modules={"some-retail-module": score}),
-                truth_sha256=truth_sha256,
+                current_truth_sha256=truth_sha256,
                 committed_ids=set(),
             )
 
@@ -1100,7 +1109,7 @@ class TestPublish:
                 module_id="minimod",
                 manifest=manifest,
                 private_board=Scoreboard(modules={"minimod": score}),
-                truth_sha256=truth_sha256,
+                current_truth_sha256=truth_sha256,
                 committed_ids={"minimod"},
             )
 
@@ -1112,7 +1121,7 @@ class TestPublish:
             module_id="some-retail-module",
             manifest=manifest,
             private_board=private,
-            truth_sha256=truth_sha256,
+            current_truth_sha256=truth_sha256,
             committed_ids=set(),
         )
         imposter = manifest.model_copy(update={"title": "A Different Module"})
@@ -1122,19 +1131,33 @@ class TestPublish:
                 module_id="some-retail-module",
                 manifest=imposter,
                 private_board=private,
-                truth_sha256=truth_sha256,
+                current_truth_sha256=truth_sha256,
                 committed_ids=set(),
             )
-        # A same-title update replaces the entry.
+        # A same-title update replaces the entry — with a re-scored entry
+        # whose score-time hash matches the truth as it stands now.
+        rescored = score.model_copy(update={"truth_sha256": "ff" * 32})
         updated = publish_module(
             board=board,
             module_id="some-retail-module",
             manifest=manifest,
-            private_board=private,
-            truth_sha256="ff" * 32,
+            private_board=Scoreboard(modules={"some-retail-module": rescored}),
+            current_truth_sha256="ff" * 32,
             committed_ids=set(),
         )
         assert updated.modules["some-retail-module"].truth_sha256 == "ff" * 32
+
+    def test_refuses_a_truth_edited_after_scoring(self, tmp_path: Path):
+        _, manifest, score, _ = private_module_fixtures(tmp_path)
+        with pytest.raises(ValueError, match="changed since"):
+            publish_module(
+                board=ByomScoreboard(),
+                module_id="some-retail-module",
+                manifest=manifest,
+                private_board=Scoreboard(modules={"some-retail-module": score}),
+                current_truth_sha256="ee" * 32,
+                committed_ids=set(),
+            )
 
 
 class TestCommittedCorpus:
@@ -1155,7 +1178,8 @@ class TestCommittedCorpus:
         full posture — plus the backfilled truth provenance — or the corpus
         scoreboard's meaning silently changes.
         """
-        for member in ("jn1-chaotic-caves", "jn2-monkey-isle", "minimod"):
+        members = sorted(child.name for child in CORPUS.iterdir() if child.is_dir())
+        for member in members:
             manifest = load_manifest(CORPUS / member / "manifest.yaml")
             assert manifest.sha256 is not None, member
             assert manifest.license is not None, member
@@ -1170,7 +1194,7 @@ class TestCommittedCorpus:
         from osrlib.data import load_monsters
 
         ids = {template.id for template in load_monsters().monsters}
-        for member in ("minimod", "jn1-chaotic-caves", "jn2-monkey-isle"):
+        for member in sorted(child.name for child in CORPUS.iterdir() if child.is_dir()):
             truth = load_truth(CORPUS / member / "truth.yaml")
             for dungeon in truth.dungeons:
                 for level in dungeon.levels:
@@ -1182,7 +1206,7 @@ class TestCommittedCorpus:
     def test_truth_connections_reference_same_level_keys(self):
         from osrforge.survey import canonical_slug
 
-        for member in ("minimod", "jn1-chaotic-caves", "jn2-monkey-isle"):
+        for member in sorted(child.name for child in CORPUS.iterdir() if child.is_dir()):
             truth = load_truth(CORPUS / member / "truth.yaml")
             for dungeon in truth.dungeons:
                 for level in dungeon.levels:
