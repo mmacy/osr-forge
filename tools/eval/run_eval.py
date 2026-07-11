@@ -1,10 +1,16 @@
-"""The eval harness driver: verify → convert (live), score (offline), report (offline).
+"""The eval harness driver: verify → convert (live), score/report/publish (offline).
 
 Manual, repo-only wiring — never packaged, never in CI (the spec forbids
 per-commit evals). Everything with behavior worth testing lives in
 `osrforge.evals`; this file is argument parsing, provider construction, and
 printing. See tools/eval/README.md for the corpus rules, the scoreboard, and
-the regression rule.
+the regression rule, and tools/eval/AUTHORING.md for the truth-authoring
+discipline private (BYOM) corpora follow.
+
+Every subcommand takes `--corpus DIR` (default: the repo's committed corpus).
+A private corpus uses the identical layout — `<module-id>/manifest.yaml` +
+`truth.yaml` — and one uniform scoreboard rule: every corpus's scoreboard is
+`<corpus-dir>/scoreboard.json`.
 """
 
 import argparse
@@ -12,6 +18,7 @@ import datetime
 import sys
 from pathlib import Path
 
+from osrforge.cli import parse_set_values
 from osrforge.contracts.run import RunMeta, TokenUsage
 from osrforge.convert import convert
 from osrforge.estimate import INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN
@@ -21,6 +28,7 @@ from osrforge.evals import (
     RunInfo,
     Scoreboard,
     corpus_means,
+    enforce_source_integrity,
     load_manifest,
     load_scoreboard,
     load_truth,
@@ -33,28 +41,36 @@ from osrforge.versioning import osrforge_version
 from osrforge.workdir import Workdir
 
 EVAL_DIR = Path(__file__).resolve().parent
-CORPUS_DIR = EVAL_DIR / "corpus"
-SCOREBOARD = EVAL_DIR / "scoreboard.json"
+DEFAULT_CORPUS = EVAL_DIR / "corpus"
 
 
-def module_dir(module_id: str) -> Path:
-    path = CORPUS_DIR / module_id
+def module_dir(corpus: Path, module_id: str) -> Path:
+    path = corpus / module_id
     if not path.is_dir():
-        known = ", ".join(sorted(child.name for child in CORPUS_DIR.iterdir() if child.is_dir()))
-        sys.exit(f"unknown corpus module {module_id!r} (known: {known})")
+        known = ", ".join(sorted(child.name for child in corpus.iterdir() if child.is_dir())) or "none"
+        sys.exit(f"unknown corpus module {module_id!r} in {corpus} (known: {known})")
     return path
 
 
+def scoreboard_path(corpus: Path) -> Path:
+    return corpus / "scoreboard.json"
+
+
 def cmd_convert(args: argparse.Namespace) -> None:
-    manifest = load_manifest(module_dir(args.module_id) / "manifest.yaml")
-    # The sha256 gate runs before provider construction — before any spend.
-    verify_source(manifest, args.pdf)
-    print(f"{args.pdf} matches the {args.module_id} manifest ({manifest.pages} pages expected)")
+    member = module_dir(args.corpus, args.module_id)
+    manifest = load_manifest(member / "manifest.yaml")
+    # The integrity gate runs before provider construction — before any spend.
+    seeded = verify_source(manifest, member, args.pdf)
+    if seeded:
+        print(f"seeded {member / 'source.sha256'} — later runs must score this exact file")
+    else:
+        print(f"{args.pdf} matches the {args.module_id} integrity gate ({manifest.pages} pages expected)")
+    settings = ConversionSettings.model_validate(parse_set_values(args.set))
     from osrforge.providers.foundry import FoundryProvider, FoundrySettings
 
     provider = FoundryProvider(FoundrySettings.from_env())
     workdir: Path = args.workdir if args.workdir is not None else Path(f"./{args.module_id}.forge")
-    result = convert(args.pdf, workdir, provider, ConversionSettings())
+    result = convert(args.pdf, workdir, provider, settings)
     usage = _run_usage(result.run)
     print(
         f"converted into {workdir}: in={usage.input_tokens} out={usage.output_tokens} "
@@ -85,7 +101,9 @@ def _print_metrics(module_id: str, metrics: ModuleMetrics) -> None:
     print(f"{module_id}:")
     print(
         f"  areas:       recall={show(metrics.areas.recall)} precision={show(metrics.areas.precision)} "
-        f"({metrics.areas.matched}/{metrics.areas.truth_areas} truth, {metrics.areas.extracted_areas} extracted)"
+        f"({metrics.areas.matched}/{metrics.areas.truth_areas} truth, {metrics.areas.extracted_areas} extracted; "
+        f"dungeons {metrics.areas.matched_dungeons}/{metrics.areas.truth_dungeons} truth, "
+        f"{metrics.areas.extracted_dungeons} extracted)"
     )
     print(
         f"  encounters:  name_recall={show(metrics.encounters.name_recall)} "
@@ -105,13 +123,23 @@ def _print_metrics(module_id: str, metrics: ModuleMetrics) -> None:
 
 
 def cmd_score(args: argparse.Namespace) -> None:
-    truth = load_truth(module_dir(args.module_id) / "truth.yaml")
+    member = module_dir(args.corpus, args.module_id)
+    manifest = load_manifest(member / "manifest.yaml")
+    truth = load_truth(member / "truth.yaml")
+    workdir = Workdir(args.workdir)
+    run = workdir.read_run()
+    # The chain of custody: the workdir must hold the file the truth was
+    # authored against, or its scores are noise. A workdir converted outside
+    # the harness seeds the sidecar here, at first score.
+    seeded = enforce_source_integrity(
+        manifest, member, run.source_sha256, f"{args.workdir} (run.json's recorded source)"
+    )
+    if seeded:
+        print(f"seeded {member / 'source.sha256'} — later runs must score this exact file")
     metrics = score_workdir(args.workdir, truth)
     _print_metrics(args.module_id, metrics)
     if not args.update_scoreboard:
         return
-    workdir = Workdir(args.workdir)
-    run = workdir.read_run()
     usage = _run_usage(run)
     score = ModuleScore(
         run=RunInfo(
@@ -124,20 +152,22 @@ def cmd_score(args: argparse.Namespace) -> None:
         ),
         metrics=metrics,
     )
-    scoreboard = load_scoreboard(SCOREBOARD)
+    board_path = scoreboard_path(args.corpus)
+    scoreboard = load_scoreboard(board_path)
     # Reconstruct rather than model_copy: construction runs the key-sorting validator.
     scoreboard = Scoreboard(
         schema_version=scoreboard.schema_version,
         modules={**scoreboard.modules, args.module_id: score},
     )
-    save_scoreboard(SCOREBOARD, scoreboard)
-    print(f"updated {SCOREBOARD}")
+    save_scoreboard(board_path, scoreboard)
+    print(f"updated {board_path}")
 
 
 def cmd_report(args: argparse.Namespace) -> None:
-    scoreboard = load_scoreboard(SCOREBOARD)
+    board_path = scoreboard_path(args.corpus)
+    scoreboard = load_scoreboard(board_path)
     if not scoreboard.modules:
-        sys.exit(f"no scoreboard at {SCOREBOARD} — run a sweep first (see tools/eval/README.md)")
+        sys.exit(f"no scoreboard at {board_path} — run a sweep first (see tools/eval/README.md)")
     for module_id, score in scoreboard.modules.items():
         print(
             f"# {module_id} — {score.run.date}, {score.run.model_id}, osr-forge {score.run.osrforge_version}, "
@@ -149,23 +179,43 @@ def cmd_report(args: argparse.Namespace) -> None:
         print(f"  {name}: {'n/a' if value is None else f'{value:.4f}'}")
 
 
+def _add_corpus_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--corpus",
+        type=Path,
+        default=DEFAULT_CORPUS,
+        help="the corpus directory (default: the repo's committed corpus)",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="run_eval.py", description=__doc__)
     subcommands = parser.add_subparsers(dest="command", required=True)
 
-    convert_parser = subcommands.add_parser("convert", help="verify the PDF against the manifest, then convert (live)")
-    convert_parser.add_argument("module_id", help="the corpus module id (a directory under corpus/)")
+    convert_parser = subcommands.add_parser("convert", help="verify the PDF's integrity, then convert (live)")
+    convert_parser.add_argument("module_id", help="the corpus module id (a directory under the corpus)")
     convert_parser.add_argument("pdf", type=Path, help="the locally downloaded module PDF")
     convert_parser.add_argument("--workdir", type=Path, default=None, help="the workdir (default: ./<module-id>.forge)")
+    convert_parser.add_argument(
+        "--set",
+        action="append",
+        metavar="KEY=VALUE",
+        help="update a settings knob (repeatable); values parse as YAML",
+    )
+    _add_corpus_option(convert_parser)
     convert_parser.set_defaults(handler=cmd_convert)
 
     score_parser = subcommands.add_parser("score", help="score a converted workdir against the truth (offline)")
     score_parser.add_argument("module_id", help="the corpus module id")
     score_parser.add_argument("--workdir", type=Path, required=True, help="the converted workdir")
-    score_parser.add_argument("--update-scoreboard", action="store_true", help="write the result into scoreboard.json")
+    score_parser.add_argument(
+        "--update-scoreboard", action="store_true", help="write the result into the corpus's scoreboard.json"
+    )
+    _add_corpus_option(score_parser)
     score_parser.set_defaults(handler=cmd_score)
 
-    report_parser = subcommands.add_parser("report", help="render the committed scoreboard (offline)")
+    report_parser = subcommands.add_parser("report", help="render a corpus scoreboard (offline)")
+    _add_corpus_option(report_parser)
     report_parser.set_defaults(handler=cmd_report)
     return parser
 

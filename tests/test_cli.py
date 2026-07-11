@@ -61,12 +61,12 @@ class TestParsing:
         assert args.set == ["unresolved_fallback=omit"]
 
     def test_parse_set_coerces_values_through_yaml(self):
-        updates = cli._parse_set(["max_pages=21", "blank_page_renders=[21, 30]", "unresolved_fallback=best-effort"])
+        updates = cli.parse_set_values(["max_pages=21", "blank_page_renders=[21, 30]", "unresolved_fallback=best-effort"])
         assert updates == {"max_pages": 21, "blank_page_renders": [21, 30], "unresolved_fallback": "best-effort"}
 
     def test_parse_set_rejects_missing_equals(self):
         with pytest.raises(ValueError, match="KEY=VALUE"):
-            cli._parse_set(["render_dpi"])
+            cli.parse_set_values(["render_dpi"])
 
     def test_version_prints_and_exits_zero(self, capsys: pytest.CaptureFixture[str]):
         with pytest.raises(SystemExit) as excinfo:

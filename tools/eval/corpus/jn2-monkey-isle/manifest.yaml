@@ -23,3 +23,15 @@ license:
     verification used); credited editors Chris Gonnerman and James Lemon also
     appear, and as with JN1's record the grant relied on is the copyright
     holder's own statement on the license page.
+truth_provenance:
+  authored: "2026-07-10"
+  instrument: >-
+    Claude (Anthropic) — the phase 4 implementation session; a different
+    model family than the gpt-5.4 extraction deployment. Authored from the
+    r22 printing's pages (sites R1–R6, pp. 18–32) and maps (pp. 37–44),
+    before any pipeline output for the module existed.
+  verified: >-
+    The authoring conventions of tools/eval/README.md plus the CI structural
+    validators (template ids exist in the catalog, connections reference
+    same-level keys) — honestly thinner than JN1's record. Predates the
+    adversarial verification pass phase 5 introduced.

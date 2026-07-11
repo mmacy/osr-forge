@@ -1,5 +1,6 @@
 """The eval scorer: synthetic metric tables, alignment edge cases, determinism, and the JN1 pinned baseline."""
 
+import hashlib
 import shutil
 from pathlib import Path
 
@@ -27,11 +28,13 @@ from osrforge.evals import (
     RunInfo,
     Scoreboard,
     corpus_means,
+    enforce_source_integrity,
     load_manifest,
     load_scoreboard,
     load_truth,
     save_scoreboard,
     score_workdir,
+    sidecar_path,
     verify_source,
 )
 from osrforge.workdir import Workdir, write_json_artifact
@@ -827,15 +830,85 @@ def test_scoring_is_deterministic(tmp_path: Path):
     assert out.read_bytes() == first_bytes
 
 
+UNPINNED_MANIFEST = {
+    "title": "Some Retail Module",
+    "source_url": "purchased retail; not redistributable",
+    "pages": 36,
+    "publisher": "Some Publisher",
+    "edition": "2nd printing, 1981",
+}
+
+
 class TestHarnessPlumbing:
     def test_manifest_sha256_refusal(self, tmp_path: Path):
         manifest = load_manifest(CORPUS / "minimod" / "manifest.yaml")
+        module_dir = tmp_path / "minimod"
+        module_dir.mkdir()
         doctored = tmp_path / "doctored.pdf"
         doctored.write_bytes((ASSETS / "minimod" / "minimod.pdf").read_bytes() + b" ")
-        with pytest.raises(ValueError, match="sha256"):
-            verify_source(manifest, doctored)
-        # The genuine file passes.
-        verify_source(manifest, ASSETS / "minimod" / "minimod.pdf")
+        with pytest.raises(ValueError, match="authored against"):
+            verify_source(manifest, module_dir, doctored)
+        # A pinned manifest never touches the sidecar.
+        assert not sidecar_path(module_dir).exists()
+        # The genuine file passes without seeding anything.
+        assert verify_source(manifest, module_dir, ASSETS / "minimod" / "minimod.pdf") is False
+        assert not sidecar_path(module_dir).exists()
+
+    def test_unpinned_manifest_round_trips(self, tmp_path: Path):
+        path = tmp_path / "manifest.yaml"
+        path.write_text(yaml.safe_dump(UNPINNED_MANIFEST), encoding="utf-8")
+        manifest = load_manifest(path)
+        assert manifest.sha256 is None
+        assert manifest.license is None
+        assert manifest.truth_provenance is None
+        assert manifest.publisher == "Some Publisher"
+        assert manifest.edition == "2nd printing, 1981"
+
+    def test_first_convert_seeds_the_sidecar_and_a_doctored_file_is_refused(self, tmp_path: Path):
+        manifest = CorpusManifest.model_validate(UNPINNED_MANIFEST)
+        module_dir = tmp_path / "some-retail-module"
+        module_dir.mkdir()
+        pdf = tmp_path / "owned-copy.pdf"
+        pdf.write_bytes(b"%PDF-1.4 watermarked for one customer")
+        assert verify_source(manifest, module_dir, pdf) is True
+        recorded = sidecar_path(module_dir).read_text(encoding="utf-8").strip()
+        assert recorded == hashlib.sha256(pdf.read_bytes()).hexdigest()
+        # The same file passes on every later sight.
+        assert verify_source(manifest, module_dir, pdf) is False
+        # A doctored file is refused against the sidecar, with the authored-against message.
+        doctored = tmp_path / "doctored.pdf"
+        doctored.write_bytes(pdf.read_bytes() + b" ")
+        with pytest.raises(ValueError, match="authored against"):
+            verify_source(manifest, module_dir, doctored)
+
+    def test_harness_external_workdir_seeds_the_sidecar_at_first_score(self, tmp_path: Path):
+        # score's integrity check runs over run.json's recorded source hash;
+        # the driver passes that digest here.
+        manifest = CorpusManifest.model_validate(UNPINNED_MANIFEST)
+        module_dir = tmp_path / "some-retail-module"
+        module_dir.mkdir()
+        digest = hashlib.sha256(b"the owner's copy").hexdigest()
+        assert enforce_source_integrity(manifest, module_dir, digest, "wd (run.json)") is True
+        assert sidecar_path(module_dir).read_text(encoding="utf-8").strip() == digest
+        # A later workdir over a different source is refused.
+        other = hashlib.sha256(b"a different copy").hexdigest()
+        with pytest.raises(ValueError, match="authored against"):
+            enforce_source_integrity(manifest, module_dir, other, "wd2 (run.json)")
+
+    def test_a_manifest_pin_beats_the_sidecar(self, tmp_path: Path):
+        pinned = CorpusManifest.model_validate(
+            {**UNPINNED_MANIFEST, "sha256": hashlib.sha256(b"the pinned release").hexdigest()}
+        )
+        module_dir = tmp_path / "mod"
+        module_dir.mkdir()
+        sidecar_path(module_dir).write_text(hashlib.sha256(b"something else").hexdigest() + "\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="manifest"):
+            enforce_source_integrity(
+                manifest=pinned,
+                module_dir=module_dir,
+                digest=hashlib.sha256(b"something else").hexdigest(),
+                described="wd (run.json)",
+            )
 
     def test_truth_files_reject_duplicate_key_slugs_per_level(self):
         with pytest.raises(ValidationError, match="unique per level"):
@@ -927,6 +1000,25 @@ class TestCommittedCorpus:
             truth = load_truth(CORPUS / member / "truth.yaml")
             assert manifest.pages >= 1
             assert truth.dungeons
+
+    def test_committed_members_stay_fully_pinned_and_asserted(self):
+        """The gating corpus never gets thinner by accident.
+
+        Optionality (unpinned sha256, absent license, partial treasure truth)
+        exists for private BYOM corpora; every committed member must keep the
+        full posture — plus the backfilled truth provenance — or the corpus
+        scoreboard's meaning silently changes.
+        """
+        for member in ("jn1-chaotic-caves", "jn2-monkey-isle", "minimod"):
+            manifest = load_manifest(CORPUS / member / "manifest.yaml")
+            assert manifest.sha256 is not None, member
+            assert manifest.license is not None, member
+            assert manifest.truth_provenance is not None, member
+            truth = load_truth(CORPUS / member / "truth.yaml")
+            for dungeon in truth.dungeons:
+                for level in dungeon.levels:
+                    for area in level.areas:
+                        assert area.treasure is not None, (member, dungeon.name, area.key)
 
     def test_truth_templates_exist_in_the_catalog(self):
         from osrlib.data import load_monsters

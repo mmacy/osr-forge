@@ -46,12 +46,15 @@ __all__ = [
     "TruthDungeon",
     "TruthEncounter",
     "TruthLevel",
+    "TruthProvenance",
     "TruthTreasure",
     "corpus_means",
+    "enforce_source_integrity",
     "load_manifest",
     "load_scoreboard",
     "load_truth",
     "score_workdir",
+    "sidecar_path",
     "verify_source",
 ]
 
@@ -171,26 +174,60 @@ class ManifestLicense(BaseModel):
     verified: str
 
 
+class TruthProvenance(BaseModel):
+    """How the module's truth file came to be trusted.
+
+    The record `publish` requires before a module's numbers reach the
+    committed BYOM board: unverified truth can be scored locally all day, but
+    it cannot put numbers on the committed record. `instrument` is free text
+    by design — the cross-instrument rule (`tools/eval/AUTHORING.md`) is a
+    stated preference, not a gate, because enforcement is impossible and
+    false assurance is worse than none.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    authored: str
+    """The authoring date."""
+
+    instrument: str
+    """The authoring model or agent."""
+
+    verified: str
+    """The verification record: which legs (adversarial pass, owner sampling, CI baselines) actually ran."""
+
+
 class CorpusManifest(BaseModel):
     """A corpus member's manifest — the whole redistribution surface.
 
-    The corpus ships pointers plus hashes, never PDFs: `source_url` is where
-    a human downloads the module, and `sha256` is the exact PDF the truth was
-    authored against — the harness refuses a mismatched file before any model
-    spend.
+    The corpus ships pointers plus hashes, never PDFs. Identity and integrity
+    split for watermarked retail PDFs (the same module hashes differently per
+    customer): cross-copy *identity* is metadata (`title`, `publisher`,
+    `edition`, `pages`), while *integrity* is `sha256` when pinned (every
+    committed member — the harness refuses a mismatched file before any model
+    spend) or the local `source.sha256` sidecar when not (the
+    watermarked-retail case; seeded the first time the harness sees the
+    module's source). `license` is optional because a private corpus is the
+    owner's copy with no redistribution surface — the phase 0 verification
+    procedure applies only where something derived will be committed.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     title: str
     source_url: str
-    sha256: str
+    sha256: str | None = None
     pages: int = Field(ge=1)
-    license: ManifestLicense
+    publisher: str | None = None
+    edition: str | None = None
+    license: ManifestLicense | None = None
+    truth_provenance: TruthProvenance | None = None
 
     @field_validator("sha256")
     @classmethod
-    def _hex_digest(cls, value: str) -> str:
+    def _hex_digest(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
             raise ValueError("sha256 must be a 64-character lowercase hex digest")
         return value
@@ -221,26 +258,84 @@ def load_manifest(path: Path) -> CorpusManifest:
     return CorpusManifest.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
-def verify_source(manifest: CorpusManifest, pdf_path: Path) -> None:
-    """Refuse a PDF that is not the exact file the truth was authored against.
+def sidecar_path(module_dir: Path) -> Path:
+    """The module's local integrity sidecar: the copy-specific source hash.
 
-    Runs before any model spend: truth authored against one printing scores a
-    different printing as noise, and the sha256 — not the URL — is the
-    corpus's integrity gate.
+    Only meaningful for manifests without a `sha256` pin (watermarked retail
+    PDFs hash differently per customer, so a committed pin would be
+    meaningless); its one job is proving later re-runs score the same file
+    the truth was authored against. Never committed for repo corpus members —
+    they all pin.
+
+    Args:
+        module_dir: The corpus member's directory.
+
+    Returns:
+        `<module-dir>/source.sha256`.
+    """
+    return module_dir / "source.sha256"
+
+
+def enforce_source_integrity(manifest: CorpusManifest, module_dir: Path, digest: str, described: str) -> bool:
+    """Enforce the truth-to-source chain of custody for one observed digest.
+
+    The manifest's `sha256` pin gates when present (every committed member);
+    otherwise the local sidecar gates, seeded on first sight — at `convert`
+    (from the PDF) or, for a workdir converted outside the harness, at first
+    `score` (from `run.json`'s recorded source hash). The chain runs unbroken
+    from the file the truth was authored against to any published number.
 
     Args:
         manifest: The module's manifest.
-        pdf_path: The locally downloaded PDF.
+        module_dir: The corpus member's directory (where the sidecar lives).
+        digest: The observed source sha256 (from the PDF or from `run.json`).
+        described: What was hashed, for the refusal message.
+
+    Returns:
+        True when this call seeded the sidecar (the harness's first sight of
+        the module's source); False when the digest matched an existing gate.
 
     Raises:
-        ValueError: If the file's sha256 does not match the manifest's.
+        ValueError: If the digest matches neither the manifest pin nor the
+            sidecar — the source is not the file the truth was authored
+            against.
+    """
+    expected = manifest.sha256
+    hint = "download the exact release the manifest records"
+    if expected is None:
+        sidecar = sidecar_path(module_dir)
+        if not sidecar.is_file():
+            sidecar.write_text(digest + "\n", encoding="utf-8")
+            return True
+        expected = sidecar.read_text(encoding="utf-8").strip()
+        hint = f"the sidecar {sidecar} records the source the truth was authored against"
+    if digest != expected:
+        raise ValueError(
+            f"{described} has sha256 {digest}, but this module's truth was authored against {expected} — {hint}"
+        )
+    return False
+
+
+def verify_source(manifest: CorpusManifest, module_dir: Path, pdf_path: Path) -> bool:
+    """Hash a local PDF and enforce the chain of custody, before any model spend.
+
+    Truth authored against one printing scores a different printing as noise
+    — the hash, never the URL, is the integrity gate.
+
+    Args:
+        manifest: The module's manifest.
+        module_dir: The corpus member's directory.
+        pdf_path: The locally downloaded PDF.
+
+    Returns:
+        True when the call seeded the module's sidecar (first sight).
+
+    Raises:
+        ValueError: If the file is not the source the truth was authored
+            against.
     """
     digest = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
-    if digest != manifest.sha256:
-        raise ValueError(
-            f"{pdf_path} has sha256 {digest}, but the corpus truth was authored against {manifest.sha256} — "
-            "download the exact release the manifest records"
-        )
+    return enforce_source_integrity(manifest, module_dir, digest, str(pdf_path))
 
 
 class AreaMetrics(BaseModel):

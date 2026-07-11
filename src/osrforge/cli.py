@@ -27,7 +27,7 @@ from osrforge.settings import ConversionSettings
 from osrforge.versioning import osrforge_version
 from osrforge.workdir import Workdir
 
-__all__ = ["main"]
+__all__ = ["main", "parse_set_values"]
 
 OVERRIDES_TEMPLATE = """\
 # osr-forge correction file — applied on every `osrforge assemble`.
@@ -88,12 +88,22 @@ def _print_event(event: StageEvent) -> None:
     print(f"{event.stage.value}: {event.status}{suffix}")
 
 
-def _parse_set(values: list[str] | None) -> dict[str, object]:
+def parse_set_values(values: list[str] | None) -> dict[str, object]:
     """Parse repeated `--set KEY=VALUE` pairs; values coerce through YAML.
 
     `yaml.safe_load` makes `21`, `[21, 30]`, and `best-effort` all coerce
     naturally; pydantic validation against `ConversionSettings` happens in the
-    library call.
+    library call. Shared with the eval harness driver, whose `convert` takes
+    the same flag.
+
+    Args:
+        values: The raw `KEY=VALUE` strings, or None.
+
+    Returns:
+        Key → YAML-coerced value.
+
+    Raises:
+        ValueError: If an item is not of the form `KEY=VALUE`.
     """
     updates: dict[str, object] = {}
     for item in values or []:
@@ -112,7 +122,7 @@ def _print_validation(report_validation_passed: bool, error_count: int) -> None:
 def _cmd_convert(args: argparse.Namespace) -> None:
     workdir: Path = args.workdir if args.workdir is not None else Path(f"./{args.pdf.stem}.forge")
     provider = _build_provider(args.provider)
-    settings = ConversionSettings.model_validate(_parse_set(args.set))
+    settings = ConversionSettings.model_validate(parse_set_values(args.set))
     result = convert(args.pdf, workdir, provider, settings, on_progress=_print_event)
     validation = result.report.validation
     _print_validation(validation.passed, len(validation.errors))
@@ -133,7 +143,7 @@ def _cmd_rerun(args: argparse.Namespace) -> None:
         args.workdir,
         stage,
         provider=provider,
-        settings_updates=_parse_set(args.set) or None,
+        settings_updates=parse_set_values(args.set) or None,
         on_progress=_print_event,
     )
     validation = result.report.validation

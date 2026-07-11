@@ -16,3 +16,17 @@ license:
     as-published PDF out of this repo; the sole copyright holder, J.D. Neal,
     appears on the Basic Fantasy Project relicensing consent list (verified
     via the Wayback Machine snapshot of 2025-04-18).
+truth_provenance:
+  authored: "2026-07-10"
+  instrument: >-
+    Claude (Anthropic) — the phase 4 implementation session; a different
+    model family than the gpt-5.4 extraction deployment. Authored from the
+    r28 printing's pages and maps; the stat-block template judgments
+    additionally consulted the phase 3 correction session's page-cited notes,
+    as the phase 4 plan sanctioned (their epistemic source is the printed
+    page).
+  verified: >-
+    The phase 3 correction session's page-by-page checking of every claim
+    against the printed pages, plus the pinned CI baseline over the committed
+    JN1 caches. Predates the adversarial verification pass phase 5
+    introduced — recorded honestly rather than claimed retroactively.
