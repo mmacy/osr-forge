@@ -113,8 +113,9 @@ def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: Conve
     image tokens plus the flat prompt/schema overhead, and the 272K
     tier-doubling check applies per window — the chunk size caps only the
     image half of a window's tokens, while text tokens are unbounded by page
-    count (the phase 3 calibration table's B3 row, ~1,015 text tokens/page,
-    puts a 150-page window over the cliff).
+    count (at the phase 3 calibration table's B3 density, ~1,015 text
+    tokens/page, a window over ~140 pages crosses the cliff — reachable with
+    the `survey_max_pages` knob raised past its image-cap default).
     """
     page_count = len(page_text_tokens)
     text_tokens = sum(page_text_tokens)
