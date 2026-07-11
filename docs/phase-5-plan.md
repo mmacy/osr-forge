@@ -1,0 +1,94 @@
+# Phase 5 plan — BYOM measurement
+
+Implementation plan for phase 5 of [the osr-forge spec](spec.md): local evals over bring-your-own modules (BYOM) — the retail, non-redistributable PDFs that are the package's primary use case and, today, its measurement blind spot. The committed corpus is a BFRPG monoculture; the three retail verification runs (phase 1) only ever got structural spot-checks; chunked survey has one live datapoint and the anthology mode-flip has zero on retail content. The milestone: **"how does osr-forge perform in general" is answered by scored numbers from disparate retail modules on a committed, aggregate-only scoreboard — without a byte of retail content entering the repo.** The roadmap entry for this phase is itself a spec impact (the roadmap previously ended at phase 4), applied with the implementation PR like every other spec impact.
+
+Four facts shape everything:
+
+- **The publishable surface already exists.** `ModuleMetrics` is counts and ratios — no keys, names, or module text — so a committed BYOM scoreboard leaks nothing by construction. What phase 4 did not build is the plumbing (private corpora) and the process (trustworthy truth without committing it); the scorer itself needs only two small extensions.
+- **Truth authoring is the binding constraint, and agents are the instrument.** Nobody hand-authors complete truth for a shelf of retail modules; phase 4's JN2 truth file is the existence proof that an agent can (223 areas across JN1+JN2, maps included, in one session) — and the prototype for the discipline that makes it trustworthy: the authoring context held the PDF's pages and maps and nothing produced by the pipeline, and the authoring model was a different family than the extraction deployment. Phase 5 turns that session into a pinned, repeatable runbook. The trust basis shifts from "a human checked it" to "an independent instrument produced it, an adversarial pass verified it, and the owner sampled it."
+- **Retail PDF hashes are copy-specific.** DriveThruRPG-style watermarks stamp every page with the buyer's name and invoice, so the same module hashes differently per customer. Identity and integrity therefore split: cross-copy *identity* is metadata (title, publisher, edition/printing, pages); *integrity* is a local, copy-specific hash whose only job is proving later re-runs score the same file the truth was authored against. The truth file's own hash — unaffected by watermarks — pins yardstick drift between scoreboard entries.
+- **Phase 4's sweep tells us where to look.** The measured JN1 mode-flip (ten lairs collapsing into one dungeon on a re-roll) makes multi-lair anthologies the highest-value diversity axis and makes dungeon-count visibility a cheap, high-yield scoreboard upgrade; the 50-image cap makes a >50-page retail module the second chunked-survey datapoint; and B3's DDB copy carrying full OCR means the true-scan path is still genuinely untested.
+
+## Scope
+
+In scope:
+
+- Scorer extensions — assertion-aware treasure (partial truth) and dungeon-level alignment counts in the metrics
+- Private corpora — `--corpus DIR` side-loading, the identity/integrity split (optional manifest sha256 + local sidecar), and truth/authoring provenance in the manifest
+- The agent authoring runbook — `tools/eval/AUTHORING.md`: the independence discipline, the cross-instrument rule, the adversarial verification pass, the owner-sampling bar, and partial-truth guidance
+- The committed BYOM scoreboard — `tools/eval/byom-scoreboard.json`, aggregate-only, fed by an explicit `publish` step; advisory standing beside the gating corpus scoreboard
+- The seed measurement — one corpus re-sweep under the extended metrics, agent-authored truth plus scores for the phase 1 verification trio, and the pinned diversity matrix with at least one further axis filled
+- Tests for all of the above, green in CI with zero network
+
+Out of scope, each with its disposition: fixing the survey mode-flip (frozen prompts; this phase builds the diverse baseline a prompt change would be judged against — the named next customer); an encounter-precision/hallucination metric (would require `encounters` to distinguish asserted-empty from unasserted; recorded below as the one truth-format asymmetry, picked up by whichever future phase adds the metric); automated truth import from external data sources; committing any retail-derived text (permanent fence, not a deferral); making BYOM entries merge-gating (contributors cannot re-run sweeps over modules they don't own — the committed corpus remains the reproducible gate); OCR and non-PDF inputs (spec open questions, unchanged).
+
+Spec impacts, applied with the implementation PR:
+
+- **§ Roadmap** gains entry 6: *Phase 5 — BYOM measurement.* Private eval corpora over locally owned modules: agent-authored truth under a pinned independence discipline, partial (assertion-aware) truth, and a committed aggregate-only BYOM scoreboard. Milestone: scored numbers from disparate retail modules spanning a pinned diversity matrix, with no retail content in the repo.
+- **§ Testing and evals** gains two sentences: private corpora side-load through the same harness and scorer; the BYOM scoreboard is advisory (owner-refreshed, `osrforge_version`-stamped) beside the gating corpus scoreboard.
+- **§ Open questions:** the corpus-diversity entry is rewritten — the BYOM scoreboard becomes the vehicle for general-performance numbers, while a non-BFRPG *freely licensed* member for the reproducible gate remains the open need.
+- **`AGENTS.md`:** the standing-obligations section gains the BYOM refresh sentence (best-effort by module owners; staleness is visible via the stamped version, never blocking), and the licensing section cross-links the authoring runbook's fence.
+- **`README.md` and the docs site evals page:** the private-corpus workflow and the publish step.
+
+## Work items
+
+### 1. Scorer extensions — `evals.py`
+
+- **Assertion-aware treasure.** `TruthArea.treasure` becomes `TruthTreasure | None = None` — the exact semantics connections already have: `None` means "not asserted; this area is outside the treasure metric's denominators," a present block asserts the area's treasure facts completely. This is what makes time-boxed partial truth honest: a truth file covering all area keys plus a verified sample of areas still yields exact area recall and honestly-denominated treasure agreement. Encounters need no change — the name-recall denominator is already the *listed* truth encounters, so sampling was always legal — but the plan pins the known asymmetry: `encounters: []` and an omitted `encounters` are indistinguishable today (both mean "none listed"), which only matters to a hallucination-guard metric no phase has built. The committed corpus stays fully asserted, enforced by a repo test (work item 6), so the gating scoreboard's meaning cannot silently thin out.
+- **Dungeon counts in the areas family.** `AreaMetrics` gains `truth_dungeons`, `extracted_dungeons`, and `matched_dungeons` — computed facts the aligner already holds. This is the mode-flip made visible in every scoreboard entry: phase 4's amendment told readers to go inspect `survey.json`'s dungeon count; after this, the flip is legible in the committed record itself (JN1 truth 14 / extracted 14 / matched 14 versus truth 14 / extracted 5 / matched 5). The committed scoreboard's entries predate the fields, so the corpus is re-swept once (work item 5) rather than carrying optional fields or hand-edited records — greenfield discipline; a scoreboard entry is a run record, and the honest way to extend it is a run.
+- The JN1 pinned baseline test extends to the new fields (recomputed from the committed caches — deterministic and free) and re-blesses deliberately with this change, per the established golden discipline.
+
+### 2. Private corpora — `run_eval.py`, `evals.py` manifest models
+
+- **Side-loading.** Every `run_eval.py` subcommand gains `--corpus DIR` (default: the repo's `tools/eval/corpus/`). A private corpus directory uses the identical layout — `<module-id>/manifest.yaml` + `truth.yaml` — and its scoreboard lives beside it (`DIR/../scoreboard.json` stays repo-only; a private corpus writes `DIR/scoreboard.json`). Pinned: module ids in a private corpus that collide with committed corpus ids are legal locally (they're namespaced by directory) but are rejected at `publish` time — the committed BYOM scoreboard shares a namespace with nothing.
+- **The identity/integrity split.** `CorpusManifest.sha256` becomes optional. When present (every committed member — enforced by the repo test), it is the integrity gate exactly as today. When absent (the watermarked-retail case), integrity flows through a local sidecar: the harness writes `<module-id>/source.sha256` on the first successful `convert` and refuses a mismatched file thereafter with the same authored-against message — the owner's own copy becomes the pinned yardstick without pretending the hash travels. The manifest gains optional identity fields `publisher` and `edition` (free text: "r22", "2nd printing, 1981", "DDB scan"), and `license` becomes optional — a private corpus is the owner's copy with no redistribution surface, so the phase 0 verification procedure applies only where something derived will be committed, which for BYOM is never.
+- **Truth provenance.** The manifest gains an optional `truth_provenance` block: `authored` (date), `instrument` (the authoring model/agent, pinned by the cross-instrument rule below), and `verified` (the adversarial-pass and owner-sampling record, free text). The three committed members backfill it — their truths were agent-authored under exactly this discipline in phase 4, and saying so in the manifest replaces tribal knowledge with a record. `publish` refuses a module whose manifest lacks provenance: unverified truth can be scored locally all day, but it cannot put numbers on the committed board.
+
+### 3. The agent authoring runbook — `tools/eval/AUTHORING.md`
+
+The phase's center of gravity: the document an agent is pointed at, together with a PDF, to produce a trustworthy truth file. Its pinned rules:
+
+- **The independence line.** The authoring context may contain the module PDF — its text layer, its rendered pages and map crops — and nothing the pipeline produced for that module: no `survey.json`, no stage caches, no `adventure.json`, no `report.json`. The discipline was never "a human must do it"; it is "the measuring instrument must be independent of the system under test." Truth is authored before any conversion output for the module is read, or in a context that has never loaded one.
+- **The cross-instrument rule.** Prefer an authoring model from a different family than the extraction deployment (recorded in `truth_provenance.instrument`). An instrument correlated with the system under test can share its blind spots; family diversity is the cheap mitigation, and the phase 4 precedent (JN2's truth authored by a different vendor's model than `gpt-5.4`) is the default posture, not a lucky accident.
+- **The process**, distilled from the phase 4 sessions: extract the text layer page by page; render the printed maps and crop per keyed site; walk the key section by section reconciling stat blocks; apply `tools/eval/README.md`'s conventions verbatim (singular stat-block creature names, fixed counts only, the treasure `present` rules, dungeons per keyed site); assert `connections` and `treasure` only where the complete fact set is pinned (partial truth is the designed norm, not a compromise); run the validators; flag every judgment call inline for the verification pass.
+- **The adversarial verification pass.** A second agent, fresh context, same independence line, re-checks every recorded fact against its cited page and hunts for omissions (areas the key lists that truth lacks); disagreements resolve against the printed page. Required before `publish` — it is the truth file's rubber-duck.
+- **The owner-sampling bar.** The module's owner spot-checks at least 10 areas or 10% (whichever is larger) plus every flagged judgment call, and the result lands in `truth_provenance.verified`. Humans audit; agents author.
+
+### 4. The BYOM scoreboard — `tools/eval/byom-scoreboard.json`
+
+- **The committed record**, aggregate-only by construction: per module id — identity metadata (title, publisher, edition, pages), the run block (`RunInfo`, unchanged), `truth_sha256` (the yardstick pin: watermark-proof because it hashes the owner's YAML, and its job is distinguishing "the extraction moved" from "the truth moved" between entries), and the `ModuleMetrics` block. Nothing else; no PDF hash (copy-specific, meaningless cross-customer), no license claims, no text.
+- **The publish step.** `run_eval.py publish <module-id> --corpus DIR` copies the private scoreboard entry plus manifest identity and truth hash into the committed board — a deliberate, outward-facing act, separate from scoring, refused without truth provenance (work item 2) and on id collision with the committed corpus. Publishing updates an existing entry in place; the board holds one current entry per module, and history is git's job.
+- **Advisory standing, pinned.** The regression rule binds the committed corpus scoreboard exactly as before; BYOM entries refresh best-effort by whoever owns the module, and a stale entry is visible (its `osrforge_version` stamp), never blocking. The board answers "how does it perform in general," not "may this PR merge."
+
+### 5. The seed measurement
+
+- **Re-sweep the committed corpus once** under the extended metrics (~$2) — regenerating the corpus scoreboard with dungeon counts and, as a bonus, a third JN1 datapoint on the mode-flip's frequency.
+- **Author, verify, and publish the phase 1 trio** per the runbook — the seed spans the matrix's genre axis by construction: *The Hole in the Oak* (OSE, best-case fit), *B3 Palace of the Silver Princess* (TSR trade dress; convert with `blank_page_renders=[21]`, the recorded content-filter page), *DCC #81* (out-of-genre vocabulary). Their identity metadata comes from the phase 1 amendment; their local hashes are re-derived from the owner's copies (the amendment's hashes are those copies' — if they match, the sidecar confirms it; if the files have changed, the sidecar records what the truth was actually authored against).
+- **The diversity matrix, pinned as the target grid:** publisher/layout (TSR, OSE, DCC — seeded; one further house style welcome), single-site vs. **multi-lair anthology** (the mode-flip probe; *B2 The Keep on the Borderlands* is the named ideal if owned), **over 50 pages** (chunked survey's second live datapoint), and **true scan with weak or absent text layer** (still untested; B3's DDB copy disproved itself). The phase's bar: the trio published plus at least one of the three unseeded axes filled from the owner's shelf; each unfilled axis is recorded in the amendment with the reason (typically: no owned module fits). Anthology modules run twice (bimodality detection); others once, twice as budget allows. Cost envelope: roughly $0.50–1.00 per module-run, ≤ $15 for the phase.
+- The amendment records, per published module: identity, truth provenance (instrument, verification, sampling), coverage posture (full vs. partial truth, which families asserted), and the scores' one-line reading.
+
+### 6. Tests
+
+- **Treasure assertion semantics:** unasserted areas out of both treasure denominators; asserted-empty (`present: false`) versus extracted-signal disagreements unchanged; the JN1 pinned baseline extended and re-blessed with the dungeon-count fields.
+- **Committed-corpus completeness:** every repo corpus member pins `sha256`, `license`, full treasure assertion on every area, and (after backfill) `truth_provenance` — the gating corpus never gets thinner by accident.
+- **Manifest optionality and the sidecar:** a manifest without `sha256` round-trips; first-convert writes the sidecar; a doctored file is refused against the sidecar with the authored-against message — all offline over fabricated files.
+- **Publish flow:** private entry → committed board round-trip with identity and truth hash carried; refusal without provenance; refusal on committed-corpus id collision; board bytes stable under `write_json_artifact`.
+- **Dungeon counts:** synthetic alignment cases (the mode-flip shape: many truth dungeons, one extracted) pin the new fields.
+- All green under `uv run pytest` locally and in CI on both OSes, no network anywhere.
+
+## Sequencing
+
+1. Scorer extensions and their tests (work item 1) — the metrics ship before anything is measured with them.
+2. Private corpora, manifest models, and the sidecar (work item 2) — the plumbing the runbook assumes.
+3. The authoring runbook (work item 3) and the BYOM scoreboard with `publish` (work item 4).
+4. The corpus re-sweep, then the trio: author → adversarial verify → owner sample → convert → score → publish (work item 5); matrix extension as the shelf allows.
+5. Spec, README, docs-site, and `AGENTS.md` impacts; the amendment; the traceability pass.
+
+## Definition of done
+
+- `uv sync && uv run ruff format --check && uv run ruff check && uv run pyright && uv run pytest` passes locally and in CI on both OSes, no network in any test; `mkdocs build --strict` stays green.
+- Partial truth is real: an area with `treasure` unasserted is outside the treasure denominators, the committed corpus is machine-checked fully asserted, and the JN1 pinned baseline carries the dungeon-count fields.
+- A private corpus directory works end to end offline (fabricated fixtures): side-loaded scoring, sidecar integrity including refusal, provenance-gated publish into a byte-stable committed board.
+- `tools/eval/AUTHORING.md` exists with the independence line, the cross-instrument rule, the adversarial pass, the owner-sampling bar, and partial-truth guidance; the three committed members' manifests carry backfilled provenance.
+- The corpus scoreboard is regenerated with dungeon counts; the BYOM scoreboard is committed carrying the phase 1 trio (verified truth, published scores) plus at least one unseeded matrix axis, with unfilled axes and their reasons in the amendment.
+- The spec's roadmap entry 6, the § Testing and evals sentences, the open-questions rewrite, and the `AGENTS.md`/README/docs-site impacts are applied with the implementation PR; every phase 5 item above is traceable to code and tests or to a named amendment entry.
