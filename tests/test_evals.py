@@ -155,6 +155,9 @@ def perfect_workdir(tmp_path: Path) -> Path:
 class TestMetricFamilies:
     def test_perfect_extraction_scores_ones(self, tmp_path: Path):
         metrics = score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH)
+        assert metrics.areas.truth_dungeons == 1
+        assert metrics.areas.extracted_dungeons == 1
+        assert metrics.areas.matched_dungeons == 1
         assert metrics.areas.recall == 1.0 and metrics.areas.precision == 1.0
         assert metrics.encounters.name_recall == 1.0
         assert metrics.encounters.count_accuracy == 1.0
@@ -329,6 +332,159 @@ dungeons:
         assert metrics.encounters.resolution_denominator == 0
         assert metrics.encounters.resolution_accuracy is None
         assert metrics.encounters.non_srd == 1
+
+
+class TestTreasureAssertion:
+    def test_unasserted_treasure_leaves_both_denominators(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            treasure:
+              present: true
+              letters: [B]
+          - key: "2"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "lair",
+                    [
+                        (
+                            1,
+                            [survey_area("1"), survey_area("2")],
+                            [
+                                content_area("1", treasure=("Treasure Type B.",)),
+                                # Area 2's treasure is unasserted: whatever extraction
+                                # saw here is outside both denominators.
+                                content_area("2", treasure=("500 gp",)),
+                            ],
+                        )
+                    ],
+                )
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.areas.matched == 2
+        assert metrics.treasure.presence_denominator == 1
+        assert metrics.treasure.presence_agreement == 1.0
+        assert metrics.treasure.letters_denominator == 1
+        assert metrics.treasure.letter_accuracy == 1.0
+
+    def test_asserted_empty_still_disagrees_with_an_extracted_signal(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            treasure:
+              present: false
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1", treasure=("a ruby worth 100 gp",))])])],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.treasure.presence_denominator == 1
+        assert metrics.treasure.presence_agreement == 0.0
+
+    def test_all_unasserted_yields_empty_denominator(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1")])])],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.treasure.presence_denominator == 0
+        assert metrics.treasure.presence_agreement is None
+
+
+class TestDungeonCounts:
+    def test_mode_flip_shape_is_legible(self, tmp_path: Path):
+        """The phase 4 hazard's shape: many truth dungeons collapsing into one extracted dungeon."""
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: cave a
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+  - name: cave b
+    levels:
+      - number: 1
+        areas:
+          - key: "2"
+  - name: cave c
+    levels:
+      - number: 1
+        areas:
+          - key: "3"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "caves",
+                    [
+                        (
+                            1,
+                            [survey_area(key) for key in ("1", "2", "3")],
+                            [content_area(key) for key in ("1", "2", "3")],
+                        )
+                    ],
+                )
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.areas.truth_dungeons == 3
+        assert metrics.areas.extracted_dungeons == 1
+        # Greedy alignment gives the one extracted dungeon to the first truth
+        # dungeon with overlap; the other two go unmatched.
+        assert metrics.areas.matched_dungeons == 1
+
+    def test_phantom_extracted_dungeon_is_visible(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                ("lair", [(1, [survey_area("1")], [content_area("1")])]),
+                ("phantom", [(1, [survey_area("99")], [content_area("99")])]),
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.areas.truth_dungeons == 1
+        assert metrics.areas.extracted_dungeons == 2
+        assert metrics.areas.matched_dungeons == 1
 
 
 class TestConnectionUniverse:
@@ -817,7 +973,10 @@ def test_jn1_pinned_baseline_over_the_committed_caches(tmp_path: Path):
     truth = load_truth(CORPUS / "jn1-chaotic-caves" / "truth.yaml")
     metrics = score_workdir(jn1_workdir(tmp_path / "jn1.forge"), truth)
 
-    # The milestone extraction surveyed every keyed area the truth records.
+    # The milestone extraction surveyed every keyed site and area the truth records.
+    assert metrics.areas.truth_dungeons == 14
+    assert metrics.areas.extracted_dungeons == 14
+    assert metrics.areas.matched_dungeons == 14
     assert metrics.areas.truth_areas == 137
     assert metrics.areas.extracted_areas == 137
     assert metrics.areas.matched == 137

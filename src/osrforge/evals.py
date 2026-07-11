@@ -2,15 +2,16 @@
 
 This is the pure half of the spec's "ship quality evals so extraction changes
 are measured, not vibed": deterministic, CI-tested code that scores a
-workdir's stage caches against hand-checked ground truth. The live-network
-driver (`tools/eval/run_eval.py`) is repo-only wiring; everything with
-behavior worth testing lives here. The scorer reads the stage caches — never
-`adventure.json` — because evals measure *extraction*, and assembly's
+workdir's stage caches against verified structural ground truth. The
+live-network driver (`tools/eval/run_eval.py`) is repo-only wiring; everything
+with behavior worth testing lives here. The scorer reads the stage caches —
+never `adventure.json` — because evals measure *extraction*, and assembly's
 best-effort fallbacks exist to mask extraction gaps in the playable draft,
 which is exactly what a measurement must not let them do.
 
 Truth files are structural-only (printed keys, names, and codes — no prose)
-and are authored from the printed module, never from pipeline output; see
+and are authored from the printed module under the independence discipline
+(`tools/eval/AUTHORING.md`) — never from pipeline output; see
 `tools/eval/README.md` for the corpus rules and the authoring conventions.
 """
 
@@ -97,10 +98,14 @@ class TruthTreasure(BaseModel):
 class TruthArea(BaseModel):
     """One keyed area, identified by its printed key.
 
-    `connections` is assertion-aware: `None` (omitted) means the area's
-    neighbor set was not asserted and edges incident to it are out of the
-    connection metric's universe; a list — possibly empty — asserts the
-    area's *complete* set of same-level connected printed keys.
+    `connections` and `treasure` are assertion-aware: `None` (omitted) means
+    the fact was not asserted — the area's edges are out of the connection
+    metric's universe, or the area is outside both treasure denominators. A
+    present value asserts the complete fact set: the area's full same-level
+    connected printed-key list (possibly empty), or the area's treasure facts.
+    Assertion-awareness is what makes time-boxed partial truth honest: a truth
+    file covering every area key plus a verified sample of areas still yields
+    exact area recall and honestly-denominated treasure agreement.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -108,7 +113,7 @@ class TruthArea(BaseModel):
     key: str
     encounters: tuple[TruthEncounter, ...] = ()
     connections: tuple[str, ...] | None = None
-    treasure: TruthTreasure
+    treasure: TruthTreasure | None = None
 
 
 class TruthLevel(BaseModel):
@@ -150,7 +155,7 @@ class TruthDungeon(BaseModel):
 
 
 class ModuleTruth(BaseModel):
-    """A corpus module's hand-checked structural ground truth."""
+    """A corpus module's verified structural ground truth."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -239,10 +244,19 @@ def verify_source(manifest: CorpusManifest, pdf_path: Path) -> None:
 
 
 class AreaMetrics(BaseModel):
-    """The areas family: recall (the spec's named metric) plus the hallucination guard."""
+    """The areas family: recall (the spec's named metric), the hallucination guard, and dungeon alignment.
+
+    The dungeon counts make the survey mode legible in every scoreboard entry
+    — phase 4's measured JN1 mode-flip (ten lairs collapsing into one dungeon
+    on a re-roll) reads as `truth_dungeons=14, extracted_dungeons=5` instead
+    of requiring a trip to `survey.json`.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    truth_dungeons: int
+    extracted_dungeons: int
+    matched_dungeons: int
     truth_areas: int
     extracted_areas: int
     matched: int
@@ -561,14 +575,15 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                         if resolution is not None and resolution.template_id == truth_encounter.template:
                             resolution_matched += 1
 
-                presence_denominator += 1
-                if _treasure_signal(extracted_area) == truth_area.treasure.present:
-                    presence_matched += 1
-                if truth_area.treasure.letters:
-                    letters_denominator += 1
-                    parsed = parse_treasure(extracted_area.treasure)
-                    if sorted(parsed.letters) == sorted(truth_area.treasure.letters):
-                        letters_matched += 1
+                if truth_area.treasure is not None:
+                    presence_denominator += 1
+                    if _treasure_signal(extracted_area) == truth_area.treasure.present:
+                        presence_matched += 1
+                    if truth_area.treasure.letters:
+                        letters_denominator += 1
+                        parsed = parse_treasure(extracted_area.treasure)
+                        if sorted(parsed.letters) == sorted(truth_area.treasure.letters):
+                            letters_matched += 1
 
             # Connections: undirected same-level edges between matched areas,
             # in the asserted universe (at least one endpoint's neighbor set
@@ -606,6 +621,9 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
 
     return ModuleMetrics(
         areas=AreaMetrics(
+            truth_dungeons=len(truth.dungeons),
+            extracted_dungeons=len(index.dungeons),
+            matched_dungeons=len(matches),
             truth_areas=truth_area_count,
             extracted_areas=extracted_area_count,
             matched=matched_areas,
