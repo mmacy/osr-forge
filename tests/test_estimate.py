@@ -49,7 +49,7 @@ def test_estimate_leaves_a_warm_workdir(tmp_path: Path):
 
 
 def test_a_single_request_survey_crosses_the_tier_cliff_alone():
-    settings = ConversionSettings()
+    settings = ConversionSettings(survey_max_pages=100)
     # 100 pages of very dense text: survey input 392,500 tokens — over 272K.
     result = _estimate_from_measurements([3_000] * 100, settings=settings)
     assert result.survey_window_count == 1
@@ -70,9 +70,9 @@ def test_below_the_cliff_everything_prices_at_the_base_tier():
 
 
 def test_an_over_chunk_size_source_prices_per_window_at_pinned_numbers():
-    # 200 pages at the default 150-page chunk size: windows 1-150 and 151-200,
-    # each carrying its own pages' tokens plus the flat 2,000 overhead.
-    result = _estimate_from_measurements([10] * 200, settings=ConversionSettings())
+    # 200 pages at a 150-page chunk size: windows 1-150 and 151-200, each
+    # carrying its own pages' tokens plus the flat 2,000 overhead.
+    result = _estimate_from_measurements([10] * 200, settings=ConversionSettings(survey_max_pages=150))
     assert result.survey_window_count == 2
     first_window_input = 150 * 10 + 150 * 905 + 2000  # 139,250
     second_window_input = 50 * 10 + 50 * 905 + 2000  # 47,750
@@ -86,7 +86,7 @@ def test_an_over_chunk_size_source_prices_per_window_at_pinned_numbers():
 def test_the_tier_cliff_applies_per_window_for_text_dense_sources():
     # The B3 calibration density (~1,015 text tokens/page) puts a 150-page
     # window at 290,000 input tokens — over the cliff, chunk size or not.
-    result = _estimate_from_measurements([1_015] * 300, settings=ConversionSettings())
+    result = _estimate_from_measurements([1_015] * 300, settings=ConversionSettings(survey_max_pages=150))
     assert result.survey_window_count == 2
     window_input = 150 * 1_015 + 150 * 905 + 2000
     assert window_input > 272_000
@@ -125,3 +125,11 @@ def test_the_extraction_runner_imports_the_pricing_constants():
     runner = (Path(__file__).parent.parent / "tools" / "extract" / "run_extraction.py").read_text(encoding="utf-8")
     assert "from osrforge.estimate import INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN" in runner
     assert "2.50" not in runner  # no second copy of the price
+
+
+def test_the_default_chunk_size_is_the_measured_image_cap():
+    # The deployment rejects requests with more than 50 images (measured live
+    # on a 54-page module), so the default keeps every window under the cap.
+    assert ConversionSettings().survey_max_pages == 50
+    result = _estimate_from_measurements([10] * 54, settings=ConversionSettings())
+    assert result.survey_window_count == 2

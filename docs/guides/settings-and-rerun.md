@@ -14,7 +14,7 @@ started with.
 | `max_source_bytes` | 100 MiB | Source file-size guardrail |
 | `blank_page_renders` | `()` | Page numbers whose renders are emitted as blank white PNGs (text layer still extracted) — the content-safety-filter workaround; each blanked page is flagged `page_unreadable` |
 | `content_batch_pages` | 8 | Content-pass batch size in pages (floor 2) |
-| `survey_max_pages` | 150 | The survey chunk size: a source at or under this many pages surveys in one request; a larger source surveys in page windows of this size, merged before normalization |
+| `survey_max_pages` | 50 | The survey chunk size — the service's measured 50-images-per-request cap: a source at or under this many pages surveys in one request; a larger source surveys in page windows of this size, merged before normalization |
 | `monster_fuzzy_threshold` | 0.85 | Monster resolution's fuzzy-tier auto-accept floor, pinned against measured catalog pairs |
 | `monster_llm_top_k` | 8 | Candidate templates offered per name in the monster-resolution LLM tier |
 | `unresolved_fallback` | `best-effort` | Where resolution or parsing came up empty: flagged level-band monster stand-ins and unguarded-treasure rolls (`best-effort`), or leave the gap (`omit`) |
