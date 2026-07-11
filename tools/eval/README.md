@@ -186,24 +186,26 @@ amendment records both runs side by side, and the regression band is the
 observed per-metric spread, floored at 0.02 absolute.
 
 The current noise band — the living table each sweep-pair updates, with
-history staying in the phase amendments (this table: the phase 4 double
-sweep of 2026-07-10, superseded when the phase 5 sweep-pair lands):
+history staying in the phase amendments (this table: the phase 5 double
+sweep of 2026-07-10, superseding phase 4's flip-inflated band):
 
 | metric | band |
 | --- | --- |
-| area recall | 0.5036 |
-| area precision | 0.5000 |
-| encounter name recall | 0.4404 |
-| count accuracy | 0.0386 |
-| resolution accuracy | 0.1325 |
-| connection F1 | 0.0231 |
-| treasure presence | 0.0250 |
+| area recall | 0.02 |
+| area precision | 0.02 |
+| encounter name recall | 0.1193 |
+| count accuracy | 0.0221 |
+| resolution accuracy | 0.0823 |
+| connection F1 | 0.0452 |
+| treasure presence | 0.02 |
 
-The wide area/name-recall/resolution bands are not gaussian noise but the
-measured **survey mode-flip** (a JN1 re-roll collapsed ten cave lairs into
-one dungeon): regression judgment on those metrics should first check the
-scoreboard's dungeon counts (`truth_dungeons` vs `extracted_dungeons`) to see
-whether the mode flipped.
+The survey mode-flip phase 4 measured (a JN1 re-roll collapsed ten cave
+lairs into one dungeon) did not recur in either phase 5 run — the area
+bands above are at the 0.02 floor because both runs surveyed every site —
+but it remains the known failure mode: regression judgment on the area and
+name-recall metrics should first check the scoreboard's dungeon counts
+(`truth_dungeons` vs `extracted_dungeons`) to see whether the mode flipped,
+and a flipped run judges against phase 4's amendment record, not this band.
 
 The regression rule (also recorded in `AGENTS.md` and the spec): any PR that
 edits extraction prompts or schemas, `MONSTER_ALIASES`, resolution logic, or
