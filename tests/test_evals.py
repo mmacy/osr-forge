@@ -22,6 +22,7 @@ from osrforge.contracts.stages import (
     TownInfo,
 )
 from osrforge.evals import (
+    ByomScoreboard,
     CorpusManifest,
     ModuleScore,
     ModuleTruth,
@@ -29,14 +30,19 @@ from osrforge.evals import (
     Scoreboard,
     corpus_means,
     enforce_source_integrity,
+    load_byom_scoreboard,
     load_manifest,
     load_scoreboard,
     load_truth,
+    publish_module,
+    save_byom_scoreboard,
     save_scoreboard,
     score_workdir,
+    settings_overrides,
     sidecar_path,
     verify_source,
 )
+from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir, write_json_artifact
 
 ASSETS = Path(__file__).parent / "assets"
@@ -989,6 +995,146 @@ dungeons:
         assert load_scoreboard(path) == board
         means = corpus_means(board)
         assert means["area_recall"] == 1.0
+
+
+class TestSettingsOverrides:
+    def test_defaults_echo_nothing(self):
+        assert settings_overrides(ConversionSettings()) == ()
+
+    def test_non_default_knobs_echo_as_yaml_parseable_pairs(self):
+        settings = ConversionSettings(blank_page_renders=(21,), render_dpi=300, unresolved_fallback="omit")
+        assert settings_overrides(settings) == (
+            "render_dpi=300",
+            "blank_page_renders=[21]",
+            "unresolved_fallback=omit",
+        )
+
+
+def private_module_fixtures(tmp_path: Path) -> tuple[Path, CorpusManifest, ModuleScore, str]:
+    """A fabricated private corpus member with a scored entry and provenance."""
+    module_dir = tmp_path / "some-retail-module"
+    module_dir.mkdir(parents=True, exist_ok=True)
+    truth_path = module_dir / "truth.yaml"
+    truth_path.write_text(
+        "dungeons:\n  - name: lair\n    levels:\n      - number: 1\n        areas:\n          - key: '1'\n",
+        encoding="utf-8",
+    )
+    manifest = CorpusManifest.model_validate(
+        {
+            **UNPINNED_MANIFEST,
+            "truth_provenance": {
+                "authored": "2026-07-10",
+                "instrument": "Claude (Anthropic)",
+                "verified": "adversarial pass 2026-07-10; owner sampled 10 areas",
+            },
+        }
+    )
+    score = ModuleScore(
+        run=RunInfo(
+            date="2026-07-10", model_id="gpt-5.4", osrforge_version="0.1.0", input_tokens=10, output_tokens=2, usd=0.5
+        ),
+        settings_overrides=("blank_page_renders=[21]",),
+        metrics=score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH),
+    )
+    truth_sha256 = hashlib.sha256(truth_path.read_bytes()).hexdigest()
+    return module_dir, manifest, score, truth_sha256
+
+
+class TestPublish:
+    def test_round_trip_carries_identity_truth_hash_and_overrides(self, tmp_path: Path):
+        _, manifest, score, truth_sha256 = private_module_fixtures(tmp_path)
+        board = publish_module(
+            board=ByomScoreboard(),
+            module_id="some-retail-module",
+            manifest=manifest,
+            private_board=Scoreboard(modules={"some-retail-module": score}),
+            truth_sha256=truth_sha256,
+            committed_ids={"minimod", "jn1-chaotic-caves", "jn2-monkey-isle"},
+        )
+        entry = board.modules["some-retail-module"]
+        assert entry.title == "Some Retail Module"
+        assert entry.publisher == "Some Publisher"
+        assert entry.edition == "2nd printing, 1981"
+        assert entry.pages == 36
+        assert entry.truth_sha256 == truth_sha256
+        assert entry.settings_overrides == ("blank_page_renders=[21]",)
+        assert entry.run == score.run
+        assert entry.metrics == score.metrics
+        # Byte stability under the pinned artifact writer.
+        out = tmp_path / "byom-scoreboard.json"
+        save_byom_scoreboard(out, board)
+        first = out.read_bytes()
+        save_byom_scoreboard(out, load_byom_scoreboard(out))
+        assert out.read_bytes() == first
+
+    def test_refuses_an_unscored_module(self, tmp_path: Path):
+        _, manifest, _, truth_sha256 = private_module_fixtures(tmp_path)
+        with pytest.raises(ValueError, match="no scored entry"):
+            publish_module(
+                board=ByomScoreboard(),
+                module_id="some-retail-module",
+                manifest=manifest,
+                private_board=Scoreboard(),
+                truth_sha256=truth_sha256,
+                committed_ids=set(),
+            )
+
+    def test_refuses_missing_provenance(self, tmp_path: Path):
+        _, _, score, truth_sha256 = private_module_fixtures(tmp_path)
+        bare = CorpusManifest.model_validate(UNPINNED_MANIFEST)
+        with pytest.raises(ValueError, match="truth_provenance"):
+            publish_module(
+                board=ByomScoreboard(),
+                module_id="some-retail-module",
+                manifest=bare,
+                private_board=Scoreboard(modules={"some-retail-module": score}),
+                truth_sha256=truth_sha256,
+                committed_ids=set(),
+            )
+
+    def test_refuses_a_committed_corpus_id_collision(self, tmp_path: Path):
+        _, manifest, score, truth_sha256 = private_module_fixtures(tmp_path)
+        with pytest.raises(ValueError, match="collides"):
+            publish_module(
+                board=ByomScoreboard(),
+                module_id="minimod",
+                manifest=manifest,
+                private_board=Scoreboard(modules={"minimod": score}),
+                truth_sha256=truth_sha256,
+                committed_ids={"minimod"},
+            )
+
+    def test_refuses_a_title_mismatch_on_update(self, tmp_path: Path):
+        _, manifest, score, truth_sha256 = private_module_fixtures(tmp_path)
+        private = Scoreboard(modules={"some-retail-module": score})
+        board = publish_module(
+            board=ByomScoreboard(),
+            module_id="some-retail-module",
+            manifest=manifest,
+            private_board=private,
+            truth_sha256=truth_sha256,
+            committed_ids=set(),
+        )
+        imposter = manifest.model_copy(update={"title": "A Different Module"})
+        with pytest.raises(ValueError, match="cannot share one id"):
+            publish_module(
+                board=board,
+                module_id="some-retail-module",
+                manifest=imposter,
+                private_board=private,
+                truth_sha256=truth_sha256,
+                committed_ids=set(),
+            )
+        # A same-title update replaces the entry.
+        updated = publish_module(
+            board=board,
+            module_id="some-retail-module",
+            manifest=manifest,
+            private_board=private,
+            truth_sha256="ff" * 32,
+            committed_ids=set(),
+        )
+        assert updated.modules["some-retail-module"].truth_sha256 == "ff" * 32
 
 
 class TestCommittedCorpus:

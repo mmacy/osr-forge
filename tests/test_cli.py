@@ -61,7 +61,9 @@ class TestParsing:
         assert args.set == ["unresolved_fallback=omit"]
 
     def test_parse_set_coerces_values_through_yaml(self):
-        updates = cli.parse_set_values(["max_pages=21", "blank_page_renders=[21, 30]", "unresolved_fallback=best-effort"])
+        updates = cli.parse_set_values(
+            ["max_pages=21", "blank_page_renders=[21, 30]", "unresolved_fallback=best-effort"]
+        )
         assert updates == {"max_pages": 21, "blank_page_renders": [21, 30], "unresolved_fallback": "best-effort"}
 
     def test_parse_set_rejects_missing_equals(self):

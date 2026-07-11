@@ -15,6 +15,7 @@ A private corpus uses the identical layout — `<module-id>/manifest.yaml` +
 
 import argparse
 import datetime
+import hashlib
 import sys
 from pathlib import Path
 
@@ -29,11 +30,15 @@ from osrforge.evals import (
     Scoreboard,
     corpus_means,
     enforce_source_integrity,
+    load_byom_scoreboard,
     load_manifest,
     load_scoreboard,
     load_truth,
+    publish_module,
+    save_byom_scoreboard,
     save_scoreboard,
     score_workdir,
+    settings_overrides,
     verify_source,
 )
 from osrforge.settings import ConversionSettings
@@ -42,6 +47,7 @@ from osrforge.workdir import Workdir
 
 EVAL_DIR = Path(__file__).resolve().parent
 DEFAULT_CORPUS = EVAL_DIR / "corpus"
+BYOM_SCOREBOARD = EVAL_DIR / "byom-scoreboard.json"
 
 
 def module_dir(corpus: Path, module_id: str) -> Path:
@@ -150,6 +156,7 @@ def cmd_score(args: argparse.Namespace) -> None:
             output_tokens=usage.output_tokens,
             usd=round(_run_usd(run), 4),
         ),
+        settings_overrides=settings_overrides(run.settings),
         metrics=metrics,
     )
     board_path = scoreboard_path(args.corpus)
@@ -164,6 +171,9 @@ def cmd_score(args: argparse.Namespace) -> None:
 
 
 def cmd_report(args: argparse.Namespace) -> None:
+    if args.byom:
+        _report_byom()
+        return
     board_path = scoreboard_path(args.corpus)
     scoreboard = load_scoreboard(board_path)
     if not scoreboard.modules:
@@ -173,10 +183,48 @@ def cmd_report(args: argparse.Namespace) -> None:
             f"# {module_id} — {score.run.date}, {score.run.model_id}, osr-forge {score.run.osrforge_version}, "
             f"in={score.run.input_tokens} out={score.run.output_tokens} (${score.run.usd:.2f})"
         )
+        if score.settings_overrides:
+            print(f"  overrides:   {' '.join(score.settings_overrides)}")
         _print_metrics(module_id, score.metrics)
     print("# corpus means")
     for name, value in corpus_means(scoreboard).items():
         print(f"  {name}: {'n/a' if value is None else f'{value:.4f}'}")
+
+
+def _report_byom() -> None:
+    board = load_byom_scoreboard(BYOM_SCOREBOARD)
+    if not board.modules:
+        sys.exit(f"no BYOM scoreboard at {BYOM_SCOREBOARD} — publish a module first (see tools/eval/AUTHORING.md)")
+    for module_id, entry in board.modules.items():
+        identity = ", ".join(part for part in (entry.publisher, entry.edition) if part)
+        identity = f" ({identity})" if identity else ""
+        print(f"# {module_id} — {entry.title}{identity}, {entry.pages} pages")
+        print(
+            f"  run: {entry.run.date}, {entry.run.model_id}, osr-forge {entry.run.osrforge_version}, "
+            f"in={entry.run.input_tokens} out={entry.run.output_tokens} (${entry.run.usd:.2f})"
+        )
+        print(f"  truth: sha256 {entry.truth_sha256[:16]}…")
+        if entry.settings_overrides:
+            print(f"  overrides: {' '.join(entry.settings_overrides)}")
+        _print_metrics(module_id, entry.metrics)
+
+
+def cmd_publish(args: argparse.Namespace) -> None:
+    member = module_dir(args.corpus, args.module_id)
+    manifest = load_manifest(member / "manifest.yaml")
+    truth_sha256 = hashlib.sha256((member / "truth.yaml").read_bytes()).hexdigest()
+    private_board = load_scoreboard(scoreboard_path(args.corpus))
+    committed_ids = {child.name for child in DEFAULT_CORPUS.iterdir() if child.is_dir()}
+    board = publish_module(
+        board=load_byom_scoreboard(BYOM_SCOREBOARD),
+        module_id=args.module_id,
+        manifest=manifest,
+        private_board=private_board,
+        truth_sha256=truth_sha256,
+        committed_ids=committed_ids,
+    )
+    save_byom_scoreboard(BYOM_SCOREBOARD, board)
+    print(f"published {args.module_id} ({manifest.title}) to {BYOM_SCOREBOARD}")
 
 
 def _add_corpus_option(parser: argparse.ArgumentParser) -> None:
@@ -215,8 +263,16 @@ def build_parser() -> argparse.ArgumentParser:
     score_parser.set_defaults(handler=cmd_score)
 
     report_parser = subcommands.add_parser("report", help="render a corpus scoreboard (offline)")
+    report_parser.add_argument("--byom", action="store_true", help="render the committed BYOM scoreboard instead")
     _add_corpus_option(report_parser)
     report_parser.set_defaults(handler=cmd_report)
+
+    publish_parser = subcommands.add_parser(
+        "publish", help="copy a private corpus module's scored entry onto the committed BYOM scoreboard (offline)"
+    )
+    publish_parser.add_argument("module_id", help="the private corpus module id")
+    _add_corpus_option(publish_parser)
+    publish_parser.set_defaults(handler=cmd_publish)
     return parser
 
 

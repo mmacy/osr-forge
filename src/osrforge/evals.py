@@ -17,6 +17,7 @@ and are authored from the printed module under the independence discipline
 
 import hashlib
 import json
+from collections.abc import Collection
 from difflib import SequenceMatcher
 from pathlib import Path
 
@@ -26,12 +27,15 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from osrforge.assemble import parse_treasure
 from osrforge.contracts.stages import AreaContent, LevelContent, MonsterResolutions, SurveyIndex
 from osrforge.monsters import normalize_monster_name
+from osrforge.settings import ConversionSettings
 from osrforge.survey import canonical_slug
 from osrforge.versioning import SCHEMA_VERSION
 from osrforge.workdir import Workdir, write_json_artifact
 
 __all__ = [
     "AreaMetrics",
+    "ByomEntry",
+    "ByomScoreboard",
     "ConnectionMetrics",
     "CorpusManifest",
     "EncounterMetrics",
@@ -50,10 +54,15 @@ __all__ = [
     "TruthTreasure",
     "corpus_means",
     "enforce_source_integrity",
+    "load_byom_scoreboard",
     "load_manifest",
     "load_scoreboard",
     "load_truth",
+    "publish_module",
+    "save_byom_scoreboard",
+    "save_scoreboard",
     "score_workdir",
+    "settings_overrides",
     "sidecar_path",
     "verify_source",
 ]
@@ -427,16 +436,23 @@ class RunInfo(BaseModel):
 
 
 class ModuleScore(BaseModel):
-    """One module's scoreboard entry: the run that produced it plus its metrics."""
+    """One module's scoreboard entry: the run that produced it, its non-default knobs, and its metrics.
+
+    `settings_overrides` echoes the scored workdir's non-default
+    `ConversionSettings` knobs as `key=value` strings (knob names and page
+    numbers, never module text) — a run measured with, say, a blanked page is
+    visible in the record instead of being an invisible special condition.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     run: RunInfo
+    settings_overrides: tuple[str, ...] = ()
     metrics: ModuleMetrics
 
 
 class Scoreboard(BaseModel):
-    """The committed scoreboard: per-module scores keyed by corpus module id, sorted for byte stability."""
+    """A corpus's scoreboard: per-module scores keyed by corpus module id, sorted for byte stability."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -471,6 +487,164 @@ def save_scoreboard(path: Path, scoreboard: Scoreboard) -> None:
         scoreboard: The scoreboard to persist.
     """
     write_json_artifact(path, scoreboard)
+
+
+def settings_overrides(settings: ConversionSettings) -> tuple[str, ...]:
+    """The non-default conversion knobs, as `key=value` strings in field order.
+
+    Values render as YAML-parseable text (`blank_page_renders=[21]`,
+    `render_dpi=300`) — the same shape the `--set` flag was typed with. Knob
+    names and numbers only, never module text.
+
+    Args:
+        settings: The settings echoed in a scored workdir's `run.json`.
+
+    Returns:
+        One `key=value` string per knob that differs from the default.
+    """
+    defaults = ConversionSettings()
+    dump = settings.model_dump(mode="json")
+    overrides: list[str] = []
+    for name in ConversionSettings.model_fields:
+        if getattr(settings, name) == getattr(defaults, name):
+            continue
+        value = dump[name]
+        overrides.append(f"{name}={value if isinstance(value, str) else json.dumps(value)}")
+    return tuple(overrides)
+
+
+class ByomEntry(BaseModel):
+    """One published BYOM record: aggregate-only by construction.
+
+    Identity metadata (cross-copy: title, publisher, edition, pages), the run
+    block, the truth-file hash, the non-default knobs, and the metrics —
+    nothing else. No PDF hash (copy-specific, meaningless cross-customer), no
+    license claims, no module text. `truth_sha256` is the yardstick pin:
+    watermark-proof because it hashes the owner's YAML, and its job is
+    distinguishing "the extraction moved" from "the truth moved" between
+    entries.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    title: str
+    publisher: str | None = None
+    edition: str | None = None
+    pages: int = Field(ge=1)
+    run: RunInfo
+    truth_sha256: str
+    settings_overrides: tuple[str, ...] = ()
+    metrics: ModuleMetrics
+
+
+class ByomScoreboard(BaseModel):
+    """The committed BYOM scoreboard: advisory, aggregate-only, owner-refreshed.
+
+    Answers "how does it perform in general," not "may this PR merge" — the
+    regression rule binds the corpus scoreboard, never this one. Entries
+    refresh best-effort by whoever owns the module; a stale entry is visible
+    via its `osrforge_version` stamp, never blocking.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: int = SCHEMA_VERSION
+    modules: dict[str, ByomEntry] = {}
+
+    @field_validator("modules")
+    @classmethod
+    def _keys_sorted(cls, value: dict[str, ByomEntry]) -> dict[str, ByomEntry]:
+        return dict(sorted(value.items()))
+
+
+def load_byom_scoreboard(path: Path) -> ByomScoreboard:
+    """Load the committed BYOM scoreboard.
+
+    Args:
+        path: The `byom-scoreboard.json` path.
+
+    Returns:
+        The board; an empty one if the file does not exist yet.
+    """
+    if not path.is_file():
+        return ByomScoreboard()
+    return ByomScoreboard.model_validate(json.loads(path.read_text(encoding="utf-8")))
+
+
+def save_byom_scoreboard(path: Path, board: ByomScoreboard) -> None:
+    """Write the BYOM scoreboard in the pinned artifact byte format.
+
+    Args:
+        path: The `byom-scoreboard.json` path.
+        board: The board to persist.
+    """
+    write_json_artifact(path, board)
+
+
+def publish_module(
+    board: ByomScoreboard,
+    module_id: str,
+    manifest: CorpusManifest,
+    private_board: Scoreboard,
+    truth_sha256: str,
+    committed_ids: Collection[str],
+) -> ByomScoreboard:
+    """Copy one private scoreboard entry onto the committed BYOM board.
+
+    The deliberate, outward-facing act, separate from scoring. The chain of
+    custody holds because only scored entries are copied, and scoring runs
+    under the source-integrity check.
+
+    Args:
+        board: The current committed BYOM board.
+        module_id: The private corpus module id to publish.
+        manifest: The module's manifest (identity plus provenance).
+        private_board: The private corpus's scoreboard.
+        truth_sha256: The hash of the module's `truth.yaml` — the yardstick pin.
+        committed_ids: The committed corpus's module ids (the shared-namespace guard).
+
+    Returns:
+        A new board with the module's entry added or replaced.
+
+    Raises:
+        ValueError: On any pinned refusal — no scored entry for the id,
+            missing truth provenance, id collision with a committed corpus
+            member, or (on update) a title mismatch with the entry being
+            replaced.
+    """
+    score = private_board.modules.get(module_id)
+    if score is None:
+        raise ValueError(f"no scored entry for {module_id!r} in the private scoreboard — score before publishing")
+    if manifest.truth_provenance is None:
+        raise ValueError(
+            f"{module_id!r} has no truth_provenance in its manifest — unverified truth can be scored locally, "
+            "but it cannot put numbers on the committed board (see tools/eval/AUTHORING.md)"
+        )
+    if module_id in committed_ids:
+        raise ValueError(
+            f"{module_id!r} collides with a committed corpus member — the BYOM scoreboard shares a namespace "
+            "with nothing; rename the private corpus directory"
+        )
+    existing = board.modules.get(module_id)
+    if existing is not None and existing.title != manifest.title:
+        raise ValueError(
+            f"{module_id!r} is already published as {existing.title!r}, but this manifest says "
+            f"{manifest.title!r} — two modules cannot share one id; rename the private corpus directory"
+        )
+    entry = ByomEntry(
+        title=manifest.title,
+        publisher=manifest.publisher,
+        edition=manifest.edition,
+        pages=manifest.pages,
+        run=score.run,
+        truth_sha256=truth_sha256,
+        settings_overrides=score.settings_overrides,
+        metrics=score.metrics,
+    )
+    return ByomScoreboard(
+        schema_version=board.schema_version,
+        modules={**board.modules, module_id: entry},
+    )
 
 
 def _ratio(numerator: int, denominator: int) -> float | None:
