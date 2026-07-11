@@ -37,6 +37,7 @@ The same loop on branch `phase-N-impl`: implement to the plan with tests green, 
 - Format with `ruff format`, lint with `ruff check`, type-check with `pyright`, test with `pytest` (not unittest).
 - Type hints use built-in generics (`list[str]`, `dict[str, int]`). Do not import `List`/`Dict`/`Tuple` from `typing` and do not use `from __future__ import annotations`.
 - Docstrings are Google style, written in Markdown. Maximum line length 120.
+- Live model runs (the extraction runner, the eval sweep) need the `OSRFORGE_FOUNDRY_*` environment variables (see the README's provider table). When they aren't set, derive them from the authenticated Azure CLI session instead of asking: discover the Azure OpenAI resource with `az cognitiveservices account list`, its deployments with `az cognitiveservices account deployment list`, and a key with `az cognitiveservices account keys list`; export the values into the process environment only. Never write credentials, keys, endpoints, or resource names into the repository — this file records the method, nothing more.
 
 ## Greenfield discipline
 
