@@ -108,7 +108,11 @@ Required before `publish` — it is the truth file's rubber-duck:
 
 The module's owner spot-checks **at least 10 areas or 10% (whichever is
 larger) plus every flagged judgment call**, and the result lands in
-`truth_provenance.verified`. Humans audit; agents author.
+`truth_provenance.verified`. Humans audit; agents author — the sample is the
+one leg of the trust chain outside the authoring agents' correlation class,
+so it cannot be delegated back to an agent. The step-by-step, with the
+rationale spelled out, is the docs site's
+[owner sampling guide](../../docs/guides/owner-sampling.md).
 
 ## Provenance, recorded
 

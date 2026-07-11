@@ -92,7 +92,8 @@ uv run tools/eval/run_eval.py report --byom
 truth-file hash, non-default settings knobs, and the metrics; aggregate
 counts and ratios only, never module text — and refuses a module without a
 scored entry or truth provenance (the authoring discipline in
-[`tools/eval/AUTHORING.md`](https://github.com/mmacy/osr-forge/blob/main/tools/eval/AUTHORING.md)).
+[`tools/eval/AUTHORING.md`](https://github.com/mmacy/osr-forge/blob/main/tools/eval/AUTHORING.md);
+the human leg of it is the [owner sampling guide](guides/owner-sampling.md)).
 The BYOM board is **advisory**: owner-refreshed, `osrforge_version`-stamped,
 never merge-gating — it answers "how does osr-forge perform in general,"
 while the committed corpus scoreboard remains the reproducible gate.
