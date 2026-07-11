@@ -23,7 +23,7 @@ osrforge preview --workdir my-module.forge    # regenerate the SVG maps only
 osrforge rerun assemble --workdir my-module.forge   # resume any stage through assemble
 ```
 
-Recording sessions and live verification runs are driven via `tools/extract/run_extraction.py` (see [tools/extract/README.md](tools/extract/README.md)); the on-demand eval harness — corpus, scorer, and scoreboard — lives in `tools/eval/` (see [tools/eval/README.md](tools/eval/README.md)).
+Recording sessions and live verification runs are driven via `tools/extract/run_extraction.py` (see [tools/extract/README.md](tools/extract/README.md)); the on-demand eval harness — corpus, scorer, and scoreboard — lives in `tools/eval/` (see [tools/eval/README.md](tools/eval/README.md)). The harness also measures your own retail modules: a private corpus directory side-loads with `--corpus DIR` (integrity via a local hash sidecar, truth authored per [tools/eval/AUTHORING.md](tools/eval/AUTHORING.md)), and an explicit `publish` step copies aggregate-only scores — never module text — onto the committed BYOM scoreboard.
 
 ## The correction loop
 
