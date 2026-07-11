@@ -48,6 +48,53 @@
         }
       }
     },
+    "jn2-monkey-isle": {
+      "run": {
+        "date": "2026-07-10",
+        "model_id": "gpt-5.4-2026-03-05",
+        "osrforge_version": "0.1.0",
+        "input_tokens": 187772,
+        "output_tokens": 25842,
+        "usd": 0.8571
+      },
+      "metrics": {
+        "areas": {
+          "truth_areas": 86,
+          "extracted_areas": 89,
+          "matched": 80,
+          "recall": 0.9302,
+          "precision": 0.8989
+        },
+        "encounters": {
+          "truth_encounters": 57,
+          "name_matched": 32,
+          "name_recall": 0.5614,
+          "count_denominator": 32,
+          "count_matched": 27,
+          "count_accuracy": 0.8438,
+          "resolution_denominator": 15,
+          "resolution_matched": 15,
+          "resolution_accuracy": 1.0,
+          "non_srd": 17
+        },
+        "connections": {
+          "truth_edges": 39,
+          "extracted_edges": 48,
+          "true_positives": 38,
+          "precision": 0.7917,
+          "recall": 0.9744,
+          "f1": 0.8736
+        },
+        "treasure": {
+          "presence_denominator": 80,
+          "presence_matched": 76,
+          "presence_agreement": 0.95,
+          "letters_denominator": 0,
+          "letters_matched": 0,
+          "letter_accuracy": null
+        }
+      }
+    },
     "minimod": {
       "run": {
         "date": "2026-07-10",
