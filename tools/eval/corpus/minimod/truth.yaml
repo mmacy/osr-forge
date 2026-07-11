@@ -1,0 +1,50 @@
+# Hand-checked structural ground truth for The Root Cellar of Old Wenna,
+# authored from the printed module (pages 3 and 5 hold the whole key).
+# Structural facts only — printed keys, creature names, and codes; see
+# tools/eval/README.md for the authoring conventions.
+dungeons:
+  - name: The Root Cellar of Old Wenna
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: giant rat
+                template: giant_rat
+                count: 2
+            treasure:
+              present: false
+          - key: "2"
+            encounters:
+              - name: goblin
+                template: goblin
+                count: 1
+            treasure:
+              present: false
+          - key: "3"
+            # "A corridor continues north to area 3" is stated from area 2;
+            # the cider press room has no other stated way in or out.
+            connections: ["2"]
+            treasure:
+              present: true
+          - key: "4"
+            encounters:
+              - name: giant centipede
+                template: centipede_giant
+                count: 4
+            treasure:
+              present: false
+          - key: "5"
+            encounters:
+              - name: skeleton
+                template: skeleton
+                count: 1
+            treasure:
+              present: false
+          - key: "6"
+            encounters:
+              - name: stirge
+                template: stirge
+                count: 3
+            treasure:
+              present: true

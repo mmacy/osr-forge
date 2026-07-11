@@ -24,9 +24,10 @@ subgraph reactively and the static checks own the rest.
 import json
 import re
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from osrlib.core.alignment import Alignment
 from osrlib.core.character import CHARACTER_CREATION_STREAM, create_character
@@ -53,10 +54,27 @@ from osrlib.versioning import check_document
 from osrforge.contracts.report import ExtractionReport, LintCheck, LintFinding
 from osrforge.workdir import Workdir, write_json_artifact
 
-__all__ = ["CHECK_SEED", "check"]
+__all__ = ["CHECK_SEED", "SEVERITY", "check"]
 
 CHECK_SEED = 20260709
 """The pinned delve seed: the party roll-up and every in-play die derive from it."""
+
+SEVERITY: Mapping[LintCheck, Literal["error", "warning"]] = {
+    LintCheck.EDGE_INVALID: "error",
+    LintCheck.AREA_UNREACHABLE: "error",
+    LintCheck.ORPHAN_CELL: "warning",
+    LintCheck.SECRET_ONLY_ACCESS: "warning",
+    LintCheck.TRANSITION_UNPAIRED: "warning",
+    LintCheck.DELVE_BLOCKED: "error",
+    LintCheck.DELVE_INCOMPLETE: "warning",
+}
+"""Each check's severity — the producer's pin, hoisted to one importable table.
+
+Severity is a field on [`LintFinding`][osrforge.contracts.report.LintFinding]
+rather than a function of the id (the contract needn't change if a check's
+severity is ever re-judged), so this table is where the producer's judgment
+lives: every emission site and the generated vocabulary page read it here.
+"""
 
 _ENCOUNTER_BUDGET = 20
 """Commands allowed to disengage one encounter before the delve gives up."""
@@ -134,7 +152,14 @@ def _edge_invalid_findings(adventure: Adventure) -> list[LintFinding]:
     findings: list[LintFinding] = []
 
     def finding(location: str, message: str) -> None:
-        findings.append(LintFinding(id=LintCheck.EDGE_INVALID, severity="error", location=location, message=message))
+        findings.append(
+            LintFinding(
+                id=LintCheck.EDGE_INVALID,
+                severity=SEVERITY[LintCheck.EDGE_INVALID],
+                location=location,
+                message=message,
+            )
+        )
 
     for dungeon in adventure.dungeons:
         for level in dungeon.levels:
@@ -173,7 +198,7 @@ def _static_findings(adventure: Adventure) -> list[LintFinding]:
                     findings.append(
                         LintFinding(
                             id=LintCheck.AREA_UNREACHABLE,
-                            severity="error",
+                            severity=SEVERITY[LintCheck.AREA_UNREACHABLE],
                             location=f"{dungeon.id}/{level.number}/{area.id}",
                             message="no path from any entrance reaches this area",
                         )
@@ -194,7 +219,7 @@ def _static_findings(adventure: Adventure) -> list[LintFinding]:
                         findings.append(
                             LintFinding(
                                 id=LintCheck.ORPHAN_CELL,
-                                severity="warning",
+                                severity=SEVERITY[LintCheck.ORPHAN_CELL],
                                 location=f"{dungeon.id}/{level.number}",
                                 message=f"cell {cell} renders as corridor but no path reaches it",
                             )
@@ -209,7 +234,7 @@ def _static_findings(adventure: Adventure) -> list[LintFinding]:
                     findings.append(
                         LintFinding(
                             id=LintCheck.SECRET_ONLY_ACCESS,
-                            severity="warning",
+                            severity=SEVERITY[LintCheck.SECRET_ONLY_ACCESS],
                             location=f"{dungeon.id}/{level.number}/{area.id}",
                             message="every path into this area passes through a secret door",
                         )
@@ -233,7 +258,7 @@ def _static_findings(adventure: Adventure) -> list[LintFinding]:
                     findings.append(
                         LintFinding(
                             id=LintCheck.TRANSITION_UNPAIRED,
-                            severity="warning",
+                            severity=SEVERITY[LintCheck.TRANSITION_UNPAIRED],
                             location=f"{dungeon.id}/{level.number}",
                             message=(
                                 f"{transition.kind} at {transition.position} has no transition back from "
@@ -342,18 +367,17 @@ def _walk(
     state: _DelveState,
     level: LevelSpec,
     path: list[Position],
-    finding: Callable[[LintCheck, str, str], LintFinding],
+    finding: Callable[[LintCheck, str], LintFinding],
 ) -> LintFinding | None:
     """Walk a computed path reactively; `None` means the walk completed clean."""
     expected = path[0]
     for target in path[1:]:
         if state.capped:
-            return finding(LintCheck.DELVE_INCOMPLETE, "warning", "the delve hit the per-dungeon command cap")
+            return finding(LintCheck.DELVE_INCOMPLETE, "the delve hit the per-dungeon command cap")
         position = _party_position(state.session)
         if position != expected:
             return finding(
                 LintCheck.DELVE_INCOMPLETE,
-                "warning",
                 f"the party was relocated to {position} mid-walk (a trap or transition fired)",
             )
         direction = _step_direction(expected, target)
@@ -369,17 +393,16 @@ def _walk(
             if not result.accepted:
                 return finding(
                     LintCheck.DELVE_BLOCKED,
-                    "error",
                     f"a step the deterministic graph deems passable was rejected at {expected} "
                     f"moving {direction.value}: {result.rejections[0].code}",
                 )
         outcome = _disengage(state)
         if outcome == "battle":
-            return finding(LintCheck.DELVE_INCOMPLETE, "warning", "battle opened and pre-empted the walk")
+            return finding(LintCheck.DELVE_INCOMPLETE, "battle opened and pre-empted the walk")
         if outcome == "cap":
-            return finding(LintCheck.DELVE_INCOMPLETE, "warning", "the delve hit the per-dungeon command cap")
+            return finding(LintCheck.DELVE_INCOMPLETE, "the delve hit the per-dungeon command cap")
         if outcome == "budget":
-            return finding(LintCheck.DELVE_INCOMPLETE, "warning", "an encounter exhausted its disengage budget")
+            return finding(LintCheck.DELVE_INCOMPLETE, "an encounter exhausted its disengage budget")
         expected = target
     return None
 
@@ -387,9 +410,8 @@ def _walk(
 def _delve_dungeon(adventure: Adventure, dungeon: DungeonSpec) -> list[LintFinding]:
     """The smoke delve: entrance level, deterministic-subgraph path, encounters evaded."""
 
-    def finding(check_id: LintCheck, severity: str, message: str) -> LintFinding:
-        assert severity in ("error", "warning")
-        return LintFinding(id=check_id, severity=severity, location=dungeon.id, message=message)  # pyright: ignore[reportArgumentType]
+    def finding(check_id: LintCheck, message: str) -> LintFinding:
+        return LintFinding(id=check_id, severity=SEVERITY[check_id], location=dungeon.id, message=message)
 
     entrance_level = next((level for level in dungeon.levels if level.entrance is not None), None)
     if entrance_level is None or entrance_level.entrance is None:
@@ -397,7 +419,7 @@ def _delve_dungeon(adventure: Adventure, dungeon: DungeonSpec) -> list[LintFindi
     state = _DelveState(session=GameSession.new(_delve_party(), adventure, seed=CHECK_SEED))
     entered = state.execute(EnterDungeon(dungeon_id=dungeon.id))
     if not entered.accepted:
-        return [finding(LintCheck.DELVE_BLOCKED, "error", f"EnterDungeon rejected: {entered.rejections[0].code}")]
+        return [finding(LintCheck.DELVE_BLOCKED, f"EnterDungeon rejected: {entered.rejections[0].code}")]
     outcome = _disengage(state)
     if outcome != "exploring":
         messages = {
@@ -405,7 +427,7 @@ def _delve_dungeon(adventure: Adventure, dungeon: DungeonSpec) -> list[LintFindi
             "budget": "the entrance encounter could not be evaded",
             "cap": "the delve hit the per-dungeon command cap",
         }
-        return [finding(LintCheck.DELVE_INCOMPLETE, "warning", messages[outcome])]
+        return [finding(LintCheck.DELVE_INCOMPLETE, messages[outcome])]
 
     parents, distances = _deterministic_bfs(entrance_level, entrance_level.entrance)
     best_distance = max(distances.values())
@@ -434,16 +456,13 @@ def _delve_dungeon(adventure: Adventure, dungeon: DungeonSpec) -> list[LintFindi
         return [
             finding(
                 LintCheck.DELVE_BLOCKED,
-                "error",
                 f"the spec authors a transition at {reachable_transition.position} "
                 f"but UseStairs was rejected: {used.rejections[0].code}",
             )
         ]
     outcome = _disengage(state)
     if outcome != "exploring":
-        return [
-            finding(LintCheck.DELVE_INCOMPLETE, "warning", "the transition's arrival encounter pre-empted the delve")
-        ]
+        return [finding(LintCheck.DELVE_INCOMPLETE, "the transition's arrival encounter pre-empted the delve")]
     return []
 
 

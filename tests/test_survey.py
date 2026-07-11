@@ -1,3 +1,4 @@
+import copy
 import json
 from pathlib import Path
 
@@ -11,11 +12,16 @@ from osrforge.errors import ExtractionError, ProviderError
 from osrforge.providers.base import TextPart
 from osrforge.settings import ConversionSettings
 from osrforge.survey import (
+    SURVEY_SCHEMA,
+    SURVEY_SYSTEM,
+    build_chunked_survey_request,
     build_survey_request,
     canonical_slug,
     filter_index_to_pages,
+    merge_survey_answers,
     normalize_survey,
     survey,
+    survey_windows,
 )
 
 
@@ -241,18 +247,6 @@ class TestSurveyStage:
         assert not stale.exists()
         assert workdir.survey_json.is_file()
 
-    def test_guard_violation_raises_before_any_provider_call(self, tmp_path: Path):
-        settings = ConversionSettings(survey_max_pages=2)
-        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=3, settings=settings)
-        provider = ScriptedProvider([])
-        with pytest.raises(ExtractionError, match="survey guard"):
-            survey(workdir, provider)
-        assert provider.requests == []
-        # The guard fires before the stage starts: no failed entry, upstream intact.
-        run = workdir.read_run()
-        assert run.stages[Stage.SURVEY].status == "pending"
-        assert run.stages[Stage.PREPROCESS].status == "completed"
-
     def test_provider_failure_marks_stage_failed_and_keeps_previous_caches(self, tmp_path: Path):
         workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=2)
         workdir.stages_dir.mkdir()
@@ -285,3 +279,213 @@ def test_success_clears_the_monsters_cache_too(tmp_path: Path):
     stale_monsters.write_text("{}", encoding="utf-8")
     survey(workdir, ScriptedProvider([raw_survey()]))
     assert not stale_monsters.exists()
+
+
+class TestSurveyWindows:
+    def test_contiguous_disjoint_windows(self):
+        assert survey_windows(5, 2) == ((1, 2), (3, 4), (5, 5))
+        assert survey_windows(4, 2) == ((1, 2), (3, 4))
+        assert survey_windows(1, 150) == ((1, 1),)
+
+    def test_at_the_chunk_size_is_one_window(self):
+        assert survey_windows(150, 150) == ((1, 150),)
+        assert survey_windows(151, 150) == ((1, 150), (151, 151))
+
+
+def one_dungeon(name: str, areas: list[dict], number: int = 1, map_pages: list[int] | None = None) -> dict:
+    return {"name": name, "levels": [{"number": number, "map_pages": map_pages or [], "areas": areas}]}
+
+
+class TestMergeSurveyAnswers:
+    def test_boundary_split_dungeon_rejoins_on_slug(self):
+        first = raw_survey([one_dungeon("The Crypt", [raw_area("1", "Hall", [2])], map_pages=[2])])
+        second = raw_survey([one_dungeon("THE CRYPT!", [raw_area("2", "Vault", [3])], map_pages=[3, 2])])
+        merged = merge_survey_answers([first, second])
+        (dungeon,) = merged["dungeons"]
+        assert dungeon["name"] == "The Crypt"  # first occurrence wins the scalar
+        (level,) = dungeon["levels"]
+        assert level["map_pages"] == [2, 3]  # union, first-seen order
+        assert [area["key"] for area in level["areas"]] == ["1", "2"]
+
+    def test_area_join_first_wins_scalars_and_pages_union(self):
+        first = raw_survey([one_dungeon("Lair", [raw_area("5", "Door to Jail", [2], "room")])])
+        second_area = {"key": "5.", "name": "Jail", "source_pages": [3, 2], "kind": "cave"}
+        second = raw_survey([one_dungeon("Lair", [second_area])])
+        merged = merge_survey_answers([first, second])
+        (area,) = merged["dungeons"][0]["levels"][0]["areas"]
+        assert area["key"] == "5"
+        assert area["name"] == "Door to Jail"
+        assert area["kind"] == "room"
+        assert area["source_pages"] == [2, 3]
+
+    def test_levels_join_on_number_and_new_levels_append(self):
+        first = raw_survey([one_dungeon("Lair", [raw_area("1")])])
+        second = raw_survey(
+            [
+                {
+                    "name": "Lair",
+                    "levels": [
+                        {"number": 1, "map_pages": [], "areas": [raw_area("2")]},
+                        {"number": 2, "map_pages": [], "areas": [raw_area("1")]},
+                    ],
+                }
+            ]
+        )
+        merged = merge_survey_answers([first, second])
+        (dungeon,) = merged["dungeons"]
+        assert [level["number"] for level in dungeon["levels"]] == [1, 2]
+        assert [area["key"] for area in dungeon["levels"][0]["areas"]] == ["1", "2"]
+        assert [area["key"] for area in dungeon["levels"][1]["areas"]] == ["1"]
+
+    def test_title_and_town_take_the_first_nonempty_in_window_order(self):
+        first = raw_survey(title="", town={"name": "", "description": ""})
+        second = raw_survey(title="The Caves", town={"name": "", "description": "A trade town."})
+        third = raw_survey(title="Other Title", town={"name": "Riverton", "description": ""})
+        merged = merge_survey_answers([first, second, third])
+        assert merged["title"] == "The Caves"
+        # The town joins as a unit: the first entry with a non-empty name wins whole.
+        assert merged["town"] == {"name": "Riverton", "description": ""}
+
+    def test_town_falls_back_to_first_description_then_empty(self):
+        described = raw_survey(town={"name": "", "description": "A trade town."})
+        empty = raw_survey(town={"name": "", "description": ""})
+        assert merge_survey_answers([empty, described])["town"] == {"name": "", "description": "A trade town."}
+        assert merge_survey_answers([empty, empty])["town"] == {"name": "", "description": ""}
+
+    def test_hooks_dedup_and_monster_names_union_in_first_seen_order(self):
+        first = raw_survey(hooks=["A rumor", "A job"], monster_names=["orc", "wolf"])
+        second = raw_survey(hooks=["A job", "A debt"], monster_names=["wolf", "goblin"])
+        merged = merge_survey_answers([first, second])
+        assert merged["hooks"] == ["A rumor", "A job", "A debt"]
+        assert merged["monster_names"] == ["orc", "wolf", "goblin"]
+
+    def test_same_window_duplicate_slugs_survive_verbatim(self):
+        # JN1's own committed survey holds two `key: "5"` areas — intra-window
+        # multiplicity is what reserve-then-bump exists to preserve.
+        only = raw_survey([one_dungeon("Lair", [raw_area("5", "Door to Jail"), raw_area("5", "Jail Area")])])
+        merged = merge_survey_answers([only])
+        assert [area["name"] for area in merged["dungeons"][0]["levels"][0]["areas"]] == ["Door to Jail", "Jail Area"]
+
+    def test_cross_window_joins_are_occurrence_indexed_and_append_past_count(self):
+        first = raw_survey([one_dungeon("Lair", [raw_area("5", "First", [2]), raw_area("5", "Second", [3])])])
+        second = raw_survey(
+            [one_dungeon("Lair", [raw_area("5", "One", [4]), raw_area("5", "Two", [5]), raw_area("5", "Three", [6])])]
+        )
+        merged = merge_survey_answers([first, second])
+        areas = merged["dungeons"][0]["levels"][0]["areas"]
+        # n-th occurrence joins n-th occurrence; the third appends as new.
+        assert [area["name"] for area in areas] == ["First", "Second", "Three"]
+        assert [area["source_pages"] for area in areas] == [[2, 4], [3, 5], [6]]
+
+    def test_empty_slugs_never_join(self):
+        first = raw_survey([one_dungeon("洞窟", [raw_area("!!!", "Punct", [2])])])
+        second = raw_survey([one_dungeon("洞窟", [raw_area("!!!", "Punct Again", [3])])])
+        merged = merge_survey_answers([first, second])
+        assert len(merged["dungeons"]) == 2
+        index = normalize_survey(merged, page_count=48)
+        assert [dungeon.id for dungeon in index.dungeons] == ["dungeon-1", "dungeon-2"]
+
+    def test_merge_does_not_mutate_its_inputs(self):
+        first = raw_survey([one_dungeon("Lair", [raw_area("5", "First", [2])])])
+        second = raw_survey([one_dungeon("Lair", [raw_area("5", "Second", [3])])])
+        snapshots = copy.deepcopy([first, second])
+        merge_survey_answers([first, second])
+        assert [first, second] == snapshots
+
+    def test_merged_raw_takes_reserve_then_bump_in_one_normalize_pass(self):
+        # A per-window normalize would have uniqued window two's keys before the
+        # join and the bumped key could never re-join; the raw-level merge keeps
+        # both `5`s and one normalize pass bumps the appended one.
+        first = raw_survey([one_dungeon("Lair", [raw_area("5", "First", [2])])])
+        second = raw_survey([one_dungeon("Lair", [raw_area("5", "One", [3]), raw_area("5", "Two", [4])])])
+        index = normalize_survey(merge_survey_answers([first, second]), page_count=48)
+        assert [area.key for area in index.dungeons[0].levels[0].areas] == ["5", "5-2"]
+
+
+class TestChunkedSurvey:
+    def test_chunked_run_windows_merge_and_bookkeeping(self, tmp_path: Path):
+        settings = ConversionSettings(survey_max_pages=2)
+        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=5, settings=settings)
+        workdir.stages_dir.mkdir()
+        stale = workdir.areas_json("old-dungeon", 1)
+        stale.write_text("{}", encoding="utf-8")
+        first = raw_survey(
+            [one_dungeon("The Caves", [raw_area("5", "Door to Jail", [2])], map_pages=[1])],
+            title="",
+            hooks=["A rumor"],
+            monster_names=["orc"],
+        )
+        second = raw_survey(
+            [one_dungeon("The Caves", [raw_area("5", "Jail", [3]), raw_area("5", "Second Jail", [4])])],
+            hooks=["A rumor", "A job"],
+            monster_names=["wolf"],
+        )
+        third = raw_survey([], title="", hooks=[], monster_names=["goblin"])
+        provider = ScriptedProvider([first, second, third])
+        index = survey(workdir, provider)
+
+        assert len(provider.requests) == 3
+        markers = [
+            [part.text.split("\n")[0] for part in request.parts if isinstance(part, TextPart)]
+            for request in provider.requests
+        ]
+        # Absolute page markers, contiguous disjoint windows.
+        assert markers == [["[page 1]", "[page 2]"], ["[page 3]", "[page 4]"], ["[page 5]"]]
+        for request, (first_page, last_page) in zip(provider.requests, ((1, 2), (3, 4), (5, 5)), strict=True):
+            assert request.tag == "survey"
+            assert request.schema == SURVEY_SCHEMA
+            assert request.system.startswith(SURVEY_SYSTEM)
+            assert f"pages {first_page}-{last_page} of a 5-page module" in request.system
+
+        # Raw-level merge, one normalize pass: the joined `5` plus the appended
+        # `5` bumped by reserve-then-bump.
+        assert index.title == "The Chaotic Caves"
+        (dungeon,) = index.dungeons
+        assert dungeon.id == "the-caves"
+        assert [area.key for area in dungeon.levels[0].areas] == ["5", "5-2"]
+        assert dungeon.levels[0].areas[0].source_pages == (2, 3)
+        assert index.hooks == ("A rumor", "A job")
+        assert index.monster_names == ("orc", "wolf", "goblin")
+
+        # Usage accumulated across windows; caches cleared once on success.
+        run = workdir.read_run()
+        usage = run.stages[Stage.SURVEY].usage
+        assert usage is not None and usage.input_tokens == 300 and usage.output_tokens == 30
+        assert not stale.exists()
+        assert workdir.survey_json.is_file()
+
+    def test_distinct_windows_produce_distinct_fingerprints(self, tmp_path: Path):
+        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=4)
+        from osrforge.pages import page_request_parts
+
+        one = build_chunked_survey_request(page_request_parts(workdir, [1, 2]), 1, 2, 4)
+        two = build_chunked_survey_request(page_request_parts(workdir, [3, 4]), 3, 4, 4)
+        assert one.fingerprint() != two.fingerprint()
+
+    def test_at_the_chunk_size_uses_the_untouched_single_request_path(self, tmp_path: Path):
+        settings = ConversionSettings(survey_max_pages=3)
+        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=3, settings=settings)
+        provider = ScriptedProvider([raw_survey()])
+        survey(workdir, provider)
+        (request,) = provider.requests
+        assert request.system == SURVEY_SYSTEM  # no preamble on the single-request path
+        rebuilt = build_survey_request(request.parts)
+        assert rebuilt.fingerprint() == request.fingerprint()
+
+
+def test_single_request_path_is_digest_identical_to_the_committed_minimod_fixture(tmp_path: Path):
+    """The invariant behind every committed fixture set, named.
+
+    The replay gates prove single-request byte-identity end to end; this
+    assertion exists so an edit to `SURVEY_SYSTEM`, `SURVEY_SCHEMA`, or the
+    single-request build path fails with a message instead of a mysterious
+    fixture miss.
+    """
+    from osrforge.pages import page_request_parts
+    from test_minimod_pipeline import MINIMOD, PAGE_COUNT, minimod_workdir
+
+    workdir = minimod_workdir(tmp_path / "mod.forge")
+    request = build_survey_request(page_request_parts(workdir, range(1, PAGE_COUNT + 1)))
+    (fixture_path,) = (MINIMOD / "fixtures").glob("survey.*.json")
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    assert request.fingerprint() == fixture["fingerprint"]

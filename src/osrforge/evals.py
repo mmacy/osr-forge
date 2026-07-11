@@ -1,0 +1,674 @@
+"""Eval scoring: truth-file models, alignment, and the pinned metric families.
+
+This is the pure half of the spec's "ship quality evals so extraction changes
+are measured, not vibed": deterministic, CI-tested code that scores a
+workdir's stage caches against hand-checked ground truth. The live-network
+driver (`tools/eval/run_eval.py`) is repo-only wiring; everything with
+behavior worth testing lives here. The scorer reads the stage caches — never
+`adventure.json` — because evals measure *extraction*, and assembly's
+best-effort fallbacks exist to mask extraction gaps in the playable draft,
+which is exactly what a measurement must not let them do.
+
+Truth files are structural-only (printed keys, names, and codes — no prose)
+and are authored from the printed module, never from pipeline output; see
+`tools/eval/README.md` for the corpus rules and the authoring conventions.
+"""
+
+import hashlib
+import json
+from difflib import SequenceMatcher
+from pathlib import Path
+
+import yaml
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from osrforge.assemble import parse_treasure
+from osrforge.contracts.stages import AreaContent, LevelContent, MonsterResolutions, SurveyIndex
+from osrforge.monsters import normalize_monster_name
+from osrforge.survey import canonical_slug
+from osrforge.versioning import SCHEMA_VERSION
+from osrforge.workdir import Workdir, write_json_artifact
+
+__all__ = [
+    "AreaMetrics",
+    "ConnectionMetrics",
+    "CorpusManifest",
+    "EncounterMetrics",
+    "ManifestLicense",
+    "ModuleMetrics",
+    "ModuleScore",
+    "ModuleTruth",
+    "RunInfo",
+    "Scoreboard",
+    "TreasureMetrics",
+    "TruthArea",
+    "TruthDungeon",
+    "TruthEncounter",
+    "TruthLevel",
+    "TruthTreasure",
+    "corpus_means",
+    "load_manifest",
+    "load_scoreboard",
+    "load_truth",
+    "score_workdir",
+    "verify_source",
+]
+
+
+class TruthEncounter(BaseModel):
+    """One printed encounter: the creature name as the module's key prints it.
+
+    `template` is the osrlib catalog id the name *should* resolve to, omitted
+    when the module's monster genuinely has no SRD template (rank variants
+    with their own stat blocks, module-specific creatures). `count` is
+    omitted when the module states none or a variable one.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    template: str | None = None
+    count: int | None = Field(default=None, ge=1)
+
+
+class TruthTreasure(BaseModel):
+    """Whether the printed area contains treasure, and its stated letter codes.
+
+    `present` is true when the entry states coins, valuables, or magic items
+    in the area (carried by its occupants included; rewards promised
+    elsewhere excluded). `letters` only when the module states treasure-type
+    letter codes.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    present: bool
+    letters: tuple[str, ...] = ()
+
+    @field_validator("letters")
+    @classmethod
+    def _single_letters(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        for letter in value:
+            if len(letter) != 1 or not letter.isalpha() or letter.upper() != letter:
+                raise ValueError(f"treasure letters are single uppercase codes: {letter!r}")
+        return value
+
+
+class TruthArea(BaseModel):
+    """One keyed area, identified by its printed key.
+
+    `connections` is assertion-aware: `None` (omitted) means the area's
+    neighbor set was not asserted and edges incident to it are out of the
+    connection metric's universe; a list — possibly empty — asserts the
+    area's *complete* set of same-level connected printed keys.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    key: str
+    encounters: tuple[TruthEncounter, ...] = ()
+    connections: tuple[str, ...] | None = None
+    treasure: TruthTreasure
+
+
+class TruthLevel(BaseModel):
+    """One printed level.
+
+    Area keys must be unique per level under `canonical_slug` (empty slugs
+    are exempt — they take distinct positional fallbacks): the scorer matches
+    areas by slug, and a duplicate would silently attribute the second area's
+    facts to the first.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    number: int = Field(ge=1)
+    areas: tuple[TruthArea, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _key_slugs_unique(self) -> TruthLevel:
+        slugs = [slug for area in self.areas if (slug := canonical_slug(area.key))]
+        if len(set(slugs)) != len(slugs):
+            raise ValueError(f"truth area keys must be unique per level under canonical_slug: {slugs}")
+        return self
+
+
+class TruthDungeon(BaseModel):
+    """One printed adventuring site."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    levels: tuple[TruthLevel, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _level_numbers_unique(self) -> TruthDungeon:
+        numbers = [level.number for level in self.levels]
+        if len(set(numbers)) != len(numbers):
+            raise ValueError(f"truth level numbers must be unique per dungeon: {numbers}")
+        return self
+
+
+class ModuleTruth(BaseModel):
+    """A corpus module's hand-checked structural ground truth."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    dungeons: tuple[TruthDungeon, ...] = Field(min_length=1)
+
+
+class ManifestLicense(BaseModel):
+    """The license record: SPDX id plus the phase 0 verification note."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    spdx: str
+    verified: str
+
+
+class CorpusManifest(BaseModel):
+    """A corpus member's manifest — the whole redistribution surface.
+
+    The corpus ships pointers plus hashes, never PDFs: `source_url` is where
+    a human downloads the module, and `sha256` is the exact PDF the truth was
+    authored against — the harness refuses a mismatched file before any model
+    spend.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    title: str
+    source_url: str
+    sha256: str
+    pages: int = Field(ge=1)
+    license: ManifestLicense
+
+    @field_validator("sha256")
+    @classmethod
+    def _hex_digest(cls, value: str) -> str:
+        if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+            raise ValueError("sha256 must be a 64-character lowercase hex digest")
+        return value
+
+
+def load_truth(path: Path) -> ModuleTruth:
+    """Load and validate a corpus truth file.
+
+    Args:
+        path: The `truth.yaml` path.
+
+    Returns:
+        The validated truth. Unknown keys are rejected — a typo in a
+        hand-authored truth file must fail loudly, not silently drop a fact.
+    """
+    return ModuleTruth.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+
+
+def load_manifest(path: Path) -> CorpusManifest:
+    """Load and validate a corpus manifest.
+
+    Args:
+        path: The `manifest.yaml` path.
+
+    Returns:
+        The validated manifest.
+    """
+    return CorpusManifest.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+
+
+def verify_source(manifest: CorpusManifest, pdf_path: Path) -> None:
+    """Refuse a PDF that is not the exact file the truth was authored against.
+
+    Runs before any model spend: truth authored against one printing scores a
+    different printing as noise, and the sha256 — not the URL — is the
+    corpus's integrity gate.
+
+    Args:
+        manifest: The module's manifest.
+        pdf_path: The locally downloaded PDF.
+
+    Raises:
+        ValueError: If the file's sha256 does not match the manifest's.
+    """
+    digest = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
+    if digest != manifest.sha256:
+        raise ValueError(
+            f"{pdf_path} has sha256 {digest}, but the corpus truth was authored against {manifest.sha256} — "
+            "download the exact release the manifest records"
+        )
+
+
+class AreaMetrics(BaseModel):
+    """The areas family: recall (the spec's named metric) plus the hallucination guard."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    truth_areas: int
+    extracted_areas: int
+    matched: int
+    recall: float | None
+    precision: float | None
+
+
+class EncounterMetrics(BaseModel):
+    """The encounters family: name recall, count accuracy, resolution accuracy."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    truth_encounters: int
+    name_matched: int
+    name_recall: float | None
+    count_denominator: int
+    count_matched: int
+    count_accuracy: float | None
+    resolution_denominator: int
+    resolution_matched: int
+    resolution_accuracy: float | None
+    non_srd: int
+
+
+class ConnectionMetrics(BaseModel):
+    """The connections family: F1 over undirected same-level edges in the asserted universe."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    truth_edges: int
+    extracted_edges: int
+    true_positives: int
+    precision: float | None
+    recall: float | None
+    f1: float | None
+
+
+class TreasureMetrics(BaseModel):
+    """The treasure family: presence agreement and letter accuracy."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    presence_denominator: int
+    presence_matched: int
+    presence_agreement: float | None
+    letters_denominator: int
+    letters_matched: int
+    letter_accuracy: float | None
+
+
+class ModuleMetrics(BaseModel):
+    """One module's metrics block: the four pinned families."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    areas: AreaMetrics
+    encounters: EncounterMetrics
+    connections: ConnectionMetrics
+    treasure: TreasureMetrics
+
+
+class RunInfo(BaseModel):
+    """One recorded run's metadata — injectable so scoring stays deterministic in tests."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    date: str
+    model_id: str
+    osrforge_version: str
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    usd: float = Field(ge=0.0)
+
+
+class ModuleScore(BaseModel):
+    """One module's scoreboard entry: the run that produced it plus its metrics."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    run: RunInfo
+    metrics: ModuleMetrics
+
+
+class Scoreboard(BaseModel):
+    """The committed scoreboard: per-module scores keyed by corpus module id, sorted for byte stability."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: int = SCHEMA_VERSION
+    modules: dict[str, ModuleScore] = {}
+
+    @field_validator("modules")
+    @classmethod
+    def _keys_sorted(cls, value: dict[str, ModuleScore]) -> dict[str, ModuleScore]:
+        return dict(sorted(value.items()))
+
+
+def load_scoreboard(path: Path) -> Scoreboard:
+    """Load the committed scoreboard.
+
+    Args:
+        path: The `scoreboard.json` path.
+
+    Returns:
+        The scoreboard; an empty one if the file does not exist yet.
+    """
+    if not path.is_file():
+        return Scoreboard()
+    return Scoreboard.model_validate(json.loads(path.read_text(encoding="utf-8")))
+
+
+def save_scoreboard(path: Path, scoreboard: Scoreboard) -> None:
+    """Write the scoreboard in the pinned artifact byte format.
+
+    Args:
+        path: The `scoreboard.json` path.
+        scoreboard: The scoreboard to persist.
+    """
+    write_json_artifact(path, scoreboard)
+
+
+def _ratio(numerator: int, denominator: int) -> float | None:
+    """A metric ratio, rounded for scoreboard readability; None when the denominator is empty."""
+    if denominator == 0:
+        return None
+    return round(numerator / denominator, 4)
+
+
+def _truth_key_slug(area: TruthArea, position: int) -> str:
+    """A truth area's canonical matching slug, with the same positional fallback normalization applies."""
+    return canonical_slug(area.key) or f"area-{position}"
+
+
+def _dungeon_key_sets(truth: ModuleTruth) -> list[set[str]]:
+    return [
+        {
+            _truth_key_slug(area, position)
+            for level in dungeon.levels
+            for position, area in enumerate(level.areas, start=1)
+        }
+        for dungeon in truth.dungeons
+    ]
+
+
+def _align_dungeons(truth: ModuleTruth, index: SurveyIndex) -> dict[int, int]:
+    """Align truth dungeons to extracted dungeons, deterministically.
+
+    Greedy by area-key-set overlap (both sides' keys through
+    `canonical_slug`), each extracted dungeon matched at most once, truth
+    dungeons processed in truth-file order. Candidate ties break by
+    `difflib.SequenceMatcher` ratio over name slugs, then by extracted
+    document order — a total order, so alignment is deterministic by
+    construction.
+
+    Args:
+        truth: The module truth.
+        index: The extracted survey index.
+
+    Returns:
+        Truth dungeon position → extracted dungeon position, for the matched
+        pairs only. An unmatched truth dungeon counts all its areas as misses.
+    """
+    truth_sets = _dungeon_key_sets(truth)
+    extracted_sets = [{area.key for level in dungeon.levels for area in level.areas} for dungeon in index.dungeons]
+    taken: set[int] = set()
+    matches: dict[int, int] = {}
+    for truth_position, (truth_dungeon, truth_keys) in enumerate(zip(truth.dungeons, truth_sets, strict=True)):
+        truth_name_slug = canonical_slug(truth_dungeon.name)
+        best: tuple[int, float, int] | None = None  # (overlap, name ratio, -position) maximized
+        best_position: int | None = None
+        for extracted_position, extracted_keys in enumerate(extracted_sets):
+            if extracted_position in taken:
+                continue
+            overlap = len(truth_keys & extracted_keys)
+            if overlap == 0:
+                continue
+            extracted_name_slug = canonical_slug(index.dungeons[extracted_position].name)
+            ratio = SequenceMatcher(None, truth_name_slug, extracted_name_slug).ratio()
+            candidate = (overlap, ratio, -extracted_position)
+            if best is None or candidate > best:
+                best = candidate
+                best_position = extracted_position
+        if best_position is not None:
+            taken.add(best_position)
+            matches[truth_position] = best_position
+    return matches
+
+
+def _load_level_cache(workdir: Workdir, dungeon_id: str, level_number: int) -> LevelContent:
+    path = workdir.areas_json(dungeon_id, level_number)
+    if not path.is_file():
+        raise ValueError(f"a level's content cache is missing: {path} — evals score completed extractions")
+    return LevelContent.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def _extracted_count(area: AreaContent, normalized_name: str) -> int | None:
+    """The extracted count for one name in one area, pinned.
+
+    The sum of `count_fixed` over the area's same-normalized-name encounters
+    when every such encounter carries one; None (no comparable count) when
+    any of them states dice or nothing.
+    """
+    counts: list[int] = []
+    for encounter in area.encounters:
+        if normalize_monster_name(encounter.monster) != normalized_name:
+            continue
+        if encounter.count_fixed is None:
+            return None
+        counts.append(encounter.count_fixed)
+    if not counts:
+        return None
+    return sum(counts)
+
+
+def _treasure_signal(area: AreaContent) -> bool:
+    """Whether extraction saw treasure: any non-empty-after-strip cached treasure string, unparsed included."""
+    return any(text.strip() for text in area.treasure)
+
+
+def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
+    """Score one converted workdir's stage caches against a module's truth.
+
+    Reads `stages/survey.json` (area recall/precision), the
+    `stages/areas.*.json` content caches (encounters, connections, treasure),
+    and `stages/monsters.json` (resolution accuracy). Deterministic: scoring
+    the same workdir twice yields byte-identical metrics.
+
+    Args:
+        workdir_path: A workdir whose extraction stages have completed.
+        truth: The module's ground truth.
+
+    Returns:
+        The four metric families.
+
+    Raises:
+        ValueError: If a required stage cache is missing.
+    """
+    workdir = Workdir(workdir_path)
+    if not workdir.survey_json.is_file():
+        raise ValueError(f"the survey cache is missing: {workdir.survey_json} — evals score completed extractions")
+    if not workdir.monsters_json.is_file():
+        raise ValueError(f"the monsters cache is missing: {workdir.monsters_json} — evals score completed extractions")
+    index = SurveyIndex.model_validate_json(workdir.survey_json.read_text(encoding="utf-8"))
+    resolutions = MonsterResolutions.model_validate_json(workdir.monsters_json.read_text(encoding="utf-8"))
+
+    matches = _align_dungeons(truth, index)
+
+    truth_area_count = sum(len(level.areas) for dungeon in truth.dungeons for level in dungeon.levels)
+    extracted_area_count = sum(len(level.areas) for dungeon in index.dungeons for level in dungeon.levels)
+    matched_areas = 0
+
+    truth_encounters = 0
+    name_matched = 0
+    count_denominator = 0
+    count_matched = 0
+    resolution_denominator = 0
+    resolution_matched = 0
+    non_srd = 0
+
+    truth_edges: set[tuple[str, str, int, frozenset[str]]] = set()
+    extracted_edges: set[tuple[str, str, int, frozenset[str]]] = set()
+
+    presence_denominator = 0
+    presence_matched = 0
+    letters_denominator = 0
+    letters_matched = 0
+
+    for truth_position, truth_dungeon in enumerate(truth.dungeons):
+        for level in truth_dungeon.levels:
+            truth_encounters += sum(len(area.encounters) for area in level.areas)
+
+        extracted_position = matches.get(truth_position)
+        if extracted_position is None:
+            continue
+        extracted_dungeon = index.dungeons[extracted_position]
+        extracted_levels = {extracted_level.number: extracted_level for extracted_level in extracted_dungeon.levels}
+
+        for level in truth_dungeon.levels:
+            extracted_level = extracted_levels.get(level.number)
+            if extracted_level is None:
+                continue
+            cache = _load_level_cache(workdir, extracted_dungeon.id, extracted_level.number)
+            cached_areas = {area.key: area for area in cache.areas}
+
+            matched: dict[str, TruthArea] = {}
+            asserted: set[str] = set()
+            for position, truth_area in enumerate(level.areas, start=1):
+                slug = _truth_key_slug(truth_area, position)
+                if truth_area.connections is not None:
+                    asserted.add(slug)
+                if slug in cached_areas and slug not in matched:
+                    matched[slug] = truth_area
+            matched_areas += len(matched)
+
+            # Encounters and treasure, per matched truth area.
+            for position, truth_area in enumerate(level.areas, start=1):
+                slug = _truth_key_slug(truth_area, position)
+                if matched.get(slug) is not truth_area:
+                    continue
+                extracted_area = cached_areas[slug]
+                extracted_names = {normalize_monster_name(encounter.monster) for encounter in extracted_area.encounters}
+                for truth_encounter in truth_area.encounters:
+                    normalized = normalize_monster_name(truth_encounter.name)
+                    if normalized not in extracted_names:
+                        continue
+                    name_matched += 1
+                    if truth_encounter.count is not None:
+                        count_denominator += 1
+                        if _extracted_count(extracted_area, normalized) == truth_encounter.count:
+                            count_matched += 1
+                    if truth_encounter.template is None:
+                        non_srd += 1
+                    else:
+                        resolution_denominator += 1
+                        resolution = resolutions.resolutions.get(normalized)
+                        if resolution is not None and resolution.template_id == truth_encounter.template:
+                            resolution_matched += 1
+
+                presence_denominator += 1
+                if _treasure_signal(extracted_area) == truth_area.treasure.present:
+                    presence_matched += 1
+                if truth_area.treasure.letters:
+                    letters_denominator += 1
+                    parsed = parse_treasure(extracted_area.treasure)
+                    if sorted(parsed.letters) == sorted(truth_area.treasure.letters):
+                        letters_matched += 1
+
+            # Connections: undirected same-level edges between matched areas,
+            # in the asserted universe (at least one endpoint's neighbor set
+            # asserted — an asserted area's list is complete, so any extracted
+            # edge incident to it is scoreable).
+            level_id = (truth_dungeon.name, extracted_dungeon.id, level.number)
+            for position, truth_area in enumerate(level.areas, start=1):
+                if truth_area.connections is None:
+                    continue
+                slug = _truth_key_slug(truth_area, position)
+                if slug not in matched:
+                    continue
+                for neighbor_key in truth_area.connections:
+                    neighbor = canonical_slug(neighbor_key)
+                    if neighbor in matched and neighbor != slug:
+                        truth_edges.add((*level_id, frozenset({slug, neighbor})))
+            for extracted_area in cache.areas:
+                if extracted_area.key not in matched:
+                    continue
+                for connection in extracted_area.connections:
+                    to_key = canonical_slug(connection.to_key)
+                    if to_key not in matched or to_key == extracted_area.key:
+                        continue
+                    if extracted_area.key in asserted or to_key in asserted:
+                        extracted_edges.add((*level_id, frozenset({extracted_area.key, to_key})))
+
+    true_positives = len(truth_edges & extracted_edges)
+    precision = _ratio(true_positives, len(extracted_edges))
+    recall = _ratio(true_positives, len(truth_edges))
+    f1: float | None = None
+    if precision is not None and recall is not None and (precision + recall) > 0:
+        f1 = round(2 * precision * recall / (precision + recall), 4)
+    elif precision is not None and recall is not None:
+        f1 = 0.0
+
+    return ModuleMetrics(
+        areas=AreaMetrics(
+            truth_areas=truth_area_count,
+            extracted_areas=extracted_area_count,
+            matched=matched_areas,
+            recall=_ratio(matched_areas, truth_area_count),
+            precision=_ratio(matched_areas, extracted_area_count),
+        ),
+        encounters=EncounterMetrics(
+            truth_encounters=truth_encounters,
+            name_matched=name_matched,
+            name_recall=_ratio(name_matched, truth_encounters),
+            count_denominator=count_denominator,
+            count_matched=count_matched,
+            count_accuracy=_ratio(count_matched, count_denominator),
+            resolution_denominator=resolution_denominator,
+            resolution_matched=resolution_matched,
+            resolution_accuracy=_ratio(resolution_matched, resolution_denominator),
+            non_srd=non_srd,
+        ),
+        connections=ConnectionMetrics(
+            truth_edges=len(truth_edges),
+            extracted_edges=len(extracted_edges),
+            true_positives=true_positives,
+            precision=precision,
+            recall=recall,
+            f1=f1,
+        ),
+        treasure=TreasureMetrics(
+            presence_denominator=presence_denominator,
+            presence_matched=presence_matched,
+            presence_agreement=_ratio(presence_matched, presence_denominator),
+            letters_denominator=letters_denominator,
+            letters_matched=letters_matched,
+            letter_accuracy=_ratio(letters_matched, letters_denominator),
+        ),
+    )
+
+
+def _module_mean(values: list[float | None]) -> float | None:
+    present = [value for value in values if value is not None]
+    if not present:
+        return None
+    return round(sum(present) / len(present), 4)
+
+
+def corpus_means(scoreboard: Scoreboard) -> dict[str, float | None]:
+    """The corpus mean of each headline metric, over modules where it is defined.
+
+    Args:
+        scoreboard: The scoreboard to summarize.
+
+    Returns:
+        Metric name → mean (None when no module defines it).
+    """
+    modules = list(scoreboard.modules.values())
+    return {
+        "area_recall": _module_mean([score.metrics.areas.recall for score in modules]),
+        "area_precision": _module_mean([score.metrics.areas.precision for score in modules]),
+        "encounter_name_recall": _module_mean([score.metrics.encounters.name_recall for score in modules]),
+        "encounter_count_accuracy": _module_mean([score.metrics.encounters.count_accuracy for score in modules]),
+        "encounter_resolution_accuracy": _module_mean(
+            [score.metrics.encounters.resolution_accuracy for score in modules]
+        ),
+        "connection_f1": _module_mean([score.metrics.connections.f1 for score in modules]),
+        "treasure_presence_agreement": _module_mean([score.metrics.treasure.presence_agreement for score in modules]),
+        "treasure_letter_accuracy": _module_mean([score.metrics.treasure.letter_accuracy for score in modules]),
+    }

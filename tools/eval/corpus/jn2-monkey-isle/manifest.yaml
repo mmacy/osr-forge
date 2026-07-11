@@ -1,0 +1,25 @@
+# JN2 The Monkey Isle, Release 22 — the held-out member: the first module the
+# extraction prompts were never developed against, and therefore v1's only
+# honest quality number (minimod and JN1 tuned every prompt in the pipeline,
+# so they measure regression, not quality).
+title: JN2 The Monkey Isle
+source_url: >-
+  https://www.basicfantasy.org (Adventure Modules -> JN2 The Monkey Isle,
+  Release 22; basicfantasy.org sits behind a bot challenge — the exact r22
+  PDF is also archived at
+  https://web.archive.org/web/20240521211130/https://basicfantasy.org/downloads/JN2-Monkey-Isle-r22.pdf)
+sha256: 6b4223b6fe2a93e530d7acc729c8c8604cd31d0c135be30558dd57096d737b84
+pages: 54
+license:
+  spdx: CC-BY-SA-4.0
+  verified: >-
+    2026-07-10 (phase 0 procedure): the PDF's own license page (page 2)
+    states CC BY-SA 4.0 for all textual materials, maps, floorplans,
+    diagrams, charts, and forms, with the same non-licensed-artwork carve-out
+    as JN1 — so the PDF itself is never committed. The sole copyright holder,
+    J.D. Neal ("Copyright 2009-2015, 2018-2024 J.D. Neal - All Rights
+    Reserved"), appears on the Basic Fantasy Project relicensing consent list
+    (Wayback Machine snapshot of 2025-04-18, the same record JN1's
+    verification used); credited editors Chris Gonnerman and James Lemon also
+    appear, and as with JN1's record the grant relied on is the copyright
+    holder's own statement on the license page.

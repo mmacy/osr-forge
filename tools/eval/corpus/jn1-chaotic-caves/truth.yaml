@@ -1,0 +1,917 @@
+# Hand-checked structural ground truth for JN1 The Chaotic Caves (r28),
+# authored from the printed module: the caves key (pp. 20-35), the town and
+# surroundings key (pp. 13-18), the manor key (pp. 38-43), and the printed
+# maps (pp. 19, 36, 44-45). Structural facts only — printed keys, creature
+# names, and codes ride the CC BY-SA 4.0 attribution in tools/eval/README.md,
+# which also records the authoring conventions (singular stat-block creature
+# names; treasure present = stated in-area valuables, carried included;
+# connections asserted only where the printed text or map pins an area's
+# complete neighbor set).
+dungeons:
+  - name: A. Orc Lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: orc
+                template: orc
+                count: 6
+            treasure:
+              present: true
+          - key: "2"
+            treasure:
+              present: false
+          - key: "3"
+            encounters:
+              - name: orc
+                template: orc
+                count: 8
+            treasure:
+              present: true
+          - key: "4"
+            encounters:
+              - name: wolf
+                template: normal_wolf
+                count: 3
+            treasure:
+              present: false
+          - key: "5"
+            encounters:
+              - name: orc warden
+                count: 1
+              - name: orc
+                template: orc
+                count: 2
+            connections: ["4", "Jail Area"]
+            treasure:
+              present: true
+          - key: Jail Area
+            encounters:
+              - name: merchant
+                template: merchant
+                count: 1
+            connections: ["5"]
+            treasure:
+              present: false
+          - key: "6"
+            encounters:
+              - name: orc chief
+                count: 1
+              - name: mountain lion
+                template: mountain_lion
+                count: 1
+              - name: wolf
+                template: normal_wolf
+                count: 2
+              - name: orc
+                template: orc
+                count: 4
+            treasure:
+              present: true
+          - key: "7"
+            encounters:
+              - name: orc
+                template: orc
+                count: 4
+            treasure:
+              present: true
+          - key: "8"
+            treasure:
+              present: false
+          - key: "9"
+            treasure:
+              present: false
+          - key: "10"
+            connections: ["9"]
+            treasure:
+              present: true
+  - name: B. Orc Lair
+    levels:
+      - number: 1
+        areas:
+          - key: Entrance
+            encounters:
+              - name: orc
+                template: orc
+                count: 4
+              - name: hobgoblin
+                template: hobgoblin
+                count: 1
+            treasure:
+              present: true
+          - key: "11"
+            treasure:
+              present: true
+          - key: "12"
+            encounters:
+              - name: orc
+                template: orc
+                count: 2
+            connections: ["13", "14"]
+            treasure:
+              present: true
+          - key: "13"
+            encounters:
+              - name: orc chief
+                count: 1
+              - name: orc war leader
+                count: 1
+              - name: orc
+                template: orc
+                count: 2
+            treasure:
+              present: true
+          - key: "14"
+            encounters:
+              - name: orc
+                template: orc
+                count: 9
+            connections: ["12", "15"]
+            treasure:
+              present: true
+          - key: "15"
+            encounters:
+              - name: orc
+                template: orc
+                count: 7
+            connections: ["14"]
+            treasure:
+              present: true
+  - name: C. Hobgoblin Lair
+    levels:
+      - number: 1
+        areas:
+          - key: Entrance
+            encounters:
+              - name: hobgoblin
+                template: hobgoblin
+                count: 5
+            treasure:
+              present: true
+          - key: "16"
+            treasure:
+              present: false
+          - key: "17"
+            encounters:
+              - name: hobgoblin
+                template: hobgoblin
+                count: 6
+            treasure:
+              present: true
+          - key: "18"
+            treasure:
+              present: false
+          - key: "19"
+            encounters:
+              - name: hobgoblin
+                template: hobgoblin
+                count: 1
+            treasure:
+              present: true
+          - key: "20"
+            encounters:
+              - name: hobgoblin
+                template: hobgoblin
+                count: 4
+            treasure:
+              present: true
+          - key: "21"
+            encounters:
+              - name: hobgoblin chief
+                count: 1
+              - name: hobgoblin
+                template: hobgoblin
+                count: 3
+            treasure:
+              present: true
+  - name: D. Abandoned Crypts
+    levels:
+      - number: 1
+        areas:
+          - key: "22"
+            encounters:
+              - name: ghoul
+                template: ghoul
+                count: 3
+            connections: ["23"]
+            treasure:
+              present: false
+          - key: "23"
+            encounters:
+              - name: skeleton
+                template: skeleton
+                count: 6
+            connections: ["22", "24"]
+            treasure:
+              present: true
+          - key: "24"
+            encounters:
+              - name: zombie
+                template: zombie
+                count: 4
+            connections: ["23", "25"]
+            treasure:
+              present: true
+          - key: "25"
+            encounters:
+              - name: skeleton
+                template: skeleton
+                count: 6
+            connections: ["24"]
+            treasure:
+              present: true
+  - name: E. Goblin Lair
+    levels:
+      - number: 1
+        areas:
+          - key: "26"
+            encounters:
+              - name: goblin
+                template: goblin
+                count: 6
+            treasure:
+              present: true
+          - key: "27"
+            encounters:
+              - name: goblin
+                template: goblin
+                count: 7
+            treasure:
+              present: true
+          - key: "28"
+            treasure:
+              present: false
+          - key: "29"
+            encounters:
+              - name: goblin
+                template: goblin
+                count: 1
+            treasure:
+              present: true
+          - key: "30"
+            encounters:
+              - name: goblin
+                template: goblin
+                count: 11
+            connections: ["31"]
+            treasure:
+              present: true
+          - key: "31"
+            encounters:
+              - name: goblin king
+                count: 1
+              - name: goblin
+                template: goblin
+                count: 3
+            connections: ["28", "30"]
+            treasure:
+              present: true
+  - name: F. Bandit Lair
+    levels:
+      - number: 1
+        areas:
+          - key: "32"
+            encounters:
+              - name: bandit
+                template: bandit
+                count: 5
+            treasure:
+              present: true
+          - key: "33"
+            encounters:
+              - name: bandit
+                template: bandit
+                count: 6
+            treasure:
+              present: true
+          - key: "34"
+            treasure:
+              present: true
+          - key: "35"
+            encounters:
+              - name: bandit
+                template: bandit
+                count: 6
+            treasure:
+              present: true
+          - key: "36"
+            encounters:
+              - name: bandit leader
+                count: 1
+              - name: bandit crony
+                template: veteran_2
+                count: 2
+            treasure:
+              present: true
+          - key: "37"
+            treasure:
+              present: false
+          - key: "38"
+            encounters:
+              - name: merchant
+                template: merchant
+                count: 3
+              - name: bandit
+                template: bandit
+                count: 1
+            treasure:
+              present: false
+          - key: "39"
+            encounters:
+              - name: bandit
+                template: bandit
+                count: 3
+            treasure:
+              present: true
+          - key: "40"
+            treasure:
+              present: true
+          - key: "41"
+            encounters:
+              - name: elven thief
+                count: 1
+            treasure:
+              present: false
+          - key: "42"
+            encounters:
+              - name: bandit
+                template: bandit
+                count: 5
+            treasure:
+              present: true
+  - name: G. Kobold Lair
+    levels:
+      - number: 1
+        areas:
+          - key: "43"
+            encounters:
+              - name: kobold
+                template: kobold
+                count: 9
+            treasure:
+              present: false
+          - key: "44"
+            encounters:
+              - name: kobold
+                template: kobold
+                count: 7
+            treasure:
+              present: false
+          - key: "45"
+            encounters:
+              - name: kobold
+                template: kobold
+                count: 12
+            treasure:
+              present: false
+          - key: "46"
+            encounters:
+              - name: kobold
+                template: kobold
+                count: 9
+            treasure:
+              present: false
+          - key: "47"
+            treasure:
+              present: false
+          - key: "48"
+            encounters:
+              - name: kobold chief
+                count: 1
+              - name: kobold bodyguard
+                count: 2
+              - name: kobold
+                template: kobold
+                count: 4
+            treasure:
+              present: true
+          - key: "49"
+            encounters:
+              - name: giant centipede
+                template: centipede_giant
+                count: 7
+            treasure:
+              present: false
+  - name: H. Lizard Man Lair
+    levels:
+      - number: 1
+        areas:
+          - key: "50"
+            encounters:
+              - name: lizard man
+                template: lizard_man
+                count: 3
+              - name: giant gecko lizard
+                template: gecko
+                count: 1
+            treasure:
+              present: true
+          - key: "51"
+            treasure:
+              present: false
+          - key: "52"
+            encounters:
+              - name: lizard man
+                template: lizard_man
+                count: 3
+            treasure:
+              present: true
+          - key: "53"
+            treasure:
+              present: false
+          - key: "54"
+            encounters:
+              - name: lizard man leader
+                count: 1
+              - name: lizard man
+                template: lizard_man
+                count: 2
+              - name: young lizard man
+                template: lizard_man
+                count: 6
+            treasure:
+              present: true
+          - key: "55"
+            encounters:
+              - name: lizard man
+                template: lizard_man
+                count: 3
+            treasure:
+              present: true
+          - key: "56"
+            encounters:
+              - name: lizard man
+                template: lizard_man
+                count: 3
+              - name: giant gecko lizard
+                template: gecko
+                count: 1
+            treasure:
+              present: true
+          - key: "57"
+            treasure:
+              present: false
+  - name: I. Bugbear Lair
+    levels:
+      - number: 1
+        areas:
+          - key: "58"
+            encounters:
+              - name: bugbear
+                template: bugbear
+                count: 3
+            treasure:
+              present: true
+          - key: "59"
+            treasure:
+              present: false
+          - key: "60"
+            encounters:
+              - name: yellow mold
+                template: yellow_mould
+                count: 1
+            treasure:
+              present: false
+          - key: "61"
+            encounters:
+              - name: bugbear
+                template: bugbear
+                count: 3
+            treasure:
+              present: true
+          - key: "62"
+            treasure:
+              present: false
+          - key: "63"
+            treasure:
+              present: false
+          - key: "64"
+            treasure:
+              present: true
+          - key: "65"
+            encounters:
+              - name: bugbear
+                template: bugbear
+                count: 2
+              - name: merchant
+                template: merchant
+                count: 1
+            treasure:
+              present: true
+          - key: "66"
+            encounters:
+              - name: bugbear
+                template: bugbear
+                count: 3
+            treasure:
+              present: true
+          - key: "67"
+            encounters:
+              - name: owlbear
+                template: owl_bear
+                count: 1
+            treasure:
+              present: false
+          - key: "68"
+            encounters:
+              - name: bugbear chief
+                count: 1
+              - name: bugbear
+                template: bugbear
+                count: 2
+            treasure:
+              present: true
+  - name: J. Gnoll Lair
+    levels:
+      - number: 1
+        areas:
+          - key: "69"
+            treasure:
+              present: false
+          - key: "70"
+            encounters:
+              - name: gnoll
+                template: gnoll
+                count: 3
+            treasure:
+              present: true
+          - key: "71"
+            encounters:
+              - name: gnoll
+                template: gnoll
+                count: 3
+            treasure:
+              present: true
+          - key: "72"
+            encounters:
+              - name: gnoll
+                template: gnoll
+                count: 5
+              - name: wolf
+                template: normal_wolf
+                count: 1
+            treasure:
+              present: true
+          - key: "73"
+            treasure:
+              present: false
+          - key: "74"
+            encounters:
+              - name: gnoll leader
+                count: 1
+              - name: gnoll
+                template: gnoll
+                count: 2
+            treasure:
+              present: true
+          - key: Treasure Hoard
+            encounters:
+              - name: giant black widow spider
+                template: black_widow
+                count: 1
+            connections: ["74"]
+            treasure:
+              present: true
+          - key: "75"
+            treasure:
+              present: false
+          - key: "76"
+            encounters:
+              - name: gnoll
+                template: gnoll
+                count: 1
+            treasure:
+              present: true
+  - name: The Abandoned Manor
+    levels:
+      - number: 1
+        areas:
+          - key: "77"
+            connections: ["78", "79"]
+            treasure:
+              present: false
+          - key: "78"
+            encounters:
+              - name: human fighter 2
+                template: veteran_2
+                count: 1
+              - name: human fighter 1
+                template: veteran_1
+                count: 6
+              - name: giant black widow spider
+                template: black_widow
+                count: 1
+            connections: ["77"]
+            treasure:
+              present: true
+          - key: "79"
+            encounters:
+              - name: giant centipede
+                template: centipede_giant
+                count: 9
+              - name: giant rat
+                template: giant_rat
+                count: 9
+            connections: ["77"]
+            treasure:
+              present: false
+          - key: "80"
+            encounters:
+              - name: giant weasel
+                template: weasel_giant
+                count: 1
+              - name: giant shrew
+                template: shrew_giant
+                count: 3
+            treasure:
+              present: false
+          - key: "81"
+            treasure:
+              present: false
+          - key: "82"
+            encounters:
+              - name: minotaur
+                template: minotaur
+                count: 1
+            treasure:
+              present: true
+          - key: "83"
+            connections: ["84"]
+            treasure:
+              present: false
+          - key: "84"
+            connections: ["83", "85"]
+            treasure:
+              present: false
+          - key: "85"
+            encounters:
+              - name: fighter
+                template: veteran_2
+                count: 3
+              - name: smith
+                template: veteran_2
+                count: 1
+              - name: apprentice smith
+                template: veteran_1
+                count: 2
+            treasure:
+              present: false
+          - key: "86"
+            treasure:
+              present: false
+          - key: "87"
+            treasure:
+              present: false
+          - key: "88"
+            encounters:
+              - name: sergeant
+                template: veteran_2
+                count: 1
+              - name: human fighter 1
+                template: veteran_1
+                count: 6
+            treasure:
+              present: true
+          - key: "89"
+            encounters:
+              - name: human fighter 1
+                template: veteran_1
+                count: 2
+            connections: ["88"]
+            treasure:
+              present: true
+          - key: "90"
+            treasure:
+              present: false
+          - key: "91"
+            treasure:
+              present: false
+          - key: "92"
+            treasure:
+              present: false
+          - key: "93"
+            treasure:
+              present: false
+          - key: "94"
+            encounters:
+              - name: human fighter 1
+                template: veteran_1
+                count: 2
+            treasure:
+              present: false
+          - key: "95"
+            treasure:
+              present: false
+          - key: "96"
+            treasure:
+              present: false
+          - key: "97"
+            encounters:
+              - name: human fighter 1
+                template: veteran_1
+                count: 4
+            treasure:
+              present: true
+      - number: 2
+        areas:
+          - key: "98"
+            connections: ["99", "100", "101", "102", "103", "104", "105", "106"]
+            treasure:
+              present: false
+          - key: "99"
+            connections: ["98"]
+            treasure:
+              present: true
+          - key: "100"
+            encounters:
+              - name: python
+                template: rock_python
+                count: 1
+            connections: ["98"]
+            treasure:
+              present: true
+          - key: "101"
+            connections: ["98"]
+            treasure:
+              present: true
+          - key: "102"
+            connections: ["98"]
+            treasure:
+              present: true
+          - key: "103"
+            connections: ["98"]
+            treasure:
+              present: false
+          - key: "104"
+            connections: ["98"]
+            treasure:
+              present: false
+          - key: "105"
+            connections: ["98"]
+            treasure:
+              present: false
+          - key: "106"
+            encounters:
+              - name: human magic-user 4
+                count: 1
+              - name: human cleric 3
+                count: 2
+            connections: ["98"]
+            treasure:
+              present: true
+  - name: Halfling Home
+    levels:
+      - number: 1
+        areas:
+          - key: H1
+            treasure:
+              present: false
+          - key: H2
+            encounters:
+              - name: tentacle worm
+                template: carcass_crawler
+                count: 1
+            treasure:
+              present: true
+          - key: H3
+            treasure:
+              present: false
+          - key: H4
+            treasure:
+              present: false
+          - key: H5
+            treasure:
+              present: false
+          - key: H6
+            treasure:
+              present: false
+          - key: H7
+            treasure:
+              present: false
+          - key: H8
+            treasure:
+              present: false
+          - key: H9
+            encounters:
+              - name: giant fire beetle
+                template: fire_beetle
+                count: 3
+            connections: []
+            treasure:
+              present: false
+          - key: H10
+            encounters:
+              - name: stirge
+                template: stirge
+                count: 6
+            connections: []
+            treasure:
+              present: true
+          - key: H11
+            connections: [H12]
+            treasure:
+              present: false
+          - key: H12
+            encounters:
+              - name: zombie
+                template: zombie
+                count: 4
+            connections: [H11, H13, H15]
+            treasure:
+              present: false
+          - key: H13
+            connections: [H12, H14]
+            treasure:
+              present: false
+          - key: H14
+            encounters:
+              - name: zombie
+                template: zombie
+                count: 1
+            connections: [H13]
+            treasure:
+              present: true
+          - key: H15
+            connections: [H12]
+            treasure:
+              present: false
+  - name: Cave of Horrors
+    levels:
+      - number: 1
+        areas:
+          - key: C1
+            connections: [C2, C3, C9]
+            treasure:
+              present: false
+          - key: C2
+            encounters:
+              - name: ogre
+                template: ogre
+                count: 1
+            connections: [C1, C6]
+            treasure:
+              present: true
+          - key: C3
+            encounters:
+              - name: gray jelly
+                template: grey_ooze
+                count: 1
+            connections: [C1, C4]
+            treasure:
+              present: true
+          - key: C4
+            connections: [C3, C5]
+            treasure:
+              present: false
+          - key: C5
+            connections: [C4, C7]
+            treasure:
+              present: false
+          - key: C6
+            connections: [C2, C7]
+            treasure:
+              present: false
+          - key: C7
+            encounters:
+              - name: stirge
+                template: stirge
+                count: 12
+            connections: [C5, C6]
+            treasure:
+              present: true
+          - key: C8
+            treasure:
+              present: true
+          - key: C9
+            connections: [C1, C10]
+            treasure:
+              present: false
+          - key: C10
+            encounters:
+              - name: giant cave locust
+                template: cave_locust
+                count: 6
+            connections: [C9, C11]
+            treasure:
+              present: false
+          - key: C11
+            encounters:
+              - name: sea snake
+                template: sea_snake
+                count: 1
+            connections: [C10]
+            treasure:
+              present: true
+  - name: Crypt
+    levels:
+      - number: 1
+        areas:
+          - key: Crypt
+            encounters:
+              - name: wight
+                template: wight
+                count: 1
+            connections: []
+            treasure:
+              present: true

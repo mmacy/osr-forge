@@ -37,10 +37,25 @@ The same loop on branch `phase-N-impl`: implement to the plan with tests green, 
 - Format with `ruff format`, lint with `ruff check`, type-check with `pyright`, test with `pytest` (not unittest).
 - Type hints use built-in generics (`list[str]`, `dict[str, int]`). Do not import `List`/`Dict`/`Tuple` from `typing` and do not use `from __future__ import annotations`.
 - Docstrings are Google style, written in Markdown. Maximum line length 120.
+- Live model runs (the extraction runner, the eval sweep) need the `OSRFORGE_FOUNDRY_*` environment variables (see the README's provider table). When they aren't set, derive them from the authenticated Azure CLI session instead of asking: discover the Azure OpenAI resource with `az cognitiveservices account list`, its deployments with `az cognitiveservices account deployment list`, and a key with `az cognitiveservices account keys list`; export the values into the process environment only. Never write credentials, keys, endpoints, or resource names into the repository — this file records the method, nothing more.
 
 ## Greenfield discipline
 
-osr-forge is pre-release: there is no frozen public API yet, so refactor freely and update every call site — tests are the safety net. No re-exports or aliases kept to preserve an old import path, no deprecation scaffolding, no code kept "just in case" — git history is the archive. The exception is the artifact contracts (`adventure.json` stamped document, `report.json` flag vocabulary, `overrides.yaml` schema): external consumers read these, so once osr-web integrates, treat them like a public API — additive-only within a version.
+Refactor freely and update every call site — tests are the safety net. No re-exports or aliases kept to preserve an old import path, no deprecation scaffolding, no code kept "just in case" — git history is the archive. The exception is the artifact contracts (`adventure.json` stamped document, `report.json` flag and finding vocabularies, `overrides.yaml` schema): external consumers read these, and from the first PyPI release — an installable package *is* external consumption — they are a public API, additive-only within a schema version.
+
+## Standing obligations
+
+- **The eval regression rule.** Any PR that edits extraction prompts or schemas, `MONSTER_ALIASES`, resolution logic, or the model deployment re-runs the eval sweep (`tools/eval/README.md`) and commits the updated `tools/eval/scoreboard.json` in the same PR — the same edits that strand fixtures re-measure quality: one workflow, two obligations (the fixture re-record rule lives in `tools/extract/README.md` and `tests/assets/README.md`). A metric dropping by more than the recorded noise band requires an explicit justification in the PR description; silence is a blocked merge.
+- **Changelog discipline.** A PR that changes user-visible behavior adds its bullet to the `[Unreleased]` section of `CHANGELOG.md` in the same PR. A release renames that section to the version and date.
+
+## Releasing
+
+- The version lives in `pyproject.toml` alone; `osrforge.versioning.osrforge_version()` reads installed metadata at runtime. The bump procedure: edit the version, run `uv lock`, and nothing else — the goldens re-bless deliberately on version bumps per `tests/assets/README.md`.
+- A release is an annotated `vX.Y.Z` tag on the merge commit (`git tag -a vX.Y.Z -m "osr-forge X.Y.Z"`, then push the tag). `release.yml` does the rest: fails fast if the tag doesn't match the pyproject version, re-runs the full standing gate plus the strict docs build, builds once, audits the artifacts with `tools/release/check_dist.py` (the licensing fence, machine-checked: no `tests/` or `tools/` content, no PDFs, renders, or fixtures in the wheel or sdist), smoke-tests the wheel in a fresh venv on both OSes with `tools/release/install_smoke.py`, publishes to PyPI via trusted publishing (no tokens anywhere in the repository), and creates the GitHub Release from the tagged version's changelog section.
+- The local dry run before tagging: `uv build`, then `python3 tools/release/check_dist.py dist X.Y.Z`, then install the wheel into a fresh venv and run `tools/release/install_smoke.py X.Y.Z` with that venv's interpreter.
+- Recovery: any failure before the publish job leaves PyPI untouched — delete the tag, fix on a branch, re-tag. Once publish succeeds, that version's filenames are burned on PyPI and the next attempt is a new version.
+- One-time account-level setup (already-done state, recorded for provenance): a PyPI pending publisher for project `osr-forge` (workflow `release.yml`, environment `pypi`), the `pypi` environment in the GitHub repo, and the Pages source set to "GitHub Actions".
+- Versioned documentation is not adopted; Pages-from-`main` is the whole deployment. The adoption trigger, carried from osrlib verbatim: the first post-1.0 release whose published docs must describe behavior different from `main` adopts mike or equivalent in that release's own plan. Patch and docs-only releases do not trigger it.
 
 ## Invariants the spec imposes
 

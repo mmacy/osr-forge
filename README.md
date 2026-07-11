@@ -4,7 +4,13 @@ Convert tabletop adventure module PDFs into playable [osrlib](https://github.com
 
 Standalone package + CLI. Consumers need only its artifacts — `adventure.json`, `report.json`, `overrides.yaml`, SVG map previews — or its CLI, regardless of their own tech stack.
 
-**Status:** phase 3 (the correction loop). See [the specification](docs/spec.md) and the plans for [phase 0](docs/phase-0-plan.md), [phase 1](docs/phase-1-plan.md), [phase 2](docs/phase-2-plan.md), and [phase 3](docs/phase-3-plan.md). The package runs the whole pipeline — preprocessing, the survey and content extraction stages, monster resolution against the osrlib catalog, deterministic geometry synthesis, and assembly — plus the human correction loop: overrides application, `rerun`/resume, the playability lint with its smoke delve, and cost estimation. The eval corpus, docs site, and PyPI release arrive in phase 4.
+**Status:** released — install from PyPI, docs at <https://mmacy.github.io/osr-forge/>:
+
+```sh
+uv pip install osr-forge     # or: pip install osr-forge
+```
+
+The package runs the whole pipeline — preprocessing, the survey (chunked past `survey_max_pages`) and content extraction stages, monster resolution against the osrlib catalog, deterministic geometry synthesis, and assembly — plus the human correction loop (overrides application, `rerun`/resume, the playability lint with its smoke delve, cost estimation) and the eval harness that keeps extraction quality a measured number (`tools/eval/`). The roadmap's phase plans live in [docs/](docs/spec.md) beside [the specification](docs/spec.md).
 
 The library entry points are `convert()`, `assemble()`, `check()`, and `estimate()`; the `osrforge` console script wraps them:
 
@@ -17,7 +23,7 @@ osrforge preview --workdir my-module.forge    # regenerate the SVG maps only
 osrforge rerun assemble --workdir my-module.forge   # resume any stage through assemble
 ```
 
-Recording sessions and live verification runs are driven via `tools/extract/run_extraction.py` (see [tools/extract/README.md](tools/extract/README.md)).
+Recording sessions and live verification runs are driven via `tools/extract/run_extraction.py` (see [tools/extract/README.md](tools/extract/README.md)); the on-demand eval harness — corpus, scorer, and scoreboard — lives in `tools/eval/` (see [tools/eval/README.md](tools/eval/README.md)).
 
 ## The correction loop
 
@@ -58,7 +64,7 @@ Tests use no network — model interactions replay from recorded fixtures. The o
 | `max_source_bytes` | 100 MiB | Source file-size guardrail |
 | `blank_page_renders` | `()` | Page numbers whose renders are emitted as blank white PNGs (text layer still extracted) — the content-safety-filter workaround; each blanked page is flagged `page_unreadable` in the report |
 | `content_batch_pages` | 8 | Content-pass batch size in pages (floor 2) |
-| `survey_max_pages` | 150 | Single-request survey guard; larger sources raise `ExtractionError` until survey chunking lands (phase 4) |
+| `survey_max_pages` | 50 | The survey chunk size — the service's measured 50-images-per-request cap: a source at or under it surveys in one request; a larger source surveys in page windows of this size, merged before normalization |
 | `monster_fuzzy_threshold` | 0.85 | Monster resolution's fuzzy-tier auto-accept floor, pinned against measured catalog pairs |
 | `monster_llm_top_k` | 8 | Candidate templates offered per name in the monster-resolution LLM tier |
 | `unresolved_fallback` | `best-effort` | Where resolution or parsing came up empty: flagged level-band monster stand-ins and unguarded-treasure rolls (`best-effort`), or leave the gap (`omit`) |

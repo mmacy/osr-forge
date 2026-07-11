@@ -481,3 +481,56 @@ class TestPostconditionsOverTheCommittedCorpora:
         entrances = {geometry.level_number: geometry.entrance for geometry in results}
         assert entrances[1] is not None
         assert entrances[2] is None
+
+
+def test_dense_hub_graph_reanchors_instead_of_exhausting():
+    # Captured from a live JN1 extraction (phase 4's baseline sweep): the
+    # manor ground level's 21-room graph walls a hub in with its own
+    # corridors, exhausting both the directional and routed candidates from
+    # the graph parent. The placement must re-anchor the child on another
+    # placed room — deterministically — instead of raising.
+    from osrlib.crawl.dungeon import Direction as GridDirection
+
+    from osrforge.geometry import _GraphEdge, _place_level
+
+    keys = [str(number) for number in range(77, 98)]
+    sizes = {key: (2, 2) for key in keys}
+    mentions = [
+        ("77", "78", "77", "west"),
+        ("77", "79", "77", "east"),
+        ("77", "83", "77", "north"),
+        ("80", "77", "80", "east"),
+        ("81", "83", "81", "west"),
+        ("82", "83", "82", "south"),
+        ("83", "84", "83", "north"),
+        ("83", "80", "83", "west"),
+        ("84", "85", "84", "north"),
+        ("85", "86", "85", "west"),
+        ("85", "87", "85", "east"),
+        ("85", "88", "85", "north"),
+        ("86", "87", "86", "east"),
+        ("86", "90", "86", "north"),
+        ("87", "88", "87", "north"),
+        ("87", "89", "87", "north"),
+        ("88", "89", "88", "east"),
+        ("88", "95", "88", "west"),
+        ("88", "97", "88", "west"),
+        ("89", "93", "89", "north"),
+        ("90", "91", "90", "north"),
+        ("91", "92", "91", "north"),
+        ("93", "94", "93", "south"),
+        ("93", "95", "93", "south"),
+        ("93", "82", "93", "north"),
+        ("94", "96", "94", "south"),
+        ("95", "97", "95", "south"),
+        ("96", "97", "96", "east"),
+    ]
+    edges = [
+        _GraphEdge(a=a, b=b, owner=owner, direction=GridDirection(direction)) for a, b, owner, direction in mentions
+    ]
+    placement, disconnected = _place_level(keys, sizes, edges, anchor="77")
+    assert set(placement.rooms) == set(keys)
+    assert disconnected == ()
+    # Determinism: the fallback anchor scan is placement-ordered.
+    again, _ = _place_level(keys, sizes, edges, anchor="77")
+    assert again.rooms == placement.rooms

@@ -59,6 +59,12 @@ non-strict) is **accepted, honored in practice, but not guaranteed**:
   `-200`). The tokenizer evidently normalizes resolution in this range, so
   render DPI is a legibility knob, not a cost knob. The spec's 150 DPI default
   stands; raising it for hard-to-read scans costs nothing in tokens.
+- **Hard cap: 50 images per request** (measured 2026-07-10, phase 4 baseline
+  sweep): a 54-page single-request survey was rejected with HTTP 400
+  `Too many images in request: 51, maximum allowed: 50`. This — not the
+  272K-token pricing cliff — is the binding constraint on whole-module
+  requests, and it is why `survey_max_pages` (the survey chunk size) defaults
+  to 50: larger sources chunk into page windows that stay under the cap.
 
 ## Context
 

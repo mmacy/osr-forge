@@ -455,22 +455,21 @@ def _place_child(
     child_size: tuple[int, int],
     direction: GridDirection | None,
     occupied: set[Position],
-) -> tuple[tuple[Position, ...], list[Position]]:
-    """Place one child room: the stated direction, the pinned fallback order, then the routed fallback."""
+) -> tuple[tuple[Position, ...], list[Position]] | None:
+    """Place one child room: the stated direction, the pinned fallback order, then the routed fallback.
+
+    Returns None when every route out of the parent is walled by earlier
+    placements — on dense graphs a hub's corridors can enclose it completely
+    (a fresh JN1 extraction's manor level did exactly this, phase 4's baseline
+    sweep) — and the caller re-anchors the child on another placed room.
+    """
     tried: list[GridDirection] = [direction] if direction is not None else []
     tried.extend(d for d in _PLACEMENT_ORDER if d not in tried)
     for candidate_direction in tried:
         candidate = _first_free_candidate(parent_cells, child_size, candidate_direction, occupied)
         if candidate is not None:
             return candidate
-    routed = _routed_candidate(parent_cells, child_size, occupied)
-    if routed is not None:
-        return routed
-    # Exhaustion here means the placement algorithm walled the parent in with
-    # its own earlier placements — an algorithm limitation, not a data
-    # condition; the routed fallback makes it unreachable on every corpus
-    # tested (it explores the whole free region around the parent).
-    raise AssertionError("placement exhausted: no free corridor route out of the parent room in any direction")
+    return _routed_candidate(parent_cells, child_size, occupied)
 
 
 @dataclass
@@ -541,9 +540,25 @@ def _place_level(
             child = graph_edge.other(parent)
             if child in placement.rooms:
                 continue
-            child_cells, path = _place_child(
+            placed = _place_child(
                 placement.rooms[parent], sizes[child], graph_edge.placement_direction(parent), occupied
             )
+            if placed is None:
+                # The parent walled itself in: re-anchor on the earliest
+                # placed room with a free way out (dict order is placement
+                # order — deterministic). The child joins the component there
+                # instead of at its graph parent; synthesized geometry is
+                # approximate by charter, and the room stays reachable, which
+                # is the postcondition that matters.
+                for fallback_parent, fallback_cells in placement.rooms.items():
+                    if fallback_parent == parent:
+                        continue
+                    placed = _place_child(fallback_cells, sizes[child], None, occupied)
+                    if placed is not None:
+                        break
+            if placed is None:
+                raise AssertionError(f"placement exhausted: no placed room has a free corridor route to {child!r}")
+            child_cells, path = placed
             placement.rooms[child] = child_cells
             occupied.update(child_cells)
             occupied.update(path)

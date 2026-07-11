@@ -167,18 +167,14 @@ def _cmd_preview(args: argparse.Namespace) -> None:
 def _cmd_estimate(args: argparse.Namespace) -> None:
     workdir: Path = args.workdir if args.workdir is not None else Path(f"./{args.pdf.stem}.forge")
     result = estimate(args.pdf, workdir)
+    survey_note = f" ({result.survey_window_count} windows)" if result.survey_window_count > 1 else ""
     print(f"pages: {result.page_count}")
     print(f"page tokens: {result.text_tokens} text + {result.image_tokens} image")
-    print(f"survey:   in={result.survey_input_tokens} out={result.survey_output_tokens}")
+    print(f"survey:   in={result.survey_input_tokens} out={result.survey_output_tokens}{survey_note}")
     print(f"content:  in={result.content_input_tokens} out={result.content_output_tokens}")
     print(f"monsters: in={result.monsters_input_tokens} out={result.monsters_output_tokens}")
     print(f"total:    in={result.input_tokens} out={result.output_tokens}")
     print(f"estimated cost: ${result.usd:.2f}")
-    if result.exceeds_survey_guard:
-        print(
-            f"warning: {result.page_count} pages exceeds the survey guard — "
-            "the conversion would fail at survey before spending anything"
-        )
 
 
 def _add_workdir_option(parser: argparse.ArgumentParser, default: Path | None) -> None:

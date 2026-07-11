@@ -52,13 +52,17 @@ class ConversionSettings(BaseModel):
     planner on the same page forever.
     """
 
-    survey_max_pages: int = Field(default=150, ge=1)
-    """The single-request survey guard.
+    survey_max_pages: int = Field(default=50, ge=1)
+    """The survey chunk size in pages.
 
-    Per `docs/foundry-capabilities.md`, beyond ~150 pages the whole-module
-    survey request crosses the 272K-token pricing cliff. Survey chunking past
-    this guard is phase 4's; until then a larger source raises
-    [`ExtractionError`][osrforge.errors.ExtractionError].
+    A source at or under this many pages surveys in one request; a larger
+    source surveys in contiguous page windows of this size, merged before
+    normalization. The default is the service's measured per-request image
+    cap: the deployment rejects requests carrying more than 50 images
+    (observed live on a 54-page module; `docs/foundry-capabilities.md`), a
+    far lower bound than the 272K-token pricing cliff that shaped the
+    original 150-page guard. A 50-page window also sits comfortably under
+    that cliff at any plausible text density.
     """
 
     monster_fuzzy_threshold: float = Field(default=0.85, gt=0.0, le=1.0)

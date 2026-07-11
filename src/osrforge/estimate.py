@@ -15,11 +15,13 @@ band, not the point value, is the contract.
 """
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from osrforge.preprocess import preprocess
 from osrforge.settings import ConversionSettings
+from osrforge.survey import survey_windows
 from osrforge.workdir import Workdir
 
 __all__ = [
@@ -75,24 +77,24 @@ class CostEstimate:
         page_count: The source's page count.
         text_tokens: Estimated tokens in the text layers, all pages.
         image_tokens: Estimated page-image tokens, all pages.
-        survey_input_tokens: Estimated survey-request input.
-        survey_output_tokens: Estimated survey output.
+        survey_window_count: How many requests the survey runs as — 1 at or
+            under `survey_max_pages` pages, one per chunked page window above.
+        survey_input_tokens: Estimated survey input, all windows.
+        survey_output_tokens: Estimated survey output, all windows.
         content_input_tokens: Estimated content-pass input, all batches.
         content_output_tokens: Estimated content output.
         monsters_input_tokens: The flat monsters-stage input constant.
         monsters_output_tokens: The flat monsters-stage output constant.
         input_tokens: The input total.
         output_tokens: The output total.
-        usd: The estimated cost, with the survey request priced at the doubled
-            tier when its estimated input crosses the 272K cliff.
-        exceeds_survey_guard: True when `page_count > survey_max_pages` — the
-            conversion would fail at survey before spending anything, and the
-            estimate says so rather than pricing a run that can't happen.
+        usd: The estimated cost, with each survey window priced at the doubled
+            tier when that window's estimated input crosses the 272K cliff.
     """
 
     page_count: int
     text_tokens: int
     image_tokens: int
+    survey_window_count: int
     survey_input_tokens: int
     survey_output_tokens: int
     content_input_tokens: int
@@ -102,23 +104,45 @@ class CostEstimate:
     input_tokens: int
     output_tokens: int
     usd: float
-    exceeds_survey_guard: bool
 
 
-def _estimate_from_measurements(page_count: int, text_tokens: int, settings: ConversionSettings) -> CostEstimate:
-    """The pure arithmetic over the measured inputs — separable for pinning the formula in tests."""
+def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: ConversionSettings) -> CostEstimate:
+    """The pure arithmetic over the measured per-page text tokens — separable for pinning the formula in tests.
+
+    The survey prices per window: each window carries its own pages' text and
+    image tokens plus the flat prompt/schema overhead, and the 272K
+    tier-doubling check applies per window — the chunk size caps only the
+    image half of a window's tokens, while text tokens are unbounded by page
+    count (at the phase 3 calibration table's B3 density, ~1,015 text
+    tokens/page, a window over ~140 pages crosses the cliff — reachable with
+    the `survey_max_pages` knob raised past its image-cap default).
+    """
+    page_count = len(page_text_tokens)
+    text_tokens = sum(page_text_tokens)
     image_tokens = IMAGE_TOKENS_PER_PAGE * page_count
     page_tokens = text_tokens + image_tokens
-    survey_input = page_tokens + _SURVEY_OVERHEAD_TOKENS
-    survey_output = _SURVEY_OUTPUT_TOKENS_PER_PAGE * page_count
+    windows = survey_windows(page_count, settings.survey_max_pages)
+    survey_input = 0
+    survey_output = 0
+    survey_usd = 0.0
+    for first_page, last_page in windows:
+        window_pages = last_page - first_page + 1
+        window_input = (
+            sum(page_text_tokens[first_page - 1 : last_page])
+            + IMAGE_TOKENS_PER_PAGE * window_pages
+            + _SURVEY_OVERHEAD_TOKENS
+        )
+        window_output = _SURVEY_OUTPUT_TOKENS_PER_PAGE * window_pages
+        window_crosses_cliff = window_input > LARGE_REQUEST_INPUT_TOKENS
+        window_input_rate = LARGE_INPUT_USD_PER_TOKEN if window_crosses_cliff else INPUT_USD_PER_TOKEN
+        window_output_rate = LARGE_OUTPUT_USD_PER_TOKEN if window_crosses_cliff else OUTPUT_USD_PER_TOKEN
+        survey_usd += window_input * window_input_rate + window_output * window_output_rate
+        survey_input += window_input
+        survey_output += window_output
     content_input = math.ceil(_CONTENT_INPUT_FACTOR * page_tokens)
     content_output = _CONTENT_OUTPUT_TOKENS_PER_PAGE * page_count
-    survey_crosses_cliff = survey_input > LARGE_REQUEST_INPUT_TOKENS
-    survey_input_rate = LARGE_INPUT_USD_PER_TOKEN if survey_crosses_cliff else INPUT_USD_PER_TOKEN
-    survey_output_rate = LARGE_OUTPUT_USD_PER_TOKEN if survey_crosses_cliff else OUTPUT_USD_PER_TOKEN
     usd = (
-        survey_input * survey_input_rate
-        + survey_output * survey_output_rate
+        survey_usd
         + (content_input + _MONSTERS_INPUT_TOKENS) * INPUT_USD_PER_TOKEN
         + (content_output + _MONSTERS_OUTPUT_TOKENS) * OUTPUT_USD_PER_TOKEN
     )
@@ -126,6 +150,7 @@ def _estimate_from_measurements(page_count: int, text_tokens: int, settings: Con
         page_count=page_count,
         text_tokens=text_tokens,
         image_tokens=image_tokens,
+        survey_window_count=len(windows),
         survey_input_tokens=survey_input,
         survey_output_tokens=survey_output,
         content_input_tokens=content_input,
@@ -135,7 +160,6 @@ def _estimate_from_measurements(page_count: int, text_tokens: int, settings: Con
         input_tokens=survey_input + content_input + _MONSTERS_INPUT_TOKENS,
         output_tokens=survey_output + content_output + _MONSTERS_OUTPUT_TOKENS,
         usd=usd,
-        exceeds_survey_guard=page_count > settings.survey_max_pages,
     )
 
 
@@ -158,8 +182,8 @@ def estimate(pdf_path: Path, workdir: Path, settings: ConversionSettings | None 
     effective = settings if settings is not None else ConversionSettings()
     run = preprocess(pdf_path, workdir, effective)
     workdir_files = Workdir(workdir)
-    text_tokens = sum(
+    page_text_tokens = tuple(
         math.ceil(len(workdir_files.page_txt(number).read_text(encoding="utf-8")) / _CHARS_PER_TOKEN)
         for number in range(1, run.page_count + 1)
     )
-    return _estimate_from_measurements(run.page_count, text_tokens, effective)
+    return _estimate_from_measurements(page_text_tokens, effective)
