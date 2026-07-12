@@ -14,11 +14,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   modules (integrity flows through a local `source.sha256` sidecar seeded on
   first sight and enforced at every convert and score), and manifests gain
   `publisher`/`edition` identity fields and a `truth_provenance` record.
-- The committed, aggregate-only BYOM scoreboard
-  (`tools/eval/byom-scoreboard.json`), fed by the explicit
-  `run_eval.py publish` step (refused without a scored entry or truth
-  provenance) and rendered by `report --byom`. Advisory standing: never
-  merge-gating.
+- The BYOM publish path: the explicit `run_eval.py publish` step copies a
+  private corpus's scored entry onto the committed, aggregate-only BYOM
+  scoreboard (`tools/eval/byom-scoreboard.json`; refused without a scored
+  entry or truth provenance), rendered by `report --byom`. Advisory
+  standing: never merge-gating.
 - The truth-authoring runbook (`tools/eval/AUTHORING.md`): the independence
   discipline, the adversarial verification pass, and the owner-sampling bar
   behind every published truth file.

@@ -86,6 +86,47 @@ The phase's center of gravity: the document an agent is pointed at, together wit
 4. The corpus re-sweep, then the trio: author → adversarial verify → owner sample → convert → score → publish (work item 5); matrix extension as the shelf allows.
 5. Spec, README, docs-site, and `AGENTS.md` impacts; the amendment; the traceability pass.
 
+## Amendments
+
+Recorded during implementation, per the phase loop's plan-and-code-never-diverge rule.
+
+- **The extended-metrics re-sweep ran twice on 2026-07-10** (deployment `gpt-5.4-2026-03-05`, GlobalStandard/eastus2 — the phase 0/4 deployment; credentials derived from the Azure CLI session per `AGENTS.md`; sweeps ≈ $3.48, run live by the owner — see the permission note below). The relocated `tools/eval/corpus/scoreboard.json` carries run 1. Both runs side by side (run 1 / run 2):
+
+    | metric | minimod | jn1-chaotic-caves | jn2-monkey-isle | band |
+    | --- | --- | --- | --- | --- |
+    | area recall | 1.0 / 1.0 | 1.0 / 1.0 | 0.9302 / 0.9302 | 0.02 |
+    | area precision | 1.0 / 1.0 | 0.9928 / 1.0 | 0.8511 / 0.8511 | 0.02 |
+    | encounter name recall | 0.4000 / 0.4000 | 0.6789 / 0.5596 | 0.5965 / 0.5614 | 0.1193 |
+    | count accuracy | 1.0 / 1.0 | 1.0 / 0.9836 | 0.8529 / 0.8750 | 0.0221 |
+    | resolution accuracy | 1.0 / 1.0 | 0.8361 / 0.9184 | 1.0 / 1.0 | 0.0823 |
+    | connection F1 | 0.6667 / 0.6667 | 0.7334 / 0.6882 | 0.8395 / 0.8434 | 0.0452 |
+    | treasure presence | 1.0 / 1.0 | 0.9416 / 0.9416 | 0.9375 / 0.9375 | 0.02 |
+
+    **No mode-flip in either run** — JN1 surveyed 14/14/14 dungeons both times, making the flip 1 in 4 known runs, and the area bands sit at the 0.02 floor because both runs surveyed every site. The band's authoritative record is now the living table in `tools/eval/README.md`, superseding phase 4's flip-inflated band; flip history stays in phase 4's amendment. One between-board move the regression rule forces into the record: against the pre-phase-5 board under phase 4's band (the band in force when this PR is judged), JN1 treasure presence moved 0.9781 → 0.9416, a 0.0365 drop against a 0.0250 band. Both phase 5 runs scored it identically at 0.9416, the truth file is unchanged and fully asserted, and this PR touches no prompt, schema, alias, resolution logic, or deployment — between-sweep extraction variance on treasure strings, not a code regression; the justification travels with the PR description as the rule requires. Every other move is within band (largest: JN2 area precision −0.0478 against a 0.5000 band).
+
+- **The BYOM seed measurement ran on 2026-07-10/11; the scores are held on the private board, unpublished** (BYOM ≈ $2.49; phase total ≈ $5.97 of the ≤ $15 envelope). Four modules — the phase 1 trio plus *B4 The Lost City*, chosen by the owner as the fourth after AA1's withdrawal (below) — were authored and adversarially verified per `tools/eval/AUTHORING.md` (instrument: Claude Fable 5, a different family than the extraction deployment; independence line held; each manifest records both legs), converted through the harness (B3 with the recorded `--set 'blank_page_renders=[21]'`, echoed by the private entry's `settings_overrides`; B4's DTRPG watermarked copy is the sidecar path's first real exercise), and scored:
+
+    | module (identity) | areas r/p | dungeons t/e | name recall | resolution | treasure presence | reading |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | hole-in-the-oak (Necrotic Gnome, OSE Aug-2025, 48pp) | 1.0 / 1.0 | 1 / 1 | 0.4667 | 1.0 | 0.8689 (61 asserted) | best-case fit confirmed |
+    | b3-palace-of-the-silver-princess (TSR 1981, DDB scan, 36pp) | 1.0 / 1.0 | 1 / 1 | 0.5789 | 0.9524 | 0.9324 (74 asserted) | blank-page override visible in the record |
+    | dcc-81-the-one-who-watches-from-below (Goodman Games, 36pp) | 1.0 / 0.9744 | 1 / 1 | 0.3214 | 0.0 | 0.8947 (38 asserted) | out-of-genre vocabulary probe working as intended |
+    | b4-the-lost-city (TSR 1982, DTRPG scan, 38pp) | 0.0171 / 0.0164 | 1 / 6 | 0.0 | n/a | 1.0 (2 asserted) | level-alignment artifact, not extraction failure (below) |
+
+    Coverage posture: all four truths cover every printed key; treasure is fully asserted on hole-in-the-oak and DCC #81 (61 and 38 areas), near-fully on B3 (74 of 76) and B4 (116 of 117 — the B4 row's denominator of 2 is the area-alignment artifact, not thin truth); connections are partially asserted by design.
+
+- **Publication is deferred: the owner-sampling leg is incomplete, so the definition-of-done item "the BYOM scoreboard is committed carrying the phase 1 trio" is deliberately not met by this PR.** The owner picked every sample key (36 areas across the four modules, 2026-07-11) but could not complete the page checks; publishing anyway would make the committed record claim a human audit that never happened — the no-retroactive-claims rule `docs/guides/owner-sampling.md` pins. What stands ready in the owner's local measurement workspace: per-area evidence packets (printed page image beside the truth block, contested judgment calls carded) and a newcomer walkthrough, plus a supplementary agent sweep recorded in each manifest — eleven Claude Sonnet 5 agents re-checked **all 292 truth areas** against the rendered pages (page-image-only rule, pipeline output banned from context) and found **zero discrepancies**, independently re-confirming the previously corrected spots (DCC's 3-4A–E connection chain, B4's room-57 count and duplicate-key-58 misprint). The sweep is recorded as an additional verification leg, explicitly not a substitute for the owner sample (same instrument-correlation class as the authoring legs). The publish machinery itself is fully exercised by offline tests; the private board is publish-ready the moment the sample lands.
+
+- **B4 exposed a scorer brittleness: level alignment by number breaks under legitimate level-modeling ambiguity.** The module prints BOTH organizations — per-tier keys and maps ("Key to Tier 1" … "Key to Tier 10") and a coarser dungeon-level grouping (tiers 1–2 = level 1 … tiers 9–10 = level 6, printed pp. 4/8/16/21). Truth asserts tiers-as-levels (a flagged judgment call); the extraction surveyed all 117 keys into one pyramid dungeon but grouped them into the 6 printed dungeon levels, and additionally coined 5 phantom single-area dungeons from the unkeyed underground-city letter features. The scorer aligns levels by number, so 2/117 areas matched — the 0.0171 measures a modeling disagreement, not lost content. Recorded as a finding; scorer semantics deliberately unchanged this phase (the alignment rule is pinned, and changing it under a live disagreement would move the yardstick mid-measurement).
+
+- **A treasure-grammar gap, found by the owner's B3 spot-check (rooms 5/13/28 — truth right on all three) and confirmed against the caches.** Extraction *saw* the treasure (the cache strings are present; eval scored presence agreement correctly), but assembly's pinned conservative `parse_treasure` grammar routed them to `treasure_unparsed` with the flagged best-effort unguarded roll. B3 carries 37 such flags including named magic items; two shapes fail that the grammar arguably intends to cover: comma-grouped numbers ("1,000 cp") and "worth N gp each". Phase 2 pinned behavior, out of phase 5 scope — recorded beside the mode-flip as the second candidate for future prompt/grammar work, now judgeable against this BYOM baseline.
+
+- **All three unseeded matrix axes are unfilled**, each with its reason as the plan requires: multi-lair anthology — B2 is not owned and the substitute (AA1) was withdrawn; over 50 pages in BYOM — no owned and approved module fits (the committed JN2 at 54pp already exercises chunked survey); true scan with weak or absent text layer — both retail scans on the shelf (B3's DDB copy, B4's DTRPG copy) carry full OCR, so the axis remains genuinely untested.
+
+- **AA1 was withdrawn from the test set by the owner.** Its verified truth and complete provenance remain on disk in the private corpus, so `publish` would not refuse it — the guard is process, recorded here: it is never published. Modules enter the published set only by owner choice; B4 was the owner's replacement pick.
+
+- **Live-run permission note.** The implementation session's permission classifier refuses agent-run live model calls with the az-derived credentials, so the owner ran the measurement script himself (sweeps plus BYOM conversions and scores); everything downstream — re-scoring, publishing, reporting — is offline and unrestricted. Recorded so future sessions don't retry agent-side live calls.
+
 ## Definition of done
 
 - `uv sync && uv run ruff format --check && uv run ruff check && uv run pyright && uv run pytest` passes locally and in CI on both OSes, no network in any test; `mkdocs build --strict` stays green.
