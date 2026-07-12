@@ -6,42 +6,47 @@
         "date": "2026-07-10",
         "model_id": "gpt-5.4-2026-03-05",
         "osrforge_version": "0.1.0",
-        "input_tokens": 193810,
-        "output_tokens": 32644,
-        "usd": 0.9742
+        "input_tokens": 183356,
+        "output_tokens": 29872,
+        "usd": 0.9065
       },
+      "truth_sha256": "efed14b6f2176c38459791e191f37bdce92f8749cda428242319d031aeaf5a2d",
+      "settings_overrides": [],
       "metrics": {
         "areas": {
+          "truth_dungeons": 14,
+          "extracted_dungeons": 14,
+          "matched_dungeons": 14,
           "truth_areas": 137,
-          "extracted_areas": 137,
+          "extracted_areas": 138,
           "matched": 137,
           "recall": 1.0,
-          "precision": 1.0
+          "precision": 0.9928
         },
         "encounters": {
           "truth_encounters": 109,
-          "name_matched": 75,
-          "name_recall": 0.6881,
-          "count_denominator": 75,
+          "name_matched": 74,
+          "name_recall": 0.6789,
+          "count_denominator": 74,
           "count_matched": 74,
-          "count_accuracy": 0.9867,
+          "count_accuracy": 1.0,
           "resolution_denominator": 61,
-          "resolution_matched": 52,
-          "resolution_accuracy": 0.8525,
-          "non_srd": 14
+          "resolution_matched": 51,
+          "resolution_accuracy": 0.8361,
+          "non_srd": 13
         },
         "connections": {
           "truth_edges": 39,
-          "extracted_edges": 58,
-          "true_positives": 32,
-          "precision": 0.5517,
-          "recall": 0.8205,
-          "f1": 0.6598
+          "extracted_edges": 51,
+          "true_positives": 33,
+          "precision": 0.6471,
+          "recall": 0.8462,
+          "f1": 0.7334
         },
         "treasure": {
           "presence_denominator": 137,
-          "presence_matched": 134,
-          "presence_agreement": 0.9781,
+          "presence_matched": 129,
+          "presence_agreement": 0.9416,
           "letters_denominator": 0,
           "letters_matched": 0,
           "letter_accuracy": null
@@ -53,42 +58,47 @@
         "date": "2026-07-10",
         "model_id": "gpt-5.4-2026-03-05",
         "osrforge_version": "0.1.0",
-        "input_tokens": 187772,
-        "output_tokens": 25842,
-        "usd": 0.8571
+        "input_tokens": 175837,
+        "output_tokens": 23618,
+        "usd": 0.7939
       },
+      "truth_sha256": "de82e1bec63e0ec1b1531d2df9f54aaaa035ed3f321edf82f6c4b5eda8f70a42",
+      "settings_overrides": [],
       "metrics": {
         "areas": {
+          "truth_dungeons": 6,
+          "extracted_dungeons": 6,
+          "matched_dungeons": 6,
           "truth_areas": 86,
-          "extracted_areas": 89,
+          "extracted_areas": 94,
           "matched": 80,
           "recall": 0.9302,
-          "precision": 0.8989
+          "precision": 0.8511
         },
         "encounters": {
           "truth_encounters": 57,
-          "name_matched": 32,
-          "name_recall": 0.5614,
-          "count_denominator": 32,
-          "count_matched": 27,
-          "count_accuracy": 0.8438,
+          "name_matched": 34,
+          "name_recall": 0.5965,
+          "count_denominator": 34,
+          "count_matched": 29,
+          "count_accuracy": 0.8529,
           "resolution_denominator": 15,
           "resolution_matched": 15,
           "resolution_accuracy": 1.0,
-          "non_srd": 17
+          "non_srd": 19
         },
         "connections": {
           "truth_edges": 39,
-          "extracted_edges": 48,
-          "true_positives": 38,
-          "precision": 0.7917,
-          "recall": 0.9744,
-          "f1": 0.8736
+          "extracted_edges": 42,
+          "true_positives": 34,
+          "precision": 0.8095,
+          "recall": 0.8718,
+          "f1": 0.8395
         },
         "treasure": {
           "presence_denominator": 80,
-          "presence_matched": 76,
-          "presence_agreement": 0.95,
+          "presence_matched": 75,
+          "presence_agreement": 0.9375,
           "letters_denominator": 0,
           "letters_matched": 0,
           "letter_accuracy": null
@@ -101,11 +111,16 @@
         "model_id": "gpt-5.4-2026-03-05",
         "osrforge_version": "0.1.0",
         "input_tokens": 9473,
-        "output_tokens": 1018,
-        "usd": 0.039
+        "output_tokens": 1009,
+        "usd": 0.0388
       },
+      "truth_sha256": "0a26d52abb0ffb11e4ab2730c53e7f4e49e1e5403c8f52f90dc349f268bbc1fc",
+      "settings_overrides": [],
       "metrics": {
         "areas": {
+          "truth_dungeons": 1,
+          "extracted_dungeons": 1,
+          "matched_dungeons": 1,
           "truth_areas": 6,
           "extracted_areas": 6,
           "matched": 6,

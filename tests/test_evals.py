@@ -1,5 +1,6 @@
 """The eval scorer: synthetic metric tables, alignment edge cases, determinism, and the JN1 pinned baseline."""
 
+import hashlib
 import shutil
 from pathlib import Path
 
@@ -21,19 +22,27 @@ from osrforge.contracts.stages import (
     TownInfo,
 )
 from osrforge.evals import (
+    ByomScoreboard,
     CorpusManifest,
     ModuleScore,
     ModuleTruth,
     RunInfo,
     Scoreboard,
     corpus_means,
+    enforce_source_integrity,
+    load_byom_scoreboard,
     load_manifest,
     load_scoreboard,
     load_truth,
+    publish_module,
+    save_byom_scoreboard,
     save_scoreboard,
     score_workdir,
+    settings_overrides,
+    sidecar_path,
     verify_source,
 )
+from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir, write_json_artifact
 
 ASSETS = Path(__file__).parent / "assets"
@@ -155,6 +164,9 @@ def perfect_workdir(tmp_path: Path) -> Path:
 class TestMetricFamilies:
     def test_perfect_extraction_scores_ones(self, tmp_path: Path):
         metrics = score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH)
+        assert metrics.areas.truth_dungeons == 1
+        assert metrics.areas.extracted_dungeons == 1
+        assert metrics.areas.matched_dungeons == 1
         assert metrics.areas.recall == 1.0 and metrics.areas.precision == 1.0
         assert metrics.encounters.name_recall == 1.0
         assert metrics.encounters.count_accuracy == 1.0
@@ -329,6 +341,159 @@ dungeons:
         assert metrics.encounters.resolution_denominator == 0
         assert metrics.encounters.resolution_accuracy is None
         assert metrics.encounters.non_srd == 1
+
+
+class TestTreasureAssertion:
+    def test_unasserted_treasure_leaves_both_denominators(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            treasure:
+              present: true
+              letters: [B]
+          - key: "2"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "lair",
+                    [
+                        (
+                            1,
+                            [survey_area("1"), survey_area("2")],
+                            [
+                                content_area("1", treasure=("Treasure Type B.",)),
+                                # Area 2's treasure is unasserted: whatever extraction
+                                # saw here is outside both denominators.
+                                content_area("2", treasure=("500 gp",)),
+                            ],
+                        )
+                    ],
+                )
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.areas.matched == 2
+        assert metrics.treasure.presence_denominator == 1
+        assert metrics.treasure.presence_agreement == 1.0
+        assert metrics.treasure.letters_denominator == 1
+        assert metrics.treasure.letter_accuracy == 1.0
+
+    def test_asserted_empty_still_disagrees_with_an_extracted_signal(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            treasure:
+              present: false
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1", treasure=("a ruby worth 100 gp",))])])],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.treasure.presence_denominator == 1
+        assert metrics.treasure.presence_agreement == 0.0
+
+    def test_all_unasserted_yields_empty_denominator(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1")])])],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.treasure.presence_denominator == 0
+        assert metrics.treasure.presence_agreement is None
+
+
+class TestDungeonCounts:
+    def test_mode_flip_shape_is_legible(self, tmp_path: Path):
+        """The phase 4 hazard's shape: many truth dungeons collapsing into one extracted dungeon."""
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: cave a
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+  - name: cave b
+    levels:
+      - number: 1
+        areas:
+          - key: "2"
+  - name: cave c
+    levels:
+      - number: 1
+        areas:
+          - key: "3"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "caves",
+                    [
+                        (
+                            1,
+                            [survey_area(key) for key in ("1", "2", "3")],
+                            [content_area(key) for key in ("1", "2", "3")],
+                        )
+                    ],
+                )
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.areas.truth_dungeons == 3
+        assert metrics.areas.extracted_dungeons == 1
+        # Greedy alignment gives the one extracted dungeon to the first truth
+        # dungeon with overlap; the other two go unmatched.
+        assert metrics.areas.matched_dungeons == 1
+
+    def test_phantom_extracted_dungeon_is_visible(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                ("lair", [(1, [survey_area("1")], [content_area("1")])]),
+                ("phantom", [(1, [survey_area("99")], [content_area("99")])]),
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.areas.truth_dungeons == 1
+        assert metrics.areas.extracted_dungeons == 2
+        assert metrics.areas.matched_dungeons == 1
 
 
 class TestConnectionUniverse:
@@ -661,25 +826,99 @@ def test_scoring_is_deterministic(tmp_path: Path):
         run=RunInfo(
             date="2026-07-10", model_id="gpt-5.4", osrforge_version="0.1.0", input_tokens=1, output_tokens=1, usd=0.01
         ),
+        truth_sha256="ab" * 32,
         metrics=first,
     )
     board = Scoreboard(modules={"synthetic": score})
     out = tmp_path / "scoreboard.json"
     save_scoreboard(out, board)
     first_bytes = out.read_bytes()
-    save_scoreboard(out, Scoreboard(modules={"synthetic": ModuleScore(run=score.run, metrics=second)}))
+    save_scoreboard(
+        out,
+        Scoreboard(modules={"synthetic": ModuleScore(run=score.run, truth_sha256="ab" * 32, metrics=second)}),
+    )
     assert out.read_bytes() == first_bytes
+
+
+UNPINNED_MANIFEST = {
+    "title": "Some Retail Module",
+    "source_url": "purchased retail; not redistributable",
+    "pages": 36,
+    "publisher": "Some Publisher",
+    "edition": "2nd printing, 1981",
+}
 
 
 class TestHarnessPlumbing:
     def test_manifest_sha256_refusal(self, tmp_path: Path):
         manifest = load_manifest(CORPUS / "minimod" / "manifest.yaml")
+        module_dir = tmp_path / "minimod"
+        module_dir.mkdir()
         doctored = tmp_path / "doctored.pdf"
         doctored.write_bytes((ASSETS / "minimod" / "minimod.pdf").read_bytes() + b" ")
-        with pytest.raises(ValueError, match="sha256"):
-            verify_source(manifest, doctored)
-        # The genuine file passes.
-        verify_source(manifest, ASSETS / "minimod" / "minimod.pdf")
+        with pytest.raises(ValueError, match="authored against"):
+            verify_source(manifest, module_dir, doctored)
+        # A pinned manifest never touches the sidecar.
+        assert not sidecar_path(module_dir).exists()
+        # The genuine file passes without seeding anything.
+        assert verify_source(manifest, module_dir, ASSETS / "minimod" / "minimod.pdf") is False
+        assert not sidecar_path(module_dir).exists()
+
+    def test_unpinned_manifest_round_trips(self, tmp_path: Path):
+        path = tmp_path / "manifest.yaml"
+        path.write_text(yaml.safe_dump(UNPINNED_MANIFEST), encoding="utf-8")
+        manifest = load_manifest(path)
+        assert manifest.sha256 is None
+        assert manifest.license is None
+        assert manifest.truth_provenance is None
+        assert manifest.publisher == "Some Publisher"
+        assert manifest.edition == "2nd printing, 1981"
+
+    def test_first_convert_seeds_the_sidecar_and_a_doctored_file_is_refused(self, tmp_path: Path):
+        manifest = CorpusManifest.model_validate(UNPINNED_MANIFEST)
+        module_dir = tmp_path / "some-retail-module"
+        module_dir.mkdir()
+        pdf = tmp_path / "owned-copy.pdf"
+        pdf.write_bytes(b"%PDF-1.4 watermarked for one customer")
+        assert verify_source(manifest, module_dir, pdf) is True
+        recorded = sidecar_path(module_dir).read_text(encoding="utf-8").strip()
+        assert recorded == hashlib.sha256(pdf.read_bytes()).hexdigest()
+        # The same file passes on every later sight.
+        assert verify_source(manifest, module_dir, pdf) is False
+        # A doctored file is refused against the sidecar, with the authored-against message.
+        doctored = tmp_path / "doctored.pdf"
+        doctored.write_bytes(pdf.read_bytes() + b" ")
+        with pytest.raises(ValueError, match="authored against"):
+            verify_source(manifest, module_dir, doctored)
+
+    def test_harness_external_workdir_seeds_the_sidecar_at_first_score(self, tmp_path: Path):
+        # score's integrity check runs over run.json's recorded source hash;
+        # the driver passes that digest here.
+        manifest = CorpusManifest.model_validate(UNPINNED_MANIFEST)
+        module_dir = tmp_path / "some-retail-module"
+        module_dir.mkdir()
+        digest = hashlib.sha256(b"the owner's copy").hexdigest()
+        assert enforce_source_integrity(manifest, module_dir, digest, "wd (run.json)") is True
+        assert sidecar_path(module_dir).read_text(encoding="utf-8").strip() == digest
+        # A later workdir over a different source is refused.
+        other = hashlib.sha256(b"a different copy").hexdigest()
+        with pytest.raises(ValueError, match="authored against"):
+            enforce_source_integrity(manifest, module_dir, other, "wd2 (run.json)")
+
+    def test_a_manifest_pin_beats_the_sidecar(self, tmp_path: Path):
+        pinned = CorpusManifest.model_validate(
+            {**UNPINNED_MANIFEST, "sha256": hashlib.sha256(b"the pinned release").hexdigest()}
+        )
+        module_dir = tmp_path / "mod"
+        module_dir.mkdir()
+        sidecar_path(module_dir).write_text(hashlib.sha256(b"something else").hexdigest() + "\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="manifest"):
+            enforce_source_integrity(
+                manifest=pinned,
+                module_dir=module_dir,
+                digest=hashlib.sha256(b"something else").hexdigest(),
+                described="wd (run.json)",
+            )
 
     def test_truth_files_reject_duplicate_key_slugs_per_level(self):
         with pytest.raises(ValidationError, match="unique per level"):
@@ -754,12 +993,171 @@ dungeons:
             date="2026-07-10", model_id="gpt-5.4", osrforge_version="0.1.0", input_tokens=10, output_tokens=2, usd=0.5
         )
         board = Scoreboard(
-            modules={"minimod": ModuleScore(run=run, metrics=score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH))}
+            modules={
+                "minimod": ModuleScore(
+                    run=run, truth_sha256="ab" * 32, metrics=score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH)
+                )
+            }
         )
         save_scoreboard(path, board)
         assert load_scoreboard(path) == board
         means = corpus_means(board)
         assert means["area_recall"] == 1.0
+
+
+class TestSettingsOverrides:
+    def test_defaults_echo_nothing(self):
+        assert settings_overrides(ConversionSettings()) == ()
+
+    def test_non_default_knobs_echo_as_yaml_parseable_pairs(self):
+        settings = ConversionSettings(blank_page_renders=(21,), render_dpi=300, unresolved_fallback="omit")
+        assert settings_overrides(settings) == (
+            "render_dpi=300",
+            "blank_page_renders=[21]",
+            "unresolved_fallback=omit",
+        )
+
+
+def private_module_fixtures(tmp_path: Path) -> tuple[Path, CorpusManifest, ModuleScore, str]:
+    """A fabricated private corpus member with a scored entry and provenance."""
+    module_dir = tmp_path / "some-retail-module"
+    module_dir.mkdir(parents=True, exist_ok=True)
+    truth_path = module_dir / "truth.yaml"
+    truth_path.write_text(
+        "dungeons:\n  - name: lair\n    levels:\n      - number: 1\n        areas:\n          - key: '1'\n",
+        encoding="utf-8",
+    )
+    manifest = CorpusManifest.model_validate(
+        {
+            **UNPINNED_MANIFEST,
+            "truth_provenance": {
+                "authored": "2026-07-10",
+                "instrument": "Claude (Anthropic)",
+                "verified": "adversarial pass 2026-07-10; owner sampled 10 areas",
+            },
+        }
+    )
+    truth_sha256 = hashlib.sha256(truth_path.read_bytes()).hexdigest()
+    score = ModuleScore(
+        run=RunInfo(
+            date="2026-07-10", model_id="gpt-5.4", osrforge_version="0.1.0", input_tokens=10, output_tokens=2, usd=0.5
+        ),
+        truth_sha256=truth_sha256,
+        settings_overrides=("blank_page_renders=[21]",),
+        metrics=score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH),
+    )
+    return module_dir, manifest, score, truth_sha256
+
+
+class TestPublish:
+    def test_round_trip_carries_identity_truth_hash_and_overrides(self, tmp_path: Path):
+        _, manifest, score, truth_sha256 = private_module_fixtures(tmp_path)
+        board = publish_module(
+            board=ByomScoreboard(),
+            module_id="some-retail-module",
+            manifest=manifest,
+            private_board=Scoreboard(modules={"some-retail-module": score}),
+            current_truth_sha256=truth_sha256,
+            committed_ids={"minimod", "jn1-chaotic-caves", "jn2-monkey-isle"},
+        )
+        entry = board.modules["some-retail-module"]
+        assert entry.title == "Some Retail Module"
+        assert entry.publisher == "Some Publisher"
+        assert entry.edition == "2nd printing, 1981"
+        assert entry.pages == 36
+        assert entry.truth_sha256 == truth_sha256
+        assert entry.settings_overrides == ("blank_page_renders=[21]",)
+        assert entry.run == score.run
+        assert entry.metrics == score.metrics
+        # Byte stability under the pinned artifact writer.
+        out = tmp_path / "byom-scoreboard.json"
+        save_byom_scoreboard(out, board)
+        first = out.read_bytes()
+        save_byom_scoreboard(out, load_byom_scoreboard(out))
+        assert out.read_bytes() == first
+
+    def test_refuses_an_unscored_module(self, tmp_path: Path):
+        _, manifest, _, truth_sha256 = private_module_fixtures(tmp_path)
+        with pytest.raises(ValueError, match="no scored entry"):
+            publish_module(
+                board=ByomScoreboard(),
+                module_id="some-retail-module",
+                manifest=manifest,
+                private_board=Scoreboard(),
+                current_truth_sha256=truth_sha256,
+                committed_ids=set(),
+            )
+
+    def test_refuses_missing_provenance(self, tmp_path: Path):
+        _, _, score, truth_sha256 = private_module_fixtures(tmp_path)
+        bare = CorpusManifest.model_validate(UNPINNED_MANIFEST)
+        with pytest.raises(ValueError, match="truth_provenance"):
+            publish_module(
+                board=ByomScoreboard(),
+                module_id="some-retail-module",
+                manifest=bare,
+                private_board=Scoreboard(modules={"some-retail-module": score}),
+                current_truth_sha256=truth_sha256,
+                committed_ids=set(),
+            )
+
+    def test_refuses_a_committed_corpus_id_collision(self, tmp_path: Path):
+        _, manifest, score, truth_sha256 = private_module_fixtures(tmp_path)
+        with pytest.raises(ValueError, match="collides"):
+            publish_module(
+                board=ByomScoreboard(),
+                module_id="minimod",
+                manifest=manifest,
+                private_board=Scoreboard(modules={"minimod": score}),
+                current_truth_sha256=truth_sha256,
+                committed_ids={"minimod"},
+            )
+
+    def test_refuses_a_title_mismatch_on_update(self, tmp_path: Path):
+        _, manifest, score, truth_sha256 = private_module_fixtures(tmp_path)
+        private = Scoreboard(modules={"some-retail-module": score})
+        board = publish_module(
+            board=ByomScoreboard(),
+            module_id="some-retail-module",
+            manifest=manifest,
+            private_board=private,
+            current_truth_sha256=truth_sha256,
+            committed_ids=set(),
+        )
+        imposter = manifest.model_copy(update={"title": "A Different Module"})
+        with pytest.raises(ValueError, match="cannot share one id"):
+            publish_module(
+                board=board,
+                module_id="some-retail-module",
+                manifest=imposter,
+                private_board=private,
+                current_truth_sha256=truth_sha256,
+                committed_ids=set(),
+            )
+        # A same-title update replaces the entry — with a re-scored entry
+        # whose score-time hash matches the truth as it stands now.
+        rescored = score.model_copy(update={"truth_sha256": "ff" * 32})
+        updated = publish_module(
+            board=board,
+            module_id="some-retail-module",
+            manifest=manifest,
+            private_board=Scoreboard(modules={"some-retail-module": rescored}),
+            current_truth_sha256="ff" * 32,
+            committed_ids=set(),
+        )
+        assert updated.modules["some-retail-module"].truth_sha256 == "ff" * 32
+
+    def test_refuses_a_truth_edited_after_scoring(self, tmp_path: Path):
+        _, manifest, score, _ = private_module_fixtures(tmp_path)
+        with pytest.raises(ValueError, match="changed since"):
+            publish_module(
+                board=ByomScoreboard(),
+                module_id="some-retail-module",
+                manifest=manifest,
+                private_board=Scoreboard(modules={"some-retail-module": score}),
+                current_truth_sha256="ee" * 32,
+                committed_ids=set(),
+            )
 
 
 class TestCommittedCorpus:
@@ -772,11 +1170,31 @@ class TestCommittedCorpus:
             assert manifest.pages >= 1
             assert truth.dungeons
 
+    def test_committed_members_stay_fully_pinned_and_asserted(self):
+        """The gating corpus never gets thinner by accident.
+
+        Optionality (unpinned sha256, absent license, partial treasure truth)
+        exists for private BYOM corpora; every committed member must keep the
+        full posture — plus the backfilled truth provenance — or the corpus
+        scoreboard's meaning silently changes.
+        """
+        members = sorted(child.name for child in CORPUS.iterdir() if child.is_dir())
+        for member in members:
+            manifest = load_manifest(CORPUS / member / "manifest.yaml")
+            assert manifest.sha256 is not None, member
+            assert manifest.license is not None, member
+            assert manifest.truth_provenance is not None, member
+            truth = load_truth(CORPUS / member / "truth.yaml")
+            for dungeon in truth.dungeons:
+                for level in dungeon.levels:
+                    for area in level.areas:
+                        assert area.treasure is not None, (member, dungeon.name, area.key)
+
     def test_truth_templates_exist_in_the_catalog(self):
         from osrlib.data import load_monsters
 
         ids = {template.id for template in load_monsters().monsters}
-        for member in ("minimod", "jn1-chaotic-caves", "jn2-monkey-isle"):
+        for member in sorted(child.name for child in CORPUS.iterdir() if child.is_dir()):
             truth = load_truth(CORPUS / member / "truth.yaml")
             for dungeon in truth.dungeons:
                 for level in dungeon.levels:
@@ -788,7 +1206,7 @@ class TestCommittedCorpus:
     def test_truth_connections_reference_same_level_keys(self):
         from osrforge.survey import canonical_slug
 
-        for member in ("minimod", "jn1-chaotic-caves", "jn2-monkey-isle"):
+        for member in sorted(child.name for child in CORPUS.iterdir() if child.is_dir()):
             truth = load_truth(CORPUS / member / "truth.yaml")
             for dungeon in truth.dungeons:
                 for level in dungeon.levels:
@@ -817,7 +1235,10 @@ def test_jn1_pinned_baseline_over_the_committed_caches(tmp_path: Path):
     truth = load_truth(CORPUS / "jn1-chaotic-caves" / "truth.yaml")
     metrics = score_workdir(jn1_workdir(tmp_path / "jn1.forge"), truth)
 
-    # The milestone extraction surveyed every keyed area the truth records.
+    # The milestone extraction surveyed every keyed site and area the truth records.
+    assert metrics.areas.truth_dungeons == 14
+    assert metrics.areas.extracted_dungeons == 14
+    assert metrics.areas.matched_dungeons == 14
     assert metrics.areas.truth_areas == 137
     assert metrics.areas.extracted_areas == 137
     assert metrics.areas.matched == 137

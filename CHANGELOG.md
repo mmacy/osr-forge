@@ -6,6 +6,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Private (BYOM) eval corpora: every `tools/eval/run_eval.py` subcommand
+  takes `--corpus DIR`, `convert` takes the main CLI's repeatable `--set`,
+  manifests may omit `sha256`/`license` for non-redistributable retail
+  modules (integrity flows through a local `source.sha256` sidecar seeded on
+  first sight and enforced at every convert and score), and manifests gain
+  `publisher`/`edition` identity fields and a `truth_provenance` record.
+- The BYOM publish path: the explicit `run_eval.py publish` step copies a
+  private corpus's scored entry onto the committed, aggregate-only BYOM
+  scoreboard (`tools/eval/byom-scoreboard.json`; refused without a scored
+  entry or truth provenance), rendered by `report --byom`. Advisory
+  standing: never merge-gating.
+- The truth-authoring runbook (`tools/eval/AUTHORING.md`): the independence
+  discipline, the adversarial verification pass, and the owner-sampling bar
+  behind every published truth file.
+
+### Changed
+
+- The eval scorer: `treasure` in truth files is assertion-aware (an omitted
+  block keeps the area out of both treasure denominators — partial truth
+  stays honestly denominated), and the areas family gains
+  `truth_dungeons`/`extracted_dungeons`/`matched_dungeons`, making a survey
+  mode-flip legible in every scoreboard entry. Scoreboard entries also echo
+  non-default settings knobs as `settings_overrides`.
+- The committed corpus scoreboard moved to `tools/eval/corpus/scoreboard.json`
+  (every corpus's scoreboard now lives at `<corpus-dir>/scoreboard.json`).
+
 ## [0.1.0] - 2026-07-10
 
 The first release: the complete pipeline from module PDF to a draft osrlib

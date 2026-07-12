@@ -2,20 +2,22 @@
 
 This is the pure half of the spec's "ship quality evals so extraction changes
 are measured, not vibed": deterministic, CI-tested code that scores a
-workdir's stage caches against hand-checked ground truth. The live-network
-driver (`tools/eval/run_eval.py`) is repo-only wiring; everything with
-behavior worth testing lives here. The scorer reads the stage caches — never
-`adventure.json` — because evals measure *extraction*, and assembly's
+workdir's stage caches against verified structural ground truth. The
+live-network driver (`tools/eval/run_eval.py`) is repo-only wiring; everything
+with behavior worth testing lives here. The scorer reads the stage caches —
+never `adventure.json` — because evals measure *extraction*, and assembly's
 best-effort fallbacks exist to mask extraction gaps in the playable draft,
 which is exactly what a measurement must not let them do.
 
 Truth files are structural-only (printed keys, names, and codes — no prose)
-and are authored from the printed module, never from pipeline output; see
+and are authored from the printed module under the independence discipline
+(`tools/eval/AUTHORING.md`) — never from pipeline output; see
 `tools/eval/README.md` for the corpus rules and the authoring conventions.
 """
 
 import hashlib
 import json
+from collections.abc import Collection
 from difflib import SequenceMatcher
 from pathlib import Path
 
@@ -25,12 +27,15 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from osrforge.assemble import parse_treasure
 from osrforge.contracts.stages import AreaContent, LevelContent, MonsterResolutions, SurveyIndex
 from osrforge.monsters import normalize_monster_name
+from osrforge.settings import ConversionSettings
 from osrforge.survey import canonical_slug
 from osrforge.versioning import SCHEMA_VERSION
 from osrforge.workdir import Workdir, write_json_artifact
 
 __all__ = [
     "AreaMetrics",
+    "ByomEntry",
+    "ByomScoreboard",
     "ConnectionMetrics",
     "CorpusManifest",
     "EncounterMetrics",
@@ -45,12 +50,20 @@ __all__ = [
     "TruthDungeon",
     "TruthEncounter",
     "TruthLevel",
+    "TruthProvenance",
     "TruthTreasure",
     "corpus_means",
+    "enforce_source_integrity",
+    "load_byom_scoreboard",
     "load_manifest",
     "load_scoreboard",
     "load_truth",
+    "publish_module",
+    "save_byom_scoreboard",
+    "save_scoreboard",
     "score_workdir",
+    "settings_overrides",
+    "sidecar_path",
     "verify_source",
 ]
 
@@ -97,10 +110,14 @@ class TruthTreasure(BaseModel):
 class TruthArea(BaseModel):
     """One keyed area, identified by its printed key.
 
-    `connections` is assertion-aware: `None` (omitted) means the area's
-    neighbor set was not asserted and edges incident to it are out of the
-    connection metric's universe; a list — possibly empty — asserts the
-    area's *complete* set of same-level connected printed keys.
+    `connections` and `treasure` are assertion-aware: `None` (omitted) means
+    the fact was not asserted — the area's edges are out of the connection
+    metric's universe, or the area is outside both treasure denominators. A
+    present value asserts the complete fact set: the area's full same-level
+    connected printed-key list (possibly empty), or the area's treasure facts.
+    Assertion-awareness is what makes time-boxed partial truth honest: a truth
+    file covering every area key plus a verified sample of areas still yields
+    exact area recall and honestly-denominated treasure agreement.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -108,7 +125,7 @@ class TruthArea(BaseModel):
     key: str
     encounters: tuple[TruthEncounter, ...] = ()
     connections: tuple[str, ...] | None = None
-    treasure: TruthTreasure
+    treasure: TruthTreasure | None = None
 
 
 class TruthLevel(BaseModel):
@@ -150,7 +167,7 @@ class TruthDungeon(BaseModel):
 
 
 class ModuleTruth(BaseModel):
-    """A corpus module's hand-checked structural ground truth."""
+    """A corpus module's verified structural ground truth."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -166,26 +183,60 @@ class ManifestLicense(BaseModel):
     verified: str
 
 
+class TruthProvenance(BaseModel):
+    """How the module's truth file came to be trusted.
+
+    The record `publish` requires before a module's numbers reach the
+    committed BYOM board: unverified truth can be scored locally all day, but
+    it cannot put numbers on the committed record. `instrument` is free text
+    by design — the cross-instrument rule (`tools/eval/AUTHORING.md`) is a
+    stated preference, not a gate, because enforcement is impossible and
+    false assurance is worse than none.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    authored: str
+    """The authoring date."""
+
+    instrument: str
+    """The authoring model or agent."""
+
+    verified: str
+    """The verification record: which legs (adversarial pass, owner sampling, CI baselines) actually ran."""
+
+
 class CorpusManifest(BaseModel):
     """A corpus member's manifest — the whole redistribution surface.
 
-    The corpus ships pointers plus hashes, never PDFs: `source_url` is where
-    a human downloads the module, and `sha256` is the exact PDF the truth was
-    authored against — the harness refuses a mismatched file before any model
-    spend.
+    The corpus ships pointers plus hashes, never PDFs. Identity and integrity
+    split for watermarked retail PDFs (the same module hashes differently per
+    customer): cross-copy *identity* is metadata (`title`, `publisher`,
+    `edition`, `pages`), while *integrity* is `sha256` when pinned (every
+    committed member — the harness refuses a mismatched file before any model
+    spend) or the local `source.sha256` sidecar when not (the
+    watermarked-retail case; seeded the first time the harness sees the
+    module's source). `license` is optional because a private corpus is the
+    owner's copy with no redistribution surface — the phase 0 verification
+    procedure applies only where something derived will be committed.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     title: str
     source_url: str
-    sha256: str
+    sha256: str | None = None
     pages: int = Field(ge=1)
-    license: ManifestLicense
+    publisher: str | None = None
+    edition: str | None = None
+    license: ManifestLicense | None = None
+    truth_provenance: TruthProvenance | None = None
 
     @field_validator("sha256")
     @classmethod
-    def _hex_digest(cls, value: str) -> str:
+    def _hex_digest(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
         if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
             raise ValueError("sha256 must be a 64-character lowercase hex digest")
         return value
@@ -216,33 +267,100 @@ def load_manifest(path: Path) -> CorpusManifest:
     return CorpusManifest.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
-def verify_source(manifest: CorpusManifest, pdf_path: Path) -> None:
-    """Refuse a PDF that is not the exact file the truth was authored against.
+def sidecar_path(module_dir: Path) -> Path:
+    """The module's local integrity sidecar: the copy-specific source hash.
 
-    Runs before any model spend: truth authored against one printing scores a
-    different printing as noise, and the sha256 — not the URL — is the
-    corpus's integrity gate.
+    Only meaningful for manifests without a `sha256` pin (watermarked retail
+    PDFs hash differently per customer, so a committed pin would be
+    meaningless); its one job is proving later re-runs score the same file
+    the truth was authored against. Never committed for repo corpus members —
+    they all pin.
+
+    Args:
+        module_dir: The corpus member's directory.
+
+    Returns:
+        `<module-dir>/source.sha256`.
+    """
+    return module_dir / "source.sha256"
+
+
+def enforce_source_integrity(manifest: CorpusManifest, module_dir: Path, digest: str, described: str) -> bool:
+    """Enforce the truth-to-source chain of custody for one observed digest.
+
+    The manifest's `sha256` pin gates when present (every committed member);
+    otherwise the local sidecar gates, seeded on first sight — at `convert`
+    (from the PDF) or, for a workdir converted outside the harness, at first
+    `score` (from `run.json`'s recorded source hash). The chain runs unbroken
+    from the file the truth was authored against to any published number.
 
     Args:
         manifest: The module's manifest.
-        pdf_path: The locally downloaded PDF.
+        module_dir: The corpus member's directory (where the sidecar lives).
+        digest: The observed source sha256 (from the PDF or from `run.json`).
+        described: What was hashed, for the refusal message.
+
+    Returns:
+        True when this call seeded the sidecar (the harness's first sight of
+        the module's source); False when the digest matched an existing gate.
 
     Raises:
-        ValueError: If the file's sha256 does not match the manifest's.
+        ValueError: If the digest matches neither the manifest pin nor the
+            sidecar — the source is not the file the truth was authored
+            against.
+    """
+    expected = manifest.sha256
+    hint = "download the exact release the manifest records"
+    if expected is None:
+        sidecar = sidecar_path(module_dir)
+        if not sidecar.is_file():
+            sidecar.write_text(digest + "\n", encoding="utf-8")
+            return True
+        expected = sidecar.read_text(encoding="utf-8").strip()
+        hint = f"the sidecar {sidecar} records the source the truth was authored against"
+    if digest != expected:
+        raise ValueError(
+            f"{described} has sha256 {digest}, but this module's truth was authored against {expected} — {hint}"
+        )
+    return False
+
+
+def verify_source(manifest: CorpusManifest, module_dir: Path, pdf_path: Path) -> bool:
+    """Hash a local PDF and enforce the chain of custody, before any model spend.
+
+    Truth authored against one printing scores a different printing as noise
+    — the hash, never the URL, is the integrity gate.
+
+    Args:
+        manifest: The module's manifest.
+        module_dir: The corpus member's directory.
+        pdf_path: The locally downloaded PDF.
+
+    Returns:
+        True when the call seeded the module's sidecar (first sight).
+
+    Raises:
+        ValueError: If the file is not the source the truth was authored
+            against.
     """
     digest = hashlib.sha256(pdf_path.read_bytes()).hexdigest()
-    if digest != manifest.sha256:
-        raise ValueError(
-            f"{pdf_path} has sha256 {digest}, but the corpus truth was authored against {manifest.sha256} — "
-            "download the exact release the manifest records"
-        )
+    return enforce_source_integrity(manifest, module_dir, digest, str(pdf_path))
 
 
 class AreaMetrics(BaseModel):
-    """The areas family: recall (the spec's named metric) plus the hallucination guard."""
+    """The areas family: recall (the spec's named metric), the hallucination guard, and dungeon alignment.
+
+    The dungeon counts make the survey mode legible in every scoreboard entry
+    — phase 4's measured JN1 mode-flip (ten lairs collapsing into one dungeon
+    on a re-roll) reads as `truth_dungeons=14, extracted_dungeons=5` instead
+    of requiring a trip to `survey.json`.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
+    truth_dungeons: int
+    extracted_dungeons: int
+    matched_dungeons: int
     truth_areas: int
     extracted_areas: int
     matched: int
@@ -318,16 +436,28 @@ class RunInfo(BaseModel):
 
 
 class ModuleScore(BaseModel):
-    """One module's scoreboard entry: the run that produced it plus its metrics."""
+    """One module's scoreboard entry: the run that produced it, its yardstick, its knobs, and its metrics.
+
+    `truth_sha256` hashes the `truth.yaml` the metrics were scored against —
+    recorded at score time so a truth edit between scoring and publishing is
+    detectable, and the published pin always names the yardstick that
+    actually produced the numbers. `settings_overrides` echoes the scored
+    workdir's non-default `ConversionSettings` knobs as `key=value` strings
+    (knob names and page numbers, never module text) — a run measured with,
+    say, a blanked page is visible in the record instead of being an
+    invisible special condition.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     run: RunInfo
+    truth_sha256: str
+    settings_overrides: tuple[str, ...] = ()
     metrics: ModuleMetrics
 
 
 class Scoreboard(BaseModel):
-    """The committed scoreboard: per-module scores keyed by corpus module id, sorted for byte stability."""
+    """A corpus's scoreboard: per-module scores keyed by corpus module id, sorted for byte stability."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -341,7 +471,7 @@ class Scoreboard(BaseModel):
 
 
 def load_scoreboard(path: Path) -> Scoreboard:
-    """Load the committed scoreboard.
+    """Load a corpus's scoreboard.
 
     Args:
         path: The `scoreboard.json` path.
@@ -362,6 +492,172 @@ def save_scoreboard(path: Path, scoreboard: Scoreboard) -> None:
         scoreboard: The scoreboard to persist.
     """
     write_json_artifact(path, scoreboard)
+
+
+def settings_overrides(settings: ConversionSettings) -> tuple[str, ...]:
+    """The non-default conversion knobs, as `key=value` strings in field order.
+
+    Values render as YAML-parseable text (`blank_page_renders=[21]`,
+    `render_dpi=300`) — the same shape the `--set` flag was typed with. Knob
+    names and numbers only, never module text.
+
+    Args:
+        settings: The settings echoed in a scored workdir's `run.json`.
+
+    Returns:
+        One `key=value` string per knob that differs from the default.
+    """
+    defaults = ConversionSettings()
+    dump = settings.model_dump(mode="json")
+    overrides: list[str] = []
+    for name in ConversionSettings.model_fields:
+        if getattr(settings, name) == getattr(defaults, name):
+            continue
+        value = dump[name]
+        overrides.append(f"{name}={value if isinstance(value, str) else json.dumps(value)}")
+    return tuple(overrides)
+
+
+class ByomEntry(BaseModel):
+    """One published BYOM record: aggregate-only by construction.
+
+    Identity metadata (cross-copy: title, publisher, edition, pages), the run
+    block, the truth-file hash, the non-default knobs, and the metrics —
+    nothing else. No PDF hash (copy-specific, meaningless cross-customer), no
+    license claims, no module text. `truth_sha256` is the yardstick pin:
+    watermark-proof because it hashes the owner's YAML, and its job is
+    distinguishing "the extraction moved" from "the truth moved" between
+    entries.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    title: str
+    publisher: str | None = None
+    edition: str | None = None
+    pages: int = Field(ge=1)
+    run: RunInfo
+    truth_sha256: str
+    settings_overrides: tuple[str, ...] = ()
+    metrics: ModuleMetrics
+
+
+class ByomScoreboard(BaseModel):
+    """The committed BYOM scoreboard: advisory, aggregate-only, owner-refreshed.
+
+    Answers "how does it perform in general," not "may this PR merge" — the
+    regression rule binds the corpus scoreboard, never this one. Entries
+    refresh best-effort by whoever owns the module; a stale entry is visible
+    via its `osrforge_version` stamp, never blocking.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: int = SCHEMA_VERSION
+    modules: dict[str, ByomEntry] = {}
+
+    @field_validator("modules")
+    @classmethod
+    def _keys_sorted(cls, value: dict[str, ByomEntry]) -> dict[str, ByomEntry]:
+        return dict(sorted(value.items()))
+
+
+def load_byom_scoreboard(path: Path) -> ByomScoreboard:
+    """Load the committed BYOM scoreboard.
+
+    Args:
+        path: The `byom-scoreboard.json` path.
+
+    Returns:
+        The board; an empty one if the file does not exist yet.
+    """
+    if not path.is_file():
+        return ByomScoreboard()
+    return ByomScoreboard.model_validate(json.loads(path.read_text(encoding="utf-8")))
+
+
+def save_byom_scoreboard(path: Path, board: ByomScoreboard) -> None:
+    """Write the BYOM scoreboard in the pinned artifact byte format.
+
+    Args:
+        path: The `byom-scoreboard.json` path.
+        board: The board to persist.
+    """
+    write_json_artifact(path, board)
+
+
+def publish_module(
+    board: ByomScoreboard,
+    module_id: str,
+    manifest: CorpusManifest,
+    private_board: Scoreboard,
+    current_truth_sha256: str,
+    committed_ids: Collection[str],
+) -> ByomScoreboard:
+    """Copy one private scoreboard entry onto the committed BYOM board.
+
+    The deliberate, outward-facing act, separate from scoring. The chain of
+    custody holds because only scored entries are copied, scoring runs under
+    the source-integrity check, and the published yardstick pin is the hash
+    recorded *at score time* — a truth edited after scoring is refused, not
+    silently paired with stale metrics.
+
+    Args:
+        board: The current committed BYOM board.
+        module_id: The private corpus module id to publish.
+        manifest: The module's manifest (identity plus provenance).
+        private_board: The private corpus's scoreboard.
+        current_truth_sha256: The hash of the module's `truth.yaml` as it
+            stands now, compared against the score-time hash.
+        committed_ids: The committed corpus's module ids (the shared-namespace guard).
+
+    Returns:
+        A new board with the module's entry added or replaced.
+
+    Raises:
+        ValueError: On any pinned refusal — no scored entry for the id, a
+            truth file that changed since scoring, missing truth provenance,
+            id collision with a committed corpus member, or (on update) a
+            title mismatch with the entry being replaced.
+    """
+    score = private_board.modules.get(module_id)
+    if score is None:
+        raise ValueError(f"no scored entry for {module_id!r} in the private scoreboard — score before publishing")
+    if score.truth_sha256 != current_truth_sha256:
+        raise ValueError(
+            f"{module_id!r}'s truth.yaml changed since its entry was scored — re-score before publishing, "
+            "so the published metrics and yardstick pin describe the same truth"
+        )
+    if manifest.truth_provenance is None:
+        raise ValueError(
+            f"{module_id!r} has no truth_provenance in its manifest — unverified truth can be scored locally, "
+            "but it cannot put numbers on the committed board (see tools/eval/AUTHORING.md)"
+        )
+    if module_id in committed_ids:
+        raise ValueError(
+            f"{module_id!r} collides with a committed corpus member — the BYOM scoreboard shares a namespace "
+            "with nothing; rename the private corpus directory"
+        )
+    existing = board.modules.get(module_id)
+    if existing is not None and existing.title != manifest.title:
+        raise ValueError(
+            f"{module_id!r} is already published as {existing.title!r}, but this manifest says "
+            f"{manifest.title!r} — two modules cannot share one id; rename the private corpus directory"
+        )
+    entry = ByomEntry(
+        title=manifest.title,
+        publisher=manifest.publisher,
+        edition=manifest.edition,
+        pages=manifest.pages,
+        run=score.run,
+        truth_sha256=score.truth_sha256,
+        settings_overrides=score.settings_overrides,
+        metrics=score.metrics,
+    )
+    return ByomScoreboard(
+        schema_version=board.schema_version,
+        modules={**board.modules, module_id: entry},
+    )
 
 
 def _ratio(numerator: int, denominator: int) -> float | None:
@@ -561,14 +857,15 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                         if resolution is not None and resolution.template_id == truth_encounter.template:
                             resolution_matched += 1
 
-                presence_denominator += 1
-                if _treasure_signal(extracted_area) == truth_area.treasure.present:
-                    presence_matched += 1
-                if truth_area.treasure.letters:
-                    letters_denominator += 1
-                    parsed = parse_treasure(extracted_area.treasure)
-                    if sorted(parsed.letters) == sorted(truth_area.treasure.letters):
-                        letters_matched += 1
+                if truth_area.treasure is not None:
+                    presence_denominator += 1
+                    if _treasure_signal(extracted_area) == truth_area.treasure.present:
+                        presence_matched += 1
+                    if truth_area.treasure.letters:
+                        letters_denominator += 1
+                        parsed = parse_treasure(extracted_area.treasure)
+                        if sorted(parsed.letters) == sorted(truth_area.treasure.letters):
+                            letters_matched += 1
 
             # Connections: undirected same-level edges between matched areas,
             # in the asserted universe (at least one endpoint's neighbor set
@@ -606,6 +903,9 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
 
     return ModuleMetrics(
         areas=AreaMetrics(
+            truth_dungeons=len(truth.dungeons),
+            extracted_dungeons=len(index.dungeons),
+            matched_dungeons=len(matches),
             truth_areas=truth_area_count,
             extracted_areas=extracted_area_count,
             matched=matched_areas,

@@ -74,6 +74,7 @@ nav:
       - The correction loop: guides/correction-loop.md
       - Settings and rerun: guides/settings-and-rerun.md
       - Provider setup: guides/provider-setup.md
+      - Owner sampling: guides/owner-sampling.md
   - Reference:
       - CLI: reference/cli.md
       - The workdir and artifacts: reference/workdir-artifacts.md
