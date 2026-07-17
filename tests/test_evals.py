@@ -763,7 +763,31 @@ dungeons:
         metrics = score_workdir(root, truth)
         assert metrics.areas.matched == 3
 
-    def test_levels_align_by_number(self, tmp_path: Path):
+    def test_non_ascii_truth_keys_take_the_positional_fallback(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "洞窟"
+            treasure:
+              present: false
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("area-1")], [content_area("area-1")])])],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.areas.matched == 1
+
+
+class TestLevelAlignment:
+    """Level alignment by maximal area-key overlap, many-to-one from the truth side (the B4 fix)."""
+
+    def test_equal_numbered_levels_still_pair(self, tmp_path: Path):
         truth = truth_from_yaml(
             """
 dungeons:
@@ -796,7 +820,55 @@ dungeons:
         metrics = score_workdir(root, truth)
         assert metrics.areas.matched == 2
 
-    def test_non_ascii_truth_keys_take_the_positional_fallback(self, tmp_path: Path):
+    def test_many_truth_levels_pair_with_one_extracted_level(self, tmp_path: Path):
+        """The B4 shape: printed tiers grouped by extraction into one coarse level all still score."""
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: city
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            treasure:
+              present: false
+          - key: "2"
+            treasure:
+              present: false
+      - number: 2
+        areas:
+          - key: "3"
+            treasure:
+              present: false
+      - number: 3
+        areas:
+          - key: "4"
+            treasure:
+              present: false
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "city",
+                    [
+                        (
+                            1,
+                            [survey_area(key) for key in ("1", "2", "3", "4")],
+                            [content_area(key) for key in ("1", "2", "3", "4")],
+                        )
+                    ],
+                )
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.areas.matched == 4
+        assert metrics.areas.recall == 1.0
+        assert metrics.areas.precision == 1.0
+
+    def test_a_split_truth_level_pairs_with_the_larger_share(self, tmp_path: Path):
+        """The reverse split: extraction divided one printed level across two; maximal overlap picks the larger."""
         truth = truth_from_yaml(
             """
 dungeons:
@@ -804,17 +876,141 @@ dungeons:
     levels:
       - number: 1
         areas:
-          - key: "洞窟"
+          - key: "1"
+            treasure:
+              present: false
+          - key: "2"
+            treasure:
+              present: false
+          - key: "3"
             treasure:
               present: false
 """
         )
         root = fabricate_eval_workdir(
             tmp_path / "mod.forge",
-            [("lair", [(1, [survey_area("area-1")], [content_area("area-1")])])],
+            [
+                (
+                    "lair",
+                    [
+                        (1, [survey_area("1")], [content_area("1")]),
+                        (2, [survey_area("2"), survey_area("3")], [content_area("2"), content_area("3")]),
+                    ],
+                )
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        # The truth level pairs with extracted level 2 (overlap 2 beats 1);
+        # extracted level 1's area is unmatched and costs precision only.
+        assert metrics.areas.matched == 2
+        assert metrics.areas.precision == round(2 / 3, 4)
+
+    def test_a_zero_overlap_truth_level_stays_unmatched(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            treasure:
+              present: false
+      - number: 2
+        areas:
+          - key: "9"
+            treasure:
+              present: false
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1")])])],
         )
         metrics = score_workdir(root, truth)
         assert metrics.areas.matched == 1
+        assert metrics.areas.recall == 0.5
+
+    def test_a_claimed_key_is_not_claimed_again(self, tmp_path: Path):
+        """Two truth levels sharing a key against one extracted level: the first pairing claims it."""
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            treasure:
+              present: false
+      - number: 2
+        areas:
+          - key: "1"
+            treasure:
+              present: false
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1")])])],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.areas.matched == 1
+        assert metrics.areas.recall == 0.5
+
+    def test_equal_overlap_breaks_by_number_distance_then_lower_number(self):
+        from osrforge.contracts.stages import SurveyDungeon, SurveyLevel
+        from osrforge.evals import _align_levels
+
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 2
+        areas:
+          - key: x
+      - number: 3
+        areas:
+          - key: y
+"""
+        )
+        extracted = SurveyDungeon(
+            id="lair",
+            name="lair",
+            levels=(
+                SurveyLevel(number=1, map_pages=(), areas=(survey_area("x"),)),
+                SurveyLevel(number=3, map_pages=(), areas=(survey_area("x"),)),
+                SurveyLevel(number=2, map_pages=(), areas=(survey_area("y"),)),
+                SurveyLevel(number=4, map_pages=(), areas=(survey_area("y"),)),
+            ),
+        )
+        matches = _align_levels(truth.dungeons[0], extracted)
+        # Truth 2 ("x"): extracted 1 and 3 tie on overlap; distance 1 both; lower number wins.
+        assert matches[2] == 1
+        # Truth 3 ("y"): extracted 2 and 4 tie on overlap; distance 1 both; lower number wins.
+        assert matches[3] == 2
+
+
+def test_committed_caches_pair_levels_by_equal_number():
+    """The committed-corpus property: overlap alignment reproduces the old number rule's outcome as data.
+
+    No number-alignment implementation survives phase 6; this pins the
+    verified property (no cross-level key overlap in any committed dungeon)
+    that makes the JN1 baseline's numbers carry over the alignment rewrite.
+    """
+    from osrforge.contracts.stages import SurveyIndex
+    from osrforge.evals import _align_dungeons, _align_levels
+
+    truth = load_truth(CORPUS / "jn1-chaotic-caves" / "truth.yaml")
+    index = SurveyIndex.model_validate_json((JN1_STAGES / "survey.json").read_text(encoding="utf-8"))
+    matches = _align_dungeons(truth, index)
+    assert len(matches) == len(truth.dungeons)
+    for truth_position, extracted_position in matches.items():
+        level_matches = _align_levels(truth.dungeons[truth_position], index.dungeons[extracted_position])
+        assert level_matches, truth.dungeons[truth_position].name
+        for truth_number, extracted_number in level_matches.items():
+            assert truth_number == extracted_number, truth.dungeons[truth_position].name
 
 
 def test_scoring_is_deterministic(tmp_path: Path):
