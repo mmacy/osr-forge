@@ -73,6 +73,35 @@ def test_level_content_round_trips():
     assert LevelContent.model_validate(level.model_dump(mode="json")) == level
 
 
+def test_area_connection_round_trips_the_widened_shape():
+    connection = AreaConnection(
+        to_key="7", direction="north", via="secret_door", door_stuck=True, door_locked=True, to_level=None
+    )
+    assert AreaConnection.model_validate(connection.model_dump(mode="json")) == connection
+    level_shaped = AreaConnection(to_key=None, direction="down", via="stairs", to_level=2)
+    assert AreaConnection.model_validate(level_shaped.model_dump(mode="json")) == level_shaped
+
+
+def test_pre_phase_6_connection_shape_still_loads():
+    """A cache written before via/conditions/to_level existed loads with the defaults."""
+    connection = AreaConnection.model_validate({"to_key": "7", "direction": "north"})
+    assert connection.via == "passage"
+    assert connection.door_stuck is False and connection.door_locked is False
+    assert connection.to_level is None
+
+
+def test_schema_legal_junk_is_tolerated_not_rejected():
+    """The tolerate-and-flag posture: no cache validator rejects what the flat batch schema admits."""
+    # Door conditions on a non-door via load; consumers ignore them.
+    stray = AreaConnection.model_validate(
+        {"to_key": "7", "direction": "north", "via": "stairs", "door_stuck": True, "door_locked": True}
+    )
+    assert stray.via == "stairs"
+    # Neither target loads; assembly flags `connection_ambiguous:no target stated`.
+    targetless = AreaConnection.model_validate({"to_key": None, "direction": "unknown"})
+    assert targetless.to_key is None and targetless.to_level is None
+
+
 def test_pre_phase_6_survey_cache_shape_still_loads():
     """A cache written before `description`/`services` existed loads with the defaults."""
     payload = make_index().model_dump(mode="json")

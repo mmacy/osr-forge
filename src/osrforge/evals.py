@@ -933,6 +933,10 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                 if extracted_area.key not in matched:
                     continue
                 for connection in extracted_area.connections:
+                    if connection.to_key is None:
+                        # Level-targeted links are outside the same-level edge
+                        # universe; edge semantics and denominators untouched.
+                        continue
                     to_key = canonical_slug(connection.to_key)
                     if to_key not in matched or to_key == extracted_area.key:
                         continue

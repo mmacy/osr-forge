@@ -424,6 +424,48 @@ class TestFlags:
         flags = area_report(result, "2").flags
         assert "connection_ambiguous:not connected to the entrance in the extracted graph" in flags
 
+    def test_no_target_connection_flags_no_target_stated(self):
+        result = draft([make_area("1", connections=[{"to_key": None, "direction": "unknown"}])])
+        assert "connection_ambiguous:no target stated" in area_report(result, "1").flags
+
+    def test_guessed_transition_flag_lands_on_the_source_area(self):
+        index = SurveyIndex.model_validate(
+            {
+                "schema_version": 1,
+                "title": "Mod",
+                "hooks": [],
+                "town": {"name": "Town", "description": ""},
+                "dungeons": [
+                    {
+                        "id": "lair",
+                        "name": "Lair",
+                        "levels": [
+                            {
+                                "number": number,
+                                "map_pages": [],
+                                "areas": [
+                                    {"key": key, "name": key, "source_label": None, "kind": "room", "source_pages": []}
+                                ],
+                            }
+                            for number, key in ((1, "1"), (2, "9"))
+                        ],
+                    }
+                ],
+                "monster_names": [],
+            }
+        )
+        levels = (
+            make_level(
+                [make_area("1", connections=[{"to_key": None, "to_level": 2, "direction": "down", "via": "stairs"}])],
+                level_number=1,
+            ),
+            make_level([make_area("9")], level_number=2),
+        )
+        geometries = synthesize_geometry(index, levels)
+        result = build_draft(index, levels, MonsterResolutions(resolutions={}), geometries, ConversionSettings())
+        assert "transition_guessed:lair/2/9" in area_report(result, "1").flags
+        assert not any("transition_guessed" in flag for flag in area_report(result, "9").flags)
+
 
 class TestModuleDefaults:
     def test_defaulted_title_and_town_are_flagged(self):

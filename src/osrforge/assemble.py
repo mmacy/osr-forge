@@ -366,8 +366,8 @@ def _build_area(
     )
 
     connection_flags = [
-        format_flag(Flag.CONNECTION_AMBIGUOUS, f"unresolved target {to_key}")
-        for key, to_key in geometry.unresolved_connections
+        format_flag(Flag.CONNECTION_AMBIGUOUS, detail)
+        for key, detail in geometry.unresolved_connections
         if key == area_key
     ]
     connection_flags.extend(
@@ -379,11 +379,14 @@ def _build_area(
         connection_flags.append(
             format_flag(Flag.CONNECTION_AMBIGUOUS, "not connected to the entrance in the extracted graph")
         )
+    transition_flags = [
+        format_flag(Flag.TRANSITION_GUESSED, detail) for key, detail in geometry.guessed_transitions if key == area_key
+    ]
 
     flags: list[str] = []
     if not cells_overridden:
         flags.append(format_flag(Flag.GEOMETRY_SYNTHESIZED))
-    for group in (low_confidence, monster_flags, connection_flags, treasure_flags):
+    for group in (low_confidence, monster_flags, connection_flags, transition_flags, treasure_flags):
         flags.extend(dict.fromkeys(group))
     overridden = [name for name in AREA_OVERRIDE_FIELDS if name in fields]
     if cells_overridden:

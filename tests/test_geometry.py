@@ -3,10 +3,10 @@
 from pathlib import Path
 
 import pytest
-from osrlib.crawl.dungeon import Direction, EdgeKind, edge_key, step
+from osrlib.crawl.dungeon import Direction, Edge, EdgeKind, edge_key, step
 
 from osrforge.contracts.stages import LevelContent, SurveyIndex
-from osrforge.geometry import DEFAULT_ROOM_CELLS, parse_dimensions, synthesize_geometry
+from osrforge.geometry import DEFAULT_ROOM_CELLS, LevelGeometry, parse_dimensions, synthesize_geometry
 
 ASSETS = Path(__file__).parent / "assets"
 
@@ -58,14 +58,18 @@ def make_index(areas: list[str]) -> SurveyIndex:
     )
 
 
-def make_content(areas: dict[str, list[tuple[str, str]]], descriptions: dict[str, str] | None = None) -> LevelContent:
-    """Level content where `areas` maps key → [(to_key, direction), ...]."""
+def make_content(
+    areas: dict[str, list[tuple[str, str] | dict]],
+    descriptions: dict[str, str] | None = None,
+    level_number: int = 1,
+) -> LevelContent:
+    """Level content where `areas` maps key → connections, each `(to_key, direction)` or a full dict."""
     descriptions = descriptions or {}
     return LevelContent.model_validate(
         {
             "schema_version": 1,
             "dungeon_id": "lair",
-            "level_number": 1,
+            "level_number": level_number,
             "areas": [
                 {
                     "key": key,
@@ -74,7 +78,10 @@ def make_content(areas: dict[str, list[tuple[str, str]]], descriptions: dict[str
                     "trap": None,
                     "treasure": [],
                     "features": [],
-                    "connections": [{"to_key": to_key, "direction": direction} for to_key, direction in connections],
+                    "connections": [
+                        entry if isinstance(entry, dict) else {"to_key": entry[0], "direction": entry[1]}
+                        for entry in connections
+                    ],
                     "source_pages": [],
                     "confidence": 0.9,
                 }
@@ -151,7 +158,7 @@ class TestPlacement:
         index = make_index(["1"])
         content = make_content({"1": [("the great beyond", "east")]})
         (geometry,) = synthesize_geometry(index, [content])
-        assert geometry.unresolved_connections == (("1", "the great beyond"),)
+        assert geometry.unresolved_connections == (("1", "unresolved target the great beyond"),)
 
     def test_unknown_direction_is_reported_with_the_resolved_key(self):
         index = make_index(["1", "2"])
@@ -418,6 +425,252 @@ class TestTransitions:
         # carrying the mirror spec.
         for transition in results[0].transitions:
             assert transition.to_position in positions
+
+
+def connection(
+    to_key: str | None = None,
+    direction: str = "unknown",
+    via: str = "passage",
+    stuck: bool = False,
+    locked: bool = False,
+    to_level: int | None = None,
+) -> dict:
+    return {
+        "to_key": to_key,
+        "direction": direction,
+        "via": via,
+        "door_stuck": stuck,
+        "door_locked": locked,
+        "to_level": to_level,
+    }
+
+
+def multi_index(levels: dict[int, list[str]]) -> SurveyIndex:
+    return SurveyIndex.model_validate(
+        {
+            "schema_version": 1,
+            "title": "Mod",
+            "hooks": [],
+            "town": {"name": "Town", "description": ""},
+            "dungeons": [
+                {
+                    "id": "lair",
+                    "name": "Lair",
+                    "levels": [
+                        {
+                            "number": number,
+                            "map_pages": [],
+                            "areas": [
+                                {"key": key, "name": key, "source_label": None, "kind": "room", "source_pages": []}
+                                for key in keys
+                            ],
+                        }
+                        for number, keys in levels.items()
+                    ],
+                }
+            ],
+            "monster_names": [],
+        }
+    )
+
+
+def door_edges(geometry: LevelGeometry) -> dict[str, Edge]:
+    return {key: edge for key, edge in geometry.edges.items() if edge.kind is EdgeKind.DOOR}
+
+
+def incident_cells(key: str) -> set[tuple[int, int]]:
+    cell_part, _, side = key.partition(":")
+    x, _, y = cell_part.partition(",")
+    cell = (int(x), int(y))
+    return {cell, step(cell, Direction(side))}
+
+
+class TestDoors:
+    def test_stated_door_realizes_on_the_route_edge_leaving_the_stating_room(self):
+        index = make_index(["1", "2"])
+        content = make_content({"1": [connection(to_key="2", direction="east", via="door", stuck=True)], "2": []})
+        (geometry,) = synthesize_geometry(index, [content])
+        ((key, edge),) = door_edges(geometry).items()
+        assert edge.door is not None
+        assert edge.door.kind == "normal" and edge.door.stuck and not edge.door.locked
+        # The door sits on the stating room's wall.
+        assert incident_cells(key) & set(geometry.areas["1"])
+        assert geometry.unresolved_connections == ()
+
+    def test_reverse_mention_places_the_door_on_the_stating_rooms_wall(self):
+        # Only room 2 states the door; 2 is placed as the child of 1, so the
+        # door lands on the arriving end of the route — 2's wall.
+        index = make_index(["1", "2"])
+        content = make_content(
+            {"1": [("2", "south")], "2": [connection(to_key="1", direction="north", via="door", locked=True)]}
+        )
+        (geometry,) = synthesize_geometry(index, [content])
+        ((key, edge),) = door_edges(geometry).items()
+        assert edge.door is not None and edge.door.locked
+        assert incident_cells(key) & set(geometry.areas["2"])
+
+    def test_secret_door_is_its_own_kind(self):
+        index = make_index(["1", "2"])
+        content = make_content({"1": [connection(to_key="2", direction="east", via="secret_door")], "2": []})
+        (geometry,) = synthesize_geometry(index, [content])
+        ((_, edge),) = door_edges(geometry).items()
+        assert edge.door is not None and edge.door.kind == "secret"
+
+    def test_passage_default_upgrades_and_first_stated_mechanism_wins(self):
+        # Mention one states no mechanism (an absence); a later mention fills
+        # it; a third, conflicting statement loses to the first stated one —
+        # while its door condition still merges in.
+        index = make_index(["1", "2"])
+        content = make_content(
+            {
+                "1": [connection(to_key="2", direction="east")],
+                "2": [
+                    connection(to_key="1", direction="west", via="door", stuck=True),
+                    connection(to_key="1", direction="west", via="secret_door", locked=True),
+                ],
+            }
+        )
+        (geometry,) = synthesize_geometry(index, [content])
+        ((_, edge),) = door_edges(geometry).items()
+        assert edge.door is not None
+        assert edge.door.kind == "normal"  # first stated mechanism, not the later secret_door
+        assert edge.door.stuck and edge.door.locked  # conditions merge first-stated
+
+    def test_conditions_on_a_non_door_via_are_ignored(self):
+        index = make_index(["1", "2"])
+        content = make_content({"1": [connection(to_key="2", direction="east", via="stairs", stuck=True)], "2": []})
+        (geometry,) = synthesize_geometry(index, [content])
+        assert door_edges(geometry) == {}
+        assert all(edge.kind is EdgeKind.OPEN for edge in geometry.edges.values())
+
+    def test_cycle_edge_drops_the_door_with_the_flag(self):
+        # 2-3 closes a cycle: no route is placed for it, so the stated door
+        # has nowhere to land and the fact drops with the pinned flag.
+        index = make_index(["1", "2", "3"])
+        content = make_content(
+            {
+                "1": [("2", "east"), ("3", "south")],
+                "2": [connection(to_key="3", direction="south", via="door")],
+                "3": [],
+            }
+        )
+        (geometry,) = synthesize_geometry(index, [content])
+        assert door_edges(geometry) == {}
+        assert ("2", "door to 3 not placed") in geometry.unresolved_connections
+
+    def test_no_target_connection_is_skipped_with_the_flag(self):
+        index = make_index(["1"])
+        content = make_content({"1": [connection()]})
+        (geometry,) = synthesize_geometry(index, [content])
+        assert geometry.unresolved_connections == (("1", "no target stated"),)
+
+
+class TestLevelTargetedLinks:
+    def test_leftover_link_lands_on_the_first_keyed_area_and_flags_the_source(self):
+        index = multi_index({1: ["1", "2"], 2: ["9", "10"]})
+        contents = [
+            make_content({"1": [connection(direction="down", via="stairs", to_level=2)], "2": []}, level_number=1),
+            make_content({"9": [], "10": []}, level_number=2),
+        ]
+        level_1, level_2 = synthesize_geometry(index, contents)
+        (down,) = level_1.transitions
+        assert down.kind == "stairs_down"
+        assert down.to_level_number == 2
+        (up,) = level_2.transitions
+        assert up.kind == "stairs_up"
+        assert up.position in level_2.areas["9"]  # the target level's first keyed area
+        assert level_1.guessed_transitions == (("1", "lair/2/9"),)
+        assert level_2.guessed_transitions == ()
+
+    def test_opposite_links_merge_into_one_reciprocal_pair_flagging_both_ends(self):
+        index = multi_index({1: ["1", "2"], 2: ["9", "10"]})
+        contents = [
+            make_content({"1": [connection(direction="down", to_level=2)], "2": []}, level_number=1),
+            make_content({"9": [], "10": [connection(direction="up", to_level=1)]}, level_number=2),
+        ]
+        level_1, level_2 = synthesize_geometry(index, contents)
+        (down,) = level_1.transitions
+        (up,) = level_2.transitions
+        # The guess is only that the two stated stairways are the same one.
+        assert down.position in level_1.areas["1"]
+        assert down.to_position in level_2.areas["10"]
+        assert up.position in level_2.areas["10"]
+        assert up.to_position in level_1.areas["1"]
+        assert level_1.guessed_transitions == (("1", "lair/2/10"),)
+        assert level_2.guessed_transitions == (("10", "lair/1/1"),)
+
+    def test_invalid_levels_drop_with_the_level_flag(self):
+        index = multi_index({1: ["1"], 2: [], 3: ["5"]})
+        contents = [
+            make_content(
+                {
+                    "1": [
+                        connection(direction="down", to_level=9),  # a level the dungeon doesn't have
+                        connection(direction="down", to_level=1),  # the source's own level
+                        connection(direction="down", to_level=2),  # a level with zero surveyed areas
+                    ]
+                },
+                level_number=1,
+            ),
+            make_content({"5": []}, level_number=3),
+        ]
+        results = synthesize_geometry(index, contents)
+        assert results[0].unresolved_connections == (
+            ("1", "level 9"),
+            ("1", "level 1"),
+            ("1", "level 2"),
+        )
+        assert all(geometry.transitions == () for geometry in results)
+
+    def test_trapdoor_emits_no_return_transition(self):
+        index = multi_index({1: ["1"], 2: ["9"]})
+        contents = [
+            make_content({"1": [connection(direction="down", via="trapdoor", to_level=2)]}, level_number=1),
+            make_content({"9": []}, level_number=2),
+        ]
+        level_1, level_2 = synthesize_geometry(index, contents)
+        (down,) = level_1.transitions
+        assert down.kind == "trapdoor"
+        assert level_2.transitions == ()
+
+    def test_keyed_chute_emits_no_return_while_keyed_stairs_do(self):
+        index = multi_index({1: ["1"], 2: ["9"]})
+        chute_contents = [
+            make_content({"1": [connection(to_key="9", direction="down", via="chute")]}, level_number=1),
+            make_content({"9": []}, level_number=2),
+        ]
+        level_1, level_2 = synthesize_geometry(index, chute_contents)
+        (down,) = level_1.transitions
+        assert down.kind == "chute"
+        assert level_2.transitions == ()
+        stair_contents = [
+            make_content({"1": [connection(to_key="9", direction="down", via="stairs")]}, level_number=1),
+            make_content({"9": []}, level_number=2),
+        ]
+        level_1, level_2 = synthesize_geometry(index, stair_contents)
+        assert [transition.kind for transition in level_1.transitions] == ["stairs_down"]
+        assert [transition.kind for transition in level_2.transitions] == ["stairs_up"]
+
+    def test_vertical_sense_falls_back_to_level_numbers(self):
+        # No stated up/down: the higher target number is down — deeper levels
+        # number higher throughout the pipeline.
+        index = multi_index({1: ["1"], 2: ["9"]})
+        contents = [
+            make_content({"1": [connection(direction="unknown", to_level=2)]}, level_number=1),
+            make_content({"9": []}, level_number=2),
+        ]
+        level_1, _ = synthesize_geometry(index, contents)
+        (down,) = level_1.transitions
+        assert down.kind == "stairs_down"
+
+    def test_level_links_never_flag_unknown_direction(self):
+        index = multi_index({1: ["1"], 2: ["9"]})
+        contents = [
+            make_content({"1": [connection(direction="unknown", to_level=2)]}, level_number=1),
+            make_content({"9": []}, level_number=2),
+        ]
+        level_1, _ = synthesize_geometry(index, contents)
+        assert level_1.unknown_direction_connections == ()
 
 
 class TestPostconditionsOverTheCommittedCorpora:
