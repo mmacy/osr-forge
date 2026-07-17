@@ -598,6 +598,53 @@ dungeons:
         assert metrics.connections.precision == 0.5
         assert metrics.connections.recall == 1.0
 
+    def test_level_targeted_connections_are_outside_the_edge_universe(self, tmp_path: Path):
+        """A to_key-null connection is skipped before canonical_slug — no crash, no denominator movement."""
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+            treasure:
+              present: false
+          - key: "2"
+            treasure:
+              present: false
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "lair",
+                    [
+                        (
+                            1,
+                            [survey_area("1"), survey_area("2")],
+                            [
+                                content_area(
+                                    "1",
+                                    connections=(
+                                        AreaConnection(to_key="2", direction="north"),
+                                        AreaConnection(to_key=None, direction="down", via="stairs", to_level=2),
+                                    ),
+                                ),
+                                content_area("2"),
+                            ],
+                        )
+                    ],
+                )
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.connections.truth_edges == 1
+        assert metrics.connections.extracted_edges == 1
+        assert metrics.connections.f1 == 1.0
+
     def test_edges_are_undirected_and_deduplicated(self, tmp_path: Path):
         truth = truth_from_yaml(
             """
@@ -992,18 +1039,22 @@ dungeons:
         assert matches[3] == 2
 
 
-def test_committed_caches_pair_levels_by_equal_number():
+@pytest.mark.parametrize(
+    ("member", "caches"),
+    [("jn1-chaotic-caves", "chaotic-caves/stages"), ("minimod", "minimod/expected")],
+)
+def test_committed_caches_pair_levels_by_equal_number(member: str, caches: str):
     """The committed-corpus property: overlap alignment reproduces the old number rule's outcome as data.
 
     No number-alignment implementation survives phase 6; this pins the
     verified property (no cross-level key overlap in any committed dungeon)
     that makes the JN1 baseline's numbers carry over the alignment rewrite.
+    JN2 has no in-repo caches, so the property covers the two members that do.
     """
-    from osrforge.contracts.stages import SurveyIndex
     from osrforge.evals import _align_dungeons, _align_levels
 
-    truth = load_truth(CORPUS / "jn1-chaotic-caves" / "truth.yaml")
-    index = SurveyIndex.model_validate_json((JN1_STAGES / "survey.json").read_text(encoding="utf-8"))
+    truth = load_truth(CORPUS / member / "truth.yaml")
+    index = SurveyIndex.model_validate_json((ASSETS / caches / "survey.json").read_text(encoding="utf-8"))
     matches = _align_dungeons(truth, index)
     assert len(matches) == len(truth.dungeons)
     for truth_position, extracted_position in matches.items():

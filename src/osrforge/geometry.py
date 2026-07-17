@@ -129,7 +129,7 @@ class LevelGeometry:
     unresolved_connections: tuple[tuple[str, str], ...]
     unknown_direction_connections: tuple[tuple[str, str], ...]
     disconnected_areas: tuple[str, ...]
-    guessed_transitions: tuple[tuple[str, str], ...] = ()
+    guessed_transitions: tuple[tuple[str, str], ...]
 
 
 _DOOR_VIAS = ("door", "secret_door")
@@ -173,15 +173,22 @@ class _GraphEdge:
         return self.direction if parent == self.owner else self.direction.opposite
 
 
-@dataclass(frozen=True)
+@dataclass
 class _CrossLevelLink:
     """One vertical link with a keyed target between two levels of the same dungeon.
 
     `up` is the stated direction of the first mention: `True` means the source
-    area's stairs lead up to the target. `via` is the mention's mechanism,
-    already narrowed to a transition family (`trapdoor` and `chute` as
-    themselves, everything else `stairs` — the overwhelmingly common printed
-    mechanism).
+    area's stairs lead up to the target. `via` is the first *stated*
+    (non-`passage`) mechanism across the pair's mentions, narrowed to a
+    transition family (`trapdoor` and `chute` as themselves, everything else
+    `stairs`); `None` — no mention stated one — realizes as stairs, the
+    overwhelmingly common printed mechanism. The duplicate-mention upgrade
+    clause applies here exactly as on same-level edges: a later mention
+    stating a mechanism fills an earlier absence, so a reciprocal "shaft up"
+    mention can never turn the far side's stated chute into return stairs —
+    and a one-way mechanism filling the absence re-orients the link to its
+    stating mention's end, since a chute drops from where the page says it
+    drops.
     """
 
     source_level: int
@@ -189,7 +196,7 @@ class _CrossLevelLink:
     target_level: int
     target_key: str
     up: bool
-    via: str = "stairs"
+    via: str | None
 
 
 @dataclass(frozen=True)
@@ -272,7 +279,9 @@ def _resolve_dungeon_connections(
     clause (see `_GraphEdge`). Self-connections are dropped. A vertical
     mention unresolved locally tries the sibling levels (exact over all, then
     slug over all, in survey order); a hit is a cross-level link, deduplicated
-    by area pair with the first mention winning. A mention with `to_level` and
+    by area pair — the first mention wins the endpoints and direction, and a
+    later mention's stated mechanism fills an earlier absence (the same
+    upgrade clause as same-level edges). A mention with `to_level` and
     no `to_key` is a level link, validated and landed by
     `_realize_level_links`. A mention with neither target is dropped with
     `no target stated`; anything else unresolved is dropped with its target in
@@ -282,7 +291,7 @@ def _resolve_dungeon_connections(
     resolutions: dict[int, _LevelResolution] = {}
     links: list[_CrossLevelLink] = []
     level_links: list[_LevelLink] = []
-    linked_pairs: set[frozenset[tuple[int, str]]] = set()
+    linked_by_pair: dict[frozenset[tuple[int, str]], _CrossLevelLink] = {}
     for level in dungeon.levels:
         resolution = _LevelResolution(edges=[], unresolved=[], unknown_direction=[])
         resolutions[level.number] = resolution
@@ -322,18 +331,34 @@ def _resolve_dungeon_connections(
                         if hit is not None:
                             sibling_number, sibling_key = hit
                             pair = frozenset(((level.number, area.key), (sibling_number, sibling_key)))
-                            if pair not in linked_pairs:
-                                linked_pairs.add(pair)
-                                links.append(
-                                    _CrossLevelLink(
-                                        source_level=level.number,
-                                        source_key=area.key,
-                                        target_level=sibling_number,
-                                        target_key=sibling_key,
-                                        up=connection.direction == "up",
-                                        via=_transition_via(connection.via),
-                                    )
+                            stated_via = _transition_via(connection.via) if connection.via != "passage" else None
+                            existing = linked_by_pair.get(pair)
+                            if existing is None:
+                                link = _CrossLevelLink(
+                                    source_level=level.number,
+                                    source_key=area.key,
+                                    target_level=sibling_number,
+                                    target_key=sibling_key,
+                                    up=connection.direction == "up",
+                                    via=stated_via,
                                 )
+                                linked_by_pair[pair] = link
+                                links.append(link)
+                            elif existing.via is None and stated_via is not None:
+                                # The duplicate-mention upgrade clause: a later
+                                # mention's stated mechanism fills an earlier
+                                # absence — a reciprocal "passage up" mention
+                                # never overrides the far side's stated chute.
+                                existing.via = stated_via
+                                if stated_via in ("trapdoor", "chute"):
+                                    # One-way mechanisms realize from their
+                                    # stating mention's own end — a chute
+                                    # stated at the far side drops from there.
+                                    existing.source_level = level.number
+                                    existing.source_key = area.key
+                                    existing.target_level = sibling_number
+                                    existing.target_key = sibling_key
+                                    existing.up = connection.direction == "up"
                             continue
                     resolution.unresolved.append((area.key, f"unresolved target {connection.to_key}"))
                     continue
@@ -420,17 +445,19 @@ def _realize_links(
     merged pairs flag both mentioning areas — and the geometry `transitions`
     override corrects any landing.
     """
-    realized = [
-        _RealizedLink(
-            source_level=link.source_level,
-            source_key=link.source_key,
-            target_level=link.target_level,
-            target_key=link.target_key,
-            source_kind=_transition_kinds(link.via, down=not link.up)[0],
-            target_kind=_transition_kinds(link.via, down=not link.up)[1],
+    realized: list[_RealizedLink] = []
+    for link in links:
+        source_kind, target_kind = _transition_kinds(link.via if link.via is not None else "stairs", down=not link.up)
+        realized.append(
+            _RealizedLink(
+                source_level=link.source_level,
+                source_key=link.source_key,
+                target_level=link.target_level,
+                target_key=link.target_key,
+                source_kind=source_kind,
+                target_kind=target_kind,
+            )
         )
-        for link in links
-    ]
     numbers = {level.number for level in dungeon.levels}
     first_keys = {level.number: level.areas[0].key for level in dungeon.levels if level.areas}
     surviving: list[_LevelLink] = []

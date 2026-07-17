@@ -564,6 +564,85 @@ class TestDoors:
         (geometry,) = synthesize_geometry(index, [content])
         assert geometry.unresolved_connections == (("1", "no target stated"),)
 
+    def test_flush_route_door_lands_on_the_shared_wall(self):
+        """Case (a) at corridor length zero: the route is just the two facing room cells."""
+        from osrforge.geometry import _door_edges, _GraphEdge
+
+        rooms = {"1": ((0, 0),), "2": ((0, 1),)}
+        edge_paths: dict[frozenset[str], list[tuple[int, int]]] = {frozenset(("1", "2")): [(0, 0), (0, 1)]}
+        unresolved: list[tuple[str, str]] = []
+        doors = _door_edges(
+            [_GraphEdge(a="1", b="2", owner="1", direction=Direction.SOUTH, via="door", via_owner="1")],
+            rooms,
+            edge_paths,
+            unresolved,
+        )
+        assert unresolved == []
+        ((key, edge),) = doors.items()
+        assert key == edge_key((0, 0), Direction.SOUTH)
+        assert edge.door is not None and edge.door.kind == "normal"
+
+    def test_reanchored_and_cycle_edges_drop_their_doors_while_tree_edges_carry_them(self):
+        """Cases (b) and (c) over the re-anchoring hub graph: every mention states a door.
+
+        The graph is the dense-hub capture whose placement provably re-anchors
+        at least one child (20 children place 20 routes but fewer pairs are
+        recorded as stated — case b's mechanism; cycle edges record none at
+        all — case c). Exactly the recorded pairs carry doors; every other
+        stated door drops with the pinned flag on its stating area.
+        """
+        from osrforge.geometry import _door_edges, _GraphEdge, _normalize_placement, _place_level
+
+        keys = [str(number) for number in range(77, 98)]
+        sizes = {key: (2, 2) for key in keys}
+        mentions = [
+            ("77", "78", "west"),
+            ("77", "79", "east"),
+            ("77", "83", "north"),
+            ("80", "77", "east"),
+            ("81", "83", "west"),
+            ("82", "83", "south"),
+            ("83", "84", "north"),
+            ("83", "80", "west"),
+            ("84", "85", "north"),
+            ("85", "86", "west"),
+            ("85", "87", "east"),
+            ("85", "88", "north"),
+            ("86", "87", "east"),
+            ("86", "90", "north"),
+            ("87", "88", "north"),
+            ("87", "89", "north"),
+            ("88", "89", "east"),
+            ("88", "95", "west"),
+            ("88", "97", "west"),
+            ("89", "93", "north"),
+            ("90", "91", "north"),
+            ("91", "92", "north"),
+            ("93", "94", "south"),
+            ("93", "95", "south"),
+            ("93", "82", "north"),
+            ("94", "96", "south"),
+            ("95", "97", "south"),
+            ("96", "97", "east"),
+        ]
+        edges = [
+            _GraphEdge(a=a, b=b, owner=a, direction=Direction(direction), via="door", via_owner=a)
+            for a, b, direction in mentions
+        ]
+        placement, _ = _place_level(keys, sizes, edges, anchor="77")
+        # 21 rooms, one anchor: 20 children each place one route; fewer
+        # recorded pairs means at least one child re-anchored (case b).
+        assert len(placement.paths) == 20
+        rooms, _, edge_paths = _normalize_placement(placement)
+        assert len(edge_paths) < 20
+        unresolved: list[tuple[str, str]] = []
+        doors = _door_edges(edges, rooms, edge_paths, unresolved)
+        assert len(doors) == len(edge_paths)
+        assert len(unresolved) == len(mentions) - len(edge_paths)
+        for graph_edge in edges:
+            if frozenset((graph_edge.a, graph_edge.b)) not in edge_paths:
+                assert (graph_edge.a, f"door to {graph_edge.b} not placed") in unresolved
+
 
 class TestLevelTargetedLinks:
     def test_leftover_link_lands_on_the_first_keyed_area_and_flags_the_source(self):
@@ -662,6 +741,67 @@ class TestLevelTargetedLinks:
         level_1, _ = synthesize_geometry(index, contents)
         (down,) = level_1.transitions
         assert down.kind == "stairs_down"
+
+    def test_stated_direction_wins_over_level_numbers(self):
+        # "Stairs up to the second level": the stated sense beats the
+        # deeper-levels-number-higher fallback.
+        index = multi_index({1: ["1"], 2: ["9"]})
+        contents = [
+            make_content({"1": [connection(direction="up", via="stairs", to_level=2)]}, level_number=1),
+            make_content({"9": []}, level_number=2),
+        ]
+        level_1, level_2 = synthesize_geometry(index, contents)
+        (up,) = level_1.transitions
+        assert up.kind == "stairs_up"
+        (down,) = level_2.transitions
+        assert down.kind == "stairs_down"
+
+    def test_pairwise_merge_takes_the_first_opposite_sense_partner_in_survey_order(self):
+        # Two down-links from level 1 (areas a then b) and one up-link from
+        # level 2: the up-link pairs with a — first in survey order — and b
+        # is the leftover that lands on level 2's first keyed area.
+        index = multi_index({1: ["a", "b"], 2: ["9", "10"]})
+        contents = [
+            make_content(
+                {
+                    "a": [connection(direction="down", to_level=2)],
+                    "b": [connection(direction="down", to_level=2)],
+                },
+                level_number=1,
+            ),
+            make_content({"9": [], "10": [connection(direction="up", to_level=1)]}, level_number=2),
+        ]
+        level_1, level_2 = synthesize_geometry(index, contents)
+        assert level_1.guessed_transitions == (("a", "lair/2/10"), ("b", "lair/2/9"))
+        assert level_2.guessed_transitions == (("10", "lair/1/a"),)
+
+    def test_keyed_link_upgrade_fills_the_mechanism_from_the_far_side(self):
+        # Area 1 states only a vertical passage; area 9's mention states the
+        # chute. The stated mechanism fills the absence and the chute drops
+        # from its stating end — no return stairs are manufactured up it.
+        index = multi_index({1: ["1"], 2: ["9"]})
+        contents = [
+            make_content({"1": [connection(to_key="9", direction="up", via="passage")]}, level_number=1),
+            make_content({"9": [connection(to_key="1", direction="down", via="chute")]}, level_number=2),
+        ]
+        level_1, level_2 = synthesize_geometry(index, contents)
+        assert level_1.transitions == ()
+        (drop,) = level_2.transitions
+        assert drop.kind == "chute"
+        assert drop.to_level_number == 1
+
+    def test_keyed_link_first_stated_mechanism_wins(self):
+        # 1's mention states the chute; 9's later "stairs up" statement is a
+        # conflicting statement and loses to the first stated mechanism.
+        index = multi_index({1: ["1"], 2: ["9"]})
+        contents = [
+            make_content({"1": [connection(to_key="9", direction="down", via="chute")]}, level_number=1),
+            make_content({"9": [connection(to_key="1", direction="up", via="stairs")]}, level_number=2),
+        ]
+        level_1, level_2 = synthesize_geometry(index, contents)
+        (drop,) = level_1.transitions
+        assert drop.kind == "chute"
+        assert level_2.transitions == ()
 
     def test_level_links_never_flag_unknown_direction(self):
         index = multi_index({1: ["1"], 2: ["9"]})

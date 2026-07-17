@@ -58,7 +58,9 @@ When extraction already placed the door — the content pass reads stated
 mechanisms, so a "stuck door in the north wall" usually synthesizes on its
 own — an `edges` entry is only needed where the door landed on the wrong
 edge or didn't land at all (`connection_ambiguous:door to <key> not placed`
-names those). An override edge always wins over the synthesized one.
+names those). An override edge always wins over the synthesized one; the
+flag itself persists after the correction — it records what synthesis could
+not place, and the report shows both it and the override that answered it.
 
 Three application rules complete the contract:
 
