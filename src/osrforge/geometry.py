@@ -281,7 +281,8 @@ def _resolve_dungeon_connections(
     slug over all, in survey order); a hit is a cross-level link, deduplicated
     by area pair — the first mention wins the endpoints and direction, and a
     later mention's stated mechanism fills an earlier absence (the same
-    upgrade clause as same-level edges). A mention with `to_level` and
+    upgrade clause as same-level edges; a one-way mechanism re-orients the
+    link to its stating end — see `_CrossLevelLink`). A mention with `to_level` and
     no `to_key` is a level link, validated and landed by
     `_realize_level_links`. A mention with neither target is dropped with
     `no target stated`; anything else unresolved is dropped with its target in
