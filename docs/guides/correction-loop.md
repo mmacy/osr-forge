@@ -54,6 +54,12 @@ town:
   reason: The module names the base town on p. 3.
 ```
 
+When extraction already placed the door — the content pass reads stated
+mechanisms, so a "stuck door in the north wall" usually synthesizes on its
+own — an `edges` entry is only needed where the door landed on the wrong
+edge or didn't land at all (`connection_ambiguous:door to <key> not placed`
+names those). An override edge always wins over the synthesized one.
+
 Three application rules complete the contract:
 
 - Monster override keys match extracted names under the same normalization the

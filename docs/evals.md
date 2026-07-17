@@ -44,6 +44,10 @@ extraction gaps:
   (the hallucination guard: matched extracted areas over all extracted), and
   the dungeon alignment counts (`truth_dungeons` / `extracted_dungeons` /
   `matched_dungeons`) that make a survey mode-flip legible in the record.
+  Within an aligned dungeon, truth levels align to extracted levels by
+  maximal area-key overlap, many-to-one from the truth side — a module whose
+  printed tiers extraction grouped into coarser levels still scores on its
+  areas instead of losing them to a level-number mismatch.
 - **Encounters** — name recall, count accuracy over encounters where the
   module states a fixed count, and resolution accuracy against the osrlib
   catalog id the name should resolve to (truth entries with no SRD template
