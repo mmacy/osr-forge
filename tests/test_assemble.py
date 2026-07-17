@@ -198,6 +198,27 @@ class TestTreasureGrammar:
             ("treasure type A", "letters", "A"),
             ("Treasure Type c.", "letters", "C"),
             ("a map to the hoard", "unparsed", "a map to the hoard"),
+            # The phase 5 amendment's two recorded shapes (B3's spot-check):
+            ("1,000 cp", "coins", {"cp": 1000}),
+            ("1,235 sp.", "coins", {"sp": 1235}),
+            ("2,500 gp and 1,000 sp", "coins", {"gp": 2500, "sp": 1000}),
+            ("an idol worth 1,200 gp", "valuable", ("jewellery", "idol", 1200)),
+            # Quantified each, both orderings — the real JN1 cache shapes:
+            ("3 dresses worth 100 gp each", "valuables", [("jewellery", "dresses", 100)] * 3),
+            ("3 gems each worth 50 gp", "valuables", [("gem", "gems", 50)] * 3),
+            ("6 silver cups worth 20 gp each", "valuables", [("jewellery", "silver cups", 20)] * 6),
+            # The guards that must not loosen:
+            ("1d6 gems worth 50 gp each", "unparsed", "1d6 gems worth 50 gp each"),  # dice guard fires first
+            ("gems worth 50 gp each", "unparsed", "gems worth 50 gp each"),  # unquantified each
+            ("Five gems worth 50 gp each", "unparsed", "Five gems worth 50 gp each"),  # word counts don't parse
+            ("3 potions for each visitor", "unparsed", "3 potions for each visitor"),
+            ("50 gp per rescued prisoner", "unparsed", "50 gp per rescued prisoner"),
+            (
+                "10 silver cups worth 10 gp each (100 gp total)",
+                "unparsed",
+                "10 silver cups worth 10 gp each (100 gp total)",
+            ),  # trailing commentary stays conservative
+            ("1,00 cp", "unparsed", "1,00 cp"),  # mis-grouped commas never half-match
         ],
     )
     def test_grammar_table(self, text: str, field: str, expected: Any):
@@ -210,6 +231,9 @@ class TestTreasureGrammar:
             kind, name, value = expected
             (valuable,) = parsed.valuables
             assert (valuable.kind, valuable.name, valuable.value_gp) == (kind, name, value)
+        elif field == "valuables":
+            assert [(entry.kind, entry.name, entry.value_gp) for entry in parsed.valuables] == expected
+            assert not parsed.unparsed
         elif field == "letters":
             assert parsed.letters == (expected,)
         else:

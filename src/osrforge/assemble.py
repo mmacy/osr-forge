@@ -86,11 +86,27 @@ __all__ = ["AssembleResult", "assemble", "build_draft", "parse_treasure", "rende
 # cannot be a fixed cache.
 _DICE_SCAN = re.compile(r"\b(?:[1-9][0-9]{0,2})?d(?:2|3|4|6|8|10|12|20|100)\b")
 _EACH_PER = re.compile(r"\b(?:each|per)\b", re.IGNORECASE)
-_WORTH = re.compile(r"^(?P<name>.+?)\s+worth\s+(?P<value>[1-9][0-9]*)\s*gp\.?$", re.IGNORECASE)
+# Numbers accept comma thousands-separators ("1,000 cp") — strict groups of
+# three, so a mis-grouped number never half-matches.
+_NUMBER = r"[1-9][0-9]{0,2}(?:,[0-9]{3})+|[1-9][0-9]*"
+_WORTH = re.compile(rf"^(?P<name>.+?)\s+worth\s+(?P<value>{_NUMBER})\s*gp\.?$", re.IGNORECASE)
+# The two quantified-each orderings: "3 gems worth 50 gp each" and
+# "3 gems each worth 50 gp" — a literal count distributing a stated value.
+_WORTH_EACH = re.compile(
+    rf"^(?P<count>{_NUMBER})\s+(?P<name>.+?)\s+worth\s+(?P<value>{_NUMBER})\s*gp\s+each\.?$", re.IGNORECASE
+)
+_EACH_WORTH = re.compile(
+    rf"^(?P<count>{_NUMBER})\s+(?P<name>.+?)\s+each\s+worth\s+(?P<value>{_NUMBER})\s*gp\.?$", re.IGNORECASE
+)
 _ARTICLE = re.compile(r"^(?:a|an|the)\s+", re.IGNORECASE)
 _GEM_WORD = re.compile(r"\bgems?\b", re.IGNORECASE)
-_COIN = re.compile(r"([1-9][0-9]*)\s*(cp|sp|ep|gp|pp)\b", re.IGNORECASE)
+_COIN = re.compile(rf"((?:{_NUMBER}))\s*(cp|sp|ep|gp|pp)\b", re.IGNORECASE)
 _TREASURE_TYPE = re.compile(r"^treasure types?\s+([A-Va-v])\.?$", re.IGNORECASE)
+
+
+def _number(text: str) -> int:
+    return int(text.replace(",", ""))
+
 
 _VALIDATION_HEADER = "adventure validation failed:"
 
@@ -116,17 +132,23 @@ class ParsedTreasure:
 def parse_treasure(strings: tuple[str, ...]) -> ParsedTreasure:
     """Parse an area's treasure strings through the pinned, conservative grammar.
 
-    Per string, tried in order, first match wins: dice notation or the words
-    `each`/`per` → unparsed (per-monster and conditional treasure cannot be a
-    fixed cache); `<thing> worth <N> gp` → a valuable (`gem` exactly when the
+    Per string, tried in order, first match wins: dice notation → unparsed (a
+    dice quantity is per-monster or conditional treasure and cannot be a fixed
+    cache); the two quantified-`each` shapes — `<N> <things> worth <V> gp
+    each` and `<N> <things> each worth <V> gp` — → N valuables of the stated
+    value; any other `each` and every `per` → unparsed (still conditional
+    treasure); `<thing> worth <N> gp` → a valuable (`gem` exactly when the
     thing names a gem, else `jewellery` — both kinds carry identical value and
     XP semantics, so the narrow lexicon errs harmlessly); money references
     `<N> <cp|sp|ep|gp|pp>` with no digits outside them → coins summed per
     denomination; `treasure type <A-V>` → a generated-treasure letter.
-    Anything else is unparsed — assembly flags it and (under `best-effort`)
-    compensates with an unguarded-treasure roll. A string that is empty after
-    stripping is skipped outright: it carries no information to flag, and the
-    frozen phase 1 schema does not forbid it, so it must not crash assembly.
+    Numbers accept comma thousands-separators (`1,000 cp`), and a
+    comma-grouped number counts as one coin match under the no-stray-digits
+    guard. Anything else is unparsed — assembly flags it and (under
+    `best-effort`) compensates with an unguarded-treasure roll. A string that
+    is empty after stripping is skipped outright: it carries no information to
+    flag, and the frozen phase 1 schema does not forbid it, so it must not
+    crash assembly.
 
     Args:
         strings: The area's cached treasure strings.
@@ -143,19 +165,31 @@ def parse_treasure(strings: tuple[str, ...]) -> ParsedTreasure:
         text = raw.strip()
         if not text:
             continue
-        if _DICE_SCAN.search(text) or _EACH_PER.search(text):
+        if _DICE_SCAN.search(text):
+            unparsed.append(raw)
+            continue
+        quantified = _WORTH_EACH.match(text) or _EACH_WORTH.match(text)
+        if quantified is not None:
+            name = quantified.group("name").strip()
+            kind = "gem" if _GEM_WORD.search(name) else "jewellery"
+            value = _number(quantified.group("value"))
+            valuables.extend(
+                ValuableSpec(kind=kind, name=name, value_gp=value) for _ in range(_number(quantified.group("count")))
+            )
+            continue
+        if _EACH_PER.search(text):
             unparsed.append(raw)
             continue
         worth = _WORTH.match(text)
         if worth is not None:
             name = _ARTICLE.sub("", worth.group("name")).strip()
             kind = "gem" if _GEM_WORD.search(name) else "jewellery"
-            valuables.append(ValuableSpec(kind=kind, name=name, value_gp=int(worth.group("value"))))
+            valuables.append(ValuableSpec(kind=kind, name=name, value_gp=_number(worth.group("value"))))
             continue
         coin_matches = _COIN.findall(text)
         if coin_matches and not any(character.isdigit() for character in _COIN.sub("", text)):
             for amount, denomination in coin_matches:
-                coins_by_denomination[denomination.lower()] += int(amount)
+                coins_by_denomination[denomination.lower()] += _number(amount)
             continue
         typed = _TREASURE_TYPE.match(text)
         if typed is not None:

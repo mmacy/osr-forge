@@ -2888,6 +2888,42 @@
                     },
                     "valuables": [
                       {
+                        "kind": "jewellery",
+                        "name": "silver cups",
+                        "value_gp": 20,
+                        "weight_coins": 0
+                      },
+                      {
+                        "kind": "jewellery",
+                        "name": "silver cups",
+                        "value_gp": 20,
+                        "weight_coins": 0
+                      },
+                      {
+                        "kind": "jewellery",
+                        "name": "silver cups",
+                        "value_gp": 20,
+                        "weight_coins": 0
+                      },
+                      {
+                        "kind": "jewellery",
+                        "name": "silver cups",
+                        "value_gp": 20,
+                        "weight_coins": 0
+                      },
+                      {
+                        "kind": "jewellery",
+                        "name": "silver cups",
+                        "value_gp": 20,
+                        "weight_coins": 0
+                      },
+                      {
+                        "kind": "jewellery",
+                        "name": "silver cups",
+                        "value_gp": 20,
+                        "weight_coins": 0
+                      },
+                      {
                         "kind": "gem",
                         "name": "golden chalice with gems",
                         "value_gp": 200,
@@ -2898,10 +2934,7 @@
                   }
                 ],
                 "trap": null,
-                "treasure": {
-                  "letters": [],
-                  "unguarded": true
-                }
+                "treasure": null
               },
               {
                 "id": "c9",
@@ -4385,7 +4418,7 @@
                       "pp": 0,
                       "gp": 771,
                       "ep": 0,
-                      "sp": 0,
+                      "sp": 1235,
                       "cp": 785
                     },
                     "valuables": [
@@ -6489,6 +6522,22 @@
                     },
                     "valuables": [],
                     "trap": null
+                  },
+                  {
+                    "id": "21-treasure",
+                    "kind": "treasure_cache",
+                    "description": "",
+                    "cell": null,
+                    "item_ids": [],
+                    "coins": {
+                      "pp": 0,
+                      "gp": 600,
+                      "ep": 0,
+                      "sp": 1200,
+                      "cp": 1800
+                    },
+                    "valuables": [],
+                    "trap": null
                   }
                 ],
                 "trap": null,
@@ -6937,7 +6986,7 @@
                     "item_ids": [],
                     "coins": {
                       "pp": 0,
-                      "gp": 26,
+                      "gp": 1026,
                       "ep": 0,
                       "sp": 49,
                       "cp": 0
@@ -6954,10 +7003,7 @@
                   }
                 ],
                 "trap": null,
-                "treasure": {
-                  "letters": [],
-                  "unguarded": true
-                }
+                "treasure": null
               }
             ],
             "features": [],
@@ -7575,10 +7621,10 @@
                     "item_ids": [],
                     "coins": {
                       "pp": 0,
-                      "gp": 131,
+                      "gp": 603,
                       "ep": 0,
-                      "sp": 456,
-                      "cp": 872
+                      "sp": 634,
+                      "cp": 2106
                     },
                     "valuables": [],
                     "trap": null
@@ -8441,6 +8487,22 @@
                     },
                     "valuables": [],
                     "trap": null
+                  },
+                  {
+                    "id": "36-treasure",
+                    "kind": "treasure_cache",
+                    "description": "",
+                    "cell": null,
+                    "item_ids": [],
+                    "coins": {
+                      "pp": 0,
+                      "gp": 500,
+                      "ep": 0,
+                      "sp": 1000,
+                      "cp": 2000
+                    },
+                    "valuables": [],
+                    "trap": null
                   }
                 ],
                 "trap": null,
@@ -8843,6 +8905,24 @@
                         "kind": "jewellery",
                         "name": "1 dress",
                         "value_gp": 250,
+                        "weight_coins": 0
+                      },
+                      {
+                        "kind": "jewellery",
+                        "name": "dresses",
+                        "value_gp": 100,
+                        "weight_coins": 0
+                      },
+                      {
+                        "kind": "jewellery",
+                        "name": "dresses",
+                        "value_gp": 100,
+                        "weight_coins": 0
+                      },
+                      {
+                        "kind": "jewellery",
+                        "name": "dresses",
+                        "value_gp": 100,
                         "weight_coins": 0
                       }
                     ],
@@ -11937,7 +12017,7 @@
                     "coins": {
                       "pp": 0,
                       "gp": 500,
-                      "ep": 0,
+                      "ep": 1400,
                       "sp": 0,
                       "cp": 200
                     },
@@ -17638,6 +17718,22 @@
                       "ep": 0,
                       "sp": 0,
                       "cp": 0
+                    },
+                    "valuables": [],
+                    "trap": null
+                  },
+                  {
+                    "id": "106-treasure",
+                    "kind": "treasure_cache",
+                    "description": "",
+                    "cell": null,
+                    "item_ids": [],
+                    "coins": {
+                      "pp": 491,
+                      "gp": 1686,
+                      "ep": 0,
+                      "sp": 1690,
+                      "cp": 983
                     },
                     "valuables": [],
                     "trap": null
