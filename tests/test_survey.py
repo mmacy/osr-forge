@@ -32,8 +32,9 @@ def raw_area(key: str, name: str = "Somewhere", pages: list[int] | None = None, 
 def raw_survey(dungeons: list[dict] | None = None, **overrides) -> dict:
     payload = {
         "title": "The Chaotic Caves",
+        "description": "An introductory adventure in the caves.",
         "hooks": ["Rumors of treasure in the caves"],
-        "town": {"name": "", "description": "A trade town."},
+        "town": {"name": "", "description": "A trade town.", "services": []},
         "dungeons": dungeons
         if dungeons is not None
         else [
@@ -110,6 +111,15 @@ class TestNormalization:
         index = normalize_survey(raw_survey(dungeons), page_count=48)
         assert [dungeon.id for dungeon in index.dungeons] == ["orc-lair", "orc-lair-2"]
         assert [dungeon.name for dungeon in index.dungeons] == ["Orc Lair", "Orc Lair"]
+
+    def test_description_and_town_services_carry_through(self):
+        payload = raw_survey(
+            description="An adventure for levels 1-3.",
+            town={"name": "Riverton", "description": "A trade town.", "services": ["The Gilded Goat inn"]},
+        )
+        index = normalize_survey(payload, page_count=48)
+        assert index.description == "An adventure for levels 1-3."
+        assert index.town.services == ("The Gilded Goat inn",)
 
     def test_empty_dungeon_name_falls_back_to_position(self):
         dungeons = [
@@ -338,19 +348,39 @@ class TestMergeSurveyAnswers:
         assert [area["key"] for area in dungeon["levels"][1]["areas"]] == ["1"]
 
     def test_title_and_town_take_the_first_nonempty_in_window_order(self):
-        first = raw_survey(title="", town={"name": "", "description": ""})
-        second = raw_survey(title="The Caves", town={"name": "", "description": "A trade town."})
-        third = raw_survey(title="Other Title", town={"name": "Riverton", "description": ""})
+        first = raw_survey(title="", description="", town={"name": "", "description": "", "services": []})
+        second = raw_survey(
+            title="The Caves",
+            description="",
+            town={"name": "", "description": "A trade town.", "services": ["an inn"]},
+        )
+        third = raw_survey(
+            title="Other Title",
+            description="",
+            town={"name": "Riverton", "description": "", "services": ["a temple"]},
+        )
         merged = merge_survey_answers([first, second, third])
         assert merged["title"] == "The Caves"
-        # The town joins as a unit: the first entry with a non-empty name wins whole.
-        assert merged["town"] == {"name": "Riverton", "description": ""}
+        # The town joins as a unit: the first entry with a non-empty name wins
+        # whole, its services riding with it.
+        assert merged["town"] == {"name": "Riverton", "description": "", "services": ["a temple"]}
 
     def test_town_falls_back_to_first_description_then_empty(self):
-        described = raw_survey(town={"name": "", "description": "A trade town."})
-        empty = raw_survey(town={"name": "", "description": ""})
-        assert merge_survey_answers([empty, described])["town"] == {"name": "", "description": "A trade town."}
-        assert merge_survey_answers([empty, empty])["town"] == {"name": "", "description": ""}
+        described = raw_survey(town={"name": "", "description": "A trade town.", "services": ["a general store"]})
+        empty = raw_survey(town={"name": "", "description": "", "services": []})
+        assert merge_survey_answers([empty, described])["town"] == {
+            "name": "",
+            "description": "A trade town.",
+            "services": ["a general store"],
+        }
+        assert merge_survey_answers([empty, empty])["town"] == {"name": "", "description": "", "services": []}
+
+    def test_module_description_takes_the_first_nonempty_in_window_order(self):
+        first = raw_survey(description="")
+        second = raw_survey(description="An adventure for levels 1-3.")
+        third = raw_survey(description="Another pitch.")
+        merged = merge_survey_answers([first, second, third])
+        assert merged["description"] == "An adventure for levels 1-3."
 
     def test_hooks_dedup_and_monster_names_union_in_first_seen_order(self):
         first = raw_survey(hooks=["A rumor", "A job"], monster_names=["orc", "wolf"])

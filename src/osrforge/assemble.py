@@ -490,7 +490,7 @@ def build_draft(
     if not name:
         name = "Untitled module"
         module_flags.append(format_flag(Flag.LOW_CONFIDENCE, "module title unstated"))
-    description = _overridden_text("", plan.module, "description")
+    description = _overridden_text(index.description, plan.module, "description")
     hooks = index.hooks
     if plan.module is not None and "hooks" in plan.module.model_fields_set:
         hooks = plan.module.hooks if plan.module.hooks is not None else ()
@@ -498,7 +498,7 @@ def build_draft(
     if not town_name:
         town_name = "Town"
         module_flags.append(format_flag(Flag.LOW_CONFIDENCE, "town name unstated"))
-    services: tuple[str, ...] = ()
+    services = index.town.services
     if plan.town is not None and "services" in plan.town.model_fields_set:
         services = plan.town.services if plan.town.services is not None else ()
     travel_turns: dict[str, int] = {}

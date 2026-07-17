@@ -24,14 +24,20 @@ TABLES = load_encounter_tables()
 
 
 def make_index(
-    areas: list[str], title: str = "The Example Barrow", town_name: str = "Threshold", level_number: int = 1
+    areas: list[str],
+    title: str = "The Example Barrow",
+    town_name: str = "Threshold",
+    level_number: int = 1,
+    description: str = "",
+    services: list[str] | None = None,
 ) -> SurveyIndex:
     return SurveyIndex.model_validate(
         {
             "schema_version": 1,
             "title": title,
+            "description": description,
             "hooks": ["A rumor."],
-            "town": {"name": town_name, "description": "A town."},
+            "town": {"name": town_name, "description": "A town.", "services": services or []},
             "dungeons": [
                 {
                     "id": "lair",
@@ -436,6 +442,17 @@ class TestModuleDefaults:
         assert result.module_flags == ()
         assert result.adventure.description == ""
         assert result.adventure.hooks == ("A rumor.",)
+
+    def test_survey_description_and_services_fill_the_metadata(self):
+        result = draft(
+            [make_area("1")],
+            description="An introductory adventure for levels 1-3.",
+            services=["The Gilded Goat inn", "a small temple"],
+        )
+        assert result.adventure.description == "An introductory adventure for levels 1-3."
+        assert result.adventure.town.services == ("The Gilded Goat inn", "a small temple")
+        # Empty metadata stays empty, unflagged — absence is not a defect.
+        assert result.module_flags == ()
 
 
 def test_validation_result_maps_findings_with_the_header_stripped():

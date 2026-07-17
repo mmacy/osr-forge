@@ -89,13 +89,16 @@ class TownInfo(BaseModel):
     """The town or home base — never a dungeon.
 
     `name` may be empty when the town is genuinely unnamed; osrlib's required
-    `TownSpec.name` gets a default-plus-flag at assembly (phase 2).
+    `TownSpec.name` gets a default-plus-flag at assembly (phase 2). `services`
+    lists the named establishments and services the module states — defaulted
+    so every pre-phase-6 survey cache still loads and assembles.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
     description: str
+    services: tuple[str, ...] = ()
 
 
 class SurveyArea(BaseModel):
@@ -166,12 +169,19 @@ class SurveyDungeon(BaseModel):
 
 
 class SurveyIndex(BaseModel):
-    """The `stages/survey.json` cache: the index that plans everything downstream."""
+    """The `stages/survey.json` cache: the index that plans everything downstream.
+
+    `description` is the module's own pitch — an excerpt of its printed
+    introduction or back-cover text, never invented, empty when the module has
+    none — defaulted so every pre-phase-6 survey cache still loads and
+    assembles.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     schema_version: int = SCHEMA_VERSION
     title: str
+    description: str = ""
     hooks: tuple[str, ...]
     town: TownInfo
     dungeons: tuple[SurveyDungeon, ...]

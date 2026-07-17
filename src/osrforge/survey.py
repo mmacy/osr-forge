@@ -56,13 +56,19 @@ You survey tabletop adventure modules. The user message interleaves every page's
 by a [page N] marker) with that page's image. Fill the survey schema from those pages.
 
 Rules:
-- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. The town or home base and its \
-buildings are never dungeons — describe them only in "town". Leave "town.name" empty only when the module \
-genuinely leaves the town unnamed.
-- One dungeon per independently keyed site: maps connected internally by stairs or shafts are levels of one \
-dungeon; separate lairs or sites with their own maps and entrances are separate dungeons, even when they are \
-drawn together on one regional map or share a running area-number sequence (a module keying "A. Orc Lair", \
-"B. Goblin Lair" describes separate dungeons).
+- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. A dungeon exists only where the \
+module prints a keyed area list for it — lettered or unkeyed callouts on another site's map are that site's \
+features, never sites of their own. The town or home base and its buildings are never dungeons — describe \
+them only in "town". Leave "town.name" empty only when the module genuinely leaves the town unnamed.
+- One dungeon per independently keyed site: first enumerate the module's independently keyed sites, then \
+emit exactly that many dungeons. Maps connected internally by stairs or shafts are levels of one dungeon; \
+separate lairs or sites with their own maps and entrances are separate dungeons, even when they are drawn \
+together on one regional map or share a running area-number sequence (a module keying "A. Orc Lair", \
+"B. Goblin Lair" describes separate dungeons — one dungeon each, never merged).
+- "description" is the module's own pitch: an excerpt of its printed introduction or back-cover text, quoted \
+or tightened from the module's own words — never invented. Leave it empty when the module states none.
+- "town.services" lists the named establishments and services the module states the town offers (an inn, a \
+temple, a general store). List only what the module states.
 - "hooks" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's \
 introduction or background.
 - Each level's "map_pages" lists the pages showing that level's map; each area's "source_pages" lists the \
@@ -76,11 +82,16 @@ SURVEY_SCHEMA: dict[str, object] = {
     "type": "object",
     "properties": {
         "title": {"type": "string"},
+        "description": {"type": "string"},
         "hooks": {"type": "array", "items": {"type": "string"}},
         "town": {
             "type": "object",
-            "properties": {"name": {"type": "string"}, "description": {"type": "string"}},
-            "required": ["name", "description"],
+            "properties": {
+                "name": {"type": "string"},
+                "description": {"type": "string"},
+                "services": {"type": "array", "items": {"type": "string"}},
+            },
+            "required": ["name", "description", "services"],
             "additionalProperties": False,
         },
         "dungeons": {
@@ -110,7 +121,7 @@ SURVEY_SCHEMA: dict[str, object] = {
         },
         "monster_names": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["title", "hooks", "town", "dungeons", "monster_names"],
+    "required": ["title", "description", "hooks", "town", "dungeons", "monster_names"],
     "additionalProperties": False,
     "$defs": {
         "area": {
@@ -213,7 +224,13 @@ def _union_into(accumulated: list[Any], incoming: Iterable[Any]) -> None:
 
 
 def _merge_town(answers: Sequence[dict[str, Any]]) -> dict[str, Any]:
-    """The town joins as a unit: first entry with a name, else first with a description, else empty."""
+    """The town joins as a unit: first entry with a name, else first with a description, else empty.
+
+    The unit rule carries `services` with the chosen entry — the window that
+    saw the town section saw its establishments too, and stitching one
+    window's name onto another's services would fabricate a town no window
+    reported.
+    """
     towns = [cast(dict[str, Any], answer["town"]) for answer in answers]
     for town in towns:
         if town["name"]:
@@ -221,7 +238,7 @@ def _merge_town(answers: Sequence[dict[str, Any]]) -> dict[str, Any]:
     for town in towns:
         if town["description"]:
             return copy.deepcopy(town)
-    return {"name": "", "description": ""}
+    return {"name": "", "description": "", "services": []}
 
 
 def _merge_areas(accumulated: list[dict[str, Any]], incoming: Sequence[dict[str, Any]]) -> None:
@@ -315,11 +332,12 @@ def merge_survey_answers(answers: Sequence[dict[str, Any]]) -> dict[str, Any]:
     slug never joins — two empty slugs carry no evidence of identity, so each
     empty-slug entry stays distinct and takes `normalize_survey`'s positional
     fallback. On a join, the first occurrence wins every scalar field;
-    `source_pages` and `map_pages` union in first-seen order. `title` and
-    `town` take the first non-empty occurrence in window order (`town` as a
-    unit: first entry with a non-empty name, else first with a non-empty
-    description, else empty); `hooks` concatenate deduplicated by exact
-    string; `monster_names` union in first-seen order.
+    `source_pages` and `map_pages` union in first-seen order. `title`,
+    `description`, and `town` take the first non-empty occurrence in window
+    order (`town` as a unit: first entry with a non-empty name, else first
+    with a non-empty description, else empty — `services` riding with the
+    chosen entry); `hooks` concatenate deduplicated by exact string;
+    `monster_names` union in first-seen order.
 
     Args:
         answers: The windows' raw answers in window order, each already
@@ -338,6 +356,7 @@ def merge_survey_answers(answers: Sequence[dict[str, Any]]) -> dict[str, Any]:
         _merge_dungeons(dungeons, cast(list[dict[str, Any]], answer["dungeons"]))
     return {
         "title": _first_nonempty(cast(str, answer["title"]) for answer in answers),
+        "description": _first_nonempty(cast(str, answer["description"]) for answer in answers),
         "hooks": hooks,
         "town": _merge_town(answers),
         "dungeons": dungeons,
@@ -472,8 +491,13 @@ def normalize_survey(raw: dict[str, Any], page_count: int) -> SurveyIndex:
     town = cast(dict[str, Any], raw["town"])
     return SurveyIndex(
         title=cast(str, raw["title"]),
+        description=cast(str, raw["description"]),
         hooks=tuple(cast(list[str], raw["hooks"])),
-        town=TownInfo(name=cast(str, town["name"]), description=cast(str, town["description"])),
+        town=TownInfo(
+            name=cast(str, town["name"]),
+            description=cast(str, town["description"]),
+            services=tuple(cast(list[str], town["services"])),
+        ),
         dungeons=dungeons,
         monster_names=tuple(cast(list[str], raw["monster_names"])),
     )

@@ -31,8 +31,9 @@ def make_area(key: str = "1", **overrides) -> SurveyArea:
 def make_index() -> SurveyIndex:
     return SurveyIndex(
         title="The Chaotic Caves",
+        description="An introductory adventure.",
         hooks=("A rumor of treasure",),
-        town=TownInfo(name="", description="A trade town."),
+        town=TownInfo(name="", description="A trade town.", services=("The Gilded Goat inn",)),
         dungeons=(
             SurveyDungeon(
                 id="a-orc-lair",
@@ -70,6 +71,16 @@ def test_survey_index_round_trips():
 def test_level_content_round_trips():
     level = make_level_content()
     assert LevelContent.model_validate(level.model_dump(mode="json")) == level
+
+
+def test_pre_phase_6_survey_cache_shape_still_loads():
+    """A cache written before `description`/`services` existed loads with the defaults."""
+    payload = make_index().model_dump(mode="json")
+    del payload["description"]
+    del payload["town"]["services"]
+    index = SurveyIndex.model_validate(payload)
+    assert index.description == ""
+    assert index.town.services == ()
 
 
 def test_caches_carry_schema_version_only():
