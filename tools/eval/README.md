@@ -186,23 +186,24 @@ amendment records both runs side by side, and the regression band is the
 observed per-metric spread, floored at 0.02 absolute.
 
 The current noise band — the living table each sweep-pair updates, with
-history staying in the phase amendments (this table: the phase 5 double
-sweep of 2026-07-10, superseding phase 4's flip-inflated band):
+history staying in the phase amendments (this table: the phase 6 double
+sweep of 2026-07-17, superseding phase 5's band):
 
 | metric | band |
 | --- | --- |
 | area recall | 0.02 |
 | area precision | 0.02 |
-| encounter name recall | 0.1193 |
-| count accuracy | 0.0221 |
-| resolution accuracy | 0.0823 |
-| connection F1 | 0.0452 |
+| encounter name recall | 0.1579 |
+| count accuracy | 0.0315 |
+| resolution accuracy | 0.0207 |
+| connection F1 | 0.02 |
 | treasure presence | 0.02 |
 
 The survey mode-flip phase 4 measured (a JN1 re-roll collapsed ten cave
-lairs into one dungeon) did not recur in either phase 5 run — the area
-bands above are at the 0.02 floor because both runs surveyed every site —
-but it remains the known failure mode: regression judgment on the area and
+lairs into one dungeon) did not recur in either phase 6 run — the area
+bands above are at the 0.02 floor because both runs surveyed every site
+(JN1 14/14/14, JN2 6/6/6 dungeons in both runs) — but it remains the known
+failure mode: regression judgment on the area and
 name-recall metrics should first check the scoreboard's dungeon counts
 (`truth_dungeons` vs `extracted_dungeons`) to see whether the mode flipped,
 and a flipped run judges against phase 4's amendment record, not this band.
