@@ -56,7 +56,7 @@ class ModelRequest:
 
     Attributes:
         tag: A short stable label like `survey` or `probe.image-limits` — a
-            pipeline stage name or spike probe id, never free prose. It names
+            pipeline stage name or capability-probe id, never free prose. It names
             fixture files, attributes usage, and participates in the
             fingerprint (it is part of request identity).
         system: The system text.

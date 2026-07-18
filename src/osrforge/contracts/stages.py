@@ -1,8 +1,8 @@
 """Stage-cache contracts: the `stages/survey.json`, `areas.<dungeon>.<level>.json`, and `monsters.json` wire formats.
 
-Stage caches are cross-phase wire formats — content reads survey's cache, and
+Stage caches are cross-stage wire formats — content reads survey's cache, and
 the monsters and assemble stages read both — so their models live here,
-in the established home for anything serialized between phases. No stage module
+in the established home for anything serialized between stages. No stage module
 ever imports another stage module.
 
 Pinned reading: a stage cache holds the extraction *stage's*
@@ -132,7 +132,8 @@ class SurveyArea(BaseModel):
 
     source_label: str | None = None
     """The model's original key spelling, preserved wherever the canonical
-    `key` differs from it; `None` when they agree."""
+    `key` differs from a non-empty printed spelling; `None` when they agree
+    or the model's spelling was empty."""
 
     kind: AreaKind
     """The area's rough kind."""

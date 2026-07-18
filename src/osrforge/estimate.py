@@ -54,7 +54,7 @@ LARGE_REQUEST_INPUT_TOKENS = 272_000
 """The single-request input size beyond which the doubled tier applies."""
 
 IMAGE_TOKENS_PER_PAGE = 905
-"""The spike's measured per-page image cost — DPI-independent (100/150/200 DPI cost identical tokens)."""
+"""The measured per-page image cost — DPI-independent (100/150/200 DPI cost identical tokens)."""
 
 _CHARS_PER_TOKEN = 4
 _SURVEY_OVERHEAD_TOKENS = 2_000  # prompt + schema

@@ -146,7 +146,7 @@ _VALIDATION_HEADER = "adventure validation failed:"
 
 @dataclass(frozen=True)
 class AssembleResult:
-    """The spec's `assemble()` return: the draft adventure plus its report."""
+    """`assemble()`'s return: the draft adventure plus its report."""
 
     adventure: Adventure
     report: ExtractionReport

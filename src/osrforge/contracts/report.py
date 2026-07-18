@@ -343,7 +343,8 @@ class MonsterSummary(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     resolved: int = Field(ge=0)
-    """How many names resolved to a catalog template."""
+    """How many names resolved to a template in the draft's catalog union —
+    SRD picks and emitted custom templates alike."""
 
     unresolved: tuple[str, ...] = ()
     """The names that resolved to nothing."""

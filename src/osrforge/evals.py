@@ -388,13 +388,16 @@ class AreaMetrics(BaseModel):
     """How many truth dungeons aligned to an extracted dungeon."""
 
     truth_areas: int
-    """How many keyed areas the truth asserts, across aligned dungeons."""
+    """How many keyed areas the truth asserts, across *all* its dungeons —
+    aligned or not, so a whole missed dungeon depresses recall."""
 
     extracted_areas: int
-    """How many keyed areas extraction produced, across aligned dungeons."""
+    """How many keyed areas extraction produced, across all extracted
+    dungeons."""
 
     matched: int
-    """How many truth areas matched an extracted area."""
+    """How many truth areas matched an extracted area (matching happens
+    within aligned dungeons)."""
 
     recall: float | None
     """`matched / truth_areas`; `None` on an empty denominator."""
@@ -425,7 +428,7 @@ class EncounterMetrics(BaseModel):
     """`name_matched / truth_encounters`; `None` on an empty denominator."""
 
     count_denominator: int
-    """How many truth encounters assert a count."""
+    """How many *name-matched* truth encounters assert a count."""
 
     count_matched: int
     """How many asserted counts the extraction reproduced."""
@@ -434,7 +437,7 @@ class EncounterMetrics(BaseModel):
     """`count_matched / count_denominator`; `None` on an empty denominator."""
 
     resolution_denominator: int
-    """How many truth encounters assert an SRD template."""
+    """How many *name-matched* truth encounters assert an SRD template."""
 
     resolution_matched: int
     """How many asserted templates resolution reproduced."""
@@ -444,7 +447,8 @@ class EncounterMetrics(BaseModel):
     denominator."""
 
     custom_denominator: int = 0
-    """How many truth encounters assert custom emission (`custom: true`)."""
+    """How many *name-matched* truth encounters assert custom emission
+    (`custom: true`)."""
 
     custom_matched: int = 0
     """How many custom assertions have a usable cached stat block."""
@@ -487,7 +491,8 @@ class TreasureMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     presence_denominator: int
-    """How many areas the truth asserts treasure presence (or absence) for."""
+    """How many *matched* areas the truth asserts treasure presence (or
+    absence) for."""
 
     presence_matched: int
     """How many of those the extraction agreed with."""
@@ -497,7 +502,7 @@ class TreasureMetrics(BaseModel):
     denominator."""
 
     letters_denominator: int
-    """How many treasure-type letters the truth asserts."""
+    """How many treasure-type letters the truth asserts on matched areas."""
 
     letters_matched: int
     """How many asserted letters the extraction reproduced."""

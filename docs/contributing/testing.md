@@ -87,4 +87,4 @@ uv run pytest tests/test_monsters.py -k fuzzy
 If a test asks for the network, that is a bug — either yours (a code path
 reached a live provider) or a stranded fixture (see the re-record rule
 above). A `FixtureMissError` names the request tag and fingerprint it
-wanted; compare against the recorded files it lists.
+wanted; compare against the recorded tags it lists.
