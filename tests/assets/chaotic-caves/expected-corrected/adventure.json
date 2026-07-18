@@ -1,7 +1,7 @@
 {
   "kind": "adventure",
   "schema_version": 2,
-  "engine_version": "1.1.0",
+  "engine_version": "1.2.0",
   "payload": {
     "name": "The Chaotic Caves",
     "description": "",
@@ -17789,6 +17789,7 @@
           }
         ]
       }
-    ]
+    ],
+    "monsters": []
   }
 }
