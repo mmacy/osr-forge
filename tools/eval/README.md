@@ -114,7 +114,10 @@ structural conventions, applied to all members:
   running key sequence (the survey prompt's own rule). Towns, villages, and
   unmapped wilderness/ocean encounter spots are out of truth scope.
 - **Encounter names** are the singular creature name as the area's stat block
-  or prose prints it (`6 Orcs` → `orc`, count 6). Rank variants with their own
+  or prose prints it (`6 Orcs` → `orc`, count 6). The scorer meets extraction's
+  printed plural with a minimal morphological fold (`orc` matches `orcs`,
+  `lizard man` matches `lizard men`); token subsets and renames never match, so
+  rank variants stay distinct creatures. Rank variants with their own
   stat blocks (`orc chief`, `goblin king`) are recorded under their printed
   variant name; `template` is omitted for them and for creatures with no SRD
   catalog entry — the resolution metric excludes those from its denominator
@@ -187,15 +190,18 @@ observed per-metric spread, floored at 0.02 absolute.
 
 The current noise band — the living table each sweep-pair updates, with
 history staying in the phase amendments (this table: the phase 6 double
-sweep of 2026-07-17, superseding phase 5's band):
+sweep of 2026-07-17, re-scored offline under the morphological match fold,
+superseding the same sweep's exact-match band — the fold collapsed every
+between-run spread to the floor, because the old name-recall noise was
+mostly the model's singular/plural jitter that exact matching amplified):
 
 | metric | band |
 | --- | --- |
 | area recall | 0.02 |
 | area precision | 0.02 |
-| encounter name recall | 0.1579 |
-| count accuracy | 0.0315 |
-| resolution accuracy | 0.0207 |
+| encounter name recall | 0.02 |
+| count accuracy | 0.02 |
+| resolution accuracy | 0.02 |
 | connection F1 | 0.02 |
 | treasure presence | 0.02 |
 
@@ -213,5 +219,9 @@ edits extraction prompts or schemas, `MONSTER_ALIASES`, resolution logic, or
 the model deployment re-runs the sweep and commits the updated scoreboard in
 the same PR — the same edits that strand fixtures re-measure quality: one
 workflow, two obligations (the fixture re-record rule lives in
-`tools/extract/README.md`). A metric dropping by more than the band requires
-an explicit justification in the PR description; silence is a blocked merge.
+`tools/extract/README.md`). A PR that changes the *scorer's* matching or
+metric semantics carries the offline counterpart: re-score the standing
+sweep pair from its retained workdirs, refresh the band, and record the
+re-scored pair in the phase amendment — no live spend, same discipline. A
+metric dropping by more than the band requires an explicit justification in
+the PR description; silence is a blocked merge.
