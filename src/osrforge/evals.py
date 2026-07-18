@@ -790,8 +790,9 @@ def _match_fold(name: str) -> str:
 
     Known misses, recorded: sibilant `-es` plurals (`bosses` → `bosse` ≠
     `boss`), f/v alternations (`wolves` → `wolve` ≠ `wolf`), y-plurals
-    (`harpies` → `harpie` ≠ `harpy`), and `-y` nouns beside `-ie` ones
-    (`cronies` → `cronie` ≠ `crony`) stay misses. Conservative by design —
+    (`harpies` → `harpie` ≠ `harpy`), `-y` nouns beside `-ie` ones
+    (`cronies` → `cronie` ≠ `crony`), and `-men` compounds (`mermen` ≠
+    `merman` — the `men` rule fires on the bare token only) stay misses. Conservative by design —
     the fold never awards false credit, and these classes keep their
     singular/plural jitter until evidence justifies widening.
     """

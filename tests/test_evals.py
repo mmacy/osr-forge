@@ -364,6 +364,7 @@ class TestMatchFolding:
             ("cronies", "cronie"),
             ("bosses", "bosse"),
             ("wolves", "wolve"),
+            ("mermen", "mermen"),
         ],
     )
     def test_fold_table(self, name: str, folded: str):
