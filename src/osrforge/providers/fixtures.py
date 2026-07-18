@@ -1,4 +1,4 @@
-"""Recorded-fixture providers: replay for tests, recording for the spike and evals.
+"""Recorded-fixture providers: replay for tests, recording for the live tooling and evals.
 
 Fixture files are named `<tag>.<fingerprint[:12]>.json` and carry the artifact
 schema version, the full fingerprint, the tag, a human-reviewable request
@@ -118,7 +118,8 @@ class FixtureProvider:
 class RecordingProvider:
     """A pass-through that writes each exchange as a replayable fixture file.
 
-    This is how the spike records real fixtures, and later how evals re-record.
+    This is how the extraction runner records real fixtures and how evals
+    re-record.
     Writes are idempotent by fingerprint — re-recording an identical request
     overwrites its fixture in place.
     """

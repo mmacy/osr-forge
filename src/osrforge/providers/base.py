@@ -1,7 +1,7 @@
 """The provider protocol and its request/response types.
 
-Exactly as narrow as the spec's protocol: one `generate` method taking a
-structured-output request. Schema enforcement is the provider's contract —
+Exactly one seam wide: a single `generate` method taking a structured-output
+request. Schema enforcement is the provider's contract —
 `generate` either returns `data` that validates against `request.schema` or
 raises [`SchemaValidationError`][osrforge.errors.SchemaValidationError] after
 its retry budget, so callers trust `response.data`.

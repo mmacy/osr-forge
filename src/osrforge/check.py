@@ -1,8 +1,8 @@
-"""The playability lint and smoke delve — the spec's `findings = check(workdir)`.
+"""The playability lint and smoke delve: `findings = check(workdir)`.
 
 `check` loads the adventure exactly as a consumer does (`check_document` +
 `Adventure.model_validate`), so every run also exercises the artifact
-contract, then runs the spec's two tiers and merges the findings into
+contract, then runs its two tiers and merges the findings into
 `report.json`. Everything is deterministic — the delve seed is a module
 constant — so the purity guarantee extends: `assemble && check` twice is
 byte-identical.

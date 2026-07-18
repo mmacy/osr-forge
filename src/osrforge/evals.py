@@ -1,7 +1,7 @@
 """Eval scoring: truth-file models, alignment, and the pinned metric families.
 
-This is the pure half of the spec's "ship quality evals so extraction changes
-are measured, not vibed": deterministic, CI-tested code that scores a
+This is the pure half of the eval harness — extraction changes are measured,
+not vibed: deterministic, CI-tested code that scores a
 workdir's stage caches against verified structural ground truth. The
 live-network driver (`tools/eval/run_eval.py`) is repo-only wiring; everything
 with behavior worth testing lives here. The scorer reads the stage caches —
@@ -195,7 +195,7 @@ class ModuleTruth(BaseModel):
 
 
 class ManifestLicense(BaseModel):
-    """The license record: SPDX id plus the phase 0 verification note."""
+    """The license record: SPDX id plus the note recording how the license was verified."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -237,7 +237,7 @@ class CorpusManifest(BaseModel):
     spend) or the local `source.sha256` sidecar when not (the
     watermarked-retail case; seeded the first time the harness sees the
     module's source). `license` is optional because a private corpus is the
-    owner's copy with no redistribution surface — the phase 0 verification
+    owner's copy with no redistribution surface — the license-verification
     procedure applies only where something derived will be committed.
     """
 
@@ -368,12 +368,12 @@ def verify_source(manifest: CorpusManifest, module_dir: Path, pdf_path: Path) ->
 
 
 class AreaMetrics(BaseModel):
-    """The areas family: recall (the spec's named metric), the hallucination guard, and dungeon alignment.
+    """The areas family: recall (the headline metric), the hallucination guard, and dungeon alignment.
 
     The dungeon counts make the survey mode legible in every scoreboard entry
-    — phase 4's measured JN1 mode-flip (ten lairs collapsing into one dungeon
-    on a re-roll) reads as `truth_dungeons=14, extracted_dungeons=5` instead
-    of requiring a trip to `survey.json`.
+    — a measured mode-flip (ten lairs collapsing into one dungeon on a
+    re-roll of the same module) reads as `truth_dungeons=14,
+    extracted_dungeons=5` instead of requiring a trip to `survey.json`.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

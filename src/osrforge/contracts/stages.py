@@ -5,12 +5,12 @@ the monsters and assemble stages read both — so their models live here,
 in the established home for anything serialized between phases. No stage module
 ever imports another stage module.
 
-Pinned reading (mirrors the phase 1 plan): the spec's "cached raw stage
-outputs — the LLM's actual answers" is read as the extraction *stage's*
-validated-and-normalized output. Canonical ids and keys are normalized at the
-source (the survey stage), with the model's original spellings preserved in
-`source_label`/`name`; a host that wants the literal wire answers wraps its
-provider in `RecordingProvider`.
+Pinned reading: a stage cache holds the extraction *stage's*
+validated-and-normalized output, not the model's literal wire answers.
+Canonical ids and keys are normalized at the source (the survey stage), with
+the model's original spellings preserved in `source_label`/`name`; a host
+that wants the literal wire answers wraps its provider in
+[`RecordingProvider`][osrforge.providers.fixtures.RecordingProvider].
 
 Caches carry `schema_version` only, not `osrforge_version` — the producing
 package version is already recorded once per workdir in `run.json`, and
@@ -69,7 +69,7 @@ DICE_PATTERN = r"^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{
 The content-batch schema constrains `count_dice` with this exact pattern, so a
 schema-valid dice string is an osrlib-parseable dice string — a looser pattern
 like `2d7` or `1d6+07` would pass the cache and fail `KeyedMonster` validation
-at phase 2.
+at assembly.
 """
 
 AreaKind = Literal["room", "corridor", "cave", "landmark", "other"]
@@ -106,9 +106,9 @@ class TownInfo(BaseModel):
     """The town or home base — never a dungeon.
 
     `name` may be empty when the town is genuinely unnamed; osrlib's required
-    `TownSpec.name` gets a default-plus-flag at assembly (phase 2). `services`
-    lists the named establishments and services the module states — defaulted
-    so every pre-phase-6 survey cache still loads and assembles.
+    `TownSpec.name` gets a default-plus-flag at assembly. `services` lists the
+    named establishments and services the module states — defaulted so survey
+    caches recorded before the field existed still load and assemble.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -231,7 +231,7 @@ class AreaConnection(BaseModel):
 
     `to_key` is a free string — connections may cross batches or levels; the
     prompt instructs canonical keys from the survey excerpt, and dangling
-    references are assembly's job (phase 2), surfacing as `connection_ambiguous`.
+    references are assembly's job, surfacing as `connection_ambiguous`.
     `to_level` is the escape hatch for level-shaped targets ("stairs descend to
     the second level" states a level, not a keyed area); the prompt prefers the
     keyed target.
@@ -294,7 +294,7 @@ class LevelContent(BaseModel):
 
 
 ResolutionMethod = Literal["exact", "alias", "fuzzy", "llm", "unresolved", "override", "custom"]
-"""How a monster name resolved: one of the spec's four tiers, not at all, a human override, or emission.
+"""How a monster name resolved: one of the four [resolution tiers][resolution-tiers], not at all, a human override, or emission.
 
 `override` and `custom` appear only in memory, when a monster override
 supersedes a cached resolution or template emission gives an unresolved name
@@ -324,7 +324,7 @@ class MonsterResolutions(BaseModel):
     Keys are **normalized names** (casefolded, internal whitespace collapsed,
     stripped — `normalize_monster_name`), sorted ascending for byte stability.
     Normalization is the point: modules spell the same monster `"Zombies"` and
-    `"zombies"`, one resolution must serve both, and phase 3's override matching
+    `"zombies"`, one resolution must serve both, and override matching
     (`overrides.yaml` `monsters:` keys) normalizes the same way.
     """
 

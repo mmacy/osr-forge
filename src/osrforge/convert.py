@@ -5,8 +5,8 @@ its `failed` status is written, keeping everything upstream. `rerun` resumes:
 it re-runs the named stage *and everything downstream* through assemble — the
 one reading that leaves a workdir artifact-consistent, since every stage
 already clears or supersedes its downstream caches. `on_progress` receives the
-stage-transitions-and-usage stream the spec promises hosts, covering exactly
-the stages the chain runs.
+stage-transitions-and-usage stream promised to hosts, covering exactly the
+stages the chain runs.
 """
 
 from collections.abc import Callable, Mapping, Sequence

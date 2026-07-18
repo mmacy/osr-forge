@@ -9,7 +9,8 @@ time, not assembly time.
 
 Field semantics, pinned: **absent means untouched; explicit `null` means
 clear.** Pydantic's unset-vs-`None` distinction models this exactly — check
-`model_fields_set` to tell them apart. Application happens in phase 3.
+`model_fields_set` to tell them apart. Application happens during assembly,
+in [`osrforge.overrides`][osrforge.overrides].
 """
 
 import re
@@ -67,8 +68,8 @@ EdgeKeyString = Annotated[str, AfterValidator(_validate_edge_key)]
 
 osrlib's canonical [`edge_key`][osrlib.crawl.dungeon.edge_key] form stores only
 `north`/`west` keys (a cell's east edge is its eastern neighbour's west edge);
-override keys accept all four directions and application (phase 3)
-canonicalizes them.
+override keys accept all four directions and application canonicalizes them
+([`canonicalize_edge_key`][osrforge.overrides.canonicalize_edge_key]).
 """
 
 _NonEmptyKey = Annotated[str, StringConstraints(min_length=1)]
@@ -128,8 +129,8 @@ class AreaOverride(BaseModel):
     """Replace fields of one keyed area, add an area, or remove one.
 
     An entry addressing an area the draft doesn't have is an area *add* and must
-    carry the full required payload — enforced at application time (phase 3),
-    since only assembly knows what the draft contains.
+    carry the full required payload — enforced at application time, since
+    only assembly knows what the draft contains.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -192,7 +193,7 @@ class ModuleOverride(BaseModel):
 
 
 class Overrides(BaseModel):
-    """The `overrides.yaml` document: the spec's v1 override kinds."""
+    """The `overrides.yaml` document: the v1 override kinds."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -209,7 +210,7 @@ class _DuplicateKeyRejectingLoader(yaml.SafeLoader):
 
     In a human-edited correction file a duplicate key means two contradictory
     corrections, and one of them silently losing is the worst outcome —
-    pyyaml's default last-wins behavior is exactly the phase 0 gap this closes.
+    pyyaml's default last-wins behavior is exactly the gap this closes.
     """
 
     def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Hashable, Any]:

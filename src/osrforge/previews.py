@@ -1,9 +1,10 @@
 """The deterministic SVG level renderer.
 
 Pure string assembly with no dependencies and no timestamps — previews are one
-of the three pure artifacts, so byte stability across runs is a contract. The
-renderer supports the full osrlib `Edge` model from birth: v1 synthesis emits
-only `open` edges, but phase 3's override re-renders will carry doors.
+of the three pure artifacts, so [byte-stability][byte-stability] across runs
+is a contract. The renderer supports the full osrlib `Edge` model: synthesis
+emits `open` and `door` edges, and geometry overrides can introduce anything
+the model allows.
 
 Element emission order is pinned (cells, walls, doors, entrance, transitions,
 labels — each group in a deterministic sort) so identical specs render

@@ -1,8 +1,8 @@
 """The extraction report: the `report.json` contract.
 
 The report is regenerated on every assembly and is the complete input a review
-UI needs. Nothing produces one until phase 2 — this module ships the wire
-format so consumers and tests can pin it early.
+UI needs. The wire format lives here, beside the other consumer contracts, so
+consumers and tests pin exactly the models assembly writes.
 """
 
 import re
@@ -35,7 +35,7 @@ __all__ = [
 
 
 class Flag(StrEnum):
-    """The report's enumerated flag vocabulary, exactly the spec's — UIs badge on these."""
+    """The report's enumerated flag vocabulary — UIs badge on these."""
 
     GEOMETRY_SYNTHESIZED = "geometry_synthesized"
     MONSTER_UNRESOLVED = "monster_unresolved"
@@ -122,7 +122,7 @@ class AreaAddress(BaseModel):
 
     osrlib allows any string id, so the address grammar is only unambiguous
     because osr-forge constrains what it emits: `/` is forbidden in dungeon ids
-    and area keys (phase 1's extraction normalization enforces it at the source).
+    and area keys (survey normalization enforces it at the source).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -314,7 +314,7 @@ class MonsterSummary(BaseModel):
 
 
 class ExtractionReport(BaseModel):
-    """The `report.json` document, mirroring the spec's example.
+    """The `report.json` document.
 
     `flags` carries module-scope conditions with no per-area home — a defaulted
     adventure title or town name — in the same flag grammar as per-area flags.

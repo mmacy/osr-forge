@@ -2,7 +2,7 @@
 
 Assembly is pure: `adventure.json`, `report.json`, and the previews are a
 deterministic function of the cached stage outputs *plus `overrides.yaml`* —
-the spec's core guarantee verbatim. `overrides.yaml` is loaded once and
+[assembly purity][assembly-purity], the core guarantee. `overrides.yaml` is loaded once and
 threaded through; every override addressing error surfaces before any stage
 tracking or artifact write, so a correction file that cannot take effect fails
 the command without touching the workdir.
@@ -180,8 +180,8 @@ def parse_treasure(strings: tuple[str, ...]) -> ParsedTreasure:
     guard. Anything else is unparsed — assembly flags it and (under
     `best-effort`) compensates with an unguarded-treasure roll. A string that
     is empty after stripping is skipped outright: it carries no information to
-    flag, and the frozen phase 1 schema does not forbid it, so it must not
-    crash assembly.
+    flag, and the [frozen stage-cache schema][frozen-schema] does not forbid
+    it, so it must not crash assembly.
 
     Args:
         strings: The area's cached treasure strings.
@@ -240,7 +240,7 @@ def parse_treasure(strings: tuple[str, ...]) -> ParsedTreasure:
 
 
 # ---------------------------------------------------------------------------
-# Custom-template mapping (phase 7): deterministic assembly of cached raw stat
+# Custom-template mapping: deterministic assembly of cached raw stat
 # blocks into MonsterTemplates. Every rules judgment lives here — the
 # stat-block pass only transcribes — under one non-negotiable rule: a mapped
 # value is either traceably printed or recorded as derived.
@@ -917,7 +917,7 @@ def _stand_in_template(name: str, table: EncounterTable) -> str:
 
 
 def _keyed_monster(template_id: str, encounter: AreaEncounter, name: str, flags: list[str]) -> KeyedMonster:
-    """Map one encounter's count fields onto osrlib's exactly-one-of rule (the phase 1 pins)."""
+    """Map one encounter's count fields onto osrlib's exactly-one-of rule."""
     dice = encounter.count_dice
     if dice is not None:
         try:
@@ -947,9 +947,10 @@ def _build_encounter(
 
     Returns the encounter (or `None`) and the area's unresolved names in
     derivation order. An encounter whose name normalizes to empty is skipped
-    with a `low_confidence` flag — the frozen phase 1 schema does not forbid an
-    empty monster string, there is nothing to resolve or stand in for, and the
-    monsters stage excludes it from the resolution population the same way.
+    with a `low_confidence` flag — the [frozen stage-cache schema][frozen-schema]
+    does not forbid an empty monster string, there is nothing to resolve or
+    stand in for, and the monsters stage excludes it from the resolution
+    population the same way.
     """
     keyed: list[KeyedMonster] = []
     unresolved: list[str] = []
@@ -995,7 +996,7 @@ def _build_area(
     an overridden `encounter` skips encounter building entirely, an overridden
     `trap` skips the trap mapping, and the treasure grammar runs only for the
     slots (`treasure`, `features`) not overridden, so every flag falls out of
-    the build path actually taken. When `content` is `None` (the phase 1
+    the build path actually taken. When `content` is `None` (the extraction
     placeholder: the model skipped the area twice, or the level had no pages —
     the survey index remains the authority on what exists), the `not extracted`
     flag persists even under overrides: it describes extraction, like

@@ -51,8 +51,8 @@ def canonicalize_edge_key(key: str) -> str:
     osrlib stores only `north`/`west` keys — a cell's east edge is its eastern
     neighbour's west edge, its south edge the southern neighbour's north — and
     consults `LevelSpec.edges` through `edge_key`, so a `south`/`east` key
-    stored verbatim would never take effect (the phase 0 hazard, defused here):
-    the spec's own `"5,2:east"` example becomes `"6,2:west"`.
+    stored verbatim would never take effect — the silent-no-op hazard this
+    function defuses: `"5,2:east"` becomes `"6,2:west"`.
 
     Args:
         key: An override edge key, `x,y:direction`, any of the four directions

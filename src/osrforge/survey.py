@@ -13,8 +13,9 @@ size, each request carrying a window-naming preamble, and the windows' raw
 answers merge deterministically ([`merge_survey_answers`][osrforge.survey.merge_survey_answers])
 before one `normalize_survey` pass.
 
-Every system-prompt rule is pinned against an observed failure in the phase 0
-spike fixtures; see the phase 1 plan before changing one.
+Every system-prompt rule is pinned against an observed extraction failure in
+recorded runs; a prompt edit strands the recorded fixtures and re-runs the
+eval sweep — see [the re-record rule][the-re-record-rule] before changing one.
 """
 
 import copy
@@ -137,12 +138,12 @@ SURVEY_SCHEMA: dict[str, object] = {
         }
     },
 }
-"""The survey JSON schema, refined from the spike's proven shape.
+"""The survey JSON schema, refined from the capability probes' proven shape.
 
-Two deliberate changes from the spike schema: no model-supplied dungeon `id`
+Two deliberate changes from the probe-era schema: no model-supplied dungeon `id`
 (canonical ids are osr-forge's construct, derived by slugging `name`), and
 `map_pages` added per level (feeds the content stage's direction extraction).
-The schema is a fraction of the proven e512-d8 budget.
+The schema is a fraction of the largest probe-proven schema budget.
 """
 
 
@@ -451,7 +452,9 @@ def normalize_survey(raw: dict[str, Any], page_count: int) -> SurveyIndex:
     Dungeon ids are the slug of the model's `name` (empty slug falls back to
     `dungeon-<position>`, 1-based document order); area keys are the slug of
     the model's key (empty falls back to `area-<position>` within the level).
-    Collisions resolve by reserve-then-bump (see the phase 1 plan). Level
+    Collisions resolve by reserve-then-bump: the first occurrence of a slug
+    keeps it, later duplicates take the lowest free `-2`, `-3`, … suffix, and
+    a genuine printed key is never renamed by someone else's bump. Level
     numbers invalid or non-unique within a dungeon are renumbered 1..n in
     listed order. Page references outside 1..page_count are dropped; page
     lists are deduplicated and sorted. `source_label` preserves the model's
