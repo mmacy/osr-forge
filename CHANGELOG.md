@@ -43,6 +43,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The eval scorer matches encounter names under a minimal morphological
+  fold — truth's singular authoring convention meets extraction's printed
+  plural (`kobold` matches `kobolds`, `lizard man` matches `lizard men`);
+  token subsets and renames never match. A fold-matched encounter's count
+  compares against the matched group's summed fixed counts, and its
+  resolution matches only when every matched extracted name resolved to
+  the asserted template. The committed scoreboard and noise band re-score
+  the phase 6 sweep pair offline under the fold.
 - The eval scorer aligns truth levels to extracted levels by maximal
   area-key overlap, many-to-one from the truth side (the B4 fix: printed
   tiers grouped into coarser extracted levels now score on their areas

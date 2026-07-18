@@ -774,16 +774,41 @@ def _load_level_cache(workdir: Workdir, dungeon_id: str, level_number: int) -> L
     return LevelContent.model_validate_json(path.read_text(encoding="utf-8"))
 
 
-def _extracted_count(area: AreaContent, normalized_name: str) -> int | None:
-    """The extracted count for one name in one area, pinned.
+def _match_fold(name: str) -> str:
+    """Fold a normalized name's plural morphology for truth-to-extraction matching.
 
-    The sum of `count_fixed` over the area's same-normalized-name encounters
-    when every such encounter carries one; None (no comparable count) when
-    any of them states dice or nothing.
+    Truth encounter names are singular by authoring convention while extraction
+    records the name as printed, usually plural (`6 Orcs` → truth `orc`,
+    extracted `orcs`). Matching compares folded forms on *both* sides, so the
+    fold need not produce a correct English singular — only fold a name's
+    singular and plural to the same string. The ruleset is deliberately
+    morphological and minimal, pinned: `men` → `man` per token; otherwise a
+    trailing `s` strips when the token is longer than three characters and does
+    not end in `ss`, `us`, or `is`. Token subsets and renames never match — a
+    `hobgoblin chief` is not a `hobgoblin`, and a renamed creature is a real
+    extraction disagreement the metrics must keep seeing.
+    """
+    tokens: list[str] = []
+    for token in name.split(" "):
+        if token == "men":
+            tokens.append("man")
+        elif len(token) > 3 and token.endswith("s") and not token.endswith(("ss", "us", "is")):
+            tokens.append(token[:-1])
+        else:
+            tokens.append(token)
+    return " ".join(tokens)
+
+
+def _extracted_count(area: AreaContent, matched_names: set[str]) -> int | None:
+    """The extracted count for one fold-matched truth name in one area, pinned.
+
+    The sum of `count_fixed` over the area's encounters whose normalized name
+    is in the truth name's fold-matched set when every such encounter carries
+    one; None (no comparable count) when any of them states dice or nothing.
     """
     counts: list[int] = []
     for encounter in area.encounters:
-        if normalize_monster_name(encounter.monster) != normalized_name:
+        if normalize_monster_name(encounter.monster) not in matched_names:
             continue
         if encounter.count_fixed is None:
             return None
@@ -805,6 +830,13 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     `stages/areas.*.json` content caches (encounters, connections, treasure),
     and `stages/monsters.json` (resolution accuracy). Deterministic: scoring
     the same workdir twice yields byte-identical metrics.
+
+    Encounter names match under a minimal morphological fold (`_match_fold`) —
+    the truth's singular authoring convention meets extraction's printed
+    plural on folded forms; a truth encounter's count compares against the
+    fold-matched encounter group's summed fixed counts, and its resolution
+    matches only when every fold-matched extracted name resolved to the
+    asserted template.
 
     Args:
         workdir_path: A workdir whose extraction stages have completed.
@@ -886,22 +918,29 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                 if matched.get(slug) is not truth_area:
                     continue
                 extracted_area = cached_areas[slug]
-                extracted_names = {normalize_monster_name(encounter.monster) for encounter in extracted_area.encounters}
+                folded_names: dict[str, set[str]] = {}
+                for encounter in extracted_area.encounters:
+                    name = normalize_monster_name(encounter.monster)
+                    folded_names.setdefault(_match_fold(name), set()).add(name)
                 for truth_encounter in truth_area.encounters:
                     normalized = normalize_monster_name(truth_encounter.name)
-                    if normalized not in extracted_names:
+                    matched_names = folded_names.get(_match_fold(normalized))
+                    if matched_names is None:
                         continue
                     name_matched += 1
                     if truth_encounter.count is not None:
                         count_denominator += 1
-                        if _extracted_count(extracted_area, normalized) == truth_encounter.count:
+                        if _extracted_count(extracted_area, matched_names) == truth_encounter.count:
                             count_matched += 1
                     if truth_encounter.template is None:
                         non_srd += 1
                     else:
                         resolution_denominator += 1
-                        resolution = resolutions.resolutions.get(normalized)
-                        if resolution is not None and resolution.template_id == truth_encounter.template:
+                        resolved = {
+                            resolution.template_id if resolution is not None else None
+                            for resolution in (resolutions.resolutions.get(name) for name in matched_names)
+                        }
+                        if resolved == {truth_encounter.template}:
                             resolution_matched += 1
 
                 if truth_area.treasure is not None:

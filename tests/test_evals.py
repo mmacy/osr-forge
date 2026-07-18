@@ -28,6 +28,7 @@ from osrforge.evals import (
     ModuleTruth,
     RunInfo,
     Scoreboard,
+    _match_fold,
     corpus_means,
     enforce_source_integrity,
     load_byom_scoreboard,
@@ -341,6 +342,160 @@ dungeons:
         assert metrics.encounters.resolution_denominator == 0
         assert metrics.encounters.resolution_accuracy is None
         assert metrics.encounters.non_srd == 1
+
+
+class TestMatchFolding:
+    @pytest.mark.parametrize(
+        ("name", "folded"),
+        [
+            ("kobolds", "kobold"),
+            ("zombies", "zombie"),
+            ("nixies", "nixie"),
+            ("necrotic oozes", "necrotic ooze"),
+            ("lizard men", "lizard man"),
+            ("giant acid worms", "giant acid worm"),
+            ("kobold", "kobold"),
+            ("lizard man", "lizard man"),
+            ("boss", "boss"),
+            ("giant octopus", "giant octopus"),
+            ("gas", "gas"),
+            ("rats", "rat"),
+        ],
+    )
+    def test_fold_table(self, name: str, folded: str):
+        assert _match_fold(name) == folded
+
+    def _workdir(self, tmp_path: Path, encounters, resolutions):
+        return fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1", encounters=encounters)])])],
+            resolutions=resolutions,
+        )
+
+    def test_singular_truth_matches_extracted_plural_across_all_three_metrics(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: kobold
+                template: kobold
+                count: 4
+"""
+        )
+        root = self._workdir(
+            tmp_path,
+            (encounter("Kobolds", count_fixed=4),),
+            {"kobolds": MonsterResolution(template_id="kobold", method="exact")},
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.name_recall == 1.0
+        assert metrics.encounters.count_accuracy == 1.0
+        assert metrics.encounters.resolution_accuracy == 1.0
+
+    def test_counts_sum_across_the_fold_group(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: skeleton
+                template: skeleton
+                count: 3
+"""
+        )
+        root = self._workdir(
+            tmp_path,
+            (encounter("skeleton", count_fixed=1), encounter("skeletons", count_fixed=2)),
+            {"skeleton": MonsterResolution(template_id="skeleton", method="exact")},
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.count_denominator == 1
+        assert metrics.encounters.count_matched == 1
+        # Resolution requires every fold-matched name resolved to the asserted
+        # template; "skeletons" carries no resolution entry here, so the
+        # encounter scores a resolution miss while name and count match.
+        assert metrics.encounters.resolution_matched == 0
+
+    def test_resolution_needs_every_fold_matched_name_on_the_asserted_template(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: skeleton
+                template: skeleton
+"""
+        )
+        root = self._workdir(
+            tmp_path,
+            (encounter("skeleton", count_fixed=1), encounter("skeletons", count_fixed=2)),
+            resolutions={
+                "skeleton": MonsterResolution(template_id="skeleton", method="exact"),
+                "skeletons": MonsterResolution(template_id="zombie", method="llm"),
+            },
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.name_recall == 1.0
+        assert metrics.encounters.resolution_denominator == 1
+        assert metrics.encounters.resolution_matched == 0
+
+    def test_token_subsets_and_rank_variants_stay_misses(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: hobgoblin
+                template: hobgoblin
+"""
+        )
+        root = self._workdir(
+            tmp_path,
+            (encounter("hobgoblin chief", count_fixed=1),),
+            {"hobgoblin chief": MonsterResolution(template_id="hobgoblin", method="llm")},
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.name_matched == 0
+
+    def test_folded_non_srd_match_counts_as_non_srd(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: giant acid worm
+"""
+        )
+        root = self._workdir(
+            tmp_path,
+            (encounter("giant acid worms", count_fixed=2),),
+            {"giant acid worms": MonsterResolution(template_id=None, method="unresolved")},
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.name_recall == 1.0
+        assert metrics.encounters.non_srd == 1
+        assert metrics.encounters.resolution_denominator == 0
 
 
 class TestTreasureAssertion:
@@ -1493,15 +1648,15 @@ def test_jn1_pinned_baseline_over_the_committed_caches(tmp_path: Path):
     assert metrics.areas.precision == 1.0
 
     assert metrics.encounters.truth_encounters == 109
-    assert metrics.encounters.name_matched == 72
-    assert metrics.encounters.name_recall == 0.6606
-    assert metrics.encounters.count_denominator == 72
-    assert metrics.encounters.count_matched == 71
-    assert metrics.encounters.count_accuracy == 0.9861
-    assert metrics.encounters.resolution_denominator == 58
-    assert metrics.encounters.resolution_matched == 48
-    assert metrics.encounters.resolution_accuracy == 0.8276
-    assert metrics.encounters.non_srd == 14
+    assert metrics.encounters.name_matched == 100
+    assert metrics.encounters.name_recall == 0.9174
+    assert metrics.encounters.count_denominator == 100
+    assert metrics.encounters.count_matched == 99
+    assert metrics.encounters.count_accuracy == 0.99
+    assert metrics.encounters.resolution_denominator == 85
+    assert metrics.encounters.resolution_matched == 74
+    assert metrics.encounters.resolution_accuracy == 0.8706
+    assert metrics.encounters.non_srd == 15
 
     assert metrics.connections.truth_edges == 39
     assert metrics.connections.extracted_edges == 51

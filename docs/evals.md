@@ -51,7 +51,15 @@ extraction gaps:
 - **Encounters** — name recall, count accuracy over encounters where the
   module states a fixed count, and resolution accuracy against the osrlib
   catalog id the name should resolve to (truth entries with no SRD template
-  are excluded and tallied as `non_srd`).
+  are excluded and tallied as `non_srd`). Names match under a minimal
+  morphological fold — truth's singular authoring convention meets
+  extraction's printed plural (`kobold` matches `kobolds`, `lizard man`
+  matches `lizard men`) — while token subsets and renames never match: a
+  `hobgoblin chief` is not a `hobgoblin`, and a renamed creature stays the
+  extraction disagreement the metric should report. A fold-matched
+  encounter's count compares against the whole matched group's summed fixed
+  counts, and its resolution matches only when every matched extracted name
+  resolved to the asserted template.
 - **Connections** — F1 over undirected same-level edges between matched
   areas, within the truth file's asserted universe.
 - **Treasure** — presence agreement (did extraction *see* the treasure the
