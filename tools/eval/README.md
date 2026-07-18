@@ -219,5 +219,9 @@ edits extraction prompts or schemas, `MONSTER_ALIASES`, resolution logic, or
 the model deployment re-runs the sweep and commits the updated scoreboard in
 the same PR — the same edits that strand fixtures re-measure quality: one
 workflow, two obligations (the fixture re-record rule lives in
-`tools/extract/README.md`). A metric dropping by more than the band requires
-an explicit justification in the PR description; silence is a blocked merge.
+`tools/extract/README.md`). A PR that changes the *scorer's* matching or
+metric semantics carries the offline counterpart: re-score the standing
+sweep pair from its retained workdirs, refresh the band, and record the
+re-scored pair in the phase amendment — no live spend, same discipline. A
+metric dropping by more than the band requires an explicit justification in
+the PR description; silence is a blocked merge.

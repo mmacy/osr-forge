@@ -360,6 +360,10 @@ class TestMatchFolding:
             ("giant octopus", "giant octopus"),
             ("gas", "gas"),
             ("rats", "rat"),
+            # Documented misses — the fold is conservative, never falsely crediting:
+            ("cronies", "cronie"),
+            ("bosses", "bosse"),
+            ("wolves", "wolve"),
         ],
     )
     def test_fold_table(self, name: str, folded: str):
@@ -451,6 +455,61 @@ dungeons:
         assert metrics.encounters.name_recall == 1.0
         assert metrics.encounters.resolution_denominator == 1
         assert metrics.encounters.resolution_matched == 0
+
+    def test_a_dice_count_sibling_disqualifies_the_fold_group(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: stirge
+                template: stirge
+                count: 3
+"""
+        )
+        root = self._workdir(
+            tmp_path,
+            (encounter("stirge", count_fixed=1), encounter("stirges", count_dice="1d6")),
+            {"stirge": MonsterResolution(template_id="stirge", method="exact")},
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.name_recall == 1.0
+        assert metrics.encounters.count_denominator == 1
+        assert metrics.encounters.count_matched == 0
+
+    def test_duplicate_truth_names_each_score_against_the_whole_group(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: native
+                count: 2
+              - name: native
+                count: 10
+"""
+        )
+        root = self._workdir(
+            tmp_path,
+            (encounter("natives", count_fixed=12),),
+            {"natives": MonsterResolution(template_id=None, method="unresolved")},
+        )
+        metrics = score_workdir(root, truth)
+        # Both truth entries match the one extracted group; each count compares
+        # against the group sum (12), so both miss — the known conservative
+        # shape score_workdir's docstring records.
+        assert metrics.encounters.name_matched == 2
+        assert metrics.encounters.count_denominator == 2
+        assert metrics.encounters.count_matched == 0
+        assert metrics.encounters.non_srd == 2
 
     def test_token_subsets_and_rank_variants_stay_misses(self, tmp_path: Path):
         truth = truth_from_yaml(

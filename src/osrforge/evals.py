@@ -787,6 +787,13 @@ def _match_fold(name: str) -> str:
     not end in `ss`, `us`, or `is`. Token subsets and renames never match — a
     `hobgoblin chief` is not a `hobgoblin`, and a renamed creature is a real
     extraction disagreement the metrics must keep seeing.
+
+    Known misses, recorded: sibilant `-es` plurals (`bosses` → `bosse` ≠
+    `boss`), f/v alternations (`wolves` → `wolve` ≠ `wolf`), y-plurals
+    (`harpies` → `harpie` ≠ `harpy`), and `-y` nouns beside `-ie` ones
+    (`cronies` → `cronie` ≠ `crony`) stay misses. Conservative by design —
+    the fold never awards false credit, and these classes keep their
+    singular/plural jitter until evidence justifies widening.
     """
     tokens: list[str] = []
     for token in name.split(" "):
@@ -836,7 +843,11 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     plural on folded forms; a truth encounter's count compares against the
     fold-matched encounter group's summed fixed counts, and its resolution
     matches only when every fold-matched extracted name resolved to the
-    asserted template.
+    asserted template. An area whose truth lists one name twice (two
+    separately statted groups printed under one name) scores each entry
+    against the whole group — the summed count can then match neither entry
+    and resolution can credit at most one of the two templates; a known
+    conservative shape, recorded rather than special-cased.
 
     Args:
         workdir_path: A workdir whose extraction stages have completed.
