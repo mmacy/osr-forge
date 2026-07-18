@@ -375,13 +375,19 @@ def _parse_hd_text(text: str | None) -> _ParsedHd | None:
 
 
 def _parse_class_level(text: str | None) -> tuple[str, int] | None:
-    """Parse a printed class-level notation (`F 3`, `MU4`, `"3rd-level cleric"`) into `(class_id, level)`."""
+    """Parse a printed class-level notation (`F 3`, `MU4`, `"3rd-level cleric"`) into `(class_id, level)`.
+
+    A level below 1 refuses in both forms — a 0-level notation carries no
+    combat math to derive, so it must fall to the refusal ladder, never into
+    mapping (which is total only over parses this function accepts).
+    """
     if text is None:
         return None
     lowered = text.casefold()
     letter = _CLASS_LETTER.match(lowered)
     if letter is not None:
-        return _CLASS_LETTER_IDS[letter.group(1)], int(letter.group(2))
+        level = int(letter.group(2))
+        return (_CLASS_LETTER_IDS[letter.group(1)], level) if level >= 1 else None
     for word, class_id in _CLASS_WORDS:
         if word in lowered:
             numbers = re.findall(r"\d+", lowered)
@@ -533,9 +539,22 @@ def _map_saves(
 
 
 def _range_to_dice(low: int, high: int) -> str | None:
-    """Convert printed range notation to dice under the pinned rule: `1-10` → `1d10`, `2-8` → `2d4`."""
-    if low >= 1 and high > low and high % low == 0 and (high // low) in _DIE_SIZES:
+    """Convert printed range notation to dice: `1-10` → `1d10`, `2-8` → `2d4`, `2-7` → `1d6+1`.
+
+    The multi-dice reading first (`N-M` as N dice of M/N — the printed-count
+    form), then the exact uniform form (`1d(span)+(low-1)`, distribution-
+    identical to the printed range). Both are conversions of the printed
+    value, not derivations; a range neither rule fits stays unconverted and
+    the caller records the miss.
+    """
+    if low < 1 or high <= low:
+        return None
+    if high % low == 0 and (high // low) in _DIE_SIZES:
         return f"{low}d{high // low}"
+    span = high - low + 1
+    if span in _DIE_SIZES:
+        modifier = f"+{low - 1}" if low > 1 else ""
+        return f"1d{span}{modifier}"
     return None
 
 
@@ -624,28 +643,35 @@ def _attack_effects(damage_text: str) -> tuple[str, ...]:
     return tuple(effects)
 
 
-def _parse_attack(count_text: str | None, name: str, damage_text: str | None) -> MonsterAttack:
+def _parse_attack(count_text: str | None, name: str, damage_text: str | None) -> tuple[MonsterAttack, bool]:
+    """Parse one attack item; the second value is whether the printed damage carried over faithfully.
+
+    A range-shaped damage clause neither conversion rule fits maps with no
+    damage and reports unfaithful — falling through to the flat-integer path
+    would silently deal the range's low end, a guess the mapping rule bans.
+    """
     count = int(count_text) if count_text else 1
     if damage_text is None:
-        return MonsterAttack(count=count, name=name)
+        return MonsterAttack(count=count, name=name), False
     effects = _attack_effects(damage_text)
     dice = _normalized_dice(damage_text)
-    if dice is None:
-        range_match = _RANGE_TOKEN.search(damage_text)
-        if range_match is not None:
-            dice = _range_to_dice(int(range_match.group(1)), int(range_match.group(2)))
+    range_match = _RANGE_TOKEN.search(damage_text) if dice is None else None
+    if dice is None and range_match is not None:
+        dice = _range_to_dice(int(range_match.group(1)), int(range_match.group(2)))
+        if dice is None:
+            return MonsterAttack(count=count, name=name, effects=effects), False
     if dice is not None:
-        return MonsterAttack(count=count, name=name, damage=dice, effects=effects)
+        return MonsterAttack(count=count, name=name, damage=dice, effects=effects), True
     if "weapon" in damage_text.casefold():
-        return MonsterAttack(count=count, name=name, by_weapon=True, effects=effects)
+        return MonsterAttack(count=count, name=name, by_weapon=True, effects=effects), True
     fixed = re.search(r"\d+", damage_text)
     if fixed is not None and int(fixed.group()) >= 1:
-        return MonsterAttack(count=count, name=name, fixed_damage=int(fixed.group()), effects=effects)
-    return MonsterAttack(count=count, name=name, effects=effects)
+        return MonsterAttack(count=count, name=name, fixed_damage=int(fixed.group()), effects=effects), True
+    return MonsterAttack(count=count, name=name, effects=effects), bool(effects)
 
 
 def _segment_attacks(segment: str) -> tuple[list[MonsterAttack], bool]:
-    """Parse one routine segment; returns the attacks and whether damage was printed for any of them.
+    """Parse one routine segment; returns the attacks and whether every printed damage carried faithfully.
 
     Two grammars, tried in order: the parenthesized form (`2 claws (1d4)`,
     the OSE print) and the labelled form (`1 bite, Dam 1d8` / bare `1 spear`,
@@ -656,13 +682,13 @@ def _segment_attacks(segment: str) -> tuple[list[MonsterAttack], bool]:
         for match in _ATTACK_ITEM.finditer(segment)
     ]
     if parenthesized:
-        return parenthesized, True
+        return [attack for attack, _ in parenthesized], all(faithful for _, faithful in parenthesized)
     labelled = _ATTACK_DAM.match(segment.strip())
     if labelled is not None and labelled.group(2).strip() and (labelled.group(1) or labelled.group(3)):
         # A printed count or a damage clause anchors the form; free prose
         # ("see below") matches neither and stays unparsed.
-        damage_text = labelled.group(3)
-        return [_parse_attack(labelled.group(1), labelled.group(2).strip(" ,;"), damage_text)], damage_text is not None
+        attack, faithful = _parse_attack(labelled.group(1), labelled.group(2).strip(" ,;"), labelled.group(3))
+        return [attack], faithful
     return [], False
 
 
@@ -670,18 +696,19 @@ def _map_attacks(lines: Sequence[str]) -> tuple[tuple[AttackRoutine, ...], list[
     """Parse printed attack lines into routines: each line's ` or `-separated segments are alternatives.
 
     A segment with no parseable attack is dropped and the drop recorded; an
-    attack whose segment prints no damage clause keeps its printed name with
-    no damage, recorded the same way; a block with no parseable attack at all
-    maps with `attacks=()` — flagged, never guessed.
+    attack whose printed damage could not carry over faithfully (no damage
+    clause, or a range no conversion rule fits) is recorded the same way; a
+    block with no parseable attack at all maps with `attacks=()` — flagged,
+    never guessed.
     """
     routines: list[AttackRoutine] = []
     incomplete = False
     for line in lines:
         for segment in _ROUTINE_SPLIT.split(line):
-            attacks, damage_printed = _segment_attacks(segment)
+            attacks, faithful = _segment_attacks(segment)
             if attacks:
                 routines.append(AttackRoutine(attacks=tuple(attacks)))
-                if not damage_printed:
+                if not faithful:
                     incomplete = True
             elif segment.strip():
                 incomplete = True

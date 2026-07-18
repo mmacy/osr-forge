@@ -245,7 +245,7 @@ Changing settings on an existing workdir goes through `rerun --set`, guarded by 
 ## Tooling and packaging
 
 - Python ≥ 3.14 (osrlib's floor), managed with `uv`; `ruff` format/lint, `pyright`, `pytest`.
-- Dependencies: `osrlib` (compatible-range pin, `>=1.1,<2`), `pypdfium2` (rendering + text extraction; permissive license, unlike PyMuPDF's AGPL), `pillow` (PNG encoding for rendered pages — pypdfium2 produces raw bitmaps, not image files), `pyyaml`, `jsonschema` (provider-side validation of structured-output responses), the OpenAI-compatible client for the Foundry adapter, `azure-identity` (optional extra).
+- Dependencies: `osrlib` (compatible-range pin, `>=1.2,<2`), `pypdfium2` (rendering + text extraction; permissive license, unlike PyMuPDF's AGPL), `pillow` (PNG encoding for rendered pages — pypdfium2 produces raw bitmaps, not image files), `pyyaml`, `jsonschema` (provider-side validation of structured-output responses), the OpenAI-compatible client for the Foundry adapter, `azure-identity` (optional extra).
 - Package name `osr-forge` (import `osrforge`) — both it and `osrforge` are unclaimed on PyPI as of 2026-07-08. MIT license; the package ships no game content (osrlib's OGL data stays in osrlib), and the release pipeline's dist audit machine-checks it.
 - Released as 0.1.0 (Development Status :: 4 - Beta) via the tag-driven `release.yml`; documentation at <https://mmacy.github.io/osr-forge/>.
 

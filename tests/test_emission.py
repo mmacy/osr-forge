@@ -67,6 +67,13 @@ class TestUsability:
     def test_ac_plus_class_level_is_usable(self):
         assert usable_stat_block(block(hit_dice=None, class_level="F 3")) is True
 
+    @pytest.mark.parametrize("notation", ["F 0", "T0", "0th-level cleric"])
+    def test_zero_level_notation_refuses_in_both_forms(self, notation: str):
+        # A 0-level notation carries no combat math to derive: it must fall to
+        # the refusal ladder, never into mapping (which is total only over
+        # accepted parses) — the duck-found "F 0" crash, pinned.
+        assert usable_stat_block(block(hit_dice=None, class_level=notation)) is False
+
 
 class TestAcAnchors:
     def test_dual_notation_is_printed_verbatim(self):
@@ -287,6 +294,21 @@ class TestRemainingAnchors:
     def test_range_damage_converts_to_dice(self):
         template, _ = map_stat_block("worm", "worm", block(attacks=["1 sting (1-10)"]))
         assert template.attacks[0].attacks[0].damage == "1d10"
+
+    def test_offset_range_damage_converts_to_the_exact_uniform_form(self):
+        # The TSR 2-7 print is 1d6+1 exactly — a conversion, not a guess.
+        template, derived = map_stat_block("worm", "worm", block(attacks=["1 claw (2-7)"]))
+        assert template.attacks[0].attacks[0].damage == "1d6+1"
+        assert "attacks" not in derived
+
+    def test_unconvertible_range_damage_is_flagged_never_truncated(self):
+        # 3-7 fits neither conversion rule: the attack keeps its printed name
+        # with no damage and the miss is recorded — the low end never becomes
+        # silent flat damage.
+        template, derived = map_stat_block("worm", "worm", block(attacks=["1 claw (3-7)"]))
+        attack = template.attacks[0].attacks[0]
+        assert (attack.damage, attack.fixed_damage) == (None, None)
+        assert "attacks" in derived
 
     def test_bfrpg_dam_form_parses(self):
         template, derived = map_stat_block("worm", "worm", block(attacks=["1 bite, Dam 1d8"]))
