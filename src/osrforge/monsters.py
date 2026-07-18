@@ -7,12 +7,12 @@ includes wandering-table entries and townsfolk, and resolving those would burn
 LLM budget on names no keyed encounter references and emit flags nobody can
 act on.
 
-The four tiers, exactly the spec's, each consulted only when the previous one
-misses: normalized exact match over derived match forms, the curated alias
-table, stdlib fuzzy matching, and one LLM pass over the remainder. A fully
-deterministic resolution makes no model call.
+The four [resolution tiers][resolution-tiers], each consulted only when the
+previous one misses: normalized exact match over derived match forms, the
+curated alias table, stdlib fuzzy matching, and one LLM pass over the
+remainder. A fully deterministic resolution makes no model call.
 
-The stat-block pass (phase 7) runs after the tiers, over exactly the names
+The [stat-block pass][stat-block-pass] runs after the tiers, over exactly the names
 still unresolved, gated by the `custom_monsters` knob: one transcription
 request per name over its planned page set, cached raw in
 `stages/statblocks.json` for assembly's deterministic template mapping. The
@@ -82,9 +82,10 @@ MONSTER_ALIASES: dict[str, str] = {
 """The curated alias tier: normalized extracted name → catalog template id.
 
 Entry rule: only names observed in a real module run, each entry carrying a
-source comment. Growing the table after the JN1 monsters fixture was recorded
-changes that fixture's request fingerprint whenever a new entry covers a JN1
-name — re-recording is the remedy (see `tests/assets/chaotic-caves/README.md`).
+source comment. Growing the table after a resolution fixture was recorded
+changes that fixture's request fingerprint whenever a new entry covers one of
+its names — re-recording is the remedy
+([the re-record rule][the-re-record-rule]).
 """
 
 
@@ -288,8 +289,9 @@ def build_monsters_request(
 def encounter_names(levels: Sequence[LevelContent]) -> list[str]:
     """Return the normalized resolution population: every keyed encounter name, deduplicated, sorted.
 
-    A name that normalizes to empty is excluded — the frozen phase 1 schema
-    does not forbid an empty monster string, and there is nothing to resolve;
+    A name that normalizes to empty is excluded — the
+    [frozen stage-cache schema][frozen-schema] does not forbid an empty
+    monster string, and there is nothing to resolve;
     assembly skips the same encounters with a flag. Public because it is *the*
     population rule: the stage, assembly's stale-cache check, and the
     extraction runner must all agree on it, or a recorded fixture's request

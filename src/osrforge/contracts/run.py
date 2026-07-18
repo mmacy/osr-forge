@@ -34,10 +34,10 @@ class TokenUsage(BaseModel):
 
 
 class Stage(StrEnum):
-    """The spec's pipeline stage names, as `run.json` wire values.
+    """The pipeline stage names, as `run.json` wire values.
 
     These key `run.json`'s stage table; changing one is a schema-version event.
-    They do not name the `stages/` cache files — the spec's workdir layout pins
+    They do not name the `stages/` cache files — the workdir layout pins
     those separately, and only the model-calling stages have caches. Geometry is
     deterministic and recomputed inside every assembly rather than cached; its
     `run.json` entry completes inside every `assemble()`, tracked separately so

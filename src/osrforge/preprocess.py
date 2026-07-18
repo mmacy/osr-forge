@@ -70,7 +70,8 @@ def preprocess(pdf_path: Path, workdir_path: Path, settings: ConversionSettings)
 
     Re-running on an existing workdir rebuilds it — `pages/` is cleared before
     rendering so a shorter re-render never leaves stale trailing pages.
-    Skip-if-unchanged logic belongs to `rerun` (phase 3), not here.
+    Skip-if-unchanged logic belongs to [`rerun`][osrforge.convert.rerun], not
+    here.
 
     Args:
         pdf_path: The source module PDF.

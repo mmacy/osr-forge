@@ -1,16 +1,16 @@
 """Stage-cache contracts: the `stages/survey.json`, `areas.<dungeon>.<level>.json`, and `monsters.json` wire formats.
 
-Stage caches are cross-phase wire formats — content reads survey's cache, and
+Stage caches are cross-stage wire formats — content reads survey's cache, and
 the monsters and assemble stages read both — so their models live here,
-in the established home for anything serialized between phases. No stage module
+in the established home for anything serialized between stages. No stage module
 ever imports another stage module.
 
-Pinned reading (mirrors the phase 1 plan): the spec's "cached raw stage
-outputs — the LLM's actual answers" is read as the extraction *stage's*
-validated-and-normalized output. Canonical ids and keys are normalized at the
-source (the survey stage), with the model's original spellings preserved in
-`source_label`/`name`; a host that wants the literal wire answers wraps its
-provider in `RecordingProvider`.
+Pinned reading: a stage cache holds the extraction *stage's*
+validated-and-normalized output, not the model's literal wire answers.
+Canonical ids and keys are normalized at the source (the survey stage), with
+the model's original spellings preserved in `source_label`/`name`; a host
+that wants the literal wire answers wraps its provider in
+[`RecordingProvider`][osrforge.providers.fixtures.RecordingProvider].
 
 Caches carry `schema_version` only, not `osrforge_version` — the producing
 package version is already recorded once per workdir in `run.json`, and
@@ -69,7 +69,7 @@ DICE_PATTERN = r"^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{
 The content-batch schema constrains `count_dice` with this exact pattern, so a
 schema-valid dice string is an osrlib-parseable dice string — a looser pattern
 like `2d7` or `1d6+07` would pass the cache and fail `KeyedMonster` validation
-at phase 2.
+at assembly.
 """
 
 AreaKind = Literal["room", "corridor", "cave", "landmark", "other"]
@@ -103,19 +103,20 @@ def _canonical(value: str) -> str:
 
 
 class TownInfo(BaseModel):
-    """The town or home base — never a dungeon.
-
-    `name` may be empty when the town is genuinely unnamed; osrlib's required
-    `TownSpec.name` gets a default-plus-flag at assembly (phase 2). `services`
-    lists the named establishments and services the module states — defaulted
-    so every pre-phase-6 survey cache still loads and assembles.
-    """
+    """The town or home base — never a dungeon."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
+    """The printed town name; empty when the town is genuinely unnamed
+    (osrlib's required `TownSpec.name` gets a default-plus-flag at assembly)."""
+
     description: str
+    """The module's own description of the town, as extracted."""
+
     services: tuple[str, ...] = ()
+    """The named establishments and services the module states — defaulted so
+    survey caches recorded before the field existed still load and assemble."""
 
 
 class SurveyArea(BaseModel):
@@ -124,10 +125,21 @@ class SurveyArea(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     key: str
+    """The [canonical][canonical-slug] area key, unique within its level."""
+
     name: str
+    """The area's printed name, untouched."""
+
     source_label: str | None = None
+    """The model's original key spelling, preserved wherever the canonical
+    `key` differs from a non-empty printed spelling; `None` when they agree
+    or the model's spelling was empty."""
+
     kind: AreaKind
+    """The area's rough kind."""
+
     source_pages: tuple[int, ...]
+    """The 1-based source pages the area appears on."""
 
     @field_validator("key")
     @classmethod
@@ -136,18 +148,20 @@ class SurveyArea(BaseModel):
 
 
 class SurveyLevel(BaseModel):
-    """One dungeon level in the survey index.
-
-    `map_pages` — the pages showing this level's map — is load-bearing for the
-    content stage's direction extraction: the map pages ride along on every
-    content batch so the model can answer `direction` when the prose is silent.
-    """
+    """One dungeon level in the survey index."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     number: int = Field(ge=1)
+    """The 1-based level number, unique within its dungeon."""
+
     map_pages: tuple[int, ...]
+    """The pages showing this level's map — load-bearing for the content
+    stage's direction extraction: the map pages ride along on every content
+    batch so the model can answer `direction` when the prose is silent."""
+
     areas: tuple[SurveyArea, ...]
+    """The level's keyed areas, in survey order."""
 
     @model_validator(mode="after")
     def _keys_unique(self) -> SurveyLevel:
@@ -169,8 +183,13 @@ class SurveyDungeon(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: str
+    """The [canonical][canonical-slug] dungeon id, slugged from `name`."""
+
     name: str
+    """The dungeon's printed name, untouched."""
+
     levels: tuple[SurveyLevel, ...] = Field(min_length=1)
+    """The dungeon's levels — at least one."""
 
     @field_validator("id")
     @classmethod
@@ -186,23 +205,36 @@ class SurveyDungeon(BaseModel):
 
 
 class SurveyIndex(BaseModel):
-    """The `stages/survey.json` cache: the index that plans everything downstream.
-
-    `description` is the module's own pitch — an excerpt of its printed
-    introduction or back-cover text, never invented, empty when the module has
-    none — defaulted so every pre-phase-6 survey cache still loads and
-    assembles.
-    """
+    """The `stages/survey.json` cache: the index that plans everything downstream."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     schema_version: int = SCHEMA_VERSION
+    """The stage-cache schema version this cache was written under."""
+
     title: str
+    """The module's printed title; empty when unstated (assembly defaults and
+    flags it)."""
+
     description: str = ""
+    """The module's own pitch — an excerpt of its printed introduction or
+    back-cover text, never invented, empty when the module has none —
+    defaulted so survey caches recorded before the field existed still load
+    and assemble."""
+
     hooks: tuple[str, ...]
+    """The module's stated adventure hooks."""
+
     town: TownInfo
+    """The town or home base."""
+
     dungeons: tuple[SurveyDungeon, ...]
+    """The surveyed dungeons, in document order."""
+
     monster_names: tuple[str, ...]
+    """The document-wide monster-name superset — wandering tables and
+    townsfolk included. The narrower resolution population is
+    [`encounter_names`][osrforge.monsters.encounter_names]."""
 
 
 class AreaEncounter(BaseModel):
@@ -221,9 +253,17 @@ class AreaEncounter(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     monster: str
+    """The monster name as extracted."""
+
     count_fixed: int | None = Field(default=None, ge=1)
+    """A stated fixed count (`"3 orcs"`)."""
+
     count_dice: str | None = None
+    """A stated dice count (`"1d6 goblins"`), within
+    [`DICE_PATTERN`][osrforge.contracts.stages.DICE_PATTERN]."""
+
     count_note: str | None = None
+    """A stated non-numeric count (`"one per character"`), verbatim."""
 
 
 class AreaConnection(BaseModel):
@@ -231,7 +271,7 @@ class AreaConnection(BaseModel):
 
     `to_key` is a free string — connections may cross batches or levels; the
     prompt instructs canonical keys from the survey excerpt, and dangling
-    references are assembly's job (phase 2), surfacing as `connection_ambiguous`.
+    references are assembly's job, surfacing as `connection_ambiguous`.
     `to_level` is the escape hatch for level-shaped targets ("stairs descend to
     the second level" states a level, not a keyed area); the prompt prefers the
     keyed target.
@@ -249,11 +289,22 @@ class AreaConnection(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     to_key: str | None = None
+    """The stated target area key; `None` when no keyed target was stated."""
+
     direction: Direction
+    """The stated compass or vertical direction; `unknown` when unstated."""
+
     via: ConnectionVia = "passage"
+    """The stated mechanism; `passage` when the text names none."""
+
     door_stuck: bool = False
+    """A stated stuck-door condition; meaningful only on a door `via`."""
+
     door_locked: bool = False
+    """A stated locked-door condition; meaningful only on a door `via`."""
+
     to_level: int | None = None
+    """A stated target level, for level-shaped targets with no keyed area."""
 
 
 class AreaContent(BaseModel):
@@ -262,14 +313,32 @@ class AreaContent(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     key: str
+    """The [canonical][canonical-slug] area key, matching the survey index."""
+
     description: str
+    """The area's extracted keyed description."""
+
     encounters: tuple[AreaEncounter, ...]
+    """The area's extracted encounters."""
+
     trap: str | None = None
+    """The stated trap, verbatim; `None` when the area states none."""
+
     treasure: tuple[str, ...]
+    """The stated treasure strings, verbatim — parsed later by assembly's
+    treasure grammar ([`parse_treasure`][osrforge.assemble.parse_treasure])."""
+
     features: tuple[str, ...]
+    """Notable stated features, one entry per feature."""
+
     connections: tuple[AreaConnection, ...]
+    """The stated connections out of this area."""
+
     source_pages: tuple[int, ...]
+    """The 1-based source pages this content was extracted from."""
+
     confidence: float = Field(ge=0.0, le=1.0)
+    """The model's self-assessed extraction confidence for this area."""
 
     @field_validator("key")
     @classmethod
@@ -283,9 +352,16 @@ class LevelContent(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     schema_version: int = SCHEMA_VERSION
+    """The stage-cache schema version this cache was written under."""
+
     dungeon_id: str
+    """The [canonical][canonical-slug] dungeon id, matching the survey index."""
+
     level_number: int = Field(ge=1)
+    """The 1-based level number, matching the survey index."""
+
     areas: tuple[AreaContent, ...]
+    """The level's extracted areas, in survey order."""
 
     @field_validator("dungeon_id")
     @classmethod
@@ -294,7 +370,7 @@ class LevelContent(BaseModel):
 
 
 ResolutionMethod = Literal["exact", "alias", "fuzzy", "llm", "unresolved", "override", "custom"]
-"""How a monster name resolved: one of the spec's four tiers, not at all, a human override, or emission.
+"""How a name resolved: one of the four [resolution tiers][resolution-tiers], not at all, a human override, or emission.
 
 `override` and `custom` appear only in memory, when a monster override
 supersedes a cached resolution or template emission gives an unresolved name
@@ -309,7 +385,10 @@ class MonsterResolution(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     template_id: str | None = None
+    """The matched catalog template id; `None` exactly when unresolved."""
+
     method: ResolutionMethod
+    """Which tier produced the match (or `unresolved`)."""
 
     @model_validator(mode="after")
     def _template_iff_resolved(self) -> MonsterResolution:
@@ -324,14 +403,17 @@ class MonsterResolutions(BaseModel):
     Keys are **normalized names** (casefolded, internal whitespace collapsed,
     stripped — `normalize_monster_name`), sorted ascending for byte stability.
     Normalization is the point: modules spell the same monster `"Zombies"` and
-    `"zombies"`, one resolution must serve both, and phase 3's override matching
+    `"zombies"`, one resolution must serve both, and override matching
     (`overrides.yaml` `monsters:` keys) normalizes the same way.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     schema_version: int = SCHEMA_VERSION
+    """The stage-cache schema version this cache was written under."""
+
     resolutions: dict[str, MonsterResolution]
+    """Normalized name → its resolution, keys sorted ascending."""
 
     @field_validator("resolutions")
     @classmethod
@@ -353,50 +435,86 @@ class RawStatBlock(BaseModel):
     transcribes and classifies notation, nothing more — every rules judgment
     (AC complements, THAC0/saves/XP derivation, movement rates) lives in
     assembly's deterministic mapping, where it is testable and correctable.
-    `hit_dice` and `class_level` are the two printed forms of the same fact:
-    a Hit Dice line as printed, or a class-and-level designation (`F 3`,
-    `"3rd-level cleric"`) — the leveled-NPC shape that prints no HD line.
-    `attacks` and `special` keep one entry per printed line. `confidence`
-    defaults to 1.0 because an override-supplied block is the human's word;
-    the model pass always sets its own self-assessment.
+    A value the pages don't print is `None`.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     ac: str | None = None
+    """The armour-class value exactly as printed (`"5"`, `"5 [14]"`)."""
+
     ac_notation: AcNotation | None = None
+    """Which system the printed `ac` counts in."""
+
     thac0: str | None = None
+    """The printed to-hit line, keeping its notation (`"17"`, `"19 [+0]"`, `"+2"`)."""
+
     hit_dice: str | None = None
+    """The Hit Dice line as printed (`"3+1"`, `"1-1"`, `"½"`, `"2d8"`)."""
+
     class_level: str | None = None
+    """A printed class-and-level designation (`"F 3"`, `"3rd-level cleric"`) —
+    the leveled-NPC shape that prints no HD line; `hit_dice` and this are the
+    two printed forms of the same fact."""
+
     hp: int | None = Field(default=None, ge=1)
+    """The printed hit points."""
+
     attacks: tuple[str, ...] = ()
+    """One entry per printed attack line, counts and damage as printed
+    (`"2 claws (1d4 each)"`)."""
+
     movement: str | None = None
+    """The printed movement line (`"120' (40')"`, `"Fly 180' (60')"`)."""
+
     saves: str | None = None
+    """The printed saving-throw line, whatever its form (`"D12 W13 P14 B15
+    S16 (2)"`, `"save as F2"`)."""
+
     morale: int | None = Field(default=None, ge=2, le=12)
+    """The printed morale score."""
+
     alignment: str | None = None
+    """The printed alignment, verbatim."""
+
     xp: int | None = Field(default=None, ge=0)
+    """The printed XP award."""
+
     number_appearing: str | None = None
+    """The printed number-appearing value (`"1d6 (2d6)"`, `"2-8"`)."""
+
     special: tuple[str, ...] = ()
+    """One entry per printed special-ability line or note."""
+
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    """The transcription self-assessment. Defaults to 1.0 because an
+    override-supplied block is the human's word; the model pass always sets
+    its own."""
+
     source_pages: tuple[int, ...] = ()
+    """The request's page numbers the block was read from."""
 
 
 class StatBlocks(BaseModel):
     """The `stages/statblocks.json` cache: raw printed stat blocks for the unresolved names.
 
-    `custom_monsters` echoes the knob the stage ran under — assembly never
-    reads the knob itself, only this echo. `blocks` is keyed by normalized
-    name, sorted ascending for byte stability, and carries an entry for
-    *every* name the resolution tiers left unresolved: a raw block, or an
-    explicit `null` absent marker (the pass ran and found nothing). Under
-    `off` the stage writes the echo and an empty `blocks`.
+    Assembly is driven purely by this cache's contents — it never reads the
+    `custom_monsters` knob itself, only the echo stored here.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     schema_version: int = SCHEMA_VERSION
+    """The stage-cache schema version this cache was written under."""
+
     custom_monsters: Literal["emit", "off"]
+    """The knob the stage ran under, echoed."""
+
     blocks: dict[str, RawStatBlock | None] = {}
+    """Normalized name → its raw block, keys sorted ascending. Under `emit`,
+    an entry for *every* name the resolution tiers left unresolved — a block,
+    or an explicit `null` absent marker (the pass ran and found nothing).
+    Under `off`, empty."""
 
     @field_validator("blocks")
     @classmethod

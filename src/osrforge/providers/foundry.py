@@ -1,13 +1,11 @@
 """The Azure AI Foundry adapter — the only module allowed to import `openai`/`azure.identity`.
 
-Minimal but real: the phase 0 capability spike drives it live and doubles as
-its integration test; phase 1 hardens whatever the spike proves shaky. Two
-choices here are provisional until the spike pins them in
-`docs/foundry-capabilities.md`: the API surface (the `AzureOpenAI` client's
-api-version dialect, versus the newer `/openai/v1` base-URL surface) and
-whether the deployment honors native JSON-schema response format. The
-validate-and-retry loop makes the adapter correct either way — the provider
-owns schema enforcement, and the pipeline never sees invalid `data`.
+Minimal but real: the recorded capability probes drive it live and double as
+its integration test. The probes pinned the two service-behavior choices —
+the `AzureOpenAI` client's api-version dialect, and native JSON-schema
+response format, which the deployment honors — and the validate-and-retry
+loop keeps the adapter correct even where a service's behavior shifts: the
+provider owns schema enforcement, and the pipeline never sees invalid `data`.
 """
 
 import base64

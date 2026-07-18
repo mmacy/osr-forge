@@ -1,4 +1,4 @@
-"""Cost estimation — the spec's "preprocess only; rough token/cost estimate".
+"""Cost estimation: preprocess only, then pure arithmetic — a rough token/cost estimate with no model call.
 
 `estimate` runs the real `preprocess()` into the given workdir — the licensing
 invariant forbids persisting module text outside the user's workdir, so a temp
@@ -6,10 +6,10 @@ directory is not an option, and the workdir is warm for the human's next step
 (`rerun survey` continues from the rendered pages) — then does pure arithmetic:
 no provider, no model call.
 
-The heuristics are pinned from measured behavior (`docs/foundry-capabilities.md`
-and the four recorded full-module runs) and kept deliberately coarse — the spec
-asks for "rough", and the phase 3 plan records the calibration (±40% on input
-tokens against the measured runs) so the error band is honest. Schema retries
+The heuristics are pinned from measured behavior (the recorded capability
+probes and four recorded full-module calibration runs) and kept deliberately
+coarse — "rough" is the contract, and the recorded calibration band (±40% on
+input tokens against the measured runs) keeps the error honest. Schema retries
 and missing-key follow-ups are real tokens no pre-call estimate can see; the
 band, not the point value, is the contract.
 """
@@ -54,7 +54,7 @@ LARGE_REQUEST_INPUT_TOKENS = 272_000
 """The single-request input size beyond which the doubled tier applies."""
 
 IMAGE_TOKENS_PER_PAGE = 905
-"""The spike's measured per-page image cost — DPI-independent (100/150/200 DPI cost identical tokens)."""
+"""The measured per-page image cost — DPI-independent (100/150/200 DPI cost identical tokens)."""
 
 _CHARS_PER_TOKEN = 4
 _SURVEY_OVERHEAD_TOKENS = 2_000  # prompt + schema
@@ -113,7 +113,7 @@ def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: Conve
     image tokens plus the flat prompt/schema overhead, and the 272K
     tier-doubling check applies per window — the chunk size caps only the
     image half of a window's tokens, while text tokens are unbounded by page
-    count (at the phase 3 calibration table's B3 density, ~1,015 text
+    count (at the densest measured calibration module, ~1,015 text
     tokens/page, a window over ~140 pages crosses the cliff — reachable with
     the `survey_max_pages` knob raised past its image-cap default).
     """
@@ -178,6 +178,16 @@ def estimate(pdf_path: Path, workdir: Path, settings: ConversionSettings | None 
 
     Raises:
         PdfError: If preprocessing rejects the source.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge import estimate
+
+        cost = estimate(Path("module.pdf"), Path("module.forge"))
+        print(f"{cost.page_count} pages, ~${cost.usd:.2f}")
+        ```
     """
     effective = settings if settings is not None else ConversionSettings()
     run = preprocess(pdf_path, workdir, effective)

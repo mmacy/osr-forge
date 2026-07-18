@@ -9,7 +9,8 @@ time, not assembly time.
 
 Field semantics, pinned: **absent means untouched; explicit `null` means
 clear.** Pydantic's unset-vs-`None` distinction models this exactly — check
-`model_fields_set` to tell them apart. Application happens in phase 3.
+`model_fields_set` to tell them apart. Application happens during assembly,
+in [`osrforge.overrides`][osrforge.overrides].
 """
 
 import re
@@ -67,8 +68,8 @@ EdgeKeyString = Annotated[str, AfterValidator(_validate_edge_key)]
 
 osrlib's canonical [`edge_key`][osrlib.crawl.dungeon.edge_key] form stores only
 `north`/`west` keys (a cell's east edge is its eastern neighbour's west edge);
-override keys accept all four directions and application (phase 3)
-canonicalizes them.
+override keys accept all four directions and application canonicalizes them
+([`canonicalize_edge_key`][osrforge.overrides.canonicalize_edge_key]).
 """
 
 _NonEmptyKey = Annotated[str, StringConstraints(min_length=1)]
@@ -89,7 +90,11 @@ class MonsterOverride(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     template_id: Annotated[str, StringConstraints(min_length=1)]
+    """The catalog template the name should resolve to — including an emitted
+    custom template's id."""
+
     reason: Reason
+    """Why this correction is right; every override entry carries one."""
 
 
 class StatBlockOverride(BaseModel):
@@ -128,20 +133,36 @@ class AreaOverride(BaseModel):
     """Replace fields of one keyed area, add an area, or remove one.
 
     An entry addressing an area the draft doesn't have is an area *add* and must
-    carry the full required payload — enforced at application time (phase 3),
-    since only assembly knows what the draft contains.
+    carry the full required payload — enforced at application time, since
+    only assembly knows what the draft contains.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str | None = None
+    """Replace the area's name."""
+
     description: str | None = None
+    """Replace the area's description."""
+
     encounter: KeyedEncounter | None = None
+    """Replace the area's whole built encounter (an osrlib spec, post-mapping)."""
+
     trap: TrapSpec | None = None
+    """Replace the area's trap."""
+
     treasure: AreaTreasureSpec | None = None
+    """Replace the area's treasure — the parsed grammar never runs on an
+    overridden slot."""
+
     features: tuple[FeatureSpec, ...] | None = None
+    """Replace the area's features."""
+
     remove: bool = False
+    """Remove the area from the draft entirely."""
+
     reason: Reason
+    """Why this correction is right; every override entry carries one."""
 
 
 class AreaGeometryOverride(BaseModel):
@@ -162,10 +183,20 @@ class GeometryOverride(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     areas: dict[_AreaKeyString, AreaGeometryOverride] = {}
+    """Area key → its replacement cell cluster."""
+
     edges: dict[EdgeKeyString, Edge] = {}
+    """Edge key → its replacement edge; an override edge always wins over the
+    synthesized one."""
+
     entrance: Position | None = None
+    """Replace the level's entrance cell."""
+
     transitions: tuple[TransitionSpec, ...] | None = None
+    """Replace the level's transitions wholesale."""
+
     reason: Reason
+    """Why this correction is right; every override entry carries one."""
 
 
 class TownOverride(BaseModel):
@@ -174,10 +205,20 @@ class TownOverride(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str | None = None
+    """Replace the town's name."""
+
     description: str | None = None
+    """Replace the town's description."""
+
     services: tuple[str, ...] | None = None
+    """Replace the town's services list."""
+
     travel_turns: dict[str, int] | None = None
+    """Replace the dungeon id → town-to-entrance travel cost (in exploration
+    turns) table."""
+
     reason: Reason
+    """Why this correction is right; every override entry carries one."""
 
 
 class ModuleOverride(BaseModel):
@@ -192,16 +233,30 @@ class ModuleOverride(BaseModel):
 
 
 class Overrides(BaseModel):
-    """The `overrides.yaml` document: the spec's v1 override kinds."""
+    """The `overrides.yaml` document: the v1 override kinds."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     monsters: dict[_NonEmptyKey, MonsterOverride] = {}
+    """Extracted monster name → catalog remap. Keys match under the monsters
+    stage's normalization (casefold, whitespace collapsed)."""
+
     monster_templates: dict[_NonEmptyKey, StatBlockOverride] = {}
+    """Extracted monster name → stat-block patch or supply, same key
+    normalization. The same name under both this and `monsters:` is rejected
+    as contradictory."""
+
     areas: dict[AreaAddressString, AreaOverride] = {}
+    """Area address → its field replacements, add, or removal."""
+
     geometry: dict[LevelAddressString, GeometryOverride] = {}
+    """Level address → its geometry corrections."""
+
     town: TownOverride | None = None
+    """Base-town metadata replacements."""
+
     module: ModuleOverride | None = None
+    """Adventure metadata replacements."""
 
 
 class _DuplicateKeyRejectingLoader(yaml.SafeLoader):
@@ -209,7 +264,7 @@ class _DuplicateKeyRejectingLoader(yaml.SafeLoader):
 
     In a human-edited correction file a duplicate key means two contradictory
     corrections, and one of them silently losing is the worst outcome —
-    pyyaml's default last-wins behavior is exactly the phase 0 gap this closes.
+    pyyaml's default last-wins behavior is exactly the gap this closes.
     """
 
     def construct_mapping(self, node: yaml.MappingNode, deep: bool = False) -> dict[Hashable, Any]:
@@ -242,6 +297,17 @@ def load_overrides(path: Path) -> Overrides:
             corrections, one of which would silently lose.
         pydantic.ValidationError: If the document doesn't match the contract.
         yaml.YAMLError: If the file is not valid YAML.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge.contracts.overrides import load_overrides
+
+        overrides = load_overrides(Path("module.forge/overrides.yaml"))
+        for name, entry in overrides.monsters.items():
+            print(name, entry.template_id, entry.reason)
+        ```
     """
     if not path.exists():
         return Overrides()

@@ -1,8 +1,8 @@
-"""The playability lint and smoke delve — the spec's `findings = check(workdir)`.
+"""The playability lint and smoke delve: `findings = check(workdir)`.
 
 `check` loads the adventure exactly as a consumer does (`check_document` +
 `Adventure.model_validate`), so every run also exercises the artifact
-contract, then runs the spec's two tiers and merges the findings into
+contract, then runs its two tiers and merges the findings into
 `report.json`. Everything is deterministic — the delve seed is a module
 constant — so the purity guarantee extends: `assemble && check` twice is
 byte-identical.
@@ -481,6 +481,16 @@ def check(workdir_path: Path) -> tuple[LintFinding, ...]:
     Raises:
         ValueError: If `adventure.json` or `report.json` is missing —
             `assemble` first.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge import check
+
+        for finding in check(Path("module.forge")):
+            print(finding.severity, finding.id, finding.location, finding.message)
+        ```
     """
     workdir = Workdir(workdir_path)
     if not workdir.adventure_json.is_file():

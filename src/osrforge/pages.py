@@ -1,11 +1,12 @@
 """The shared interleaved text-plus-image request-part builder.
 
-Including the text layer is load-bearing, not a nicety: the spike's images-only
-survey request produced one dungeon, three areas, and one monster name, while
-the text-plus-image request over the same module's pages produced the full
-index. Per-page interleaving is the pinned arrangement — the shape every
-successful extraction probe used. Both extraction stages and phase 2's passes
-build parts only through this function.
+Including the text layer is load-bearing, not a nicety: in the recorded
+capability probes, an images-only survey request produced one dungeon, three
+areas, and one monster name, while the text-plus-image request over the same
+module's pages produced the full index. Per-page interleaving is the pinned
+arrangement — the shape every successful extraction probe used. Every
+page-consuming request — survey, content, and the stat-block pass — builds
+its parts only through this function.
 
 This lives in its own module because `Workdir`'s charter is layout plus
 `run.json` I/O, `providers/` is the vendor seam, and both stages need it — a

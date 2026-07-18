@@ -6,8 +6,9 @@ visible to its owning batch. Each area belongs to exactly one batch, enforced
 through the batch schema's key enum — the model cannot invent, misspell, or
 duplicate a key the code didn't ask for, so the cross-batch merge is pure
 concatenation and a duplicate key across batches is a code bug, not a model
-behavior. Every prompt rule is pinned against observed junk in the phase 0
-spike fixtures; see the phase 1 plan before changing one.
+behavior. Every prompt rule is pinned against observed junk in recorded
+extraction runs; a prompt edit strands the recorded fixtures and re-runs the
+eval sweep — see [the re-record rule][the-re-record-rule] before changing one.
 """
 
 from collections.abc import Sequence
@@ -136,7 +137,7 @@ def _plan_level(dungeon: SurveyDungeon, level: SurveyLevel, batch_pages: int) ->
     page_set = sorted({page for area in level.areas for page in area.source_pages})
     if not page_set and not level.map_pages:
         # No pages at all: no model call; the areas stay content-less for
-        # phase 2's placeholder-plus-flag treatment.
+        # assembly's placeholder-plus-flag treatment.
         return LevelPlan(dungeon.id, level.number, ())
     windows = _page_windows(page_set, batch_pages) if page_set else [()]
     assigned: list[list[SurveyArea]] = [[] for _ in windows]
@@ -394,7 +395,7 @@ def _extract_level(
             batch_areas.extend(_response_areas(retry.data, page_count))
             # Keys still missing after the follow-up are absent from the cache;
             # the survey index remains the authority on what exists, and
-            # assembly (phase 2) emits placeholders flagged low_confidence.
+            # assembly emits placeholders flagged low_confidence.
         for area in batch_areas:
             if area.key in seen:
                 raise AssertionError(

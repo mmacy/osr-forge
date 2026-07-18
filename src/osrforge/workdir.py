@@ -2,8 +2,8 @@
 
 No other module builds workdir paths by hand, and every JSON artifact goes
 through [`write_json_artifact`][osrforge.workdir.write_json_artifact] — pinning
-the byte format once means the byte-stability tests that arrive with assembly
-(phase 2) never chase formatting noise.
+the byte format once means the [byte-stability][byte-stability] tests never
+chase formatting noise.
 """
 
 import json
@@ -37,7 +37,7 @@ def write_json_artifact(path: Path, artifact: BaseModel | Mapping[str, object]) 
 
 
 class Workdir:
-    """One conversion's working directory, owning the spec's layout.
+    """One conversion's working directory, owning the pinned layout.
 
     Attributes:
         root: The workdir root, e.g. `my-module.forge/`.
@@ -241,8 +241,9 @@ def track_stage(workdir: Workdir, stage: Stage) -> Generator[StageTracker]:
     exception, writes `failed` with `error=str(exc)`, the usage spent so far,
     and `finished_at`, then re-raises, leaving upstream artifacts untouched.
 
-    Timestamps are legal here and only here — `run.json` is operational
-    metadata, per phase 0's pin.
+    Timestamps are legal here and only here: `run.json` is operational
+    metadata, and keeping timestamps out of every other artifact is part of
+    what [byte-stability][byte-stability] rests on.
 
     Args:
         workdir: The workdir whose `run.json` records the stage.

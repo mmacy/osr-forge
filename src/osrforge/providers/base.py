@@ -1,7 +1,7 @@
 """The provider protocol and its request/response types.
 
-Exactly as narrow as the spec's protocol: one `generate` method taking a
-structured-output request. Schema enforcement is the provider's contract —
+Exactly one seam wide: a single `generate` method taking a structured-output
+request. Schema enforcement is the provider's contract —
 `generate` either returns `data` that validates against `request.schema` or
 raises [`SchemaValidationError`][osrforge.errors.SchemaValidationError] after
 its retry budget, so callers trust `response.data`.
@@ -32,14 +32,17 @@ _TAG_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 
 @dataclass(frozen=True)
 class TextPart:
-    """One ordered text content part."""
+    """One ordered text content part of a request.
+
+    A page's extracted text layer, or prompt text like a batch header.
+    """
 
     text: str
 
 
 @dataclass(frozen=True)
 class ImagePart:
-    """One ordered image content part.
+    """One ordered image content part of a request — a page render.
 
     Preprocessing emits PNG; adapters do their own base64/data-URL packaging.
     """
@@ -53,7 +56,7 @@ class ModelRequest:
 
     Attributes:
         tag: A short stable label like `survey` or `probe.image-limits` — a
-            pipeline stage name or spike probe id, never free prose. It names
+            pipeline stage name or capability-probe id, never free prose. It names
             fixture files, attributes usage, and participates in the
             fingerprint (it is part of request identity).
         system: The system text.
@@ -130,7 +133,26 @@ def ensure_schema(data: object, schema: dict[str, object], context: str) -> None
 
 @runtime_checkable
 class ModelProvider(Protocol):
-    """The one seam between the pipeline and any model vendor."""
+    """The one seam between the pipeline and any model vendor.
+
+    Any object with a conforming `generate` method is a provider — no
+    subclassing, no registration. The provider owns schema enforcement:
+    validate with [`ensure_schema`][osrforge.providers.base.ensure_schema]
+    (and retry as needed) before returning, so callers can trust
+    `response.data`.
+
+    Examples:
+        ```python
+        from osrforge.contracts.run import TokenUsage
+        from osrforge.providers.base import ModelRequest, ModelResponse, ensure_schema
+
+        class MyVendorProvider:
+            def generate(self, request: ModelRequest) -> ModelResponse:
+                data = my_vendor_call(request.system, request.parts, request.schema)
+                ensure_schema(data, request.schema, request.tag)
+                return ModelResponse(data=data, usage=TokenUsage(), model_id="my-model")
+        ```
+    """
 
     def generate(self, request: ModelRequest) -> ModelResponse:
         """Run one structured-output completion.

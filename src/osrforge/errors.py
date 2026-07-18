@@ -3,7 +3,7 @@
 The typed hierarchy covers runtime failures of the work itself — unreadable
 sources, provider transport trouble, schema-invalid model output. Programmer
 misuse raises stdlib `ValueError`/`TypeError`, never these. The hierarchy grows
-additively; later phases add their own members.
+additively as the package does.
 """
 
 __all__ = [

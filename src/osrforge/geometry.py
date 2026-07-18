@@ -11,8 +11,8 @@ an edge absent from `LevelSpec.edges` is a wall, and the boundary is an
 implicit wall — so synthesis emits `open` edges between every orthogonally
 adjacent pair of same-area cells, along every corridor path, and at every
 room-corridor junction. A connection whose stated mechanism is a door kind
-realizes as a `door` edge on the stating area's wall (phase 6); overrides
-remain the last word.
+realizes as a `door` edge on the stating area's wall; overrides remain the
+last word.
 
 Every choice below is pinned for determinism: BFS visit order, candidate
 placement order, component ordering, edge-key ordering, and row-major cell
@@ -69,7 +69,7 @@ def parse_dimensions(description: str) -> tuple[int, int] | None:
     The first match of a feet-by-feet pattern (`30' x 40'`, a multiplication
     sign, `30 feet by 40 feet`) wins; at least one unit marker is required.
     Cells are
-    `ceil(feet / 10)` per axis (the spec's 10' cell), minimum 1; the first
+    `ceil(feet / 10)` per axis (the pinned 10' cell), minimum 1; the first
     number is width (east-west), the second height (north-south).
 
     Args:
@@ -651,7 +651,7 @@ def _routed_candidate(
 
     The straight-with-one-bend candidate family can exhaust on real data — a
     six-connection hub's later children find every single-bend route walled by
-    earlier siblings (JN1's cave-of-horrors) — so when every direction
+    earlier siblings (observed in a real module's cave hub) — so when every direction
     exhausts, the corridor is routed instead: a multi-source BFS over free
     cells (sources are the free cells orthogonally adjacent to the parent, in
     row-major parent-cell then pinned direction order; neighbours expand in
@@ -710,8 +710,8 @@ def _place_child(
 
     Returns None when every route out of the parent is walled by earlier
     placements — on dense graphs a hub's corridors can enclose it completely
-    (a fresh JN1 extraction's manor level did exactly this, phase 4's baseline
-    sweep) — and the caller re-anchors the child on another placed room.
+    (observed in a real module conversion) — and the caller re-anchors the
+    child on another placed room.
     """
     tried: list[GridDirection] = [direction] if direction is not None else []
     tried.extend(d for d in _PLACEMENT_ORDER if d not in tried)
@@ -857,8 +857,8 @@ def edge_sort_key(key: str) -> tuple[int, int, str]:
     """The pinned edge-map key ordering — `(y, x, side)` over canonical keys.
 
     Synthesis emits its edge map in this order, and override application
-    (phase 3) re-sorts the merged map with it, so the serialized `edges` dict
-    stays byte-stable regardless of where an edge came from.
+    re-sorts the merged map with it, so the serialized `edges` dict stays
+    byte-stable regardless of where an edge came from.
 
     Args:
         key: A canonical edge key, `x,y:side`.

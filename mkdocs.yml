@@ -79,7 +79,12 @@ nav:
       - CLI: reference/cli.md
       - The workdir and artifacts: reference/workdir-artifacts.md
       - Badge vocabularies: reference/vocabulary.md
+      - Glossary: reference/glossary.md
       - API: reference/api/
+  - Contributing:
+      - Getting set up: contributing/index.md
+      - Architecture: contributing/architecture.md
+      - Testing: contributing/testing.md
   - Evals: evals.md
   - Licensing: licensing.md
 

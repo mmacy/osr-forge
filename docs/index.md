@@ -45,4 +45,8 @@ overrides edit is instant and reproducible.
 - Read the [CLI](reference/cli.md) and
   [artifact](reference/workdir-artifacts.md) references, or the generated
   [API reference](reference/api/index.md).
+- Contributing? [Get set up](contributing/index.md), read the
+  [architecture](contributing/architecture.md), and meet the
+  [testing model](contributing/testing.md) — the
+  [glossary](reference/glossary.md) defines the terms of art along the way.
 - See how extraction quality is [measured, not vibed](evals.md).
