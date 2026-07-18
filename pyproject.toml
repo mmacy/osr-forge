@@ -30,7 +30,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "osrlib>=1.1,<2",
+    "osrlib>=1.2,<2",
     "pydantic>=2",
     "pypdfium2>=5",
     "pillow>=11",

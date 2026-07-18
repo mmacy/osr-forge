@@ -604,5 +604,6 @@ def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
         for stale in workdir.area_caches():
             stale.unlink()
         workdir.monsters_json.unlink(missing_ok=True)
+        workdir.statblocks_json.unlink(missing_ok=True)
         write_json_artifact(workdir.survey_json, index)
     return index

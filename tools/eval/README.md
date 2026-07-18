@@ -120,11 +120,16 @@ structural conventions, applied to all members:
   rank variants stay distinct creatures. Rank variants with their own
   stat blocks (`orc chief`, `goblin king`) are recorded under their printed
   variant name; `template` is omitted for them and for creatures with no SRD
-  catalog entry — the resolution metric excludes those from its denominator
-  and tallies them as `non_srd`. Leveled human NPCs map to the catalog's
+  catalog entry. A template-omitted entry additionally asserts `custom: true`
+  when the printed page carries a *usable* stat block — an AC plus an HD line
+  or a class-level notation, exactly assembly's refusal-ladder predicate —
+  which is an authored judgment from the printed page like every other truth
+  fact; the custom metric pair scores those against the stat-block cache,
+  while omitted-without-`custom` entries stay excluded and tallied as
+  `non_srd`. Leveled human NPCs map to the catalog's
   fighter NPCs where the level matches (F1 → `veteran_1`, F2 → `veteran_2`,
   F3 → `veteran_3`); clerics, magic-users, and higher-level fighters have no
-  same-creature entry and are `non_srd`.
+  same-creature entry and take the omitted-`template` treatment above.
 - **Counts** are recorded when the module states a fixed one; omitted when it
   states none or a variable one ("1d6 orcs", "up to 48 skeletons").
 - **Treasure** is assertion-aware, exactly like connections: an omitted
@@ -189,11 +194,11 @@ amendment records both runs side by side, and the regression band is the
 observed per-metric spread, floored at 0.02 absolute.
 
 The current noise band — the living table each sweep-pair updates, with
-history staying in the phase amendments (this table: the phase 6 double
-sweep of 2026-07-17, re-scored offline under the morphological match fold,
-superseding the same sweep's exact-match band — the fold collapsed every
-between-run spread to the floor, because the old name-recall noise was
-mostly the model's singular/plural jitter that exact matching amplified):
+history staying in the phase amendments (this table: the phase 7 double
+sweep of 2026-07-17 — the first pair measured with the stat-block pass and
+the null-hardened resolution prompt live, and the first carrying the custom
+row; every spread sat at or under the floor except connection F1's 0.028 on
+JN2):
 
 | metric | band |
 | --- | --- |
@@ -202,7 +207,8 @@ mostly the model's singular/plural jitter that exact matching amplified):
 | encounter name recall | 0.02 |
 | count accuracy | 0.02 |
 | resolution accuracy | 0.02 |
-| connection F1 | 0.02 |
+| custom accuracy | 0.02 |
+| connection F1 | 0.028 |
 | treasure presence | 0.02 |
 
 The survey mode-flip phase 4 measured (a JN1 re-roll collapsed ten cave

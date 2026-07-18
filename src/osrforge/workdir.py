@@ -97,6 +97,11 @@ class Workdir:
         return self.stages_dir / "monsters.json"
 
     @property
+    def statblocks_json(self) -> Path:
+        """The stat-block pass's cache (written by the monsters stage)."""
+        return self.stages_dir / "statblocks.json"
+
+    @property
     def overrides_yaml(self) -> Path:
         """The human correction file."""
         return self.root / "overrides.yaml"
@@ -156,11 +161,12 @@ class Workdir:
     def area_caches(self) -> list[Path]:
         """Return every content-stage cache file, sorted.
 
-        Only the per-level `areas.*.json` caches — not `survey.json` or
-        `monsters.json`. The upstream stages' clearing rule: `survey()` (on
-        success) and `content()` (upfront) unlink these *and* `monsters.json`
-        — a re-run of either can change the encounter-name population,
-        orphaning old resolutions exactly as it orphans old area caches.
+        Only the per-level `areas.*.json` caches — not `survey.json`,
+        `monsters.json`, or `statblocks.json`. The upstream stages' clearing
+        rule: `survey()` (on success) and `content()` (upfront) unlink these
+        *and* `monsters.json` *and* `statblocks.json` — a re-run of either can
+        change the encounter-name population, orphaning old resolutions and
+        stat blocks exactly as it orphans old area caches.
 
         Returns:
             The `stages/areas.*.json` paths, sorted by name.

@@ -18,6 +18,7 @@ __all__ = [
     "AreaAddress",
     "AreaAddressString",
     "AreaReport",
+    "CustomMonsterRecord",
     "ExtractionReport",
     "Flag",
     "FlagString",
@@ -38,6 +39,7 @@ class Flag(StrEnum):
 
     GEOMETRY_SYNTHESIZED = "geometry_synthesized"
     MONSTER_UNRESOLVED = "monster_unresolved"
+    MONSTER_CUSTOM = "monster_custom"
     LOW_CONFIDENCE = "low_confidence"
     CONNECTION_AMBIGUOUS = "connection_ambiguous"
     TRANSITION_GUESSED = "transition_guessed"
@@ -280,13 +282,35 @@ class AreaReport(BaseModel):
     overridden: tuple[str, ...] = ()
 
 
+class CustomMonsterRecord(BaseModel):
+    """One emitted custom template's review record.
+
+    The `monster_custom` flag is the review badge; this is the review detail:
+    the emitted id, the extracted name it serves, the pages its stat block was
+    transcribed from, and every field the mapping derived, defaulted, or
+    discarded-and-rederived rather than read off the printed page.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    name: str
+    source_pages: tuple[int, ...] = ()
+    derived: tuple[str, ...] = ()
+
+
 class MonsterSummary(BaseModel):
-    """The monster-resolution summary."""
+    """The monster-resolution summary.
+
+    `custom` records the emitted templates actually bundled into the draft —
+    additive and defaulted, so every pre-phase-7 report still validates.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     resolved: int = Field(ge=0)
     unresolved: tuple[str, ...] = ()
+    custom: tuple[CustomMonsterRecord, ...] = ()
 
 
 class ExtractionReport(BaseModel):

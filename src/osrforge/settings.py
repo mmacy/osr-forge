@@ -80,6 +80,19 @@ class ConversionSettings(BaseModel):
     monster_llm_top_k: int = Field(default=8, ge=1)
     """Candidate templates offered per name in the monster-resolution LLM tier."""
 
+    custom_monsters: Literal["emit", "off"] = "emit"
+    """Whether the monsters stage runs the stat-block pass that feeds custom-template emission.
+
+    `emit` runs one extraction request per name the four resolution tiers left
+    unresolved, caching each printed stat block for assembly's deterministic
+    template mapping; `off` skips the pass (and thereby emission) — a policy
+    and cost control for keeping a draft SRD-catalog-pure or skipping the
+    per-unresolved-name model spend, symmetric in intent with
+    `unresolved_fallback`. Owned by the monsters stage and only by it: assembly
+    is driven purely by cache contents, so toggling the knob re-runs monsters —
+    including its LLM resolution tier.
+    """
+
     unresolved_fallback: Literal["best-effort", "omit"] = "best-effort"
     """What assembly puts in the draft where resolution or parsing came up empty.
 

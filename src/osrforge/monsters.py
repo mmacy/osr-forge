@@ -1,4 +1,4 @@
-"""Stage 3: monster resolution — extracted names against osrlib's shipped catalog.
+"""Stage 3: monster resolution — extracted names against osrlib's shipped catalog, plus the stat-block pass.
 
 The resolution population is the union of encounter monster names across every
 `stages/areas.*.json` cache — the names assembly must map — not
@@ -11,9 +11,17 @@ The four tiers, exactly the spec's, each consulted only when the previous one
 misses: normalized exact match over derived match forms, the curated alias
 table, stdlib fuzzy matching, and one LLM pass over the remainder. A fully
 deterministic resolution makes no model call.
+
+The stat-block pass (phase 7) runs after the tiers, over exactly the names
+still unresolved, gated by the `custom_monsters` knob: one transcription
+request per name over its planned page set, cached raw in
+`stages/statblocks.json` for assembly's deterministic template mapping. The
+pass transcribes — every rules judgment lives in assembly, where it is
+testable and correctable.
 """
 
-from collections.abc import Sequence
+import re
+from collections.abc import Mapping, Sequence
 from difflib import SequenceMatcher
 from typing import Any, cast
 
@@ -21,20 +29,37 @@ from osrlib.core.monsters import MonsterCatalog, MonsterTemplate
 from osrlib.data import load_monsters
 
 from osrforge.contracts.run import Stage
-from osrforge.contracts.stages import LevelContent, MonsterResolution, MonsterResolutions, SurveyIndex
-from osrforge.providers.base import ModelProvider, ModelRequest, TextPart
+from osrforge.contracts.stages import (
+    AC_NOTATIONS,
+    AcNotation,
+    LevelContent,
+    MonsterResolution,
+    MonsterResolutions,
+    RawStatBlock,
+    StatBlocks,
+    SurveyIndex,
+)
+from osrforge.pages import page_request_parts
+from osrforge.providers.base import ImagePart, ModelProvider, ModelRequest, TextPart
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
 
 __all__ = [
     "MONSTERS_SYSTEM",
     "MONSTER_ALIASES",
+    "STATBLOCK_PAGE_CAP",
+    "STATBLOCK_SYSTEM",
     "build_monsters_request",
+    "build_statblock_request",
     "deterministic_resolutions",
     "encounter_names",
     "llm_candidates",
     "monsters",
     "monsters_schema",
     "normalize_monster_name",
+    "parse_statblock_response",
+    "statblock_page_plan",
+    "statblock_schema",
+    "statblock_tag",
 ]
 
 MONSTERS_SYSTEM = """\
@@ -43,7 +68,9 @@ message lists the extracted names, each with its candidate templates as `id (Pri
 
 For each name, pick the template a referee would treat as the same creature under another name — edition \
 synonyms, spelling variants, singular versus plural. Answer null when no candidate is that creature: never \
-pick a merely similar monster, a different creature of the same theme, or a "close enough" substitute.
+pick a merely similar monster, a different creature of the same theme, or a "close enough" substitute. When \
+in doubt, answer null — an unmatched name keeps the module's own printed stat block downstream, while a \
+wrong pick silently replaces the module's creature with a different one.
 """
 
 MONSTER_ALIASES: dict[str, str] = {
@@ -283,13 +310,229 @@ def encounter_names(levels: Sequence[LevelContent]) -> list[str]:
     return sorted(names - {""})
 
 
+STATBLOCK_PAGE_CAP = 8
+"""The stat-block pass's per-name page budget: encounter pages first, then ascending text hits."""
+
+STATBLOCK_SYSTEM = """\
+You transcribe one creature's printed stat block from tabletop adventure module pages. The user message \
+names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with \
+that page's image — check the images too: tabular stat blocks often scramble in the extracted text.
+
+Rules:
+- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive \
+missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge \
+of any game. A value the pages don't print is null.
+- "found" is whether the pages print a stat block (or an inline stat line) for this creature. When false, \
+leave every other field null or empty.
+- "ac" is the armour-class value exactly as printed; "ac_notation" classifies the printed system: \
+"descending" (classic, lower is better), "ascending" (modern, higher is better), or "dual" (both printed, \
+like "5 [14]").
+- A Hit Dice line as printed goes in "hit_dice" ("3+1", "1-1", "½", "2d8"); a class-and-level designation \
+("F 3", "3rd-level cleric", "Thief 2") goes in "class_level". Use whichever the block prints; both null \
+means the block states neither.
+- "thac0" is the printed to-hit line, keeping its notation ("17", "19 [+0]", "+2").
+- "attacks" keeps one entry per printed attack line, with counts and damage as printed \
+("2 claws (1d4 each)", "1 bite (1d6 + poison)").
+- "movement" is the printed movement line ("120' (40')", "Fly 180' (60')", "30 ft.").
+- "saves" is the printed saving-throw line, whatever its form ("D12 W13 P14 B15 S16 (2)", "save as F2", \
+"Fort +2, Ref +4, Will +1").
+- "special" keeps one entry per printed special-ability line or note.
+- "number_appearing" is the printed number-appearing value ("1d6 (2d6)", "2-8").
+- "source_pages" refer to the [page N] markers in this request, never to page numbers printed on the pages.
+- "confidence" is your self-assessment in [0, 1] of how faithfully you transcribed the block.
+"""
+
+
+def statblock_tag(name: str) -> str:
+    """Return one name's stat-block request tag: `statblock.<slug>` within the tag charset.
+
+    Slugging is lossy (`"orc chief"` and `"orc-chief"` share a tag), which is
+    harmless: fixture filenames append the request fingerprint, so identity
+    never rests on the tag alone.
+
+    Args:
+        name: The normalized monster name.
+
+    Returns:
+        The request tag.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "-", name).strip("-")
+    return f"statblock.{slug or 'unnamed'}"
+
+
+def statblock_page_plan(
+    name: str, levels: Sequence[LevelContent], page_texts: Mapping[int, str], cap: int = STATBLOCK_PAGE_CAP
+) -> tuple[int, ...]:
+    """Plan one unresolved name's page set: encounter pages union text-layer hits, capped.
+
+    The union of the name's encounter `source_pages` (every content-cache area
+    with an encounter normalizing to `name`) and every page whose extracted
+    text layer contains the name — a deterministic local search (casefolded,
+    whitespace collapsed), no model. The search is what catches the
+    printed-elsewhere pattern (stat blocks in a new-monsters appendix far from
+    the encounter); a scanned module with an empty text layer degrades to
+    encounter pages only. The cap keeps encounter pages first, then ascending
+    text hits.
+
+    Args:
+        name: The normalized monster name.
+        levels: The content caches.
+        page_texts: Page number → that page's extracted text layer.
+        cap: The page budget.
+
+    Returns:
+        The planned pages, encounter pages (ascending) then text hits
+        (ascending), capped.
+    """
+    encounter_pages = sorted(
+        {
+            page
+            for level in levels
+            for area in level.areas
+            if any(normalize_monster_name(encounter.monster) == name for encounter in area.encounters)
+            for page in area.source_pages
+        }
+    )
+    hits = sorted(
+        page
+        for page, text in page_texts.items()
+        if page not in encounter_pages and name in " ".join(text.casefold().split())
+    )
+    return tuple((encounter_pages + hits)[:cap])
+
+
+def statblock_schema() -> dict[str, object]:
+    """Build the stat-block pass's JSON Schema: the printed block, system-neutral, plus the `found` marker.
+
+    Returns:
+        The request schema.
+    """
+    return {
+        "type": "object",
+        "properties": {
+            "found": {"type": "boolean"},
+            "ac": {"type": ["string", "null"]},
+            "ac_notation": {"type": ["string", "null"], "enum": [*AC_NOTATIONS, None]},
+            "thac0": {"type": ["string", "null"]},
+            "hit_dice": {"type": ["string", "null"]},
+            "class_level": {"type": ["string", "null"]},
+            "hp": {"type": ["integer", "null"], "minimum": 1},
+            "attacks": {"type": "array", "items": {"type": "string"}},
+            "movement": {"type": ["string", "null"]},
+            "saves": {"type": ["string", "null"]},
+            "morale": {"type": ["integer", "null"], "minimum": 2, "maximum": 12},
+            "alignment": {"type": ["string", "null"]},
+            "xp": {"type": ["integer", "null"], "minimum": 0},
+            "number_appearing": {"type": ["string", "null"]},
+            "special": {"type": "array", "items": {"type": "string"}},
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+            "source_pages": {"type": "array", "items": {"type": "integer"}},
+        },
+        "required": [
+            "found",
+            "ac",
+            "ac_notation",
+            "thac0",
+            "hit_dice",
+            "class_level",
+            "hp",
+            "attacks",
+            "movement",
+            "saves",
+            "morale",
+            "alignment",
+            "xp",
+            "number_appearing",
+            "special",
+            "confidence",
+            "source_pages",
+        ],
+        "additionalProperties": False,
+    }
+
+
+def build_statblock_request(name: str, parts: Sequence[TextPart | ImagePart]) -> ModelRequest:
+    """Build one name's stat-block transcription request.
+
+    Public and pure, like [`build_monsters_request`][osrforge.monsters.build_monsters_request]
+    — the runner and fixture tests must build fingerprint-identical requests
+    without duplicating prompt code. Pages ride as text *and* images: the one
+    stat-block form the text layer destroys is the tabular one.
+
+    Args:
+        name: The normalized monster name.
+        parts: The planned pages' interleaved parts
+            ([`page_request_parts`][osrforge.pages.page_request_parts]).
+
+    Returns:
+        The request, tagged `statblock.<slug>`.
+
+    Raises:
+        ValueError: If no parts are given — a name with no planned pages never
+            builds a request (programmer misuse; the stage writes an absent
+            marker instead).
+    """
+    if not parts:
+        raise ValueError("the stat-block request needs at least one page part")
+    header = f'Transcribe the printed stat block for the creature "{name}" from the pages below.\n'
+    return ModelRequest(
+        tag=statblock_tag(name),
+        system=STATBLOCK_SYSTEM,
+        parts=(TextPart(text=header), *parts),
+        schema=statblock_schema(),
+    )
+
+
+def parse_statblock_response(data: object) -> RawStatBlock | None:
+    """Parse one schema-valid stat-block response; `found: false` is the explicit absent marker.
+
+    Public for the same reason the request builders are: the extraction
+    runner's recording session must produce a cache byte-identical to the
+    stage's without duplicating parsing code.
+
+    Args:
+        data: The response data, already validated against
+            [`statblock_schema`][osrforge.monsters.statblock_schema].
+
+    Returns:
+        The raw block, or `None` — the explicit absent marker.
+    """
+    answer = cast(dict[str, Any], data)
+    if not cast(bool, answer["found"]):
+        return None
+    return RawStatBlock(
+        ac=cast(str | None, answer["ac"]),
+        ac_notation=cast(AcNotation | None, answer["ac_notation"]),
+        thac0=cast(str | None, answer["thac0"]),
+        hit_dice=cast(str | None, answer["hit_dice"]),
+        class_level=cast(str | None, answer["class_level"]),
+        hp=cast(int | None, answer["hp"]),
+        attacks=tuple(cast(list[str], answer["attacks"])),
+        movement=cast(str | None, answer["movement"]),
+        saves=cast(str | None, answer["saves"]),
+        morale=cast(int | None, answer["morale"]),
+        alignment=cast(str | None, answer["alignment"]),
+        xp=cast(int | None, answer["xp"]),
+        number_appearing=cast(str | None, answer["number_appearing"]),
+        special=tuple(cast(list[str], answer["special"])),
+        confidence=cast(float, answer["confidence"]),
+        source_pages=tuple(cast(list[int], answer["source_pages"])),
+    )
+
+
 def monsters(workdir: Workdir, provider: ModelProvider) -> MonsterResolutions:
-    """Run stage 3: resolve every keyed encounter name and write `stages/monsters.json`.
+    """Run stage 3: resolve every keyed encounter name; write `stages/monsters.json` and `stages/statblocks.json`.
 
     Tiers 1-3 run first; the provider is called only if names remain — a fully
     deterministic resolution makes no model call. An empty name population
-    writes an empty cache and completes. The cache is a single atomic artifact;
-    no pre-clearing is needed.
+    writes an empty cache and completes. The stat-block pass then runs over
+    exactly the names still unresolved (under `custom_monsters: emit`): one
+    transcription request per name over its planned page set, with a name
+    whose plan is empty (no encounter pages, no text hits) cached as an
+    explicit absent marker without a model call. `stages/statblocks.json` is
+    rewritten on every run — the knob echo plus an entry per unresolved name;
+    under `off`, the echo and an empty `blocks`. Both caches are single atomic
+    artifacts; no pre-clearing is needed.
 
     Args:
         workdir: A workdir whose content stage is `completed`.
@@ -337,7 +580,26 @@ def monsters(workdir: Workdir, provider: ModelProvider) -> MonsterResolutions:
                     resolutions[name] = MonsterResolution(template_id=None, method="unresolved")
                 else:
                     resolutions[name] = MonsterResolution(template_id=template_id, method="llm")
+        blocks: dict[str, RawStatBlock | None] = {}
+        if run.settings.custom_monsters == "emit":
+            unresolved = sorted(name for name, entry in resolutions.items() if entry.template_id is None)
+            if unresolved:
+                page_texts = {
+                    number: workdir.page_txt(number).read_text(encoding="utf-8")
+                    for number in range(1, run.page_count + 1)
+                }
+                for name in unresolved:
+                    pages = statblock_page_plan(name, levels, page_texts)
+                    if not pages:
+                        blocks[name] = None
+                        continue
+                    response = provider.generate(build_statblock_request(name, page_request_parts(workdir, pages)))
+                    tracker.add_usage(response.usage)
+                    tracker.set_model(type(provider).__name__, response.model_id)
+                    blocks[name] = parse_statblock_response(response.data)
+        statblocks = StatBlocks(custom_monsters=run.settings.custom_monsters, blocks=blocks)
         cache_model = MonsterResolutions(resolutions=resolutions)
         workdir.stages_dir.mkdir(parents=True, exist_ok=True)
         write_json_artifact(workdir.monsters_json, cache_model)
+        write_json_artifact(workdir.statblocks_json, statblocks)
     return cache_model

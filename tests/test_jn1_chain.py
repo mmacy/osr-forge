@@ -1,9 +1,14 @@
 """The JN1 back-half chain and the phase 3 milestone gate — zero network.
 
-The monsters request is text-only (names plus catalog candidates — no page
-images), so it replays with zero network from the committed stage caches, the
-installed osrlib catalog, and the prompt code alone; no page assets are
-fabricated. The tests skip until the JN1 monsters recording session lands
+The monsters *resolution* request is text-only (names plus catalog candidates
+— no page images), so it replays with zero network from the committed stage
+caches, the installed osrlib catalog, and the prompt code alone; no page
+assets are fabricated. The stat-block pass does not share that property — its
+requests embed page renders the asset directory doesn't commit — so the
+replay test runs under `custom_monsters: off` and the committed
+`stages/statblocks.json` is evidence-grade (recorded by the JN1 monsters
+session, consumed deterministically by the goldens and the eval baseline).
+The tests skip until the JN1 monsters recording session lands
 `stages/monsters.json` (see `tools/extract/README.md`) — the skip is the
 honest state while the recording is pending, never a silent pass.
 
@@ -38,7 +43,7 @@ recorded = pytest.mark.skipif(
 )
 
 
-def jn1_workdir(root: Path, monsters_completed: bool) -> Workdir:
+def jn1_workdir(root: Path, monsters_completed: bool, settings: ConversionSettings | None = None) -> Workdir:
     workdir = Workdir(root)
     workdir.stages_dir.mkdir(parents=True)
     for path in sorted((JN1 / "stages").glob("*.json")):
@@ -60,7 +65,7 @@ def jn1_workdir(root: Path, monsters_completed: bool) -> Workdir:
         source_sha256="37e6325ad0ebd52077aedb9f7f247511709d80bb8a25e4dd8c95da83d2730240",
         source_bytes=15_769_968,
         page_count=PAGE_COUNT,
-        settings=ConversionSettings(),
+        settings=settings if settings is not None else ConversionSettings(),
         stages=stages,
     )
     workdir.write_run(run)
@@ -69,7 +74,14 @@ def jn1_workdir(root: Path, monsters_completed: bool) -> Workdir:
 
 @recorded
 def test_monsters_fixture_replays_byte_equal_to_the_committed_cache(tmp_path: Path):
-    workdir = jn1_workdir(tmp_path / "jn1.forge", monsters_completed=False)
+    # `custom_monsters: off` skips the stat-block pass: its requests embed page
+    # renders the asset directory doesn't commit, so only the text-only
+    # resolution exchange carries the replay promise. The committed
+    # `statblocks.json` is evidence-grade and untouched here (the off run
+    # writes its own echo into the fabricated workdir only).
+    workdir = jn1_workdir(
+        tmp_path / "jn1.forge", monsters_completed=False, settings=ConversionSettings(custom_monsters="off")
+    )
     provider = FixtureProvider(JN1 / "fixtures-extract" / "replay")
     monsters(workdir, provider)
     assert workdir.monsters_json.read_bytes() == (JN1 / "stages" / "monsters.json").read_bytes()

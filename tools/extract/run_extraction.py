@@ -17,14 +17,24 @@ from osrlib.data import load_monsters
 from osrforge.assemble import assemble
 from osrforge.content import build_batch_request, content, plan_content_batches
 from osrforge.contracts.run import RunMeta, TokenUsage
-from osrforge.contracts.stages import LevelContent, MonsterResolution, MonsterResolutions, SurveyIndex
+from osrforge.contracts.stages import (
+    LevelContent,
+    MonsterResolution,
+    MonsterResolutions,
+    RawStatBlock,
+    StatBlocks,
+    SurveyIndex,
+)
 from osrforge.estimate import INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN
 from osrforge.monsters import (
     build_monsters_request,
+    build_statblock_request,
     deterministic_resolutions,
     encounter_names,
     llm_candidates,
     monsters,
+    parse_statblock_response,
+    statblock_page_plan,
 )
 from osrforge.pages import page_request_parts
 from osrforge.preprocess import preprocess
@@ -132,9 +142,16 @@ def cmd_excerpt(args: argparse.Namespace) -> None:
 
 
 def cmd_monsters(args: argparse.Namespace) -> None:
-    # The monsters request is text-only and derives entirely from committed
-    # stage caches plus the installed catalog, so it records replay-grade over
-    # a bare stages directory — no fabricated workdir needed.
+    # The monsters resolution request is text-only and derives entirely from
+    # committed stage caches plus the installed catalog, so it records
+    # replay-grade over a bare stages directory. The stat-block pass needs
+    # pages: --pdf preprocesses the module into a temp workdir for renders and
+    # text layers, and its fixtures — which embed page images — record to
+    # --record-statblock-fixtures (the evidence directory), never to the
+    # replay directory.
+    import shutil
+    import tempfile
+
     stages_dir: Path = args.stages_dir
     index = SurveyIndex.model_validate_json((stages_dir / "survey.json").read_text(encoding="utf-8"))
     levels = [
@@ -151,8 +168,12 @@ def cmd_monsters(args: argparse.Namespace) -> None:
     resolutions = deterministic_resolutions(names, catalog, settings.monster_fuzzy_threshold)
     remaining = [name for name in names if name not in resolutions]
     print(f"{len(names)} names; tiers 1-3 resolved {len(resolutions)}, {len(remaining)} to the LLM tier")
+    base_provider: ModelProvider | None = None
     if remaining:
-        provider = make_provider(args.record_fixtures)
+        base_provider = FoundryProvider(FoundrySettings.from_env())
+        provider: ModelProvider = base_provider
+        if args.record_fixtures is not None:
+            provider = RecordingProvider(base_provider, args.record_fixtures)
         request = build_monsters_request(
             [(name, llm_candidates(name, catalog, settings.monster_llm_top_k)) for name in remaining]
         )
@@ -169,6 +190,43 @@ def cmd_monsters(args: argparse.Namespace) -> None:
     write_json_artifact(stages_dir / "monsters.json", cache)
     print_resolution_summary(cache)
     print(f"wrote {stages_dir / 'monsters.json'}")
+
+    if args.pdf is None:
+        # No pages, no stat-block pass; the committed statblocks.json (if any)
+        # is deliberately left alone.
+        return
+    unresolved = sorted(name for name, entry in resolutions.items() if entry.template_id is None)
+    blocks: dict[str, RawStatBlock | None] = {}
+    if unresolved:
+        temp_root = Path(tempfile.mkdtemp()) / "statblock-pages.forge"
+        run = preprocess(args.pdf, temp_root, settings)
+        pages_workdir = Workdir(temp_root)
+        page_texts = {
+            number: pages_workdir.page_txt(number).read_text(encoding="utf-8")
+            for number in range(1, run.page_count + 1)
+        }
+        if base_provider is None:
+            base_provider = FoundryProvider(FoundrySettings.from_env())
+        block_provider: ModelProvider = base_provider
+        if args.record_statblock_fixtures is not None:
+            block_provider = RecordingProvider(base_provider, args.record_statblock_fixtures)
+        for name in unresolved:
+            pages = statblock_page_plan(name, levels, page_texts)
+            if not pages:
+                blocks[name] = None
+                print(f"statblock {name!r}: no pages planned — absent marker")
+                continue
+            response = block_provider.generate(build_statblock_request(name, page_request_parts(pages_workdir, pages)))
+            blocks[name] = parse_statblock_response(response.data)
+            found = "block" if blocks[name] is not None else "absent"
+            print(
+                f"statblock {name!r}: pages {list(pages)} → {found} "
+                f"(in={response.usage.input_tokens} out={response.usage.output_tokens})"
+            )
+        shutil.rmtree(temp_root.parent)
+    statblocks = StatBlocks(custom_monsters=settings.custom_monsters, blocks=blocks)
+    write_json_artifact(stages_dir / "statblocks.json", statblocks)
+    print(f"wrote {stages_dir / 'statblocks.json'} ({len(blocks)} entries)")
 
 
 def cmd_goldens(args: argparse.Namespace) -> None:
@@ -276,6 +334,19 @@ def main() -> None:
         type=Path,
         default=None,
         help="record the LLM exchange as a fixture into this directory (opt-in; embeds monster names)",
+    )
+    monsters_parser.add_argument(
+        "--pdf",
+        type=Path,
+        default=None,
+        help="the module PDF; preprocessed into a temp workdir so the stat-block pass has pages "
+        "(omitting it skips the pass and leaves any committed statblocks.json alone)",
+    )
+    monsters_parser.add_argument(
+        "--record-statblock-fixtures",
+        type=Path,
+        default=None,
+        help="record the stat-block exchanges into this directory (evidence-grade: requests embed page images)",
     )
 
     goldens = subcommands.add_parser("goldens", help="assemble a committed stages directory into golden artifacts")

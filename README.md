@@ -67,7 +67,8 @@ Tests use no network — model interactions replay from recorded fixtures. The o
 | `survey_max_pages` | 50 | The survey chunk size — the service's measured 50-images-per-request cap: a source at or under it surveys in one request; a larger source surveys in page windows of this size, merged before normalization |
 | `monster_fuzzy_threshold` | 0.85 | Monster resolution's fuzzy-tier auto-accept floor, pinned against measured catalog pairs |
 | `monster_llm_top_k` | 8 | Candidate templates offered per name in the monster-resolution LLM tier |
-| `unresolved_fallback` | `best-effort` | Where resolution or parsing came up empty: flagged level-band monster stand-ins and unguarded-treasure rolls (`best-effort`), or leave the gap (`omit`) |
+| `custom_monsters` | `emit` | Whether the monsters stage runs the stat-block pass feeding custom-template emission: `emit` gives unresolved names the module's own creatures; `off` skips the per-unresolved-name model spend and keeps the draft SRD-catalog-pure (monsters-stage-owned — toggling it re-runs monsters, including its LLM tier) |
+| `unresolved_fallback` | `best-effort` | Where resolution or parsing came up empty and no usable stat block exists: flagged level-band monster stand-ins and unguarded-treasure rolls (`best-effort`), or leave the gap (`omit`) |
 
 On an existing workdir, change a knob with `rerun --set KEY=VALUE`: the update lands in the `run.json` settings echo before the chain runs, and a knob owned by a stage upstream of the rerun stage is rejected with the stage to rerun instead.
 

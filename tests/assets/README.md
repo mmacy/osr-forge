@@ -25,8 +25,8 @@ repository as a test asset and dedicated to the public domain under
   call (the pipeline-replay test would fail loudly if it ever did).
 - `expected/` — the full-chain goldens the pipeline-replay test pins
   byte-for-byte: the stage caches (`survey.json`,
-  `areas.<dungeon>.<level>.json`, `monsters.json`) at the top level, plus
-  `adventure.json`, `report.json`, and `previews/`. The re-bless rule: an
+  `areas.<dungeon>.<level>.json`, `monsters.json`, `statblocks.json`) at the
+  top level, plus `adventure.json`, `report.json`, and `previews/`. The re-bless rule: an
   osrlib or osr-forge version bump changes `adventure.json`'s stamped envelope
   and `report.json`'s `osrforge_version` — regenerate deliberately by
   re-running the fixture chain (the pipeline-replay test's `run_pipeline`

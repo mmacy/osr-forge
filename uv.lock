@@ -708,7 +708,7 @@ requires-dist = [
     { name = "azure-identity", marker = "extra == 'entra'", specifier = ">=1" },
     { name = "jsonschema", specifier = ">=4" },
     { name = "openai", specifier = ">=2.44" },
-    { name = "osrlib", specifier = ">=1.1,<2" },
+    { name = "osrlib", specifier = ">=1.2,<2" },
     { name = "pillow", specifier = ">=11" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pypdfium2", specifier = ">=5" },
@@ -740,14 +740,14 @@ docs = [
 
 [[package]]
 name = "osrlib"
-version = "1.1.0"
+version = "1.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/92/e7b5242776bfb9fd1191557485350eb4a9f71364403ac65f4c33982d69da/osrlib-1.1.0.tar.gz", hash = "sha256:685aacf02653074d4b5189f69579f4b784f7cb537fdeca14339f8d17f04aef72", size = 401224, upload-time = "2026-07-05T23:10:02.221Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8b/4a/f8bc99802bad107af2e4967e815be036d6b1becfba28af5ffad1cac9078c/osrlib-1.2.0.tar.gz", hash = "sha256:90611617c86f07b64cfb7d42b9b7cd8ea3914d2d694545ea25b7fd46ee7240c3", size = 402463, upload-time = "2026-07-18T03:46:21.6Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/63/1df4b3355b92c862760f127ea3644598e0e24f54c69a804d2e2842f0d037/osrlib-1.1.0-py3-none-any.whl", hash = "sha256:2e8e36cebe241872a9bdbf0b7a194adf6bc893162b5342b3694fa9a55865e4cd", size = 425897, upload-time = "2026-07-05T23:10:00.633Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/e4/a9aadc11cae007a30590d806027bf5481001cb95de50e609cac69d248a21/osrlib-1.2.0-py3-none-any.whl", hash = "sha256:928fabc30cc698f3b2308c1f84b2dc8cdb2df3363cd3722b323b006fb5153e51", size = 427108, upload-time = "2026-07-18T03:46:20.196Z" },
 ]
 
 [[package]]

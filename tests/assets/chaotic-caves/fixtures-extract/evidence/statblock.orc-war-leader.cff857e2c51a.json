@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "fingerprint": "cff857e2c51a91720c2bb0aa10fd466662ae14f8e560e7cd7b354dd7617b5fcc",
+  "tag": "statblock.orc-war-leader",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"orc war leader\" from the pages below.\n"
+      },
+      {
+        "text": "[page 25]\nThe Chaotic Caves The Caves\n13. CHIEF'S QUARTERS: The wily orc chief\nresides here. A war leader and a couple of\ncommon orcs are also usually found here.\nThe chief has a key that opens the eastern\ntemple door at room #9 attached to a necklace\nof long pencil-thin gold bars (value 100 gp).\nTreasure is housed in a locked chest with a gas\ntrap inside it. The trap is released when it is\nopened, unless some long pencil-sized object\nis inserted into a hole in back (the chief's\nnecklace is used for this). The gas will affect a\n10' area around the chest (save vs. Poison or\ndie; alternately the GM may substitute a\nsimilarly-nasty effect of his or her own\ndevising). In the chest are 800 gp, 500 ep,\n700 sp, and a Potion of Healing.\nThis room contains various bits of stout\nwooden furniture. Under a heavy chair in the\nnortheast corner is the alarm bell that rings if\neither of the trapped secret doors in room #11\nis opened without disarming it first.\nOrc Chief: AC 15, HD 4, #At 1 longsword, \nDam 1d8+2, Mv 20', Sv F4, ML 9, XP 240\nHP 18 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\nOrc War Leader: AC 14, HD 2, #At 1 longsword, \nDam 1d8+1, Mv 30', Sv F2, ML 9, XP 75\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n2 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8 (9 while chief and/or leader\nare present), XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n14. COMMON ROOM: This trash-littered room\nhouses nine orcs. They are currently throwing\nrocks at one who is standing against a wall.\nSeveral others are bruised. The game is to see\nwho can take the most beating before\nflinching. Each has 1d6 sp.\n9 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 3 ☐☐☐\n4 ☐☐☐☐ 3 ☐☐☐\n4 ☐☐☐☐ 2 ☐☐\n4 ☐☐☐☐\n15. COMMON ROOM: This room houses seven\norcs. It is cluttered by miscellaneous debris\nthat they have torn up and discarded, as well\nas firewood and stone circles for cooking.\nHidden in a hole in the northeast corner\n(covered by a stack of fireplace rocks and a\nfoot of earth) is a bag with 10 pp and 400 sp.\n7 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐\nC. HOBGOBLIN LAIR\nThese hobgoblins have taken over what was\ngoing to be an expansion of the funeral crypt at\nD and are renovating it. The interior is a\nmixture of smooth stone where the original\ncarvers completed their work, rough unfinished\nwork where they left off, and some work by\nthe hobgoblins.\nENTRANCE: Twin entrances lead into the first\nchamber where five hobgoblins are bunked on\nguard duty. Each has 1d6 sp.\nAt \"A\" is a wide underground stream being\nused as a moat. Wooden planks about 15' long\n(used to cross it) are stored on the opposite\nside. A loud horn (from an ox) hangs on a peg\nand can be blown to attract someone to come\nput planks across (the hobgoblins at #17 are\ntasked for the job). Other methods can be\nused to cross it; if the players engage in a\nlengthy debate or over-elaborate plan to cross,\nroll 1d6 and on a 5 or 6 two hobgoblins from\n#17 appear to interrupt.\nIn the northwest corner at \"C\" is a crude hide\npainted to resemble stone used for laying\nambushes (i.e. hiding behind the hide and\nletting people get inside the room, then rushing\nout to attack).\n5 Hobgoblins: AC 14, HD 1, #At 1 scimitar, \nDam 1d8, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐\n23"
+      },
+      {
+        "sha256": "2b6f9df6ce935538fdd3d53f5c076f5d052e276d7eaeeb35407ac7b46732f0ed",
+        "bytes": 488590
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      },
+      {
+        "text": "[page 15]\nThe Chaotic Caves The Town and Surroundings\nSpecial Table\n1 1d3 Giant Bats: AC 14, HD 2, #At 1 bite, \nDam 1d4, Mv 10' Fly 60' (10'), Sv F2, \nML 8, XP 75 ea.\n2 1d6 Giant Bees: AC 13, HD ½ (1d4 HP)*, \n#At 1 sting, Dam 1d4 + poison, Mv 10' Fly\n50', Sv F1, ML 9, XP 13 ea.\n3 1d2 Giant Gecko Lizards: AC 15, HD 3+1, \n#At 1 bite, Dam 1d8, Mv 40' (special), \nSv F2, ML 7, XP 145 ea.\n4 1 Giant Crab Spider: AC 13, HD 2*, #At 1 \nbite, Dam 1d8 + poison, Mv 40', Sv F2, \nML 7, XP 100\n5 1d6 Stirges: AC 13, HD 1*, #At 1 bite, \nDam 1d4 + 1d4/round blood drain, Mv 10'\nFly 60', Sv F1, ML 9, XP 37 ea.\n6 1 Mountain Lion: AC 14, HD 3+2, #At 2 \nclaws/1 bite, Dam 1d4/1d4/1d6, Mv 50', \nSv F3, ML 8, XP 145\n7 1d2 Boars: AC 13, HD 3, #At 1 tusk, \nDam 2d4, Mv 50' (10'), Sv F3, ML 9, \nXP 145 ea.\n8 1d2 Ghouls: AC 14, HD 2*, #At 2 claws, \n1 bite, Dam 1d4 claw, 1d4 bite, all + \nparalysis, Mv 30', Sv F2, ML 9, XP 100 ea.\n9 1d2 Harpies: AC 13, HD 2*, #At 2 claws, \n1 shortsword + special, Dam 1d4 claw, \n1d6 shortsword + special, Mv 20' \nFly 50' (10'), Sv F2, ML 7, XP 100 ea.\n10 1d4+1 Soldiers on Patrol (not in cave \narea; see town description): AC 13, HD 1,\n#At 1 spear, Dam 1d6, Mv 30', Sv F1, \nML 8, XP 25 ea.\n11 1d3 Giant Toads: AC 13, HD 2, \n#At 1 tongue or 1 bite, Dam grab or \n1d4+1, Mv 30' Swim 30', Sv F2, ML 6, \nXP 75 ea.\n12 1d4 Wolves: AC 13, HD 2, #At 1 bite, \nDam 1d6, Mv 60', Sv F2, ML 8, XP 75 ea.\nPlaced Wilderness Encounters\nThese locations are marked on the map.\n1. RUINED CASTLE: This ruined castle has been\nquarried now and then for building stone and\nhence is known by the locals. There are\nseveral broken statues about. As the PCs\ninvestigate, they find it occupied by orcs:\nOrc War Leader: AC 14, HD 2, #At 1 longsword, \nDam 1d8+1, Mv 30', Sv F2, ML 8, XP 75\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n6 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nThese orcs are on their way to the caves. After\ndealing with the orcs, the PCs will find that\none has a piece of paper that helps narrow\ndown their search for the caves (if they have\nnot found it and if it is not here). The orcs also\nhave 60 gp in coins, six silver-tipped arrows,\nand a Potion of Healing.\n2. BANDITS ON THE ROAD: The PCs encounter\ntwo wagons. The lead one is a traveler's home\nor \"vardo\" (a small house on a wagon bed)\nfollowed by a cargo wagon. Each wagon is\npulled by four horses and driven by a two-man\ncrew. Six more men ride horses alongside, and\ntwo dogs lope along with them, tongues lolling.\nAll of the men are wearing what appears to be\nnormal clothing. A close look will reveal that\nthe dogs show some signs of a recent fight, as\ndo some of the men, and that the men wear\nleather or chain mail armor under their\nclothing.\nThese bandits have just captured these\nwagons. The owners are tied up inside the\nvardo. Their bodyguards of relatives who\nvolunteered to help them move are miles away\njust getting loose from ropes (they were tied\nup and left behind).\nThe bandits will try to trick and attack the PCs\nif success seems likely; otherwise they will try\nto pass by peacefully.\n13"
+      },
+      {
+        "sha256": "d0abe14998a061d3f9120e6902bef020632fc07e848e86a5e9204712e90293e2",
+        "bytes": 578620
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "14",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2",
+      "class_level": null,
+      "hp": 10,
+      "attacks": [
+        "1 longsword, Dam 1d8+1"
+      ],
+      "movement": "30'",
+      "saves": "Sv F2",
+      "morale": 8,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.95,
+      "source_pages": [
+        15,
+        25
+      ]
+    },
+    "usage": {
+      "input_tokens": 6044,
+      "output_tokens": 113
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

@@ -441,6 +441,7 @@ def content(workdir: Workdir, provider: ModelProvider) -> tuple[LevelContent, ..
         for stale in workdir.area_caches():
             stale.unlink()
         workdir.monsters_json.unlink(missing_ok=True)
+        workdir.statblocks_json.unlink(missing_ok=True)
         for plan in plan_content_batches(index, run.settings.content_batch_pages):
             level = _extract_level(workdir, provider, plan, run.page_count, tracker)
             workdir.stages_dir.mkdir(parents=True, exist_ok=True)

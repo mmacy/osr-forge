@@ -13,7 +13,14 @@ from osrforge.contracts.report import Flag, LintCheck
 
 _FLAG_MEANINGS = {
     Flag.GEOMETRY_SYNTHESIZED: "the area's grid geometry was synthesized from the connection graph, not the map",
-    Flag.MONSTER_UNRESOLVED: "an encounter name resolved to no catalog template (detail: the name)",
+    Flag.MONSTER_UNRESOLVED: (
+        "an encounter name resolved to no catalog template and no usable stat block was found "
+        "(detail: the name, or `name → stand-in` under the best-effort fallback)"
+    ),
+    Flag.MONSTER_CUSTOM: (
+        "an encounter carries an emitted custom template mapped from the module's printed stat block "
+        "(detail: the name; the report's monsters summary records the derived fields)"
+    ),
     Flag.LOW_CONFIDENCE: "extraction self-assessed low confidence, or a module-scope field was defaulted",
     Flag.CONNECTION_AMBIGUOUS: "an extracted connection could not be realized (detail: the reason)",
     Flag.TRANSITION_GUESSED: "a level-targeted link's landing was guessed (detail: the chosen far end)",

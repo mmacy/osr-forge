@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "custom_monsters": "emit",
+  "blocks": {
+    "elven thief": {
+      "ac": "14 due to dexterity",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": null,
+      "class_level": "Elven Thief 3",
+      "hp": 9,
+      "attacks": [
+        "1 shortsword",
+        "1 shortbow"
+      ],
+      "movement": "30'",
+      "saves": "Sv E-T3",
+      "morale": 8,
+      "alignment": null,
+      "xp": 145,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        30
+      ]
+    },
+    "fighters": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": null,
+      "class_level": "F2",
+      "hp": 8,
+      "attacks": [
+        "1 weapon"
+      ],
+      "movement": "20'",
+      "saves": "Sv F2",
+      "morale": 8,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": "3",
+      "special": [
+        "Dam 1d8 (1d8+1 for one for longword +1)"
+      ],
+      "confidence": 0.88,
+      "source_pages": [
+        43
+      ]
+    },
+    "giant gecko lizard": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "3+1",
+      "class_level": null,
+      "hp": 13,
+      "attacks": [
+        "1 bite, Dam 1d8"
+      ],
+      "movement": "40'",
+      "saves": "Sv F2",
+      "morale": 7,
+      "alignment": null,
+      "xp": 145,
+      "number_appearing": "1d2",
+      "special": [
+        "Mv 40' (special)"
+      ],
+      "confidence": 0.97,
+      "source_pages": [
+        15,
+        32,
+        34
+      ]
+    },
+    "human cleric 3": {
+      "ac": "18",
+      "ac_notation": "ascending",
+      "thac0": "+2",
+      "hit_dice": null,
+      "class_level": "Human Cleric 3",
+      "hp": 11,
+      "attacks": [
+        "1 mace, Dam 1d8+1",
+        "1 mace, Dam 1d8-1"
+      ],
+      "movement": "20'",
+      "saves": "Sv C3",
+      "morale": 9,
+      "alignment": null,
+      "xp": 145,
+      "number_appearing": null,
+      "special": [
+        "wearing plate mail and wielding mace and shield",
+        "Spells: 1st level – cure light wounds, remove fear",
+        "Magic Items: 2 Potions of Healing",
+        "STR 15 (+1)",
+        "wearing plate mail and wielding mace and shield",
+        "Spells: 1st level – cure light wounds, light",
+        "Magic Items: Potion of Healing, Potion of Invisibility",
+        "STR 8 (-1), CHA 7 (-1)"
+      ],
+      "confidence": 0.8,
+      "source_pages": [
+        45
+      ]
+    },
+    "human fighter 1": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": "+1",
+      "hit_dice": null,
+      "class_level": "Human Fighter 1",
+      "hp": 6,
+      "attacks": [
+        "1 spear"
+      ],
+      "movement": "20'",
+      "saves": "Sv F1",
+      "morale": 8,
+      "alignment": null,
+      "xp": 25,
+      "number_appearing": "6",
+      "special": [],
+      "confidence": 0.71,
+      "source_pages": [
+        41
+      ]
+    },
+    "human fighter 2": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": "+2",
+      "hit_dice": null,
+      "class_level": "Human Fighter 2",
+      "hp": 8,
+      "attacks": [
+        "1 longsword"
+      ],
+      "movement": "20'",
+      "saves": "Sv F2",
+      "morale": 8,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.96,
+      "source_pages": [
+        41,
+        43,
+        16,
+        29
+      ]
+    },
+    "human magic-user 4": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": "AB +2",
+      "hit_dice": null,
+      "class_level": "Human Magic-User 4",
+      "hp": 10,
+      "attacks": [
+        "1 dagger or spell, Dam 1d4 or by spell"
+      ],
+      "movement": "40'",
+      "saves": "Sv M4",
+      "morale": 9,
+      "alignment": null,
+      "xp": 280,
+      "number_appearing": null,
+      "special": [
+        "Spells: 1st level – sleep, magic missile; 2nd level – detect invisible, web",
+        "Magic Items: Wand of Magic Missiles (11 charges), Ring of Protection +1, Cloak of Displacement",
+        "Scrolls: magic missile, sleep",
+        "STR 8 (-1), DEX 15 (+1)"
+      ],
+      "confidence": 0.98,
+      "source_pages": [
+        45
+      ]
+    },
+    "orc war leader": {
+      "ac": "14",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2",
+      "class_level": null,
+      "hp": 10,
+      "attacks": [
+        "1 longsword, Dam 1d8+1"
+      ],
+      "movement": "30'",
+      "saves": "Sv F2",
+      "morale": 8,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.95,
+      "source_pages": [
+        15,
+        25
+      ]
+    },
+    "tentacle worm": {
+      "ac": "13",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "3*",
+      "class_level": null,
+      "hp": 12,
+      "attacks": [
+        "6 tentacles, Dam paralysis"
+      ],
+      "movement": "40'",
+      "saves": "F3",
+      "morale": 9,
+      "alignment": null,
+      "xp": 175,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        16
+      ]
+    }
+  }
+}

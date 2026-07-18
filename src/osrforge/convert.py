@@ -42,6 +42,7 @@ KNOB_STAGES: Mapping[str, Stage] = {
     "content_batch_pages": Stage.CONTENT,
     "monster_fuzzy_threshold": Stage.MONSTERS,
     "monster_llm_top_k": Stage.MONSTERS,
+    "custom_monsters": Stage.MONSTERS,
     "unresolved_fallback": Stage.ASSEMBLE,
 }
 """Each settings knob's owning stage — the drift guard's table.

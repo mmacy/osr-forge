@@ -39,6 +39,7 @@ dungeons:
           - key: "5"
             encounters:
               - name: orc warden
+                custom: true
                 count: 1
               - name: orc
                 template: orc
@@ -57,6 +58,7 @@ dungeons:
           - key: "6"
             encounters:
               - name: orc chief
+                custom: true
                 count: 1
               - name: mountain lion
                 template: mountain_lion
@@ -114,8 +116,10 @@ dungeons:
           - key: "13"
             encounters:
               - name: orc chief
+                custom: true
                 count: 1
               - name: orc war leader
+                custom: true
                 count: 1
               - name: orc
                 template: orc
@@ -179,6 +183,7 @@ dungeons:
           - key: "21"
             encounters:
               - name: hobgoblin chief
+                custom: true
                 count: 1
               - name: hobgoblin
                 template: hobgoblin
@@ -260,6 +265,7 @@ dungeons:
           - key: "31"
             encounters:
               - name: goblin king
+                custom: true
                 count: 1
               - name: goblin
                 template: goblin
@@ -298,6 +304,7 @@ dungeons:
           - key: "36"
             encounters:
               - name: bandit leader
+                custom: true
                 count: 1
               - name: bandit crony
                 template: veteran_2
@@ -330,6 +337,7 @@ dungeons:
           - key: "41"
             encounters:
               - name: elven thief
+                custom: true
                 count: 1
             treasure:
               present: false
@@ -378,8 +386,10 @@ dungeons:
           - key: "48"
             encounters:
               - name: kobold chief
+                custom: true
                 count: 1
               - name: kobold bodyguard
+                custom: true
                 count: 2
               - name: kobold
                 template: kobold
@@ -423,6 +433,7 @@ dungeons:
           - key: "54"
             encounters:
               - name: lizard man leader
+                custom: true
                 count: 1
               - name: lizard man
                 template: lizard_man
@@ -516,6 +527,7 @@ dungeons:
           - key: "68"
             encounters:
               - name: bugbear chief
+                custom: true
                 count: 1
               - name: bugbear
                 template: bugbear
@@ -559,6 +571,7 @@ dungeons:
           - key: "74"
             encounters:
               - name: gnoll leader
+                custom: true
                 count: 1
               - name: gnoll
                 template: gnoll
@@ -754,8 +767,10 @@ dungeons:
           - key: "106"
             encounters:
               - name: human magic-user 4
+                custom: true
                 count: 1
               - name: human cleric 3
+                custom: true
                 count: 2
             connections: ["98"]
             treasure:

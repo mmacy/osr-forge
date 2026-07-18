@@ -21,9 +21,9 @@ from dataclasses import dataclass, field
 
 from osrlib.crawl.dungeon import Direction, Edge, Position, TransitionSpec, edge_key
 
-from osrforge.contracts.overrides import AreaOverride, ModuleOverride, Overrides, TownOverride
+from osrforge.contracts.overrides import AreaOverride, ModuleOverride, Overrides, StatBlockOverride, TownOverride
 from osrforge.contracts.report import AreaAddress, LevelAddress
-from osrforge.contracts.stages import MonsterResolution, MonsterResolutions, SurveyIndex, SurveyLevel
+from osrforge.contracts.stages import MonsterResolution, MonsterResolutions, RawStatBlock, SurveyIndex, SurveyLevel
 from osrforge.errors import OverrideError
 from osrforge.geometry import LevelGeometry, edge_sort_key
 from osrforge.monsters import normalize_monster_name
@@ -34,9 +34,11 @@ __all__ = [
     "OverridePlan",
     "apply_level_overrides",
     "apply_monster_overrides",
+    "apply_template_overrides",
     "canonicalize_edge_key",
     "effective_roster",
     "plan_overrides",
+    "plan_template_overrides",
 ]
 
 AREA_OVERRIDE_FIELDS = ("name", "description", "encounter", "trap", "treasure", "features")
@@ -110,6 +112,98 @@ def apply_monster_overrides(resolutions: MonsterResolutions, overrides: Override
             )
         replaced[name] = MonsterResolution(template_id=override.template_id, method="override")
     return MonsterResolutions(resolutions=replaced)
+
+
+def plan_template_overrides(overrides: Overrides, resolutions: MonsterResolutions) -> dict[str, StatBlockOverride]:
+    """Resolve and validate the `monster_templates:` entries against the monsters cache.
+
+    Addressing and contradiction errors surface here, before any stage
+    tracking or artifact write. The cache-state errors (no `statblocks.json`,
+    an `off` knob echo) are assembly's — only assembly knows what caches
+    exist — so this function validates what the correction file alone can
+    contradict.
+
+    Args:
+        overrides: The loaded correction file.
+        resolutions: The monsters-stage cache (as written — the extracted-name
+            authority the entries address).
+
+    Returns:
+        Normalized name → its entry, for every `monster_templates:` entry.
+
+    Raises:
+        OverrideError: If two entry keys normalize to the same name, a name
+            also appears under `monsters:` ("use this catalog id" and "use
+            this custom block" are contradictory corrections), a key matches
+            no extracted name (the error lists the cache's unresolved names —
+            the likeliest targets), or an entry sets no field beyond `reason`.
+    """
+    if not overrides.monster_templates:
+        return {}
+    remapped = {normalize_monster_name(key) for key in overrides.monsters}
+    claimed: dict[str, str] = {}
+    entries: dict[str, StatBlockOverride] = {}
+    for raw_key, entry in overrides.monster_templates.items():
+        name = normalize_monster_name(raw_key)
+        if name in claimed:
+            raise OverrideError(
+                f"monster template overrides {claimed[name]!r} and {raw_key!r} both normalize to {name!r} — "
+                "contradictory corrections"
+            )
+        claimed[name] = raw_key
+        if name in remapped:
+            raise OverrideError(
+                f"{name!r} appears under both monsters: and monster_templates: — "
+                '"use this catalog id" and "use this custom block" are contradictory corrections'
+            )
+        if name not in resolutions.resolutions:
+            unresolved = sorted(
+                cached for cached, cached_entry in resolutions.resolutions.items() if cached_entry.template_id is None
+            )
+            raise OverrideError(
+                f"monster template override {raw_key!r} matches no extracted name; "
+                f"unresolved names in the cache: {unresolved}"
+            )
+        if not (entry.model_fields_set - {"reason"}):
+            raise OverrideError(
+                f"monster template override {raw_key!r} replaces nothing — set a field or remove the entry"
+            )
+        entries[name] = entry
+    return entries
+
+
+def apply_template_overrides(
+    blocks: dict[str, RawStatBlock | None], entries: dict[str, StatBlockOverride]
+) -> dict[str, RawStatBlock | None]:
+    """Apply the planned template entries to the cached raw blocks, pre-mapping.
+
+    An entry patches its name's cached block field by field — absent leaves
+    the extracted value, explicit `null` clears it back to unprinted — and a
+    name with no cached block (or an absent marker) gets a candidate block
+    from the entry's fields alone. The result feeds the same refusal ladder
+    and mapping an extracted block does; the inputs are unchanged.
+
+    Args:
+        blocks: The stat-block cache's `blocks` (normalized name → block or
+            absent marker).
+        entries: The planned entries
+            ([`plan_template_overrides`][osrforge.overrides.plan_template_overrides]).
+
+    Returns:
+        The effective candidate blocks.
+    """
+    result: dict[str, RawStatBlock | None] = dict(blocks)
+    for name, entry in entries.items():
+        base = result.get(name)
+        data = base.model_dump() if base is not None else {}
+        for field_name in entry.model_fields_set - {"reason"}:
+            value = getattr(entry, field_name)
+            if value is None:
+                data.pop(field_name, None)
+            else:
+                data[field_name] = value
+        result[name] = RawStatBlock.model_validate(data)
+    return result
 
 
 @dataclass(frozen=True)

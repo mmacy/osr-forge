@@ -30,16 +30,18 @@ whose request digests embed module text (also licensed):
   spike (see `docs/foundry-capabilities.md`). Replay-grade fixtures pair with
   `pages/`; evidence-grade fixtures (image-count, DPI, and context boundary
   probes) are committed without their page assets and replay is not promised.
-- `fixtures-extract/` — phase 1 extraction recordings, classified by
-  directory: `replay/` holds the excerpt survey and first-content-batch
-  fixtures recorded over `pages/` (replayed in tests with zero network);
-  `evidence/` holds the full 48-page milestone run's fixtures (no replay
-  promise — their requests reference uncommitted workdir renders).
-- `stages/` — the stage caches (`survey.json`, `areas.<dungeon>.<level>.json`)
-  the milestone run produced; the credibility-floor test gates them. Their
-  text derives from the module's licensed text. Phase 2's `monsters.json`
-  joins them once the JN1 monsters recording session runs (see
-  `tools/extract/README.md`).
+- `fixtures-extract/` — extraction recordings, classified by directory:
+  `replay/` holds the excerpt survey, first-content-batch, and monsters
+  resolution fixtures recorded over committed assets (replayed in tests with
+  zero network); `evidence/` holds the full 48-page milestone run's fixtures
+  and the phase 7 stat-block transcription fixtures (no replay promise —
+  their requests reference uncommitted workdir renders).
+- `stages/` — the stage caches (`survey.json`, `areas.<dungeon>.<level>.json`,
+  `monsters.json`, and phase 7's `statblocks.json`) the recording sessions
+  produced; the credibility-floor test gates them. Their text derives from
+  the module's licensed text. `statblocks.json` is evidence-grade — its
+  producing requests embed uncommitted page renders — and is consumed
+  deterministically by the goldens and the JN1 eval baseline.
 - `overrides.yaml` — the phase 3 correction session's file: every entry a
   genuine correction with its reason, checked against the module's printed
   stat blocks and maps. It is itself a test asset — the milestone gate

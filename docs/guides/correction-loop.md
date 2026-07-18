@@ -11,10 +11,10 @@ and costs nothing.
    [flags](../reference/vocabulary.md), the monster-resolution summary, and —
    after `check` — the playability findings. The `previews/*.svg` maps are for
    eyeballing synthesized geometry against the printed map.
-2. **Edit `overrides.yaml`.** Monster remaps, per-area field replacement, area
-   adds and removes, geometry (cells, edges, entrance, transitions), and
-   town/module metadata. Every entry carries a `reason` — corrections are
-   reviewable decisions.
+2. **Edit `overrides.yaml`.** Monster remaps and stat-block patches, per-area
+   field replacement, area adds and removes, geometry (cells, edges, entrance,
+   transitions), and town/module metadata. Every entry carries a `reason` —
+   corrections are reviewable decisions.
 3. **`osrforge assemble && osrforge check`.** Re-assembly is instant and pure;
    `check` runs osrlib's `validate_adventure` plus the playability lint and
    exits 0 once validation passes and no error-severity finding remains.
@@ -30,6 +30,11 @@ monsters:
   "hobgoblin chieftain":
     template_id: hobgoblin
     reason: No SRD template for the named chieftain; base hobgoblin is closest.
+
+monster_templates:
+  "tentacle worm":
+    ac: "3 [16]"
+    reason: The extracted stat block read AC 8; the page prints 3.
 
 areas:
   barrow/1/7:
@@ -75,6 +80,32 @@ Three application rules complete the contract:
 Duplicate YAML mapping keys are rejected at load: in a hand-edited correction
 file a repeated key means two contradictory corrections, and one of them
 silently losing is the worst outcome.
+
+## Correcting monsters
+
+Two override kinds share the monster namespace, and the decision tree is
+about what the printed page offers:
+
+- **Wrong SRD pick with a right one available → `monsters:` remap.** The
+  classic case: the LLM tier picked a merely similar catalog creature and the
+  catalog has the real one.
+- **Wrong SRD pick with no right one → `monster_templates:` patch.** An entry
+  on a name the tiers *resolved* forces emission of the module's own creature
+  from its cached stat block — the remedy for a flagless wrong pick.
+- **Bad extracted field → `monster_templates:` patch.** Entries patch the raw
+  *printed* block pre-mapping (fix the AC once, not both derived forms);
+  absent fields stay extracted, explicit `null` clears one back to unprinted.
+- **No block found but one is printed → `monster_templates:` supply.** An
+  entry on a name with no cached block forms the candidate block from its own
+  fields; it needs at least an AC and an HD line (or class-level notation) —
+  the same usability bar assembly holds extracted blocks to.
+
+The same name under both kinds is rejected as contradictory ("use this
+catalog id" vs. "use this custom block"), and a `monster_templates:` entry
+against a workdir with no stat-block cache — or one written under
+`custom_monsters: off` — fails loudly naming the remedy (`rerun monsters`).
+Remapping *to* an emitted template id via `monsters:` is legal; the id is in
+the draft's catalog union like any other.
 
 ## Reading `check`'s findings
 

@@ -23,12 +23,28 @@ regardless.
 
 import hashlib
 import re
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from osrlib.core.alignment import Alignment
+from osrlib.core.classes import SavingThrows
 from osrlib.core.dice import parse as parse_dice
 from osrlib.core.items import Coins
-from osrlib.core.tables import EncounterTable, MonsterEncounterEntry
+from osrlib.core.monsters import (
+    AlignmentSpec,
+    AttackRoutine,
+    MonsterAbility,
+    MonsterAttack,
+    MonsterHitDice,
+    MonsterSaves,
+    MonsterTemplate,
+    MovementMode,
+    NumberAppearing,
+    NumberAppearingValue,
+    TreasureRef,
+)
+from osrlib.core.tables import EncounterTable, MonsterEncounterEntry, monster_save_band_label, monster_xp, thac0_for_hd
 from osrlib.crawl.adventure import Adventure, TownSpec, validate_adventure
 from osrlib.crawl.dungeon import (
     AreaSpec,
@@ -43,13 +59,14 @@ from osrlib.crawl.dungeon import (
     TrapSpec,
     ValuableSpec,
 )
-from osrlib.data import load_encounter_tables, load_equipment, load_monsters
+from osrlib.data import load_classes, load_combat_tables, load_encounter_tables, load_equipment, load_monsters
 from osrlib.errors import ContentValidationError
 from osrlib.versioning import stamp_document
 
 from osrforge.contracts.overrides import AreaOverride, ModuleOverride, TownOverride, load_overrides
 from osrforge.contracts.report import (
     AreaReport,
+    CustomMonsterRecord,
     ExtractionReport,
     Flag,
     ModuleInfo,
@@ -62,9 +79,13 @@ from osrforge.contracts.stages import (
     AreaContent,
     AreaEncounter,
     LevelContent,
+    MonsterResolution,
     MonsterResolutions,
+    RawStatBlock,
+    StatBlocks,
     SurveyIndex,
 )
+from osrforge.errors import OverrideError
 from osrforge.geometry import LevelGeometry, synthesize_geometry
 from osrforge.monsters import encounter_names, normalize_monster_name
 from osrforge.overrides import (
@@ -72,14 +93,26 @@ from osrforge.overrides import (
     OverridePlan,
     apply_level_overrides,
     apply_monster_overrides,
+    apply_template_overrides,
     effective_roster,
     plan_overrides,
+    plan_template_overrides,
 )
 from osrforge.previews import render_level_svg
 from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
 
-__all__ = ["AssembleResult", "assemble", "build_draft", "parse_treasure", "render_previews"]
+__all__ = [
+    "AssembleResult",
+    "EmittedTemplate",
+    "assemble",
+    "build_draft",
+    "emit_custom_templates",
+    "map_stat_block",
+    "parse_treasure",
+    "render_previews",
+    "usable_stat_block",
+]
 
 # The unanchored dice scan (osrlib's die sizes, optional count): a treasure
 # string containing dice notation is per-monster or conditional treasure and
@@ -206,6 +239,668 @@ def parse_treasure(strings: tuple[str, ...]) -> ParsedTreasure:
     )
 
 
+# ---------------------------------------------------------------------------
+# Custom-template mapping (phase 7): deterministic assembly of cached raw stat
+# blocks into MonsterTemplates. Every rules judgment lives here — the
+# stat-block pass only transcribes — under one non-negotiable rule: a mapped
+# value is either traceably printed or recorded as derived.
+# ---------------------------------------------------------------------------
+
+_AC_DUAL = re.compile(r"^\s*(-?\d+)\s*\[\s*(-?\d+)\s*\]\s*$")
+_FIRST_INT = re.compile(r"-?\d+")
+_HD_FRACTION = re.compile(r"½|¼|\b1\s*/\s*[248]\b")
+_HD_MAIN = re.compile(r"(\d+)\s*(?:d\s*(\d+))?\s*([+-]\s*\d+)?")
+_CLASS_LETTER = re.compile(r"^\s*(mu|[fcmtdeh])\W*(\d+)\s*$", re.IGNORECASE)
+_CLASS_WORDS: tuple[tuple[str, str], ...] = (
+    ("magic-user", "magic_user"),
+    ("magic user", "magic_user"),
+    ("magicuser", "magic_user"),
+    ("fighter", "fighter"),
+    ("cleric", "cleric"),
+    ("thief", "thief"),
+    ("dwarf", "dwarf"),
+    ("elf", "elf"),
+    ("halfling", "halfling"),
+)
+_CLASS_LETTER_IDS = {
+    "f": "fighter",
+    "c": "cleric",
+    "m": "magic_user",
+    "mu": "magic_user",
+    "t": "thief",
+    "d": "dwarf",
+    "e": "elf",
+    "h": "halfling",
+}
+_SAVE_AS_LETTERS = {
+    "fighter": "F",
+    "cleric": "C",
+    "magic_user": "MU",
+    "thief": "T",
+    "dwarf": "D",
+    "elf": "E",
+    "halfling": "H",
+}
+_THAC0_BRACKET = re.compile(r"\[\s*([+-]?\d+)\s*\]")
+_THAC0_LEAD = re.compile(r"^\s*(\d+)")
+_THAC0_BONUS = re.compile(r"(?<![\d\[])([+-]\d+)")
+_SAVE_LABEL = re.compile(r"^\s*(?:sv\.?|saves?)\s*:?\s*", re.IGNORECASE)
+_SAVES_DWPBS = re.compile(r"d\s*(\d+)\W+w\s*(\d+)\W+p\s*(\d+)\W+b\s*(\d+)\W+s\s*(\d+)", re.IGNORECASE)
+_PAREN = re.compile(r"\(([^)]*)\)")
+_SAVE_AS = re.compile(r"\bsaves?\s+as\s+(.+)$", re.IGNORECASE)
+_DICE_TOKEN = re.compile(r"(\d*)\s*d\s*(\d+)\s*((?:[+-]\s*\d+)?)")
+_RANGE_TOKEN = re.compile(r"(\d+)\s*[-–]\s*(\d+)")  # noqa: RUF001 — modules print en-dash ranges
+_MOVE_TOKEN = re.compile(
+    r"(?:([A-Za-z][A-Za-z ]*?)[\s:]+)?(\d+)\s*(?:'|ft\.?|feet)?\s*(?:\(\s*(\d+)\s*(?:'|ft\.?|feet)?\s*\))?"
+)
+_MOVE_LABELS = frozenset({"mv", "move", "movement", "spd", "speed"})
+_ATTACK_ITEM = re.compile(r"(?:(\d+)\s*[x×]?\s+)?([A-Za-z][A-Za-z' \-]*?)\s*\(([^)]*)\)")  # noqa: RUF001
+# The labelled BFRPG form: "1 bite, Dam 1d8", "6 tentacles, Dam paralysis", bare "1 spear".
+_ATTACK_DAM = re.compile(
+    r"^(?:(\d+)\s*[x×]?\s+)?([A-Za-z][A-Za-z' ,;\-]*?)(?:[,;:]?\s+dam(?:age)?\.?:?\s+(.+))?$",  # noqa: RUF001
+    re.IGNORECASE,
+)
+# Effect keywords the damage clause can print, mapped to osrlib's tag spellings.
+_EFFECT_WORDS: tuple[tuple[str, str], ...] = (
+    ("paraly", "paralysis"),
+    ("poison", "poison"),
+    ("energy drain", "energy_drain"),
+    ("petrif", "petrification"),
+    ("charm", "charm"),
+    ("disease", "disease"),
+)
+# " or " outside parentheses separates alternative routines; inside them it is
+# damage prose ("1d6 or paralysis") — the lookahead holds for the unnested
+# parens stat blocks print.
+_ROUTINE_SPLIT = re.compile(r"\s+or\s+(?![^()]*\))", re.IGNORECASE)
+_DIE_SIZES = frozenset({2, 3, 4, 6, 8, 10, 12, 20, 100})
+
+
+@dataclass(frozen=True)
+class _ParsedHd:
+    """A printed Hit Dice line, structurally parsed: count, printed die (if any), modifier, asterisks."""
+
+    count: int
+    die: int | None
+    modifier: int
+    asterisks: int
+    fractional: bool
+
+
+@dataclass(frozen=True)
+class EmittedTemplate:
+    """One emitted custom template with its review record inputs."""
+
+    template: MonsterTemplate
+    derived: tuple[str, ...]
+    source_pages: tuple[int, ...]
+
+
+def _parse_ac(block: RawStatBlock) -> tuple[int, int, bool] | None:
+    """Parse the printed AC into `(descending, ascending, complement_derived)`, or None.
+
+    Dual notation carries both values as printed; a single value converts by
+    the 19-complement (the B/X identity OSE prints directly: `AC 5 [14]`) in
+    the direction the block's notation states, defaulting to descending — the
+    B/X reading — when the notation is unclassified.
+    """
+    if block.ac is None:
+        return None
+    dual = _AC_DUAL.match(block.ac)
+    if dual is not None:
+        return int(dual.group(1)), int(dual.group(2)), False
+    match = _FIRST_INT.search(block.ac)
+    if match is None:
+        return None
+    value = int(match.group())
+    if block.ac_notation == "ascending":
+        return 19 - value, value, True
+    return value, 19 - value, True
+
+
+def _parse_hd_text(text: str | None) -> _ParsedHd | None:
+    """Structurally parse a printed HD line (`3+1`, `1-1`, `3*`, `½`, `2d8`), or None."""
+    if text is None or not text.strip():
+        return None
+    stripped = text.strip()
+    asterisks = stripped.count("*")
+    if _HD_FRACTION.search(stripped):
+        return _ParsedHd(count=0, die=None, modifier=0, asterisks=asterisks, fractional=True)
+    match = _HD_MAIN.search(stripped)
+    if match is None:
+        return None
+    die = int(match.group(2)) if match.group(2) else None
+    modifier = int(match.group(3).replace(" ", "")) if match.group(3) else 0
+    return _ParsedHd(count=int(match.group(1)), die=die, modifier=modifier, asterisks=asterisks, fractional=False)
+
+
+def _parse_class_level(text: str | None) -> tuple[str, int] | None:
+    """Parse a printed class-level notation (`F 3`, `MU4`, `"3rd-level cleric"`) into `(class_id, level)`.
+
+    A level below 1 refuses in both forms — a 0-level notation carries no
+    combat math to derive, so it must fall to the refusal ladder, never into
+    mapping (which is total only over parses this function accepts).
+    """
+    if text is None:
+        return None
+    lowered = text.casefold()
+    letter = _CLASS_LETTER.match(lowered)
+    if letter is not None:
+        level = int(letter.group(2))
+        return (_CLASS_LETTER_IDS[letter.group(1)], level) if level >= 1 else None
+    for word, class_id in _CLASS_WORDS:
+        if word in lowered:
+            numbers = re.findall(r"\d+", lowered)
+            if numbers and int(numbers[0]) >= 1:
+                return class_id, int(numbers[0])
+            return None
+    return None
+
+
+def usable_stat_block(block: RawStatBlock | None) -> bool:
+    """The refusal ladder's eligibility predicate: an AC plus an HD line or a class-level notation.
+
+    A block failing this refuses emission — there is nothing to derive combat
+    math from, and emit-with-invented-combat-math would be invention. Shared
+    verbatim with the eval scorer's custom-assertion match signal, so the
+    metric can never score an emission assembly would refuse.
+
+    Args:
+        block: A cached raw block, or the absent marker.
+
+    Returns:
+        Whether mapping would emit a template from this block.
+    """
+    if block is None:
+        return False
+    if _parse_ac(block) is None:
+        return False
+    return _parse_hd_text(block.hit_dice) is not None or _parse_class_level(block.class_level) is not None
+
+
+def _class_row(class_id: str, level: int):
+    rows = load_classes().get(class_id).progression
+    clamped = min(level, rows[-1].level)
+    for row in rows:
+        if row.level == clamped:
+            return row
+    raise AssertionError(f"class {class_id} has no level {clamped} row")  # pragma: no cover — progressions are dense
+
+
+def _band_saves(hit_dice: MonsterHitDice) -> tuple[SavingThrows, str]:
+    label = monster_save_band_label(hit_dice)
+    for band in load_combat_tables().monster_saves:
+        if band.label == label:
+            return band.saves, label
+    raise AssertionError(f"no monster save band labelled {label!r}")  # pragma: no cover — the bands are total
+
+
+def _map_hit_dice(parsed: _ParsedHd, hp: int | None, special_count: int) -> tuple[MonsterHitDice, list[str]]:
+    """Map the parsed HD onto `MonsterHitDice` under the pinned anchors.
+
+    Die 8 unless the block prints d4; a printed die the model can't carry
+    keeps the count on die 8 with printed hp as `fixed_hp`; fractional HD
+    maps to count 0 with `fixed_hp` = printed hp, else 3. Asterisks are the
+    printed count when printed, else one per extracted special-ability line
+    (the B/X XP rule's input).
+    """
+    derived: list[str] = []
+    asterisks = parsed.asterisks if parsed.asterisks else special_count
+    if parsed.fractional or parsed.count < 1:
+        fixed = hp if hp is not None else 3
+        if hp is None:
+            derived.append("fixed_hp")
+        return MonsterHitDice(count=0, modifier=parsed.modifier, asterisks=asterisks, fixed_hp=fixed), derived
+    if parsed.die is not None and parsed.die not in (4, 8):
+        derived.append("hit_dice")
+        return (
+            MonsterHitDice(count=parsed.count, modifier=parsed.modifier, asterisks=asterisks, fixed_hp=hp),
+            derived,
+        )
+    die = parsed.die if parsed.die is not None else 8
+    return (
+        MonsterHitDice(count=parsed.count, die=die, modifier=parsed.modifier, asterisks=asterisks, average_hp=hp),
+        derived,
+    )
+
+
+def _parse_thac0(text: str | None) -> tuple[int, int] | None:
+    """Parse a printed to-hit line (`17`, `19 [+0]`, `+2`, `AB +1`) into `(thac0, attack_bonus)`.
+
+    The pair always satisfies osrlib's own identity `attack_bonus = 19 - thac0`,
+    with the descending value clamped to the model's 2..20 band. A labelled
+    bonus form (`AB +1`, the BFRPG print) parses by its signed number.
+    """
+    if text is None:
+        return None
+    lead = _THAC0_LEAD.match(text)
+    if lead is not None:
+        thac0 = int(lead.group(1))
+    else:
+        bonus = _THAC0_BRACKET.search(text) or _THAC0_BONUS.search(text)
+        if bonus is None:
+            return None
+        thac0 = 19 - int(bonus.group(1))
+    thac0 = max(2, min(20, thac0))
+    return thac0, 19 - thac0
+
+
+def _map_saves(
+    text: str | None, hit_dice: MonsterHitDice, class_level: tuple[str, int] | None
+) -> tuple[MonsterSaves, list[str]]:
+    """Map the printed saves line under the pinned anchors.
+
+    Printed D/W/P/B/S values win (save-as from the printed parenthetical, else
+    the derived band label); a printed `save as <class><level>` — including
+    the labelled and bare BFRPG forms `Sv F2` and `F3` — uses the class
+    table; a class-leveled block with no parseable saves line saves as its
+    printed class level; Fort/Ref/Will and everything else discard and derive
+    from HD via the monster save bands.
+    """
+    derived: list[str] = []
+    if text is not None:
+        dwpbs = _SAVES_DWPBS.search(text)
+        if dwpbs is not None:
+            raw = [int(dwpbs.group(index)) for index in range(1, 6)]
+            clamped = [max(2, min(20, value)) for value in raw]
+            if clamped != raw:
+                derived.append("saves")
+            values = SavingThrows(
+                death=clamped[0], wands=clamped[1], paralysis=clamped[2], breath=clamped[3], spells=clamped[4]
+            )
+            paren = _PAREN.search(text)
+            if paren is not None and paren.group(1).strip():
+                save_as = paren.group(1).strip()
+            else:
+                save_as = monster_save_band_label(hit_dice)
+                derived.append("save_as")
+            return MonsterSaves(values=values, save_as=save_as), derived
+        save_as_match = _SAVE_AS.search(text)
+        if save_as_match is not None:
+            parsed = _parse_class_level(save_as_match.group(1))
+            if parsed is not None:
+                class_id, level = parsed
+                row = _class_row(class_id, level)
+                return MonsterSaves(values=row.saves, save_as=f"{_SAVE_AS_LETTERS[class_id]}{level}"), derived
+        # The labelled and bare BFRPG forms: "Sv F2", "Saves: F3", "F3".
+        bare = _parse_class_level(_SAVE_LABEL.sub("", text))
+        if bare is not None:
+            class_id, level = bare
+            row = _class_row(class_id, level)
+            return MonsterSaves(values=row.saves, save_as=f"{_SAVE_AS_LETTERS[class_id]}{level}"), derived
+    if class_level is not None:
+        class_id, level = class_level
+        row = _class_row(class_id, level)
+        derived.append("saves")
+        return MonsterSaves(values=row.saves, save_as=f"{_SAVE_AS_LETTERS[class_id]}{level}"), derived
+    values, label = _band_saves(hit_dice)
+    derived.append("saves")
+    return MonsterSaves(values=values, save_as=label), derived
+
+
+def _range_to_dice(low: int, high: int) -> str | None:
+    """Convert printed range notation to dice: `1-10` → `1d10`, `2-8` → `2d4`, `2-7` → `1d6+1`.
+
+    The multi-dice reading first (`N-M` as N dice of M/N — the printed-count
+    form), then the exact uniform form (`1d(span)+(low-1)`, distribution-
+    identical to the printed range). Both are conversions of the printed
+    value, not derivations; a range neither rule fits stays unconverted and
+    the caller records the miss.
+    """
+    if low < 1 or high <= low:
+        return None
+    if high % low == 0 and (high // low) in _DIE_SIZES:
+        return f"{low}d{high // low}"
+    span = high - low + 1
+    if span in _DIE_SIZES:
+        modifier = f"+{low - 1}" if low > 1 else ""
+        return f"1d{span}{modifier}"
+    return None
+
+
+def _normalized_dice(text: str) -> str | None:
+    """The first dice token in `text`, normalized and validated against osrlib's grammar."""
+    match = _DICE_TOKEN.search(text)
+    if match is None:
+        return None
+    candidate = f"{match.group(1) or '1'}d{match.group(2)}{match.group(3).replace(' ', '')}"
+    try:
+        parse_dice(candidate)
+    except ContentValidationError:
+        return None
+    return candidate
+
+
+def _parse_na_value(text: str) -> NumberAppearingValue | None:
+    dice = _normalized_dice(text)
+    if dice is not None:
+        return NumberAppearingValue(dice=dice)
+    range_match = _RANGE_TOKEN.search(text)
+    if range_match is not None:
+        converted = _range_to_dice(int(range_match.group(1)), int(range_match.group(2)))
+        return NumberAppearingValue(dice=converted) if converted is not None else None
+    fixed = re.search(r"\d+", text)
+    if fixed is not None and int(fixed.group()) >= 1:
+        return NumberAppearingValue(fixed=int(fixed.group()))
+    return None
+
+
+def _parse_number_appearing(text: str | None) -> NumberAppearing | None:
+    """Parse a printed NA line: `1d6 (2d6)` fills dungeon then lair; a lone value fills both."""
+    if text is None:
+        return None
+    paren = _PAREN.search(text)
+    first = _parse_na_value(text[: paren.start()] if paren is not None else text)
+    if first is None:
+        return None
+    second = _parse_na_value(paren.group(1)) if paren is not None else None
+    return NumberAppearing(dungeon=first, lair=second if second is not None else first)
+
+
+def _encounter_rate(rate: int) -> int:
+    """One third of the turn rate, rounded to the nearest 10', floor 10'."""
+    return max(10, int(rate / 30 + 0.5) * 10)
+
+
+def _map_movement(text: str | None) -> tuple[tuple[MovementMode, ...], list[str]]:
+    """Map the printed movement line onto `MovementMode`s.
+
+    A printed pair (`120' (40')`) is used verbatim; a lone printed rate is the
+    turn rate with the encounter rate derived by thirds; modes split on commas
+    and slashes with any leading word kept as the descriptor (movement-line
+    labels like `MV` excluded); no movement at all defaults to `120' (40')`,
+    the B/X human norm.
+    """
+    derived: list[str] = []
+    modes: list[MovementMode] = []
+    if text is not None:
+        for chunk in re.split(r"[,/]", text):
+            match = _MOVE_TOKEN.search(chunk)
+            if match is None:
+                continue
+            descriptor = match.group(1).strip().casefold() if match.group(1) else None
+            if descriptor in _MOVE_LABELS:
+                descriptor = None
+            rate = int(match.group(2))
+            if match.group(3) is not None:
+                encounter_rate = int(match.group(3))
+            else:
+                encounter_rate = _encounter_rate(rate)
+                derived.append("movement")
+            modes.append(MovementMode(rate_feet=rate, encounter_rate_feet=encounter_rate, descriptor=descriptor))
+    if not modes:
+        return (MovementMode(rate_feet=120, encounter_rate_feet=40),), ["movement"]
+    return tuple(modes), derived
+
+
+def _attack_effects(damage_text: str) -> tuple[str, ...]:
+    """The printed effect keywords in a damage clause (`1d6 + poison`, `Dam paralysis`)."""
+    lowered = damage_text.casefold()
+    effects: list[str] = []
+    for token, effect in _EFFECT_WORDS:
+        if token in lowered and effect not in effects:
+            effects.append(effect)
+    return tuple(effects)
+
+
+def _parse_attack(count_text: str | None, name: str, damage_text: str | None) -> tuple[MonsterAttack, bool]:
+    """Parse one attack item; the second value is whether the printed damage carried over faithfully.
+
+    A range-shaped damage clause neither conversion rule fits maps with no
+    damage and reports unfaithful — falling through to the flat-integer path
+    would silently deal the range's low end, a guess the mapping rule bans.
+    """
+    count = int(count_text) if count_text else 1
+    if damage_text is None:
+        return MonsterAttack(count=count, name=name), False
+    effects = _attack_effects(damage_text)
+    dice = _normalized_dice(damage_text)
+    range_match = _RANGE_TOKEN.search(damage_text) if dice is None else None
+    if dice is None and range_match is not None:
+        dice = _range_to_dice(int(range_match.group(1)), int(range_match.group(2)))
+        if dice is None:
+            return MonsterAttack(count=count, name=name, effects=effects), False
+    if dice is not None:
+        return MonsterAttack(count=count, name=name, damage=dice, effects=effects), True
+    if "weapon" in damage_text.casefold():
+        return MonsterAttack(count=count, name=name, by_weapon=True, effects=effects), True
+    fixed = re.search(r"\d+", damage_text)
+    if fixed is not None and int(fixed.group()) >= 1:
+        return MonsterAttack(count=count, name=name, fixed_damage=int(fixed.group()), effects=effects), True
+    return MonsterAttack(count=count, name=name, effects=effects), bool(effects)
+
+
+def _segment_attacks(segment: str) -> tuple[list[MonsterAttack], bool]:
+    """Parse one routine segment; returns the attacks and whether every printed damage carried faithfully.
+
+    Two grammars, tried in order: the parenthesized form (`2 claws (1d4)`,
+    the OSE print) and the labelled form (`1 bite, Dam 1d8` / bare `1 spear`,
+    the BFRPG print — damage after a `Dam` label, or none printed at all).
+    """
+    parenthesized = [
+        _parse_attack(match.group(1), match.group(2).strip(), match.group(3))
+        for match in _ATTACK_ITEM.finditer(segment)
+    ]
+    if parenthesized:
+        return [attack for attack, _ in parenthesized], all(faithful for _, faithful in parenthesized)
+    labelled = _ATTACK_DAM.match(segment.strip())
+    if labelled is not None and labelled.group(2).strip() and (labelled.group(1) or labelled.group(3)):
+        # A printed count or a damage clause anchors the form; free prose
+        # ("see below") matches neither and stays unparsed.
+        attack, faithful = _parse_attack(labelled.group(1), labelled.group(2).strip(" ,;"), labelled.group(3))
+        return [attack], faithful
+    return [], False
+
+
+def _map_attacks(lines: Sequence[str]) -> tuple[tuple[AttackRoutine, ...], list[str]]:
+    """Parse printed attack lines into routines: each line's ` or `-separated segments are alternatives.
+
+    A segment with no parseable attack is dropped and the drop recorded; an
+    attack whose printed damage could not carry over faithfully (no damage
+    clause, or a range no conversion rule fits) is recorded the same way; a
+    block with no parseable attack at all maps with `attacks=()` — flagged,
+    never guessed.
+    """
+    routines: list[AttackRoutine] = []
+    incomplete = False
+    for line in lines:
+        for segment in _ROUTINE_SPLIT.split(line):
+            attacks, faithful = _segment_attacks(segment)
+            if attacks:
+                routines.append(AttackRoutine(attacks=tuple(attacks)))
+                if not faithful:
+                    incomplete = True
+            elif segment.strip():
+                incomplete = True
+    derived = ["attacks"] if incomplete or (bool(lines) and not routines) else []
+    return tuple(routines), derived
+
+
+def map_stat_block(
+    template_id: str, name: str, block: RawStatBlock, max_keyed_count: int = 1
+) -> tuple[MonsterTemplate, tuple[str, ...]]:
+    """Map one usable raw block onto a `MonsterTemplate` under the pinned anchors — deterministic, total.
+
+    Every field is either traceably printed or recorded in the returned
+    derived list: AC complements by 19, THAC0/attack bonus and XP derive from
+    the HD tables when unprinted, saves derive via the printed save-as, the
+    class table, or the monster save bands, morale defaults to 7 (the 2d6
+    mean), alignment to neutral, number appearing to the maximum fixed keyed
+    count, movement to the B/X human norm, and treasure is always the empty
+    ref — keyed treasure is already the area's, and inventing a treasure type
+    would be invention.
+
+    Args:
+        template_id: The already-allocated template id.
+        name: The normalized extracted name (the template's display name).
+        block: A block satisfying [`usable_stat_block`][osrforge.assemble.usable_stat_block].
+        max_keyed_count: The unprinted-NA fallback — the maximum fixed keyed
+            count across the name's encounters, floor 1.
+
+    Returns:
+        The template and the sorted derived-field record.
+
+    Raises:
+        ValueError: If the block is not usable (programmer misuse — callers
+            gate on the shared predicate).
+    """
+    ac_parsed = _parse_ac(block)
+    hd_parsed = _parse_hd_text(block.hit_dice)
+    class_parsed = _parse_class_level(block.class_level)
+    if ac_parsed is None or (hd_parsed is None and class_parsed is None):
+        raise ValueError(f"stat block for {name!r} is not usable — callers must gate on usable_stat_block")
+    derived: list[str] = ["treasure"]
+    ac, ac_ascending, complemented = ac_parsed
+    if complemented:
+        derived.append("ac")
+    special_count = len(block.special)
+    class_level = None
+    if hd_parsed is not None:
+        hit_dice, hd_derived = _map_hit_dice(hd_parsed, block.hp, special_count)
+        derived.extend(hd_derived)
+    else:
+        assert class_parsed is not None
+        class_level = class_parsed
+        hit_dice = MonsterHitDice(count=class_parsed[1], asterisks=special_count, fixed_hp=block.hp)
+        derived.append("hit_dice")
+    thac0_parsed = _parse_thac0(block.thac0)
+    if thac0_parsed is not None:
+        thac0, attack_bonus = thac0_parsed
+    else:
+        thac0, attack_bonus = thac0_for_hd(hit_dice.count, bonus_modifier=hit_dice.modifier > 0)
+        derived.append("thac0")
+    saves, saves_derived = _map_saves(block.saves, hit_dice, class_level)
+    derived.extend(saves_derived)
+    if block.morale is not None:
+        morale = block.morale
+    else:
+        morale = 7
+        derived.append("morale")
+    alignment = None
+    if block.alignment is not None:
+        lowered = block.alignment.strip().casefold()
+        for option in (Alignment.LAWFUL, Alignment.NEUTRAL, Alignment.CHAOTIC):
+            if lowered.startswith(option.value[0]):
+                alignment = option
+                break
+    if alignment is None:
+        alignment = Alignment.NEUTRAL
+        derived.append("alignment")
+    number_appearing = _parse_number_appearing(block.number_appearing)
+    if number_appearing is None:
+        fallback = NumberAppearingValue(fixed=max(1, max_keyed_count))
+        number_appearing = NumberAppearing(dungeon=fallback, lair=fallback)
+        derived.append("number_appearing")
+    movement, movement_derived = _map_movement(block.movement)
+    derived.extend(movement_derived)
+    attacks, attacks_derived = _map_attacks(block.attacks)
+    derived.extend(attacks_derived)
+    if block.xp is not None:
+        xp = block.xp
+    else:
+        xp = monster_xp(load_combat_tables(), hit_dice)
+        derived.append("xp")
+    template = MonsterTemplate(
+        id=template_id,
+        name=name,
+        page=f"p. {block.source_pages[0]}" if block.source_pages else "",
+        ac=ac,
+        ac_ascending=ac_ascending,
+        hit_dice=hit_dice,
+        attacks=attacks,
+        thac0=thac0,
+        attack_bonus=attack_bonus,
+        movement=movement,
+        saves=saves,
+        morale=morale,
+        alignment=AlignmentSpec(options=(alignment,)),
+        xp=xp,
+        number_appearing=number_appearing,
+        treasure=TreasureRef(),
+        abilities=tuple(
+            MonsterAbility(tag="custom", name=line, prose=line, manual=True) for line in block.special if line.strip()
+        ),
+    )
+    return template, tuple(sorted(set(derived)))
+
+
+def _template_slug(name: str) -> str:
+    """Slug a normalized name into the catalog's `^[a-z][a-z0-9_]*$` id convention."""
+    slug = re.sub(r"[^a-z0-9]+", "_", name.casefold()).strip("_").lstrip("0123456789_")
+    return slug or "custom_monster"
+
+
+def _max_keyed_count(name: str, levels: Sequence[LevelContent]) -> int:
+    """The unprinted-NA fallback: the maximum fixed keyed count across the name's encounters, floor 1."""
+    counts = [
+        encounter.count_fixed
+        for level in levels
+        for area in level.areas
+        for encounter in area.encounters
+        if normalize_monster_name(encounter.monster) == name and encounter.count_fixed is not None
+    ]
+    return max(counts, default=1)
+
+
+def emit_custom_templates(
+    resolutions: MonsterResolutions,
+    blocks: Mapping[str, RawStatBlock | None],
+    forced: Collection[str],
+    levels: Sequence[LevelContent],
+    base_ids: Collection[str],
+) -> tuple[MonsterResolutions, dict[str, EmittedTemplate]]:
+    """Emit custom templates for the unresolved names (plus the forced ones) with usable blocks — pure.
+
+    A name with a usable candidate block gets an emitted template and an
+    in-memory `method="custom"` resolution; a forced name (a
+    `monster_templates:` entry) enters the population even when the tiers
+    resolved it — forcing emission is the human's remedy for a flagless wrong
+    LLM pick — and if its block is nonetheless unusable, the discarded pick is
+    not restored: the name falls to the stand-in machinery flagged
+    `monster_unresolved`, exactly as the refusal ladder treats an extracted
+    unusable block, and completing the block is the designed remedy. Ids slug
+    from the name with deterministic numeric suffixes on collision (against
+    the base catalog and sibling emissions alike).
+
+    Args:
+        resolutions: The effective resolutions (monster remaps applied).
+        blocks: The candidate blocks (template overrides applied).
+        forced: Normalized names whose `monster_templates:` entries force emission.
+        levels: The content caches (the unprinted-NA fallback's input).
+        base_ids: The base catalog's template ids.
+
+    Returns:
+        The resolutions with emissions applied, and normalized name →
+        emitted-template record.
+    """
+    population = sorted(
+        {name for name, entry in resolutions.resolutions.items() if entry.template_id is None} | set(forced)
+    )
+    replaced = dict(resolutions.resolutions)
+    emitted: dict[str, EmittedTemplate] = {}
+    taken = set(base_ids)
+    for name in population:
+        block = blocks.get(name)
+        if not usable_stat_block(block):
+            if replaced[name].template_id is not None:
+                # A forced name whose candidate block refuses emission: the
+                # human rejected the cached pick, so it does not silently return.
+                replaced[name] = MonsterResolution(template_id=None, method="unresolved")
+            continue
+        assert block is not None
+        slug = _template_slug(name)
+        template_id = slug
+        suffix = 2
+        while template_id in taken:
+            template_id = f"{slug}_{suffix}"
+            suffix += 1
+        taken.add(template_id)
+        template, derived = map_stat_block(template_id, name, block, _max_keyed_count(name, levels))
+        emitted[name] = EmittedTemplate(template=template, derived=derived, source_pages=block.source_pages)
+        replaced[name] = MonsterResolution(template_id=template_id, method="custom")
+    return MonsterResolutions(resolutions=replaced), emitted
+
+
 def _stand_in_template(name: str, table: EncounterTable) -> str:
     """The best-effort stand-in for one unresolved name: a deterministic, level-banded catalog pick.
 
@@ -267,6 +962,8 @@ def _build_encounter(
         if resolution is None:
             raise ValueError(f"the monsters cache has no resolution for {name!r} — a stale cache; re-run monsters")
         if resolution.template_id is not None:
+            if resolution.method == "custom":
+                monster_flags.append(format_flag(Flag.MONSTER_CUSTOM, name))
             keyed.append(_keyed_monster(resolution.template_id, encounter, name, count_flags))
             continue
         unresolved.append(name)
@@ -491,19 +1188,25 @@ def build_draft(
     geometries: tuple[LevelGeometry, ...],
     settings: ConversionSettings,
     plan: OverridePlan | None = None,
+    custom_templates: Mapping[str, MonsterTemplate] | None = None,
 ) -> DraftResult:
     """Build the draft adventure and per-area reports from validated caches plus overrides — pure.
 
     Args:
         index: The survey cache.
         levels: Every level's content cache, in survey order.
-        resolutions: The monsters cache, monster overrides already applied;
-            every keyed encounter name must have an entry.
+        resolutions: The monsters cache, monster overrides and template
+            emission already applied; every keyed encounter name must have an
+            entry.
         geometries: The effective geometry (synthesized, overrides applied),
             in survey order.
         settings: The run's settings echo (`unresolved_fallback`,
             `blank_page_renders`).
         plan: The resolved override plan; `None` means no correction file.
+        custom_templates: Emitted template id → template. Only templates a
+            built encounter actually references bundle into
+            `Adventure.monsters` (sorted by id) — an emission every reference
+            was remapped away from is dead content and stays out.
 
     Returns:
         The draft, its per-area reports in survey order (removed areas keep a
@@ -611,7 +1314,23 @@ def build_draft(
             )
         dungeons.append(DungeonSpec(id=survey_dungeon.id, name=survey_dungeon.name, levels=tuple(level_specs)))
 
-    adventure = Adventure(name=name, description=description, hooks=hooks, town=town, dungeons=tuple(dungeons))
+    referenced = {
+        keyed.template_id
+        for dungeon in dungeons
+        for level in dungeon.levels
+        for area in level.areas
+        if area.encounter is not None
+        for keyed in area.encounter.monsters
+    }
+    bundled = tuple(
+        sorted(
+            (template for template_id, template in (custom_templates or {}).items() if template_id in referenced),
+            key=lambda template: template.id,
+        )
+    )
+    adventure = Adventure(
+        name=name, description=description, hooks=hooks, town=town, dungeons=tuple(dungeons), monsters=bundled
+    )
     return DraftResult(
         adventure=adventure,
         area_reports=tuple(area_reports),
@@ -665,10 +1384,15 @@ def assemble(workdir_path: Path) -> AssembleResult:
 
     Raises:
         ValueError: If the monsters stage is not `completed`, a cache is
-            missing, or the monsters cache is stale against the content caches
-            (programmer misuse — `convert`'s ordering makes these unreachable).
+            missing, or the monsters or stat-block cache is stale against the
+            upstream caches (programmer misuse — `convert`'s ordering makes
+            these unreachable).
         OverrideError: If an override entry cannot take effect — raised before
-            any `run.json` or artifact write.
+            any `run.json` or artifact write. A `monster_templates:` entry
+            against a workdir with no `statblocks.json` (a pre-phase-7
+            workdir) or an `off` knob echo fails here: an explicit correction
+            silently suppressed by a missing cache or a setting would be a
+            silent no-op, the worst outcome.
     """
     workdir = Workdir(workdir_path)
     run = workdir.read_run()
@@ -682,8 +1406,44 @@ def assemble(workdir_path: Path) -> AssembleResult:
     missing = set(encounter_names(levels)) - resolutions.resolutions.keys()
     if missing:
         raise ValueError(f"the monsters cache is stale — unresolved names: {sorted(missing)}; re-run monsters")
+    # The stat-block cache's three read paths, pinned: file missing → no
+    # emission and no error (every pre-phase-7 workdir still assembles); echo
+    # `off` → no emission; echo `emit` with an unresolved name missing from
+    # `blocks` → the stale-cache hard error, mirroring the monsters check above.
+    statblocks: StatBlocks | None = None
+    if workdir.statblocks_json.is_file():
+        statblocks = StatBlocks.model_validate_json(workdir.statblocks_json.read_text(encoding="utf-8"))
+    if statblocks is not None and statblocks.custom_monsters == "emit":
+        cached_unresolved = {name for name, entry in resolutions.resolutions.items() if entry.template_id is None}
+        missing_blocks = sorted(cached_unresolved - statblocks.blocks.keys())
+        if missing_blocks:
+            raise ValueError(
+                f"the stat-block cache is stale — no entry for unresolved names: {missing_blocks}; re-run monsters"
+            )
     overrides = load_overrides(workdir.overrides_yaml)
+    template_entries = plan_template_overrides(overrides, resolutions)
+    if template_entries:
+        if statblocks is None:
+            raise OverrideError(
+                "monster template overrides address stages/statblocks.json, which this workdir does not have — "
+                "re-run monsters"
+            )
+        if statblocks.custom_monsters == "off":
+            raise OverrideError(
+                "monster template overrides cannot take effect under custom_monsters: off — "
+                "re-run monsters with --set custom_monsters=emit"
+            )
     resolutions = apply_monster_overrides(resolutions, overrides)
+    emitted: dict[str, EmittedTemplate] = {}
+    if statblocks is not None and statblocks.custom_monsters == "emit":
+        candidate_blocks = apply_template_overrides(dict(statblocks.blocks), template_entries)
+        resolutions, emitted = emit_custom_templates(
+            resolutions,
+            candidate_blocks,
+            frozenset(template_entries),
+            levels,
+            frozenset(template.id for template in load_monsters().monsters),
+        )
     plan = plan_overrides(index, overrides)
 
     with track_stage(workdir, Stage.GEOMETRY):
@@ -692,7 +1452,15 @@ def assemble(workdir_path: Path) -> AssembleResult:
             for geometry in synthesize_geometry(index, levels)
         )
     with track_stage(workdir, Stage.ASSEMBLE):
-        draft = build_draft(index, levels, resolutions, geometries, run.settings, plan)
+        draft = build_draft(
+            index,
+            levels,
+            resolutions,
+            geometries,
+            run.settings,
+            plan,
+            custom_templates={record.template.id: record.template for record in emitted.values()},
+        )
         validation = _run_validation(draft.adventure)
         resolved_count = sum(1 for resolution in resolutions.resolutions.values() if resolution.template_id is not None)
         usage = TokenUsage()
@@ -700,11 +1468,19 @@ def assemble(workdir_path: Path) -> AssembleResult:
             stage_usage = run.stages[stage].usage
             if stage_usage is not None:
                 usage = usage + stage_usage
+        bundled_ids = {template.id for template in draft.adventure.monsters}
+        custom_records = tuple(
+            CustomMonsterRecord(
+                id=record.template.id, name=name, source_pages=record.source_pages, derived=record.derived
+            )
+            for name, record in sorted(emitted.items(), key=lambda item: item[1].template.id)
+            if record.template.id in bundled_ids
+        )
         report = ExtractionReport(
             module=ModuleInfo(title=index.title, pages=run.page_count),
             validation=validation,
             areas=draft.area_reports,
-            monsters=MonsterSummary(resolved=resolved_count, unresolved=draft.unresolved),
+            monsters=MonsterSummary(resolved=resolved_count, unresolved=draft.unresolved, custom=custom_records),
             usage=usage,
             flags=draft.module_flags,
         )

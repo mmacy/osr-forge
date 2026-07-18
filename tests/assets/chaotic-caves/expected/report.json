@@ -31,7 +31,7 @@
       "confidence": 0.97,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:tentacle worm → fire_beetle",
+        "monster_custom:tentacle worm",
         "treasure_unparsed:On the long-dead body: a silver dagger, 2 vials of holy water, 1 Potion of Healing, and a leather pouch with 3 cp."
       ],
       "overridden": []
@@ -538,7 +538,7 @@
       "confidence": 0.91,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:orc war leader → halfling_monster",
+        "monster_custom:orc war leader",
         "connection_ambiguous:unresolved target 9",
         "treasure_unparsed:Potion of Healing"
       ],
@@ -911,7 +911,7 @@
       "confidence": 0.82,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:elven thief → skeleton"
+        "monster_custom:elven thief"
       ],
       "overridden": []
     },
@@ -1015,7 +1015,7 @@
       "confidence": 0.95,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:giant gecko lizard → skeleton",
+        "monster_custom:giant gecko lizard",
         "connection_ambiguous:unresolved target outside"
       ],
       "overridden": []
@@ -1092,7 +1092,7 @@
       "confidence": 0.8,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:giant gecko lizard → skeleton"
+        "monster_custom:giant gecko lizard"
       ],
       "overridden": []
     },
@@ -1372,8 +1372,8 @@
       "confidence": 0.96,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human fighter 2 → acolyte",
-        "monster_unresolved:human fighter 1 → gecko",
+        "monster_custom:human fighter 2",
+        "monster_custom:human fighter 1",
         "treasure_unparsed:Each human fighter has 1d6 gp"
       ],
       "overridden": []
@@ -1463,9 +1463,9 @@
       "confidence": 0.95,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:fighters → dwarf_monster",
-        "monster_unresolved:human fighter 2 → acolyte",
-        "monster_unresolved:human fighter 1 → gecko"
+        "monster_custom:fighters",
+        "monster_custom:human fighter 2",
+        "monster_custom:human fighter 1"
       ],
       "overridden": []
     },
@@ -1502,8 +1502,8 @@
       "confidence": 0.94,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human fighter 2 → acolyte",
-        "monster_unresolved:human fighter 1 → gecko",
+        "monster_custom:human fighter 2",
+        "monster_custom:human fighter 1",
         "treasure_unparsed:Each occupant has 2d6 gp on him"
       ],
       "overridden": []
@@ -1517,7 +1517,7 @@
       "confidence": 0.94,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human fighter 1 → gecko",
+        "monster_custom:human fighter 1",
         "treasure_unparsed:Each occupant has 2d6 gp on him"
       ],
       "overridden": []
@@ -1579,7 +1579,7 @@
       "confidence": 0.9,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human fighter 1 → gecko"
+        "monster_custom:human fighter 1"
       ],
       "overridden": []
     },
@@ -1616,7 +1616,7 @@
       "confidence": 0.92,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human fighter 1 → gecko",
+        "monster_custom:human fighter 1",
         "treasure_unparsed:Each occupant has 2d6 gp on him"
       ],
       "overridden": []
@@ -1731,8 +1731,8 @@
       "confidence": 0.97,
       "flags": [
         "geometry_synthesized",
-        "monster_unresolved:human magic-user 4 → grey_ooze",
-        "monster_unresolved:human cleric 3 → lizard_man",
+        "monster_custom:human magic-user 4",
+        "monster_custom:human cleric 3",
         "treasure_unparsed:Magic-user's spell book containing the spells he knows",
         "treasure_unparsed:Wand of Magic Missiles (11 charges)",
         "treasure_unparsed:Ring of Protection +1",
@@ -1747,17 +1747,155 @@
     }
   ],
   "monsters": {
-    "resolved": 46,
-    "unresolved": [
-      "elven thief",
-      "fighters",
-      "giant gecko lizard",
-      "human cleric 3",
-      "human fighter 1",
-      "human fighter 2",
-      "human magic-user 4",
-      "orc war leader",
-      "tentacle worm"
+    "resolved": 55,
+    "unresolved": [],
+    "custom": [
+      {
+        "id": "elven_thief",
+        "name": "elven thief",
+        "source_pages": [
+          30
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "hit_dice",
+          "movement",
+          "number_appearing",
+          "saves",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "fighters",
+        "name": "fighters",
+        "source_pages": [
+          43
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "hit_dice",
+          "movement",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "giant_gecko_lizard",
+        "name": "giant gecko lizard",
+        "source_pages": [
+          15,
+          32,
+          34
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "movement",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "human_cleric_3",
+        "name": "human cleric 3",
+        "source_pages": [
+          45
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "hit_dice",
+          "movement",
+          "number_appearing",
+          "treasure"
+        ]
+      },
+      {
+        "id": "human_fighter_1",
+        "name": "human fighter 1",
+        "source_pages": [
+          41
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "hit_dice",
+          "movement",
+          "treasure"
+        ]
+      },
+      {
+        "id": "human_fighter_2",
+        "name": "human fighter 2",
+        "source_pages": [
+          41,
+          43,
+          16,
+          29
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "hit_dice",
+          "movement",
+          "number_appearing",
+          "treasure"
+        ]
+      },
+      {
+        "id": "human_magic_user_4",
+        "name": "human magic-user 4",
+        "source_pages": [
+          45
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "hit_dice",
+          "movement",
+          "number_appearing",
+          "treasure"
+        ]
+      },
+      {
+        "id": "orc_war_leader",
+        "name": "orc war leader",
+        "source_pages": [
+          15,
+          25
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "movement",
+          "number_appearing",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "tentacle_worm",
+        "name": "tentacle worm",
+        "source_pages": [
+          16
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "movement",
+          "number_appearing",
+          "thac0",
+          "treasure"
+        ]
+      }
     ]
   },
   "usage": {
