@@ -243,6 +243,17 @@ def load_overrides(path: Path) -> Overrides:
             corrections, one of which would silently lose.
         pydantic.ValidationError: If the document doesn't match the contract.
         yaml.YAMLError: If the file is not valid YAML.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge.contracts.overrides import load_overrides
+
+        overrides = load_overrides(Path("module.forge/overrides.yaml"))
+        for name, entry in overrides.monsters.items():
+            print(name, entry.template_id, entry.reason)
+        ```
     """
     if not path.exists():
         return Overrides()

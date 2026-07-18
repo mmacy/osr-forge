@@ -56,7 +56,23 @@ def _request_digest(request: ModelRequest) -> dict[str, object]:
 
 
 class FixtureProvider:
-    """Replays recorded request/response fixtures — zero network, zero cost."""
+    """Replays recorded request/response fixtures — zero network, zero cost.
+
+    A drop-in [`ModelProvider`][osrforge.providers.base.ModelProvider]: any
+    pipeline entry point runs against it unchanged, which is how the test
+    suite exercises the full conversion without a live service.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge import convert
+        from osrforge.providers.fixtures import FixtureProvider
+
+        provider = FixtureProvider(Path("tests/assets/minimod/fixtures"))
+        result = convert(pdf_path, workdir_path, provider)  # full pipeline, zero network
+        ```
+    """
 
     def __init__(self, fixture_dir: Path) -> None:
         """Bind to a directory of recorded fixtures.

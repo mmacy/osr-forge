@@ -178,6 +178,16 @@ def estimate(pdf_path: Path, workdir: Path, settings: ConversionSettings | None 
 
     Raises:
         PdfError: If preprocessing rejects the source.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge import estimate
+
+        cost = estimate(Path("module.pdf"), Path("module.forge"))
+        print(f"{cost.page_count} pages, ~${cost.usd:.2f}")
+        ```
     """
     effective = settings if settings is not None else ConversionSettings()
     run = preprocess(pdf_path, workdir, effective)

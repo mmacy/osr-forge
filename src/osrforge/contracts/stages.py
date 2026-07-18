@@ -190,8 +190,8 @@ class SurveyIndex(BaseModel):
 
     `description` is the module's own pitch — an excerpt of its printed
     introduction or back-cover text, never invented, empty when the module has
-    none — defaulted so every pre-phase-6 survey cache still loads and
-    assembles.
+    none — defaulted so survey caches recorded before the field existed still
+    load and assemble.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -294,7 +294,7 @@ class LevelContent(BaseModel):
 
 
 ResolutionMethod = Literal["exact", "alias", "fuzzy", "llm", "unresolved", "override", "custom"]
-"""How a monster name resolved: one of the four [resolution tiers][resolution-tiers], not at all, a human override, or emission.
+"""How a name resolved: one of the four [resolution tiers][resolution-tiers], not at all, a human override, or emission.
 
 `override` and `custom` appear only in memory, when a monster override
 supersedes a cached resolution or template emission gives an unresolved name

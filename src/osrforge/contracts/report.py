@@ -303,7 +303,8 @@ class MonsterSummary(BaseModel):
     """The monster-resolution summary.
 
     `custom` records the emitted templates actually bundled into the draft —
-    additive and defaulted, so every pre-phase-7 report still validates.
+    additive and defaulted, so reports written before emission existed still
+    validate.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

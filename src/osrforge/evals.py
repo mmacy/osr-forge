@@ -867,7 +867,8 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     `stages/areas.*.json` content caches (encounters, connections, treasure),
     `stages/monsters.json` (resolution accuracy), and `stages/statblocks.json`
     (custom-emission accuracy — a missing file scores no matches, the honest
-    pre-phase-7 state, never an error). Deterministic: scoring the same
+    state of a workdir converted before the stat-block pass existed, never an
+    error). Deterministic: scoring the same
     workdir twice yields byte-identical metrics.
 
     Encounter names match under a minimal morphological fold (`_match_fold`) —
@@ -896,6 +897,17 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
 
     Raises:
         ValueError: If a required stage cache is missing.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge.evals import load_truth, score_workdir
+
+        truth = load_truth(Path("tools/eval/corpus/minimod/truth.yaml"))
+        metrics = score_workdir(Path("minimod.forge"), truth)
+        print(metrics.areas.recall, metrics.encounters)
+        ```
     """
     workdir = Workdir(workdir_path)
     if not workdir.survey_json.is_file():

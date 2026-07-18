@@ -481,6 +481,16 @@ def check(workdir_path: Path) -> tuple[LintFinding, ...]:
     Raises:
         ValueError: If `adventure.json` or `report.json` is missing —
             `assemble` first.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge import check
+
+        for finding in check(Path("module.forge")):
+            print(finding.severity, finding.id, finding.location, finding.message)
+        ```
     """
     workdir = Workdir(workdir_path)
     if not workdir.adventure_json.is_file():

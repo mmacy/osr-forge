@@ -167,6 +167,18 @@ def convert(
         ProviderError: On provider transport, auth, or rate-limit exhaustion.
         SchemaValidationError: If the provider exhausts its schema budget.
         OverrideError: If an existing `overrides.yaml` entry cannot take effect.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge import ConversionSettings, convert
+        from osrforge.providers.foundry import FoundryProvider, FoundrySettings
+
+        provider = FoundryProvider(FoundrySettings.from_env())
+        result = convert(Path("module.pdf"), Path("module.forge"), provider, ConversionSettings())
+        print(result.report.validation.passed)
+        ```
     """
     workdir_files = Workdir(workdir)
     effective = settings if settings is not None else ConversionSettings()
@@ -218,6 +230,25 @@ def rerun(
             stage, or a stage precondition fails (incomplete upstream).
         pydantic.ValidationError: If a settings update names an unknown knob
             or an invalid value.
+
+    Examples:
+        ```python
+        from pathlib import Path
+
+        from osrforge.contracts.run import Stage
+        from osrforge.convert import rerun
+
+        # The correction loop's re-assembly: no provider, no model call.
+        result = rerun(Path("module.forge"), Stage.ASSEMBLE)
+
+        # Re-resolve monsters with the stat-block pass off, then re-assemble.
+        result = rerun(
+            Path("module.forge"),
+            Stage.MONSTERS,
+            provider=provider,
+            settings_updates={"custom_monsters": "off"},
+        )
+        ```
     """
     if stage not in RUNNABLE_STAGES:
         runnable = ", ".join(member.value for member in RUNNABLE_STAGES)

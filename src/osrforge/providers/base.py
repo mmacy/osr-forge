@@ -130,7 +130,26 @@ def ensure_schema(data: object, schema: dict[str, object], context: str) -> None
 
 @runtime_checkable
 class ModelProvider(Protocol):
-    """The one seam between the pipeline and any model vendor."""
+    """The one seam between the pipeline and any model vendor.
+
+    Any object with a conforming `generate` method is a provider — no
+    subclassing, no registration. The provider owns schema enforcement:
+    validate with [`ensure_schema`][osrforge.providers.base.ensure_schema]
+    (and retry as needed) before returning, so callers can trust
+    `response.data`.
+
+    Examples:
+        ```python
+        from osrforge.contracts.run import TokenUsage
+        from osrforge.providers.base import ModelRequest, ModelResponse, ensure_schema
+
+        class MyVendorProvider:
+            def generate(self, request: ModelRequest) -> ModelResponse:
+                data = my_vendor_call(request.system, request.parts, request.schema)
+                ensure_schema(data, request.schema, request.tag)
+                return ModelResponse(data=data, usage=TokenUsage(), model_id="my-model")
+        ```
+    """
 
     def generate(self, request: ModelRequest) -> ModelResponse:
         """Run one structured-output completion.

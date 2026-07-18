@@ -1390,8 +1390,9 @@ def assemble(workdir_path: Path) -> AssembleResult:
             these unreachable).
         OverrideError: If an override entry cannot take effect — raised before
             any `run.json` or artifact write. A `monster_templates:` entry
-            against a workdir with no `statblocks.json` (a pre-phase-7
-            workdir) or an `off` knob echo fails here: an explicit correction
+            against a workdir with no `statblocks.json` (one converted before
+            the stat-block pass existed) or an `off` knob echo fails here: an
+            explicit correction
             silently suppressed by a missing cache or a setting would be a
             silent no-op, the worst outcome.
     """
@@ -1408,7 +1409,7 @@ def assemble(workdir_path: Path) -> AssembleResult:
     if missing:
         raise ValueError(f"the monsters cache is stale — unresolved names: {sorted(missing)}; re-run monsters")
     # The stat-block cache's three read paths, pinned: file missing → no
-    # emission and no error (every pre-phase-7 workdir still assembles); echo
+    # emission and no error (workdirs predating the cache still assemble); echo
     # `off` → no emission; echo `emit` with an unresolved name missing from
     # `blocks` → the stale-cache hard error, mirroring the monsters check above.
     statblocks: StatBlocks | None = None
