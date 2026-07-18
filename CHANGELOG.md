@@ -8,6 +8,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Contributor documentation (phase 8): the published site gains a glossary
+  of the project's terms of art and a Contributing section — setup and
+  gates, architecture (the stage-to-module map and layering rules), and
+  the testing model (fixtures, request fingerprints, goldens). API
+  docstrings no longer reference unpublished design documents, the
+  first-touch surfaces (`convert`, `rerun`, `estimate`, `check`,
+  `load_overrides`, `score_workdir`, the provider protocol) carry runnable
+  examples, and the contract and metric models document every field.
 - Custom monster emission (phase 7): a name the resolution tiers leave
   unresolved now gets the module's *own* creature instead of a flagged
   stand-in. The monsters stage's new stat-block pass (gated by the
