@@ -6,11 +6,11 @@
         "date": "2026-07-17",
         "model_id": "gpt-5.4-2026-03-05",
         "osrforge_version": "0.1.0",
-        "input_tokens": 203213,
-        "output_tokens": 39540,
-        "usd": 1.1011
+        "input_tokens": 307478,
+        "output_tokens": 47175,
+        "usd": 1.4763
       },
-      "truth_sha256": "efed14b6f2176c38459791e191f37bdce92f8749cda428242319d031aeaf5a2d",
+      "truth_sha256": "ad990c399fcd47e43dd0efbb6abcf58f0bccd6ef775f32ab36058b219bd96686",
       "settings_overrides": [],
       "metrics": {
         "areas": {
@@ -25,28 +25,31 @@
         },
         "encounters": {
           "truth_encounters": 109,
-          "name_matched": 97,
-          "name_recall": 0.8899,
-          "count_denominator": 97,
-          "count_matched": 96,
-          "count_accuracy": 0.9897,
+          "name_matched": 99,
+          "name_recall": 0.9083,
+          "count_denominator": 99,
+          "count_matched": 98,
+          "count_accuracy": 0.9899,
           "resolution_denominator": 85,
-          "resolution_matched": 74,
-          "resolution_accuracy": 0.8706,
-          "non_srd": 12
+          "resolution_matched": 75,
+          "resolution_accuracy": 0.8824,
+          "custom_denominator": 14,
+          "custom_matched": 4,
+          "custom_accuracy": 0.2857,
+          "non_srd": 0
         },
         "connections": {
           "truth_edges": 39,
-          "extracted_edges": 45,
-          "true_positives": 27,
-          "precision": 0.6,
-          "recall": 0.6923,
-          "f1": 0.6429
+          "extracted_edges": 48,
+          "true_positives": 28,
+          "precision": 0.5833,
+          "recall": 0.7179,
+          "f1": 0.6436
         },
         "treasure": {
           "presence_denominator": 137,
-          "presence_matched": 129,
-          "presence_agreement": 0.9416,
+          "presence_matched": 130,
+          "presence_agreement": 0.9489,
           "letters_denominator": 0,
           "letters_matched": 0,
           "letter_accuracy": null
@@ -58,11 +61,11 @@
         "date": "2026-07-17",
         "model_id": "gpt-5.4-2026-03-05",
         "osrforge_version": "0.1.0",
-        "input_tokens": 260612,
-        "output_tokens": 26566,
-        "usd": 1.05
+        "input_tokens": 315147,
+        "output_tokens": 28781,
+        "usd": 1.2196
       },
-      "truth_sha256": "de82e1bec63e0ec1b1531d2df9f54aaaa035ed3f321edf82f6c4b5eda8f70a42",
+      "truth_sha256": "7b97ea6e0309adeaf2b90ae82e3225e41ee292a4e9aa5b6fa484baf2df3054fa",
       "settings_overrides": [],
       "metrics": {
         "areas": {
@@ -77,28 +80,31 @@
         },
         "encounters": {
           "truth_encounters": 57,
-          "name_matched": 51,
-          "name_recall": 0.8947,
-          "count_denominator": 49,
-          "count_matched": 42,
-          "count_accuracy": 0.8571,
+          "name_matched": 52,
+          "name_recall": 0.9123,
+          "count_denominator": 50,
+          "count_matched": 46,
+          "count_accuracy": 0.92,
           "resolution_denominator": 27,
           "resolution_matched": 23,
           "resolution_accuracy": 0.8519,
-          "non_srd": 24
+          "custom_denominator": 25,
+          "custom_matched": 18,
+          "custom_accuracy": 0.72,
+          "non_srd": 0
         },
         "connections": {
           "truth_edges": 44,
-          "extracted_edges": 49,
-          "true_positives": 39,
-          "precision": 0.7959,
-          "recall": 0.8864,
-          "f1": 0.8387
+          "extracted_edges": 50,
+          "true_positives": 40,
+          "precision": 0.8,
+          "recall": 0.9091,
+          "f1": 0.8511
         },
         "treasure": {
           "presence_denominator": 86,
-          "presence_matched": 83,
-          "presence_agreement": 0.9651,
+          "presence_matched": 84,
+          "presence_agreement": 0.9767,
           "letters_denominator": 0,
           "letters_matched": 0,
           "letter_accuracy": null
@@ -110,9 +116,9 @@
         "date": "2026-07-17",
         "model_id": "gpt-5.4-2026-03-05",
         "osrforge_version": "0.1.0",
-        "input_tokens": 9830,
-        "output_tokens": 1188,
-        "usd": 0.0424
+        "input_tokens": 14877,
+        "output_tokens": 2218,
+        "usd": 0.0705
       },
       "truth_sha256": "0a26d52abb0ffb11e4ab2730c53e7f4e49e1e5403c8f52f90dc349f268bbc1fc",
       "settings_overrides": [],
@@ -137,6 +143,9 @@
           "resolution_denominator": 5,
           "resolution_matched": 5,
           "resolution_accuracy": 1.0,
+          "custom_denominator": 0,
+          "custom_matched": 0,
+          "custom_accuracy": null,
           "non_srd": 0
         },
         "connections": {

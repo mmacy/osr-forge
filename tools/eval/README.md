@@ -194,11 +194,11 @@ amendment records both runs side by side, and the regression band is the
 observed per-metric spread, floored at 0.02 absolute.
 
 The current noise band — the living table each sweep-pair updates, with
-history staying in the phase amendments (this table: the phase 6 double
-sweep of 2026-07-17, re-scored offline under the morphological match fold,
-superseding the same sweep's exact-match band — the fold collapsed every
-between-run spread to the floor, because the old name-recall noise was
-mostly the model's singular/plural jitter that exact matching amplified):
+history staying in the phase amendments (this table: the phase 7 double
+sweep of 2026-07-17 — the first pair measured with the stat-block pass and
+the null-hardened resolution prompt live, and the first carrying the custom
+row; every spread sat at or under the floor except connection F1's 0.028 on
+JN2):
 
 | metric | band |
 | --- | --- |
@@ -207,7 +207,8 @@ mostly the model's singular/plural jitter that exact matching amplified):
 | encounter name recall | 0.02 |
 | count accuracy | 0.02 |
 | resolution accuracy | 0.02 |
-| connection F1 | 0.02 |
+| custom accuracy | 0.02 |
+| connection F1 | 0.028 |
 | treasure presence | 0.02 |
 
 The survey mode-flip phase 4 measured (a JN1 re-roll collapsed ten cave
