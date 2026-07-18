@@ -8,6 +8,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Owner-sampling guide: a "When to do it" section, the custom-assertion
+  audit step the phase 7 metric introduced, and a "Completing the loop"
+  walkthrough of the publish and re-score commands. AGENTS.md gains the
+  matching standing obligation: truth-semantics migrations complete
+  in-phase as agent work per `tools/eval/AUTHORING.md`, with owner
+  sampling — tracked as a GitHub issue assigned to the module owner —
+  the only out-of-band leg.
 - Contributor documentation (phase 8): the published site gains a glossary
   of the project's terms of art and a Contributing section — setup and
   gates, architecture (the stage-to-module map and layering rules), and
