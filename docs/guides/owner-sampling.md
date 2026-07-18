@@ -57,6 +57,23 @@ each is one line with a page citation, and most will already carry the
 adversarial pass's confirmation; the genuinely contested ones are named in
 the manifest's `truth_provenance.verified` text.
 
+## When to do it
+
+Sample once the module's truth is otherwise complete: authored and
+adversarially verified, with both legs recorded in the manifest's
+`truth_provenance.verified`. The sample is the last gate before the module's
+first `publish` — scoring never waits on it (convert and score locally as
+much as you like), publication always does.
+
+Two events re-open a completed sample:
+
+- **The truth file gains new assertions** — a later authoring pass adds a new
+  assertion kind (as the custom-emission pass did) or extends coverage. The
+  new pass's flagged judgment calls join your must-review set; the already
+  sampled areas don't need re-reading beyond those flags.
+- **A previous sample found a discrepancy** — after the fix, re-check the
+  corrected areas before publishing.
+
 ## The steps
 
 1. **Open the module PDF and the truth file side by side.** The truth file's
@@ -84,6 +101,14 @@ the manifest's `truth_provenance.verified` text.
       must match the *complete* set of same-level areas the map and text
       connect it to — no more, no fewer. No `connections` line means "not
       asserted" — skip it.
+    - **Custom assertions.** Only if an encounter line carries `custom: true`
+      (legal only on entries with no `template`): the claim is that the
+      module *prints a usable stat block* for that creature — an armor class
+      plus either a hit-dice line or a class-level notation (`C5`, `T2`).
+      The entry's judgment comment cites where the block is printed; open
+      that page and confirm the block is there and carries those pieces.
+      A template-omitted entry *without* `custom: true` claims nothing
+      either way — skip it.
 
     ```yaml
     - key: "13"
@@ -91,6 +116,8 @@ the manifest's `truth_provenance.verified` text.
         - name: stirge      # printed name, singular
           template: stirge  # the osrlib catalog id it should resolve to
           count: 6          # only because the module states exactly 6
+        - name: bone golem  # no SRD entry, but the page prints a usable
+          custom: true      # stat block (AC + HD), so it should emit
       treasure:
         present: true       # the entry states in-area valuables
     ```
@@ -110,6 +137,36 @@ the manifest's `truth_provenance.verified` text.
    fix the truth file against the printed page first, re-score the module
    (offline — the conversion is already done and cached), and only then
    publish.
+
+## Completing the loop
+
+The sample isn't done until the module is published or fixed — an audited
+truth file sitting unpublished buys nothing. After recording the outcome in
+the manifest:
+
+**Clean sample** — publish the module and commit the board:
+
+```sh
+uv run tools/eval/run_eval.py publish <module-id> --corpus <your-corpus>
+uv run tools/eval/run_eval.py report --byom   # see the refreshed board
+```
+
+`publish` writes the module's entry — aggregate counts and ratios only,
+never module text — onto `tools/eval/byom-scoreboard.json`. Commit that
+file on a branch and open a PR like any other change; BYOM entries never
+gate a merge, so the PR is a record, not a gate.
+
+**Discrepancy found** — fix the truth file against the printed page, then
+re-score before publishing. Scoring is deterministic and reads the cached
+conversion, so this costs nothing:
+
+```sh
+uv run tools/eval/run_eval.py score <module-id> --corpus <your-corpus> --workdir <workdir> --update-scoreboard
+```
+
+`publish` refuses a truth file edited after its last score (the hash pin),
+so the re-score isn't optional — the refusal is the guardrail that keeps
+published numbers paired with the truth that produced them.
 
 ## What this buys
 
