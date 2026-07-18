@@ -573,6 +573,32 @@ def test_transitions_cleared_to_empty():
     assert draft.adventure.dungeons[0].levels[0].transitions == ()
 
 
+def test_transitions_override_drops_guessed_transition_flags():
+    """Overridden transitions replace the guessed landings wholesale, so their review badges drop with them."""
+    from osrforge.geometry import LevelGeometry
+    from osrforge.overrides import LevelOverridePlan
+
+    geometry = LevelGeometry(
+        dungeon_id="lair",
+        level_number=1,
+        width=1,
+        height=1,
+        areas={"1": ((0, 0),)},
+        corridors=(),
+        edges={},
+        entrance=(0, 0),
+        transitions=(),
+        unresolved_connections=(),
+        unknown_direction_connections=(),
+        disconnected_areas=(),
+        guessed_transitions=(("1", "lair/2/9"),),
+    )
+    kept = apply_level_overrides(geometry, LevelOverridePlan())
+    assert kept.guessed_transitions == (("1", "lair/2/9"),)
+    dropped = apply_level_overrides(geometry, LevelOverridePlan(transitions_set=True, transitions=()))
+    assert dropped.guessed_transitions == ()
+
+
 def test_cells_replacement_recomputes_the_bounds():
     draft = built('geometry:\n  barrow/1:\n    areas: {"7": {cells: [[10, 10], [10, 11]]}}\n    reason: bounds\n')
     level = draft.adventure.dungeons[0].levels[0]

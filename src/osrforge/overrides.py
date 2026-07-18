@@ -366,6 +366,10 @@ def apply_level_overrides(geometry: LevelGeometry, plan: LevelOverridePlan | Non
         unresolved_connections=geometry.unresolved_connections,
         unknown_direction_connections=geometry.unknown_direction_connections,
         disconnected_areas=geometry.disconnected_areas,
+        # Overridden transitions replace the guessed landings wholesale, so
+        # their review badges drop with them — the same rule that drops
+        # `geometry_synthesized` on overridden cells; connection facts persist.
+        guessed_transitions=() if plan.transitions_set else geometry.guessed_transitions,
     )
 
 

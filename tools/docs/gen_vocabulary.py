@@ -15,7 +15,8 @@ _FLAG_MEANINGS = {
     Flag.GEOMETRY_SYNTHESIZED: "the area's grid geometry was synthesized from the connection graph, not the map",
     Flag.MONSTER_UNRESOLVED: "an encounter name resolved to no catalog template (detail: the name)",
     Flag.LOW_CONFIDENCE: "extraction self-assessed low confidence, or a module-scope field was defaulted",
-    Flag.CONNECTION_AMBIGUOUS: "an extracted connection referenced no known area (detail: the reference)",
+    Flag.CONNECTION_AMBIGUOUS: "an extracted connection could not be realized (detail: the reason)",
+    Flag.TRANSITION_GUESSED: "a level-targeted link's landing was guessed (detail: the chosen far end)",
     Flag.TREASURE_UNPARSED: "a treasure string the grammar could not place (detail: the string)",
     Flag.PAGE_UNREADABLE: "a page render was blanked via `blank_page_renders` (detail: the page)",
 }

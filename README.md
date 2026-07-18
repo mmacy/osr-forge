@@ -10,7 +10,7 @@ Standalone package + CLI. Consumers need only its artifacts — `adventure.json`
 uv pip install osr-forge     # or: pip install osr-forge
 ```
 
-The package runs the whole pipeline — preprocessing, the survey (chunked past `survey_max_pages`) and content extraction stages, monster resolution against the osrlib catalog, deterministic geometry synthesis, and assembly — plus the human correction loop (overrides application, `rerun`/resume, the playability lint with its smoke delve, cost estimation) and the eval harness that keeps extraction quality a measured number (`tools/eval/`). The roadmap's phase plans live in [docs/](docs/spec.md) beside [the specification](docs/spec.md).
+The package runs the whole pipeline — preprocessing, the survey (chunked past `survey_max_pages`) and content extraction stages, monster resolution against the osrlib catalog, deterministic geometry synthesis (doors and secret doors on the stating room's wall, stair and trapdoor transitions from keyed and level-shaped links, guessed landings flagged), and assembly — plus the human correction loop (overrides application, `rerun`/resume, the playability lint with its smoke delve, cost estimation) and the eval harness that keeps extraction quality a measured number (`tools/eval/`). The roadmap's phase plans live in [docs/](docs/spec.md) beside [the specification](docs/spec.md).
 
 The library entry points are `convert()`, `assemble()`, `check()`, and `estimate()`; the `osrforge` console script wraps them:
 

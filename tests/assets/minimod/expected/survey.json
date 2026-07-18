@@ -1,13 +1,17 @@
 {
   "schema_version": 1,
   "title": "The Root Cellar of Old Wenna",
+  "description": "A one-evening dungeon crawl for characters of level 1.",
   "hooks": [
-    "Things have been crawling out of Old Wenna's surviving root cellar at night.",
-    "The cellar beneath the burned farmhouse lies one mile east of Wennadale and invites investigation."
+    "Old Wenna's farmhouse burned down a generation ago, but her famous root cellar survives beneath the ruin, and lately things have been crawling out of it at night."
   ],
   "town": {
     "name": "Wennadale",
-    "description": "A village of forty souls. The Dry Barrel inn offers beds and rumors; Maro the peddler sells torches, rope, and oil. The cellar mouth lies one mile east of the village green."
+    "description": "A village of forty souls.",
+    "services": [
+      "The Dry Barrel inn offers beds and rumors",
+      "Maro the peddler sells torches, rope, and oil"
+    ]
   },
   "dungeons": [
     {

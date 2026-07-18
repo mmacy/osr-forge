@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "fingerprint": "68e746a18506d82697d449ea2ff019a2ef90a5e56dd41406fd9fc9dfda616472",
+  "fingerprint": "5258d0f76b920966b3ca05bbe5e28e0f38210e6a42d409be3630255ea55196c4",
   "tag": "survey",
   "request": {
-    "system": "You survey tabletop adventure modules. The user message interleaves every page's extracted text (each headed by a [page N] marker) with that page's image. Fill the survey schema from those pages.\n\nRules:\n- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. The town or home base and its buildings are never dungeons — describe them only in \"town\". Leave \"town.name\" empty only when the module genuinely leaves the town unnamed.\n- One dungeon per independently keyed site: maps connected internally by stairs or shafts are levels of one dungeon; separate lairs or sites with their own maps and entrances are separate dungeons, even when they are drawn together on one regional map or share a running area-number sequence (a module keying \"A. Orc Lair\", \"B. Goblin Lair\" describes separate dungeons).\n- \"hooks\" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's introduction or background.\n- Each level's \"map_pages\" lists the pages showing that level's map; each area's \"source_pages\" lists the pages describing it. Both refer to the [page N] markers in this request, never to page numbers printed on the pages themselves.\n- An area's \"key\" is the module's printed key for it (like \"5\" or \"4a\"); when an area has no printed key, use its name. \"monster_names\" collects every monster name that appears anywhere in the module.\n",
+    "system": "You survey tabletop adventure modules. The user message interleaves every page's extracted text (each headed by a [page N] marker) with that page's image. Fill the survey schema from those pages.\n\nRules:\n- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. A dungeon exists only where the module prints a keyed area list for it — lettered or unkeyed callouts on another site's map are that site's features, never sites of their own. The town or home base and its buildings are never dungeons — describe them only in \"town\". Leave \"town.name\" empty only when the module genuinely leaves the town unnamed.\n- One dungeon per independently keyed site: first enumerate the module's independently keyed sites, then emit exactly that many dungeons. Maps connected internally by stairs or shafts are levels of one dungeon; separate lairs or sites with their own maps and entrances are separate dungeons, even when they are drawn together on one regional map or share a running area-number sequence (a module keying \"A. Orc Lair\", \"B. Goblin Lair\" describes separate dungeons — one dungeon each, never merged).\n- \"description\" is the module's own pitch: an excerpt of its printed introduction or back-cover text, quoted or tightened from the module's own words — never invented. Leave it empty when the module states none.\n- \"town.services\" lists the named establishments and services the module states the town offers (an inn, a temple, a general store). List only what the module states.\n- \"hooks\" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's introduction or background.\n- Each level's \"map_pages\" lists the pages showing that level's map; each area's \"source_pages\" lists the pages describing it. Both refer to the [page N] markers in this request, never to page numbers printed on the pages themselves.\n- An area's \"key\" is the module's printed key for it (like \"5\" or \"4a\"); when an area has no printed key, use its name. \"monster_names\" collects every monster name that appears anywhere in the module.\n",
     "parts": [
       {
         "text": "[page 8]\nThe Town and Surroundings The Chaotic Caves\nTown Key\nThe town lies at the crossroads of a river and\nan old paved highway. It thrives on trade and\ncommerce. Several smithies provide weapons\nand body armor. Merchants offer food,\nclothing, and basic goods. A Cleric and healer\nplies her wares. Horses and wagons are\navailable, as are freight, coach, and courier\nservices. Near the bridge are docks with a\nnarrow wooden pier and storage shed where\nboats might be purchased or rented.\nAn irregular wooden stockade 15' high\nsurrounds most of the town, thrown up\nhaphazardly as it expanded. This is slowly\nbeing replaced by a heavy stone wall about the\nsame height and ten feet thick, with\nbattlements occupying the top five feet. The\nwoods to the northwest of the town are being\ncleared to allow the expansion of the walls.\nThe GM can add residents and NPCs as needed.\nAdditional residences and farms would be\nscattered around outside the walls.\nTo save space, XP values are not given for the\nvillagers. Most are Normal Men, worth 10 XP\neach. The GM can look up outliers if needed.\nEast, North and South Gates: These heavy\nwooden gates can be barred from the inside.\nEach has a hut beside it for a watch of three\nsoldiers from the garrison (see #38 for basic\ntroops). The east gate opens onto a dirt road\nleading east towards farms and forest. A\ncobblestone highway winds through the town\nfrom the north to south gate.\nOrchard: Apples, pears, pecans, etc. grow here.\nIt is the common property of the town.\n1. HUNTERS AND DOG BREEDERS RESIDENCE:\nThese hunters also breed hunting and guard\ndogs. They have several large pens for dogs.\nFather: AC 11, HD ½ (1d4 HP), #At 1 spear or \n1 shortbow, Dam 1d6, Mv 40', Sv NM, ML 7\nHP 4 ☐☐☐☐\n2 Sons: AC 11, HD ½ (1d4 HP), #At 1 spear or \n1 shortbow, Dam 1d6, Mv 40', Sv NM, ML 7\nHP 3 ☐☐☐ 3 ☐☐☐\n2. CHICKEN RANCHERS AND HOME: These\nordinary people raise numerous chickens for\neggs, meat and feathers. They have coops as\nwell as a fenced-in area that the chickens can\nget in and out of – and flee to if chased by\ndogs.\nWidow Woman: AC 11, HD ½ (1d4 HP), \n#At 1 kitchen knife, Dam 1d4, Mv 40', Sv NM, \nML 7\nHP 3 ☐☐☐\n2 Older Children: AC 11, HD ½ (1d4 HP), \n#At 1 club, Dam 1d4, Mv 40', Sv NM, ML 7\nHP 3 ☐☐☐ 2 ☐☐\n3. FAMILY RESIDENCE: This two-story home is\nheavily built from large oaken beams. The top\nstory overhangs the bottom one. The\noccupants do odd work for a living.\nFather: AC 11, HD ½ (1d4 HP), #At 1 spear, \nDam 1d6+2 (bonus for strength of 16), Mv 40', \nSv NM, ML 7\nHP 4 ☐☐☐☐\n5 Sons: AC 11, HD ½ (1d4 HP), #At 1 spear, \nDam 1d6+2 (bonus for strength of 16), Mv 40', \nSv NM, ML 7\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 2 ☐☐\n2 ☐☐\n4a. SMITH: This man has two apprentices who\nhelp tend the forge. They spend a good deal of\ntime making nails, tacks, and other items. The\nsmith mainly makes iron hardware, from hinges\nand fireplace pokers to iron railings for those\nwho can afford them.\nSmith: AC 11, HD ½ (1d4 HP), #At 1 hammer, \nDam 1d6 +1 (bonus for strength of 14), Mv 40', \nSv NM, ML 7\nHP 4 ☐☐☐☐\n2 Apprentices: AC 11, HD ½ (1d4 HP), #At 1 \nhammer, Dam 1d6, Mv 40', Sv NM, ML 7\nHP 3 ☐☐☐ 2 ☐☐\n6"
@@ -68,6 +68,9 @@
         "title": {
           "type": "string"
         },
+        "description": {
+          "type": "string"
+        },
         "hooks": {
           "type": "array",
           "items": {
@@ -82,11 +85,18 @@
             },
             "description": {
               "type": "string"
+            },
+            "services": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "required": [
             "name",
-            "description"
+            "description",
+            "services"
           ],
           "additionalProperties": false
         },
@@ -145,6 +155,7 @@
       },
       "required": [
         "title",
+        "description",
         "hooks",
         "town",
         "dungeons",
@@ -192,10 +203,19 @@
   "response": {
     "data": {
       "title": "The Chaotic Caves",
+      "description": "",
       "hooks": [],
       "town": {
         "name": "",
-        "description": "A crossroads trade town at a river and old paved highway, with smithies, merchants, a cleric/healer, horses and wagons, docks by the bridge, and mixed wooden stockade and newer stone walls. Additional residences and farms lie outside the walls."
+        "description": "The town lies at the crossroads of a river and an old paved highway. It thrives on trade and commerce.",
+        "services": [
+          "several smithies providing weapons and body armor",
+          "merchants offering food, clothing, and basic goods",
+          "a Cleric and healer",
+          "horses and wagons",
+          "freight, coach, and courier services",
+          "docks with a narrow wooden pier and storage shed where boats might be purchased or rented"
+        ]
       },
       "dungeons": [
         {
@@ -227,8 +247,7 @@
                   "key": "3",
                   "name": "Common Room",
                   "source_pages": [
-                    22,
-                    23
+                    22
                   ],
                   "kind": "room"
                 },
@@ -249,7 +268,7 @@
                   "kind": "room"
                 },
                 {
-                  "key": "JAIL AREA",
+                  "key": "Jail Area",
                   "name": "Jail Area",
                   "source_pages": [
                     23
@@ -311,7 +330,7 @@
               ],
               "areas": [
                 {
-                  "key": "ENTRANCE",
+                  "key": "Entrance",
                   "name": "Entrance",
                   "source_pages": [
                     24
@@ -372,7 +391,7 @@
               ],
               "areas": [
                 {
-                  "key": "ENTRANCE",
+                  "key": "Entrance",
                   "name": "Entrance",
                   "source_pages": [
                     25
@@ -499,24 +518,19 @@
         }
       ],
       "monster_names": [
-        "Ghoul",
-        "Goblin",
-        "Hobgoblin",
-        "Hobgoblin Chief",
-        "Merchant",
-        "Mountain Lion",
-        "Orc",
-        "Orc Chief",
-        "Orc Warden",
-        "Orc War Leader",
-        "Skeleton",
-        "Wolf",
-        "Zombie"
+        "orc",
+        "wolf",
+        "mountain lion",
+        "hobgoblin",
+        "ghoul",
+        "skeleton",
+        "zombie",
+        "goblin"
       ]
     },
     "usage": {
-      "input_tokens": 16333,
-      "output_tokens": 814
+      "input_tokens": 16495,
+      "output_tokens": 820
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

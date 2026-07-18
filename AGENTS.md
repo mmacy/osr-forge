@@ -41,7 +41,7 @@ The same loop on branch `phase-N-impl`: implement to the plan with tests green, 
 
 ## Greenfield discipline
 
-Refactor freely and update every call site — tests are the safety net. No re-exports or aliases kept to preserve an old import path, no deprecation scaffolding, no code kept "just in case" — git history is the archive. The exception is the artifact contracts (`adventure.json` stamped document, `report.json` flag and finding vocabularies, `overrides.yaml` schema): external consumers read these, and from the first PyPI release — an installable package *is* external consumption — they are a public API, additive-only within a schema version.
+Refactor freely and update every call site — tests are the safety net. No re-exports or aliases kept to preserve an old import path, no deprecation scaffolding, no code kept "just in case" — git history is the archive. The exception is the artifact contracts (`adventure.json` stamped document, `report.json` flag and finding vocabularies, `overrides.yaml` schema): external consumers read these, and they are a public API, additive-only within a schema version. That fence is owner-suspended (declared 2026-07-16) while no external consumers exist — the only consumers today are the owner's own projects — and the owner's declaration governs until they deem external consumers to exist.
 
 ## Standing obligations
 

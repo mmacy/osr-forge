@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "fingerprint": "028669c138d14eac94059f1220fc0bc3aa6c86ac2112c45ddc258103e83fcca4",
+  "fingerprint": "e3371222fa252113dde561a628b7218823cf02b262d52c7919cd268e3143588f",
   "tag": "content.the-root-cellar-of-old-wenna.1.b01",
   "request": {
-    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers, secret doors); \"treasure\" lists the area's treasure as printed.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. For \"to_key\", use the connected area's canonical key when it appears in the area list; otherwise its printed label.\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers); \"treasure\" lists the area's treasure as printed. A secret door that conceals a way to another keyed area is a connection with via \"secret_door\", not a feature; a secret door concealing no keyed connection (a false closet) stays a feature.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. \"via\" is the connection's stated mechanism — a door, secret door, stairs, trapdoor, or chute — \"passage\" when the text names none, \"other\" for anything else; \"door_stuck\" and \"door_locked\" record the door conditions the text states.\n- Connection targets: prefer \"to_key\" — the connected area's canonical key when it appears in the area list, otherwise its printed label. When the text states only a level, not a keyed area (\"stairs descend to the second level\"), leave \"to_key\" null and put the level number in \"to_level\".\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
     "parts": [
       {
         "text": "Extract the keyed areas listed below from dungeon \"The Root Cellar of Old Wenna\" (id: the-root-cellar-of-old-wenna), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- 1 | printed key \"1\" | Collapsed stair | pages 3\n- 2 | printed key \"2\" | Turnip store | pages 3\n- 3 | printed key \"3\" | Cider press | pages 3\n- 4 | printed key \"4\" | Flooded gallery | pages 3\n- 5 | printed key \"5\" | Wenna's pantry | pages 5\n- 6 | printed key \"6\" | The deep bin | pages 5\nThis level's map is on page 4.\n"
@@ -114,7 +114,17 @@
                   "type": "object",
                   "properties": {
                     "to_key": {
-                      "type": "string"
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "to_level": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
                     },
                     "direction": {
                       "type": "string",
@@ -127,11 +137,33 @@
                         "down",
                         "unknown"
                       ]
+                    },
+                    "via": {
+                      "type": "string",
+                      "enum": [
+                        "passage",
+                        "door",
+                        "secret_door",
+                        "stairs",
+                        "trapdoor",
+                        "chute",
+                        "other"
+                      ]
+                    },
+                    "door_stuck": {
+                      "type": "boolean"
+                    },
+                    "door_locked": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "to_key",
-                    "direction"
+                    "to_level",
+                    "direction",
+                    "via",
+                    "door_stuck",
+                    "door_locked"
                   ],
                   "additionalProperties": false
                 }
@@ -186,19 +218,31 @@
           "trap": null,
           "treasure": [],
           "features": [
-            "broken steps descending from the surface",
-            "rubble nest"
+            "Broken steps descending from the surface",
+            "Rubble nest"
           ],
           "connections": [
             {
+              "to_key": null,
+              "to_level": null,
+              "direction": "up",
+              "via": "stairs",
+              "door_stuck": false,
+              "door_locked": false
+            },
+            {
               "to_key": "2",
-              "direction": "south"
+              "to_level": null,
+              "direction": "south",
+              "via": "passage",
+              "door_stuck": false,
+              "door_locked": false
             }
           ],
           "source_pages": [
             3
           ],
-          "confidence": 0.92
+          "confidence": 0.76
         },
         {
           "key": "2",
@@ -208,36 +252,48 @@
               "monster": "goblin",
               "count_fixed": 1,
               "count_dice": null,
-              "count_note": "scavenger named Snagg"
+              "count_note": null
             }
           ],
           "trap": null,
           "treasure": [],
           "features": [
-            "rotted bins"
+            "Rotted bins"
           ],
           "connections": [
             {
-              "to_key": "1",
-              "direction": "north"
+              "to_key": "3",
+              "to_level": null,
+              "direction": "north",
+              "via": "passage",
+              "door_stuck": false,
+              "door_locked": false
             },
             {
-              "to_key": "3",
-              "direction": "east"
+              "to_key": "1",
+              "to_level": null,
+              "direction": "north",
+              "via": "passage",
+              "door_stuck": false,
+              "door_locked": false
             },
             {
               "to_key": "4",
-              "direction": "south"
+              "to_level": null,
+              "direction": "east",
+              "via": "passage",
+              "door_stuck": false,
+              "door_locked": false
             }
           ],
           "source_pages": [
             3
           ],
-          "confidence": 0.88
+          "confidence": 0.55
         },
         {
           "key": "3",
-          "description": "A 20' x 20' room dominated by a ruined press.",
+          "description": "A 20' x 20' room dominated by a ruined press. Under the press bed is a loose flagstone hiding treasure.",
           "encounters": [],
           "trap": null,
           "treasure": [
@@ -245,23 +301,23 @@
             "silver locket worth 25 gp"
           ],
           "features": [
-            "ruined press",
-            "loose flagstone under the press bed"
+            "Ruined press",
+            "Loose flagstone under the press bed"
           ],
           "connections": [
             {
               "to_key": "2",
-              "direction": "west"
-            },
-            {
-              "to_key": "4",
-              "direction": "east"
+              "to_level": null,
+              "direction": "south",
+              "via": "passage",
+              "door_stuck": false,
+              "door_locked": false
             }
           ],
           "source_pages": [
             3
           ],
-          "confidence": 0.91
+          "confidence": 0.78
         },
         {
           "key": "4",
@@ -271,30 +327,37 @@
               "monster": "giant centipedes",
               "count_fixed": 4,
               "count_dice": null,
-              "count_note": "cling to the ceiling beams"
+              "count_note": null
             }
           ],
           "trap": null,
           "treasure": [],
           "features": [
-            "ankle-deep seep water",
-            "ceiling beams",
-            "stuck door in the east wall"
+            "Ankle-deep seep water",
+            "Ceiling beams"
           ],
           "connections": [
             {
-              "to_key": "2",
-              "direction": "north"
+              "to_key": "5",
+              "to_level": null,
+              "direction": "east",
+              "via": "door",
+              "door_stuck": true,
+              "door_locked": false
             },
             {
-              "to_key": "5",
-              "direction": "east"
+              "to_key": "2",
+              "to_level": null,
+              "direction": "west",
+              "via": "passage",
+              "door_stuck": false,
+              "door_locked": false
             }
           ],
           "source_pages": [
             3
           ],
-          "confidence": 0.95
+          "confidence": 0.84
         },
         {
           "key": "5",
@@ -304,28 +367,36 @@
               "monster": "skeleton",
               "count_fixed": 1,
               "count_dice": null,
-              "count_note": "in a scorched apron; attacks anyone who touches the shelves"
+              "count_note": null
             }
           ],
           "trap": null,
           "treasure": [],
           "features": [
-            "shelves stocked with preserves"
+            "Shelves stocked with preserves"
           ],
           "connections": [
             {
               "to_key": "4",
-              "direction": "west"
+              "to_level": null,
+              "direction": "west",
+              "via": "door",
+              "door_stuck": true,
+              "door_locked": false
             },
             {
               "to_key": "6",
-              "direction": "down"
+              "to_level": null,
+              "direction": "south",
+              "via": "other",
+              "door_stuck": false,
+              "door_locked": false
             }
           ],
           "source_pages": [
             5
           ],
-          "confidence": 0.89
+          "confidence": 0.73
         },
         {
           "key": "6",
@@ -335,7 +406,7 @@
               "monster": "stirges",
               "count_fixed": 3,
               "count_dice": null,
-              "count_note": "roost above a heap of grain sacks"
+              "count_note": null
             }
           ],
           "trap": null,
@@ -344,25 +415,29 @@
             "potion of healing"
           ],
           "features": [
-            "ladder access",
-            "heap of grain sacks"
+            "Ladder access",
+            "Heap of grain sacks"
           ],
           "connections": [
             {
               "to_key": "5",
-              "direction": "up"
+              "to_level": null,
+              "direction": "up",
+              "via": "other",
+              "door_stuck": false,
+              "door_locked": false
             }
           ],
           "source_pages": [
             5
           ],
-          "confidence": 0.94
+          "confidence": 0.72
         }
       ]
     },
     "usage": {
-      "input_tokens": 3854,
-      "output_tokens": 682
+      "input_tokens": 4049,
+      "output_tokens": 884
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

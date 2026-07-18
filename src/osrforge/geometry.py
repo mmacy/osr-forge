@@ -10,8 +10,9 @@ The impassability hazard, defused here: osrlib grids are walls by default —
 an edge absent from `LevelSpec.edges` is a wall, and the boundary is an
 implicit wall — so synthesis emits `open` edges between every orthogonally
 adjacent pair of same-area cells, along every corridor path, and at every
-room-corridor junction. All synthesized edges are `open` in v1; doors arrive
-through geometry overrides (phase 3) or a future vision pass.
+room-corridor junction. A connection whose stated mechanism is a door kind
+realizes as a `door` edge on the stating area's wall (phase 6); overrides
+remain the last word.
 
 Every choice below is pinned for determinism: BFS visit order, candidate
 placement order, component ordering, edge-key ordering, and row-major cell
@@ -20,13 +21,14 @@ sorting — the byte-stability tests rely on all of them.
 
 import re
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import pairwise
+from typing import Literal
 
 from osrlib.crawl.dungeon import Direction as GridDirection
-from osrlib.crawl.dungeon import Edge, EdgeKind, Position, TransitionSpec, edge_key, step
+from osrlib.crawl.dungeon import DoorSpec, Edge, EdgeKind, Position, TransitionSpec, edge_key, step
 
-from osrforge.contracts.stages import AreaConnection, LevelContent, SurveyDungeon, SurveyIndex
+from osrforge.contracts.stages import LevelContent, SurveyDungeon, SurveyIndex
 from osrforge.survey import canonical_slug
 
 __all__ = [
@@ -100,14 +102,19 @@ class LevelGeometry:
             keys sorted by (y, x, side).
         entrance: The entrance area's first cell on the dungeon's entrance
             level; `None` elsewhere.
-        transitions: This level's reciprocal transition specs, in link
-            derivation order.
-        unresolved_connections: `(area key, to_key)` pairs geometry dropped —
-            assembly flags them `connection_ambiguous`.
+        transitions: This level's transition specs, in link derivation order
+            (stairs reciprocal, trapdoors and chutes one-way).
+        unresolved_connections: `(area key, flag detail)` pairs geometry
+            dropped — assembly emits each detail verbatim as a
+            `connection_ambiguous` flag.
         unknown_direction_connections: `(area key, resolved target key)` pairs
             whose extracted direction was `unknown` — assembly flags them.
         disconnected_areas: Area keys joined by a synthetic component link —
             assembly flags them not connected to the entrance.
+        guessed_transitions: `(area key, far-end address)` pairs for this
+            level's `to_level`-derived transitions — assembly flags them
+            `transition_guessed`, the badge that asks a human to confirm or
+            correct the landing.
     """
 
     dungeon_id: str
@@ -122,21 +129,40 @@ class LevelGeometry:
     unresolved_connections: tuple[tuple[str, str], ...]
     unknown_direction_connections: tuple[tuple[str, str], ...]
     disconnected_areas: tuple[str, ...]
+    guessed_transitions: tuple[tuple[str, str], ...]
 
 
-@dataclass(frozen=True)
+_DOOR_VIAS = ("door", "secret_door")
+
+_TransitionKind = Literal["stairs_up", "stairs_down", "trapdoor", "chute"]
+
+
+@dataclass
 class _GraphEdge:
     """One undirected intra-level connection, as collapsed from its mentions.
 
     `owner` is the area whose mention pinned the direction; placing the other
     end as the BFS child uses `direction` when the parent is the owner and its
     opposite otherwise. `direction` is `None` for unknown or vertical mentions.
+
+    `via` is the first *stated* (non-`passage`) mechanism in survey order and
+    `via_owner` the area whose mention stated it — the default `passage` is an
+    absence, not an assertion, so a later stated mechanism fills it exactly as
+    a later stated compass direction fills an earlier `None`. Door conditions
+    merge first-stated the same way: on the wire `False` is the unstated
+    default, so the first mention stating a condition sets it and nothing
+    unsets it; conditions on a non-door `via` are ignored at emission (the
+    tolerate-and-flag posture).
     """
 
     a: str
     b: str
     owner: str
     direction: GridDirection | None
+    via: str | None = None
+    via_owner: str | None = None
+    door_stuck: bool = False
+    door_locked: bool = False
 
     def other(self, key: str) -> str:
         return self.b if key == self.a else self.a
@@ -147,12 +173,22 @@ class _GraphEdge:
         return self.direction if parent == self.owner else self.direction.opposite
 
 
-@dataclass(frozen=True)
+@dataclass
 class _CrossLevelLink:
-    """One vertical link between two levels of the same dungeon.
+    """One vertical link with a keyed target between two levels of the same dungeon.
 
     `up` is the stated direction of the first mention: `True` means the source
-    area's stairs lead up to the target.
+    area's stairs lead up to the target. `via` is the first *stated*
+    (non-`passage`) mechanism across the pair's mentions, narrowed to a
+    transition family (`trapdoor` and `chute` as themselves, everything else
+    `stairs`); `None` — no mention stated one — realizes as stairs, the
+    overwhelmingly common printed mechanism. The duplicate-mention upgrade
+    clause applies here exactly as on same-level edges: a later mention
+    stating a mechanism fills an earlier absence, so a reciprocal "shaft up"
+    mention can never turn the far side's stated chute into return stairs —
+    and a one-way mechanism filling the absence re-orients the link to its
+    stating mention's end, since a chute drops from where the page says it
+    drops.
     """
 
     source_level: int
@@ -160,11 +196,54 @@ class _CrossLevelLink:
     target_level: int
     target_key: str
     up: bool
+    via: str | None
+
+
+@dataclass(frozen=True)
+class _LevelLink:
+    """One vertical mention with a level-shaped target — no keyed area to land on.
+
+    `down` is the vertical sense: a stated `up`/`down` direction wins;
+    otherwise the level numbers decide (a higher target number is down —
+    deeper levels number higher throughout the pipeline).
+    """
+
+    source_level: int
+    source_key: str
+    to_level: int
+    down: bool
+    via: str
+
+
+@dataclass(frozen=True)
+class _RealizedLink:
+    """One vertical link ready for cell assignment and transition emission.
+
+    `target_kind` is `None` when no return transition is emitted — trapdoors
+    and chutes are one-way by osrlib's design, and synthesizing return stairs
+    up a chute would manufacture structure no page states. `flags` carries
+    `(level number, area key, far-end address)` triples assembly turns into
+    `transition_guessed` flags.
+    """
+
+    source_level: int
+    source_key: str
+    target_level: int
+    target_key: str
+    source_kind: _TransitionKind
+    target_kind: _TransitionKind | None
+    flags: tuple[tuple[int, str, str], ...] = ()
 
 
 @dataclass
 class _LevelResolution:
-    """One level's resolved connection data, before placement."""
+    """One level's resolved connection data, before placement.
+
+    `unresolved` pairs are `(area key, flag detail)` — geometry owns the
+    detail wording (`unresolved target <key>`, `no target stated`,
+    `level <N>`, `door to <key> not placed`) and assembly emits each verbatim
+    as a `connection_ambiguous` flag.
+    """
 
     edges: list[_GraphEdge]
     unresolved: list[tuple[str, str]]
@@ -181,9 +260,14 @@ def _resolve_target(to_key: str, level_keys: Sequence[str]) -> str | None:
     return None
 
 
+def _transition_via(via: str) -> str:
+    """Narrow a mention's `via` to a transition family: trapdoors and chutes as themselves, else stairs."""
+    return via if via in ("trapdoor", "chute") else "stairs"
+
+
 def _resolve_dungeon_connections(
     dungeon: SurveyDungeon, contents: dict[tuple[str, int], LevelContent]
-) -> tuple[dict[int, _LevelResolution], list[_CrossLevelLink]]:
+) -> tuple[dict[int, _LevelResolution], list[_CrossLevelLink], list[_LevelLink]]:
     """Resolve every connection mention in one dungeon, in survey order.
 
     Duplicate mentions of an area pair collapse to one undirected edge whose
@@ -191,16 +275,24 @@ def _resolve_dungeon_connections(
     reverse-only mention is inverted at placement); mentions that state no
     compass direction — `unknown`, or a vertical direction resolving within
     one level (a 2D grid has no third axis) — leave the edge direction-unknown.
-    Self-connections are dropped. A vertical mention unresolved locally tries
-    the sibling levels (exact over all, then slug over all, in survey order);
-    a hit is a cross-level link, deduplicated by area pair with the first
-    mention winning. Anything still unresolved is dropped and reported for
-    assembly's `connection_ambiguous` flags.
+    The stated mechanism and door conditions merge with the same upgrade
+    clause (see `_GraphEdge`). Self-connections are dropped. A vertical
+    mention unresolved locally tries the sibling levels (exact over all, then
+    slug over all, in survey order); a hit is a cross-level link, deduplicated
+    by area pair — the first mention wins the endpoints and direction, and a
+    later mention's stated mechanism fills an earlier absence (the same
+    upgrade clause as same-level edges; a one-way mechanism re-orients the
+    link to its stating end — see `_CrossLevelLink`). A mention with `to_level` and
+    no `to_key` is a level link, validated and landed by
+    `_realize_level_links`. A mention with neither target is dropped with
+    `no target stated`; anything else unresolved is dropped with its target in
+    the detail — both surface as assembly's `connection_ambiguous` flags.
     """
     level_keys = {level.number: [area.key for area in level.areas] for level in dungeon.levels}
     resolutions: dict[int, _LevelResolution] = {}
     links: list[_CrossLevelLink] = []
-    linked_pairs: set[frozenset[tuple[int, str]]] = set()
+    level_links: list[_LevelLink] = []
+    linked_by_pair: dict[frozenset[tuple[int, str]], _CrossLevelLink] = {}
     for level in dungeon.levels:
         resolution = _LevelResolution(edges=[], unresolved=[], unknown_direction=[])
         resolutions[level.number] = resolution
@@ -213,26 +305,63 @@ def _resolve_dungeon_connections(
             if extracted is None:
                 continue
             for connection in extracted.connections:
+                if connection.to_key is None:
+                    # The tolerate-and-flag posture: schema-legal junk with
+                    # neither target is skipped, never a crash.
+                    if connection.to_level is None:
+                        resolution.unresolved.append((area.key, "no target stated"))
+                        continue
+                    if connection.direction in ("up", "down"):
+                        down = connection.direction == "down"
+                    else:
+                        down = connection.to_level > level.number
+                    level_links.append(
+                        _LevelLink(
+                            source_level=level.number,
+                            source_key=area.key,
+                            to_level=connection.to_level,
+                            down=down,
+                            via=_transition_via(connection.via),
+                        )
+                    )
+                    continue
                 target = _resolve_target(connection.to_key, level_keys[level.number])
                 if target is None:
                     if connection.direction in ("up", "down"):
-                        hit = _resolve_on_siblings(connection, dungeon, level.number, level_keys)
+                        hit = _resolve_on_siblings(connection.to_key, dungeon, level.number, level_keys)
                         if hit is not None:
                             sibling_number, sibling_key = hit
                             pair = frozenset(((level.number, area.key), (sibling_number, sibling_key)))
-                            if pair not in linked_pairs:
-                                linked_pairs.add(pair)
-                                links.append(
-                                    _CrossLevelLink(
-                                        source_level=level.number,
-                                        source_key=area.key,
-                                        target_level=sibling_number,
-                                        target_key=sibling_key,
-                                        up=connection.direction == "up",
-                                    )
+                            stated_via = _transition_via(connection.via) if connection.via != "passage" else None
+                            existing = linked_by_pair.get(pair)
+                            if existing is None:
+                                link = _CrossLevelLink(
+                                    source_level=level.number,
+                                    source_key=area.key,
+                                    target_level=sibling_number,
+                                    target_key=sibling_key,
+                                    up=connection.direction == "up",
+                                    via=stated_via,
                                 )
+                                linked_by_pair[pair] = link
+                                links.append(link)
+                            elif existing.via is None and stated_via is not None:
+                                # The duplicate-mention upgrade clause: a later
+                                # mention's stated mechanism fills an earlier
+                                # absence — a reciprocal "passage up" mention
+                                # never overrides the far side's stated chute.
+                                existing.via = stated_via
+                                if stated_via in ("trapdoor", "chute"):
+                                    # One-way mechanisms realize from their
+                                    # stating mention's own end — a chute
+                                    # stated at the far side drops from there.
+                                    existing.source_level = level.number
+                                    existing.source_key = area.key
+                                    existing.target_level = sibling_number
+                                    existing.target_key = sibling_key
+                                    existing.up = connection.direction == "up"
                             continue
-                    resolution.unresolved.append((area.key, connection.to_key))
+                    resolution.unresolved.append((area.key, f"unresolved target {connection.to_key}"))
                     continue
                 if target == area.key:
                     continue
@@ -240,23 +369,30 @@ def _resolve_dungeon_connections(
                     resolution.unknown_direction.append((area.key, target))
                 pair = frozenset((area.key, target))
                 stated = _COMPASS.get(connection.direction)
+                mechanism = connection.via if connection.via != "passage" else None
                 if pair not in seen_pairs:
                     seen_pairs.add(pair)
-                    edge_by_pair[pair] = _GraphEdge(a=area.key, b=target, owner=area.key, direction=stated)
-                    resolution.edges.append(edge_by_pair[pair])
-                elif stated is not None and edge_by_pair[pair].direction is None:
-                    # A later mention states the compass direction an earlier
-                    # one lacked: the first *stated* direction wins.
-                    upgraded = _GraphEdge(
-                        a=edge_by_pair[pair].a, b=edge_by_pair[pair].b, owner=area.key, direction=stated
-                    )
-                    resolution.edges[resolution.edges.index(edge_by_pair[pair])] = upgraded
-                    edge_by_pair[pair] = upgraded
-    return resolutions, links
+                    edge = _GraphEdge(a=area.key, b=target, owner=area.key, direction=stated)
+                    edge_by_pair[pair] = edge
+                    resolution.edges.append(edge)
+                else:
+                    edge = edge_by_pair[pair]
+                    if edge.direction is None and stated is not None:
+                        # A later mention states the compass direction an
+                        # earlier one lacked: the first *stated* direction wins.
+                        edge.direction = stated
+                        edge.owner = area.key
+                if mechanism is not None and edge.via is None:
+                    edge.via = mechanism
+                    edge.via_owner = area.key
+                if connection.via in _DOOR_VIAS:
+                    edge.door_stuck = edge.door_stuck or connection.door_stuck
+                    edge.door_locked = edge.door_locked or connection.door_locked
+    return resolutions, links, level_links
 
 
 def _resolve_on_siblings(
-    connection: AreaConnection,
+    to_key: str,
     dungeon: SurveyDungeon,
     level_number: int,
     level_keys: dict[int, list[str]],
@@ -264,14 +400,128 @@ def _resolve_on_siblings(
     """Resolve a vertical connection target on the dungeon's other levels: exact pass, then slug pass."""
     siblings = [level.number for level in dungeon.levels if level.number != level_number]
     for sibling in siblings:
-        if connection.to_key in level_keys[sibling]:
-            return (sibling, connection.to_key)
-    slug = canonical_slug(connection.to_key)
+        if to_key in level_keys[sibling]:
+            return (sibling, to_key)
+    slug = canonical_slug(to_key)
     if slug:
         for sibling in siblings:
             if slug in level_keys[sibling]:
                 return (sibling, slug)
     return None
+
+
+def _transition_kinds(via: str, down: bool) -> tuple[_TransitionKind, _TransitionKind | None]:
+    """One vertical link's emitted transition kinds, by mechanism and vertical sense.
+
+    Stairs emit the reciprocal return transition; trapdoors and chutes emit
+    none — they are one-way by osrlib's design, and synthesizing return stairs
+    up a chute would manufacture structure no page states.
+    """
+    if via == "trapdoor":
+        return ("trapdoor", None)
+    if via == "chute":
+        return ("chute", None)
+    return ("stairs_down", "stairs_up") if down else ("stairs_up", "stairs_down")
+
+
+def _realize_links(
+    dungeon: SurveyDungeon,
+    links: list[_CrossLevelLink],
+    level_links: list[_LevelLink],
+    resolutions: dict[int, _LevelResolution],
+) -> list[_RealizedLink]:
+    """Realize every vertical link: keyed targets as stated, level targets under the total landing policy.
+
+    Keyed links realize directly, kinds from their mechanism and stated sense.
+    Level links first validate their target — a level the dungeon doesn't
+    have, the source's own level, or a level with zero surveyed areas drops
+    the link with `connection_ambiguous:level <N>` on the source area.
+    Survivors between the same level pair merge pairwise in survey order when
+    their sources sit on opposite levels and their vertical senses oppose —
+    each merged pair yields one reciprocal transition between the two
+    mentioning areas (both ends were stated as stair-bearing; the guess is
+    only that they are the same stairway). Leftover links land on the target
+    level's first keyed area in survey order. Every `to_level`-derived
+    transition flags its source area with the chosen far end's address —
+    merged pairs flag both mentioning areas — and the geometry `transitions`
+    override corrects any landing.
+    """
+    realized: list[_RealizedLink] = []
+    for link in links:
+        source_kind, target_kind = _transition_kinds(link.via if link.via is not None else "stairs", down=not link.up)
+        realized.append(
+            _RealizedLink(
+                source_level=link.source_level,
+                source_key=link.source_key,
+                target_level=link.target_level,
+                target_key=link.target_key,
+                source_kind=source_kind,
+                target_kind=target_kind,
+            )
+        )
+    numbers = {level.number for level in dungeon.levels}
+    first_keys = {level.number: level.areas[0].key for level in dungeon.levels if level.areas}
+    surviving: list[_LevelLink] = []
+    for link in level_links:
+        if link.to_level not in numbers or link.to_level == link.source_level or link.to_level not in first_keys:
+            resolutions[link.source_level].unresolved.append((link.source_key, f"level {link.to_level}"))
+            continue
+        surviving.append(link)
+    used = [False] * len(surviving)
+    for position, one in enumerate(surviving):
+        if used[position]:
+            continue
+        used[position] = True
+        partner: _LevelLink | None = None
+        for later in range(position + 1, len(surviving)):
+            two = surviving[later]
+            if (
+                not used[later]
+                and two.source_level == one.to_level
+                and two.to_level == one.source_level
+                and two.down != one.down
+            ):
+                used[later] = True
+                partner = two
+                break
+        if partner is not None:
+            realized.append(
+                _RealizedLink(
+                    source_level=one.source_level,
+                    source_key=one.source_key,
+                    target_level=partner.source_level,
+                    target_key=partner.source_key,
+                    source_kind=_transition_kinds(one.via, one.down)[0],
+                    target_kind=_transition_kinds(partner.via, partner.down)[0],
+                    flags=(
+                        (
+                            one.source_level,
+                            one.source_key,
+                            f"{dungeon.id}/{partner.source_level}/{partner.source_key}",
+                        ),
+                        (
+                            partner.source_level,
+                            partner.source_key,
+                            f"{dungeon.id}/{one.source_level}/{one.source_key}",
+                        ),
+                    ),
+                )
+            )
+            continue
+        landing = first_keys[one.to_level]
+        source_kind, target_kind = _transition_kinds(one.via, one.down)
+        realized.append(
+            _RealizedLink(
+                source_level=one.source_level,
+                source_key=one.source_key,
+                target_level=one.to_level,
+                target_key=landing,
+                source_kind=source_kind,
+                target_kind=target_kind,
+                flags=((one.source_level, one.source_key, f"{dungeon.id}/{one.to_level}/{landing}"),),
+            )
+        )
+    return realized
 
 
 def _room_size(key: str, content_by_key: dict[str, str]) -> tuple[int, int]:
@@ -474,10 +724,16 @@ def _place_child(
 
 @dataclass
 class _Placement:
-    """One level's placement state: raw-coordinate cells before normalization."""
+    """One level's placement state: raw-coordinate cells before normalization.
+
+    `edge_paths` maps each graph edge the router realized *as stated* (child
+    placed from its graph parent — not re-anchored, not a cycle edge) to its
+    corridor path, the association door synthesis reads.
+    """
 
     rooms: dict[str, tuple[Position, ...]]
     paths: list[list[Position]]
+    edge_paths: dict[frozenset[str], list[Position]] = field(default_factory=dict[frozenset[str], list[Position]])
 
 
 def _order_components(
@@ -543,13 +799,17 @@ def _place_level(
             placed = _place_child(
                 placement.rooms[parent], sizes[child], graph_edge.placement_direction(parent), occupied
             )
+            re_anchored = False
             if placed is None:
                 # The parent walled itself in: re-anchor on the earliest
                 # placed room with a free way out (dict order is placement
                 # order — deterministic). The child joins the component there
                 # instead of at its graph parent; synthesized geometry is
                 # approximate by charter, and the room stays reachable, which
-                # is the postcondition that matters.
+                # is the postcondition that matters. A re-anchored route does
+                # not realize the stated connection, so it never carries its
+                # door (case b of the door rule).
+                re_anchored = True
                 for fallback_parent, fallback_cells in placement.rooms.items():
                     if fallback_parent == parent:
                         continue
@@ -563,11 +823,15 @@ def _place_level(
             occupied.update(child_cells)
             occupied.update(path)
             placement.paths.append(path)
+            if not re_anchored:
+                placement.edge_paths[frozenset((graph_edge.a, graph_edge.b))] = path
             queue.append(child)
     return placement, tuple(disconnected)
 
 
-def _normalize_placement(placement: _Placement) -> tuple[dict[str, tuple[Position, ...]], list[list[Position]]]:
+def _normalize_placement(
+    placement: _Placement,
+) -> tuple[dict[str, tuple[Position, ...]], list[list[Position]], dict[frozenset[str], list[Position]]]:
     """Translate all cells so the minimum coordinate is (0, 0)."""
     all_cells = [cell for cells in placement.rooms.values() for cell in cells]
     all_cells.extend(cell for path in placement.paths for cell in path)
@@ -578,7 +842,8 @@ def _normalize_placement(placement: _Placement) -> tuple[dict[str, tuple[Positio
         for key, cells in placement.rooms.items()
     }
     paths = [[(x - min_x, y - min_y) for x, y in path] for path in placement.paths]
-    return rooms, paths
+    edge_paths = {pair: [(x - min_x, y - min_y) for x, y in path] for pair, path in placement.edge_paths.items()}
+    return rooms, paths, edge_paths
 
 
 def _edge_direction(from_cell: Position, to_cell: Position) -> GridDirection:
@@ -604,6 +869,51 @@ def edge_sort_key(key: str) -> tuple[int, int, str]:
     coordinates, _, side = key.partition(":")
     x, _, y = coordinates.partition(",")
     return (int(y), int(x), side)
+
+
+def _door_edges(
+    graph_edges: Sequence[_GraphEdge],
+    rooms: dict[str, tuple[Position, ...]],
+    edge_paths: dict[frozenset[str], list[Position]],
+    unresolved: list[tuple[str, str]],
+) -> dict[str, Edge]:
+    """Realize stated doors onto route edges — the total rule over the three materializations.
+
+    (a) A connection the router realized as its own tree edge carries its door
+    on the first edge the route opens leaving the door-stating area's cluster
+    — the prose describes the door in the wall of the room being described, so
+    the source end is the faithful placement (the arriving end of the route
+    when the source was placed as the child). (b) A re-anchored child's route
+    joins another room, so the stated door has no edge on the described wall;
+    (c) a cycle-closing connection places no route at all. Both drop the door
+    fact with `connection_ambiguous:door to <key> not placed` on the source
+    area — the geometry `edges` override is the designed remedy, and the flag
+    is what tells the human to reach for it.
+    """
+    doors: dict[str, Edge] = {}
+    for graph_edge in graph_edges:
+        if graph_edge.via not in _DOOR_VIAS or graph_edge.via_owner is None:
+            continue
+        owner = graph_edge.via_owner
+        target = graph_edge.other(owner)
+        path = edge_paths.get(frozenset((graph_edge.a, graph_edge.b)))
+        pair: tuple[Position, Position] | None = None
+        if path is not None and len(path) >= 2:
+            owner_cells = set(rooms[owner])
+            if path[0] in owner_cells and path[1] not in owner_cells:
+                pair = (path[0], path[1])
+            elif path[-1] in owner_cells and path[-2] not in owner_cells:
+                pair = (path[-2], path[-1])
+        if pair is None:
+            unresolved.append((owner, f"door to {target} not placed"))
+            continue
+        door = DoorSpec(
+            kind="secret" if graph_edge.via == "secret_door" else "normal",
+            stuck=graph_edge.door_stuck,
+            locked=graph_edge.door_locked,
+        )
+        doors[edge_key(pair[0], _edge_direction(pair[0], pair[1]))] = Edge(kind=EdgeKind.DOOR, door=door)
+    return doors
 
 
 def _open_edges(rooms: dict[str, tuple[Position, ...]], paths: list[list[Position]]) -> dict[str, Edge]:
@@ -637,19 +947,28 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
     contents = {(level.dungeon_id, level.level_number): level for level in levels}
     results: list[LevelGeometry] = []
     for dungeon in index.dungeons:
-        resolutions, links = _resolve_dungeon_connections(dungeon, contents)
+        resolutions, links, level_links = _resolve_dungeon_connections(dungeon, contents)
+        realized = _realize_links(dungeon, links, level_links, resolutions)
         # The dungeon's entrance lives on its lowest-numbered level (with any
         # areas at all) — survey order is not guaranteed number-sorted.
         entrance_level = min((level.number for level in dungeon.levels if level.areas), default=None)
         transition_areas: dict[int, list[str]] = {}
-        for link in links:
+        for link in realized:
             transition_areas.setdefault(link.source_level, []).append(link.source_key)
             transition_areas.setdefault(link.target_level, []).append(link.target_key)
 
-        placed: dict[int, tuple[dict[str, tuple[Position, ...]], list[list[Position]], tuple[str, ...]]] = {}
+        placed: dict[
+            int,
+            tuple[
+                dict[str, tuple[Position, ...]],
+                list[list[Position]],
+                dict[frozenset[str], list[Position]],
+                tuple[str, ...],
+            ],
+        ] = {}
         for level in dungeon.levels:
             if not level.areas:
-                placed[level.number] = ({}, [], ())
+                placed[level.number] = ({}, [], {}, ())
                 continue
             survey_keys = [area.key for area in level.areas]
             content = contents.get((dungeon.id, level.number))
@@ -661,8 +980,8 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
             else:
                 anchor = min(targets, key=survey_keys.index)
             placement, disconnected = _place_level(survey_keys, sizes, resolutions[level.number].edges, anchor)
-            rooms, paths = _normalize_placement(placement)
-            placed[level.number] = (rooms, paths, disconnected)
+            rooms, paths, edge_paths = _normalize_placement(placement)
+            placed[level.number] = (rooms, paths, edge_paths, disconnected)
 
         # An area's transition cells assign in link derivation order: its Nth
         # transition takes its Nth cell (wrapping) — an area carrying both up-
@@ -673,7 +992,7 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
         # back on the arrival cell).
         occupancy: dict[tuple[int, str], int] = {}
         link_positions: list[tuple[Position, Position]] = []
-        for link in links:
+        for link in realized:
             ends: list[Position] = []
             for level_number, area_key in ((link.source_level, link.source_key), (link.target_level, link.target_key)):
                 cells = placed[level_number][0][area_key]
@@ -682,8 +1001,13 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
                 ends.append(cells[slot % len(cells)])
             link_positions.append((ends[0], ends[1]))
 
+        guessed: dict[int, list[tuple[str, str]]] = {}
+        for link in realized:
+            for flag_level, area_key, detail in link.flags:
+                guessed.setdefault(flag_level, []).append((area_key, detail))
+
         for level in dungeon.levels:
-            rooms, paths, disconnected = placed[level.number]
+            rooms, paths, edge_paths, disconnected = placed[level.number]
             room_cells = {cell for cells in rooms.values() for cell in cells}
             corridor_cells = sorted(
                 {cell for path in paths for cell in path if cell not in room_cells},
@@ -692,12 +1016,17 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
             all_cells = room_cells | set(corridor_cells)
             width = max((x for x, _ in all_cells), default=0) + 1
             height = max((y for _, y in all_cells), default=0) + 1
+            resolution = resolutions[level.number]
+            edges = _open_edges(rooms, paths)
+            # Door replacement keeps the sorted key order: every door key is a
+            # route edge `_open_edges` already emitted.
+            edges.update(_door_edges(resolution.edges, rooms, edge_paths, resolution.unresolved))
             transitions: list[TransitionSpec] = []
-            for link, (source_position, target_position) in zip(links, link_positions, strict=True):
+            for link, (source_position, target_position) in zip(realized, link_positions, strict=True):
                 if link.source_level == level.number:
                     transitions.append(
                         TransitionSpec(
-                            kind="stairs_up" if link.up else "stairs_down",
+                            kind=link.source_kind,
                             position=source_position,
                             to_dungeon_id=dungeon.id,
                             to_level_number=link.target_level,
@@ -705,10 +1034,10 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
                             to_facing=GridDirection.NORTH,
                         )
                     )
-                if link.target_level == level.number:
+                if link.target_kind is not None and link.target_level == level.number:
                     transitions.append(
                         TransitionSpec(
-                            kind="stairs_down" if link.up else "stairs_up",
+                            kind=link.target_kind,
                             position=target_position,
                             to_dungeon_id=dungeon.id,
                             to_level_number=link.source_level,
@@ -719,7 +1048,6 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
             entrance = None
             if level.number == entrance_level:
                 entrance = rooms[level.areas[0].key][0]
-            resolution = resolutions[level.number]
             geometry = LevelGeometry(
                 dungeon_id=dungeon.id,
                 level_number=level.number,
@@ -727,12 +1055,13 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
                 height=height,
                 areas={area.key: rooms[area.key] for area in level.areas},
                 corridors=tuple(corridor_cells),
-                edges=_open_edges(rooms, paths),
+                edges=edges,
                 entrance=entrance,
                 transitions=tuple(transitions),
                 unresolved_connections=tuple(resolution.unresolved),
                 unknown_direction_connections=tuple(resolution.unknown_direction),
                 disconnected_areas=disconnected,
+                guessed_transitions=tuple(guessed.get(level.number, ())),
             )
             results.append(geometry)
     _assert_postconditions(results)

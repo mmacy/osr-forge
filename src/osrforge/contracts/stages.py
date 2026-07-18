@@ -30,12 +30,14 @@ from osrforge.versioning import SCHEMA_VERSION
 __all__ = [
     "AREA_KINDS",
     "CANONICAL_SLUG_PATTERN",
+    "CONNECTION_VIAS",
     "DICE_PATTERN",
     "DIRECTIONS",
     "AreaConnection",
     "AreaContent",
     "AreaEncounter",
     "AreaKind",
+    "ConnectionVia",
     "Direction",
     "LevelContent",
     "MonsterResolution",
@@ -78,6 +80,17 @@ Direction = Literal["north", "south", "east", "west", "up", "down", "unknown"]
 DIRECTIONS: tuple[str, ...] = get_args(Direction)
 """The `Direction` wire values, for building extraction-schema enums."""
 
+ConnectionVia = Literal["passage", "door", "secret_door", "stairs", "trapdoor", "chute", "other"]
+"""A connection's stated mechanism; `passage` when the text names none.
+
+`secret_door` is its own value, not a modifier: it drives both
+`DoorSpec(kind="secret")` and the playability lint's `secret_only_access`
+warning.
+"""
+
+CONNECTION_VIAS: tuple[str, ...] = get_args(ConnectionVia)
+"""The `ConnectionVia` wire values, for building extraction-schema enums."""
+
 
 def _canonical(value: str) -> str:
     if not CANONICAL_SLUG_PATTERN.match(value):
@@ -89,13 +102,16 @@ class TownInfo(BaseModel):
     """The town or home base — never a dungeon.
 
     `name` may be empty when the town is genuinely unnamed; osrlib's required
-    `TownSpec.name` gets a default-plus-flag at assembly (phase 2).
+    `TownSpec.name` gets a default-plus-flag at assembly (phase 2). `services`
+    lists the named establishments and services the module states — defaulted
+    so every pre-phase-6 survey cache still loads and assembles.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
     description: str
+    services: tuple[str, ...] = ()
 
 
 class SurveyArea(BaseModel):
@@ -166,12 +182,19 @@ class SurveyDungeon(BaseModel):
 
 
 class SurveyIndex(BaseModel):
-    """The `stages/survey.json` cache: the index that plans everything downstream."""
+    """The `stages/survey.json` cache: the index that plans everything downstream.
+
+    `description` is the module's own pitch — an excerpt of its printed
+    introduction or back-cover text, never invented, empty when the module has
+    none — defaulted so every pre-phase-6 survey cache still loads and
+    assembles.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     schema_version: int = SCHEMA_VERSION
     title: str
+    description: str = ""
     hooks: tuple[str, ...]
     town: TownInfo
     dungeons: tuple[SurveyDungeon, ...]
@@ -205,12 +228,28 @@ class AreaConnection(BaseModel):
     `to_key` is a free string — connections may cross batches or levels; the
     prompt instructs canonical keys from the survey excerpt, and dangling
     references are assembly's job (phase 2), surfacing as `connection_ambiguous`.
+    `to_level` is the escape hatch for level-shaped targets ("stairs descend to
+    the second level" states a level, not a keyed area); the prompt prefers the
+    keyed target.
+
+    The failure posture, pinned: tolerate and flag, never reject. The batch
+    JSON schema stays flat (no conditional coupling — structured-output
+    implementations handle it badly), so a schema-valid response can carry
+    door conditions on a non-door `via`, or neither target. This model accepts
+    all of it and consumers discard-with-flag: geometry reads door conditions
+    only when `via` is a door kind, and a connection with neither `to_key` nor
+    `to_level` is skipped with `connection_ambiguous:no target stated`. A
+    pydantic error mid-stage would be a crash, not defense.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    to_key: str
+    to_key: str | None = None
     direction: Direction
+    via: ConnectionVia = "passage"
+    door_stuck: bool = False
+    door_locked: bool = False
+    to_level: int | None = None
 
 
 class AreaContent(BaseModel):

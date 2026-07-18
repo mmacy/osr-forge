@@ -40,6 +40,7 @@ class Flag(StrEnum):
     MONSTER_UNRESOLVED = "monster_unresolved"
     LOW_CONFIDENCE = "low_confidence"
     CONNECTION_AMBIGUOUS = "connection_ambiguous"
+    TRANSITION_GUESSED = "transition_guessed"
     TREASURE_UNPARSED = "treasure_unparsed"
     PAGE_UNREADABLE = "page_unreadable"
 

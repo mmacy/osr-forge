@@ -4,15 +4,17 @@
   "engine_version": "1.1.0",
   "payload": {
     "name": "The Root Cellar of Old Wenna",
-    "description": "",
+    "description": "A one-evening dungeon crawl for characters of level 1.",
     "hooks": [
-      "Things have been crawling out of Old Wenna's surviving root cellar at night.",
-      "The cellar beneath the burned farmhouse lies one mile east of Wennadale and invites investigation."
+      "Old Wenna's farmhouse burned down a generation ago, but her famous root cellar survives beneath the ruin, and lately things have been crawling out of it at night."
     ],
     "town": {
       "name": "Wennadale",
-      "description": "A village of forty souls. The Dry Barrel inn offers beds and rumors; Maro the peddler sells torches, rope, and oil. The cellar mouth lies one mile east of the village green.",
-      "services": [],
+      "description": "A village of forty souls.",
+      "services": [
+        "The Dry Barrel inn offers beds and rumors",
+        "Maro the peddler sells torches, rope, and oil"
+      ],
       "travel_turns": {}
     },
     "dungeons": [
@@ -23,7 +25,7 @@
           {
             "number": 1,
             "width": 8,
-            "height": 11,
+            "height": 13,
             "edges": {
               "2,0:west": {
                 "kind": "open",
@@ -153,15 +155,7 @@
                 "kind": "open",
                 "door": null
               },
-              "6,7:north": {
-                "kind": "open",
-                "door": null
-              },
               "1,8:north": {
-                "kind": "open",
-                "door": null
-              },
-              "6,8:north": {
                 "kind": "open",
                 "door": null
               },
@@ -190,8 +184,13 @@
                 "door": null
               },
               "4,9:west": {
-                "kind": "open",
-                "door": null
+                "kind": "door",
+                "door": {
+                  "kind": "normal",
+                  "stuck": true,
+                  "locked": false,
+                  "starts_open": false
+                }
               },
               "5,9:north": {
                 "kind": "open",
@@ -234,6 +233,14 @@
                 "door": null
               },
               "7,10:west": {
+                "kind": "open",
+                "door": null
+              },
+              "6,11:north": {
+                "kind": "open",
+                "door": null
+              },
+              "6,12:north": {
                 "kind": "open",
                 "door": null
               }
@@ -285,7 +292,7 @@
                   {
                     "id": "1-f1",
                     "kind": "custom",
-                    "description": "broken steps descending from the surface",
+                    "description": "Broken steps descending from the surface",
                     "cell": null,
                     "item_ids": [],
                     "coins": {
@@ -301,7 +308,7 @@
                   {
                     "id": "1-f2",
                     "kind": "custom",
-                    "description": "rubble nest",
+                    "description": "Rubble nest",
                     "cell": null,
                     "item_ids": [],
                     "coins": {
@@ -388,7 +395,7 @@
                   {
                     "id": "2-f1",
                     "kind": "custom",
-                    "description": "rotted bins",
+                    "description": "Rotted bins",
                     "cell": null,
                     "item_ids": [],
                     "coins": {
@@ -408,7 +415,7 @@
               {
                 "id": "3",
                 "name": "Cider press",
-                "description": "A 20' x 20' room dominated by a ruined press.",
+                "description": "A 20' x 20' room dominated by a ruined press. Under the press bed is a loose flagstone hiding treasure.",
                 "cells": [
                   [
                     4,
@@ -432,7 +439,7 @@
                   {
                     "id": "3-f1",
                     "kind": "custom",
-                    "description": "ruined press",
+                    "description": "Ruined press",
                     "cell": null,
                     "item_ids": [],
                     "coins": {
@@ -448,7 +455,7 @@
                   {
                     "id": "3-f2",
                     "kind": "custom",
-                    "description": "loose flagstone under the press bed",
+                    "description": "Loose flagstone under the press bed",
                     "cell": null,
                     "item_ids": [],
                     "coins": {
@@ -526,7 +533,7 @@
                   {
                     "id": "4-f1",
                     "kind": "custom",
-                    "description": "ankle-deep seep water",
+                    "description": "Ankle-deep seep water",
                     "cell": null,
                     "item_ids": [],
                     "coins": {
@@ -542,23 +549,7 @@
                   {
                     "id": "4-f2",
                     "kind": "custom",
-                    "description": "ceiling beams",
-                    "cell": null,
-                    "item_ids": [],
-                    "coins": {
-                      "pp": 0,
-                      "gp": 0,
-                      "ep": 0,
-                      "sp": 0,
-                      "cp": 0
-                    },
-                    "valuables": [],
-                    "trap": null
-                  },
-                  {
-                    "id": "4-f3",
-                    "kind": "custom",
-                    "description": "stuck door in the east wall",
+                    "description": "Ceiling beams",
                     "cell": null,
                     "item_ids": [],
                     "coins": {
@@ -633,7 +624,7 @@
                   {
                     "id": "5-f1",
                     "kind": "custom",
-                    "description": "shelves stocked with preserves",
+                    "description": "Shelves stocked with preserves",
                     "cell": null,
                     "item_ids": [],
                     "coins": {
@@ -657,7 +648,7 @@
                 "cells": [
                   [
                     6,
-                    6
+                    12
                   ]
                 ],
                 "encounter": {
@@ -676,7 +667,7 @@
                   {
                     "id": "6-f1",
                     "kind": "custom",
-                    "description": "ladder access",
+                    "description": "Ladder access",
                     "cell": null,
                     "item_ids": [],
                     "coins": {
@@ -692,7 +683,7 @@
                   {
                     "id": "6-f2",
                     "kind": "custom",
-                    "description": "heap of grain sacks",
+                    "description": "Heap of grain sacks",
                     "cell": null,
                     "item_ids": [],
                     "coins": {

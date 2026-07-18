@@ -25,7 +25,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from osrforge.assemble import parse_treasure
-from osrforge.contracts.stages import AreaContent, LevelContent, MonsterResolutions, SurveyIndex
+from osrforge.contracts.stages import AreaContent, LevelContent, MonsterResolutions, SurveyDungeon, SurveyIndex
 from osrforge.monsters import normalize_monster_name
 from osrforge.settings import ConversionSettings
 from osrforge.survey import canonical_slug
@@ -727,6 +727,46 @@ def _align_dungeons(truth: ModuleTruth, index: SurveyIndex) -> dict[int, int]:
     return matches
 
 
+def _align_levels(truth_dungeon: TruthDungeon, extracted_dungeon: SurveyDungeon) -> dict[int, int]:
+    """Align one aligned dungeon's truth levels to extracted levels by maximal area-key overlap.
+
+    Many-to-one from the truth side: each truth level independently pairs with
+    the extracted level sharing the most canonical-slug area keys — ties break
+    by smaller level-number distance, then by lower extracted level number —
+    and a truth level with zero overlap everywhere stays unmatched. Several
+    truth levels pairing with one extracted level is the B4 shape (10 printed
+    tiers grouped by extraction into 6 coarse levels), which is why one-to-one
+    number matching cannot heal it. The recorded hazard: overlap alignment
+    assumes area keys distinguish levels; a module keying every level 1..N and
+    extracting partially could cross-pair, which the number-distance tie-break
+    absorbs only for equal overlaps.
+
+    Args:
+        truth_dungeon: The truth dungeon.
+        extracted_dungeon: The extracted dungeon it aligned to.
+
+    Returns:
+        Truth level number → extracted level number, matched pairs only.
+    """
+    extracted_keys = {level.number: {area.key for area in level.areas} for level in extracted_dungeon.levels}
+    matches: dict[int, int] = {}
+    for level in truth_dungeon.levels:
+        truth_keys = {_truth_key_slug(area, position) for position, area in enumerate(level.areas, start=1)}
+        best: tuple[int, int, int] | None = None  # (overlap, -distance, -number) maximized
+        best_number: int | None = None
+        for number in sorted(extracted_keys):
+            overlap = len(truth_keys & extracted_keys[number])
+            if overlap == 0:
+                continue
+            candidate = (overlap, -abs(level.number - number), -number)
+            if best is None or candidate > best:
+                best = candidate
+                best_number = number
+        if best_number is not None:
+            matches[level.number] = best_number
+    return matches
+
+
 def _load_level_cache(workdir: Workdir, dungeon_id: str, level_number: int) -> LevelContent:
     path = workdir.areas_json(dungeon_id, level_number)
     if not path.is_file():
@@ -814,14 +854,20 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
         if extracted_position is None:
             continue
         extracted_dungeon = index.dungeons[extracted_position]
-        extracted_levels = {extracted_level.number: extracted_level for extracted_level in extracted_dungeon.levels}
+        level_matches = _align_levels(truth_dungeon, extracted_dungeon)
+        # Several truth levels may pair with one extracted level, so an
+        # extracted area key must match at most one truth area across all of
+        # them: pairings process in truth-level order, and a claimed key is
+        # not claimed again.
+        claimed: dict[int, set[str]] = {}
 
         for level in truth_dungeon.levels:
-            extracted_level = extracted_levels.get(level.number)
-            if extracted_level is None:
+            extracted_number = level_matches.get(level.number)
+            if extracted_number is None:
                 continue
-            cache = _load_level_cache(workdir, extracted_dungeon.id, extracted_level.number)
+            cache = _load_level_cache(workdir, extracted_dungeon.id, extracted_number)
             cached_areas = {area.key: area for area in cache.areas}
+            level_claimed = claimed.setdefault(extracted_number, set())
 
             matched: dict[str, TruthArea] = {}
             asserted: set[str] = set()
@@ -829,8 +875,9 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                 slug = _truth_key_slug(truth_area, position)
                 if truth_area.connections is not None:
                     asserted.add(slug)
-                if slug in cached_areas and slug not in matched:
+                if slug in cached_areas and slug not in level_claimed:
                     matched[slug] = truth_area
+                    level_claimed.add(slug)
             matched_areas += len(matched)
 
             # Encounters and treasure, per matched truth area.
@@ -886,6 +933,10 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                 if extracted_area.key not in matched:
                     continue
                 for connection in extracted_area.connections:
+                    if connection.to_key is None:
+                        # Level-targeted links are outside the same-level edge
+                        # universe; edge semantics and denominators untouched.
+                        continue
                     to_key = canonical_slug(connection.to_key)
                     if to_key not in matched or to_key == extracted_area.key:
                         continue

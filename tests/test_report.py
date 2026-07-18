@@ -113,7 +113,15 @@ def test_report_round_trips():
     assert ExtractionReport.model_validate(report.model_dump(mode="json")) == report
 
 
-@pytest.mark.parametrize("value", ["geometry_synthesized", "monster_unresolved:hobgoblin chieftain", "low_confidence"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "geometry_synthesized",
+        "monster_unresolved:hobgoblin chieftain",
+        "low_confidence",
+        "transition_guessed:barrow/2/1",
+    ],
+)
 def test_flag_grammar_accepts(value: str):
     flag, detail = parse_flag(value)
     assert isinstance(flag, Flag)

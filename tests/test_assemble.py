@@ -24,14 +24,20 @@ TABLES = load_encounter_tables()
 
 
 def make_index(
-    areas: list[str], title: str = "The Example Barrow", town_name: str = "Threshold", level_number: int = 1
+    areas: list[str],
+    title: str = "The Example Barrow",
+    town_name: str = "Threshold",
+    level_number: int = 1,
+    description: str = "",
+    services: list[str] | None = None,
 ) -> SurveyIndex:
     return SurveyIndex.model_validate(
         {
             "schema_version": 1,
             "title": title,
+            "description": description,
             "hooks": ["A rumor."],
-            "town": {"name": town_name, "description": "A town."},
+            "town": {"name": town_name, "description": "A town.", "services": services or []},
             "dungeons": [
                 {
                     "id": "lair",
@@ -192,6 +198,27 @@ class TestTreasureGrammar:
             ("treasure type A", "letters", "A"),
             ("Treasure Type c.", "letters", "C"),
             ("a map to the hoard", "unparsed", "a map to the hoard"),
+            # The phase 5 amendment's two recorded shapes (B3's spot-check):
+            ("1,000 cp", "coins", {"cp": 1000}),
+            ("1,235 sp.", "coins", {"sp": 1235}),
+            ("2,500 gp and 1,000 sp", "coins", {"gp": 2500, "sp": 1000}),
+            ("an idol worth 1,200 gp", "valuable", ("jewellery", "idol", 1200)),
+            # Quantified each, both orderings — the real JN1 cache shapes:
+            ("3 dresses worth 100 gp each", "valuables", [("jewellery", "dresses", 100)] * 3),
+            ("3 gems each worth 50 gp", "valuables", [("gem", "gems", 50)] * 3),
+            ("6 silver cups worth 20 gp each", "valuables", [("jewellery", "silver cups", 20)] * 6),
+            # The guards that must not loosen:
+            ("1d6 gems worth 50 gp each", "unparsed", "1d6 gems worth 50 gp each"),  # dice guard fires first
+            ("gems worth 50 gp each", "unparsed", "gems worth 50 gp each"),  # unquantified each
+            ("Five gems worth 50 gp each", "unparsed", "Five gems worth 50 gp each"),  # word counts don't parse
+            ("3 potions for each visitor", "unparsed", "3 potions for each visitor"),
+            ("50 gp per rescued prisoner", "unparsed", "50 gp per rescued prisoner"),
+            (
+                "10 silver cups worth 10 gp each (100 gp total)",
+                "unparsed",
+                "10 silver cups worth 10 gp each (100 gp total)",
+            ),  # trailing commentary stays conservative
+            ("1,00 cp", "unparsed", "1,00 cp"),  # mis-grouped commas never half-match
         ],
     )
     def test_grammar_table(self, text: str, field: str, expected: Any):
@@ -204,6 +231,9 @@ class TestTreasureGrammar:
             kind, name, value = expected
             (valuable,) = parsed.valuables
             assert (valuable.kind, valuable.name, valuable.value_gp) == (kind, name, value)
+        elif field == "valuables":
+            assert [(entry.kind, entry.name, entry.value_gp) for entry in parsed.valuables] == expected
+            assert not parsed.unparsed
         elif field == "letters":
             assert parsed.letters == (expected,)
         else:
@@ -418,6 +448,48 @@ class TestFlags:
         flags = area_report(result, "2").flags
         assert "connection_ambiguous:not connected to the entrance in the extracted graph" in flags
 
+    def test_no_target_connection_flags_no_target_stated(self):
+        result = draft([make_area("1", connections=[{"to_key": None, "direction": "unknown"}])])
+        assert "connection_ambiguous:no target stated" in area_report(result, "1").flags
+
+    def test_guessed_transition_flag_lands_on_the_source_area(self):
+        index = SurveyIndex.model_validate(
+            {
+                "schema_version": 1,
+                "title": "Mod",
+                "hooks": [],
+                "town": {"name": "Town", "description": ""},
+                "dungeons": [
+                    {
+                        "id": "lair",
+                        "name": "Lair",
+                        "levels": [
+                            {
+                                "number": number,
+                                "map_pages": [],
+                                "areas": [
+                                    {"key": key, "name": key, "source_label": None, "kind": "room", "source_pages": []}
+                                ],
+                            }
+                            for number, key in ((1, "1"), (2, "9"))
+                        ],
+                    }
+                ],
+                "monster_names": [],
+            }
+        )
+        levels = (
+            make_level(
+                [make_area("1", connections=[{"to_key": None, "to_level": 2, "direction": "down", "via": "stairs"}])],
+                level_number=1,
+            ),
+            make_level([make_area("9")], level_number=2),
+        )
+        geometries = synthesize_geometry(index, levels)
+        result = build_draft(index, levels, MonsterResolutions(resolutions={}), geometries, ConversionSettings())
+        assert "transition_guessed:lair/2/9" in area_report(result, "1").flags
+        assert not any("transition_guessed" in flag for flag in area_report(result, "9").flags)
+
 
 class TestModuleDefaults:
     def test_defaulted_title_and_town_are_flagged(self):
@@ -436,6 +508,17 @@ class TestModuleDefaults:
         assert result.module_flags == ()
         assert result.adventure.description == ""
         assert result.adventure.hooks == ("A rumor.",)
+
+    def test_survey_description_and_services_fill_the_metadata(self):
+        result = draft(
+            [make_area("1")],
+            description="An introductory adventure for levels 1-3.",
+            services=["The Gilded Goat inn", "a small temple"],
+        )
+        assert result.adventure.description == "An introductory adventure for levels 1-3."
+        assert result.adventure.town.services == ("The Gilded Goat inn", "a small temple")
+        # Empty metadata stays empty, unflagged — absence is not a defect.
+        assert result.module_flags == ()
 
 
 def test_validation_result_maps_findings_with_the_header_stripped():

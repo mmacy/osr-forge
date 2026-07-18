@@ -294,8 +294,7 @@
       ],
       "confidence": 0.88,
       "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:6 silver cups worth 20 gp each"
+        "geometry_synthesized"
       ],
       "overridden": []
     },
@@ -437,7 +436,6 @@
       "confidence": 0.97,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:1,235 sp.",
         "treasure_unparsed:Potion of Passwall in a stoppered flask inside a padded jar."
       ],
       "overridden": []
@@ -657,8 +655,7 @@
       "confidence": 0.86,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:A vial containing a Potion of Stone to Flesh (1 use).",
-        "treasure_unparsed:A bag tied to the foot of the bed holding 600 gp, 1,200 sp, and 1,800 cp."
+        "treasure_unparsed:A vial containing a Potion of Stone to Flesh (1 use)."
       ],
       "overridden": []
     },
@@ -713,8 +710,7 @@
       "flags": [
         "geometry_synthesized",
         "connection_ambiguous:unresolved target 26",
-        "connection_ambiguous:not connected to the entrance in the extracted graph",
-        "treasure_unparsed:the original owners will pay 1,000 gp for the recovered heirloom if tracked down"
+        "connection_ambiguous:not connected to the entrance in the extracted graph"
       ],
       "overridden": []
     },
@@ -787,8 +783,7 @@
       "confidence": 0.82,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Shortsword +1",
-        "treasure_unparsed:Buried wooden box in hidden southeast hole containing 472 gp, 178 sp, and 1,234 cp"
+        "treasure_unparsed:Shortsword +1"
       ],
       "overridden": []
     },
@@ -849,7 +844,6 @@
       "confidence": 0.84,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Locked strongbox under the table containing 500 gp, 1,000 sp, and 2,000 cp.",
         "treasure_unparsed:Longsword +1 wielded by the leader.",
         "treasure_unparsed:Chainmail +1 worn by the leader."
       ],
@@ -903,8 +897,7 @@
         "geometry_synthesized",
         "treasure_unparsed:10 silver cups worth 10 gp each (100 gp total)",
         "treasure_unparsed:10 silver plates worth 25 gp each, finely engraved and decorated (250 gp total)",
-        "treasure_unparsed:10 forks and 10 spoons of silver worth 5 gp each (100 gp total value)",
-        "treasure_unparsed:3 dresses worth 100 gp each"
+        "treasure_unparsed:10 forks and 10 spoons of silver worth 5 gp each (100 gp total value)"
       ],
       "overridden": []
     },
@@ -1190,8 +1183,7 @@
         "geometry_synthesized",
         "treasure_unparsed:Shield +1",
         "treasure_unparsed:Potion of Gaseous Form",
-        "treasure_unparsed:Potion of Healing",
-        "treasure_unparsed:1,400 ep"
+        "treasure_unparsed:Potion of Healing"
       ],
       "overridden": []
     },
@@ -1737,9 +1729,7 @@
         "treasure_unparsed:Scroll of sleep",
         "treasure_unparsed:2 Potions of Healing",
         "treasure_unparsed:Potion of Healing",
-        "treasure_unparsed:Potion of Invisibility",
-        "treasure_unparsed:One chest with 1,230 gp, 456 sp, and 983 cp",
-        "treasure_unparsed:One chest with 456 gp, 1,234 sp, and 491 pp"
+        "treasure_unparsed:Potion of Invisibility"
       ],
       "overridden": []
     }

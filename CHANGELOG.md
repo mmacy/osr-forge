@@ -8,6 +8,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Playable structure (phase 6): connections extract their stated mechanism
+  (door, secret door, stairs, trapdoor, chute, with stuck/locked conditions)
+  and level-shaped targets; geometry synthesizes door and secret-door edges
+  on the stating room's wall and level transitions from keyed and
+  level-targeted vertical links (opposite-sense links pair into one
+  stairway, leftovers land on the target level's first keyed area, trapdoors
+  and chutes stay one-way), with every guessed landing flagged by the new
+  `transition_guessed` report flag.
+- Survey metadata: the module's own description and the town's stated
+  services extract into `Adventure.description` and `TownSpec.services`;
+  the survey prompt gains the phantom-dungeon rule (a dungeon exists only
+  where the module prints a keyed area list) and a counting-anchored
+  multi-lair rule.
+- The treasure grammar parses comma-grouped numbers (`1,000 cp`) and the
+  two quantified-`each` shapes (`3 gems worth 50 gp each`, `3 gems each
+  worth 50 gp`); `per`-anything, unquantified `each`, and dice quantities
+  stay unparsed.
+
 - Private (BYOM) eval corpora: every `tools/eval/run_eval.py` subcommand
   takes `--corpus DIR`, `convert` takes the main CLI's repeatable `--set`,
   manifests may omit `sha256`/`license` for non-redistributable retail
@@ -25,6 +43,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The eval scorer aligns truth levels to extracted levels by maximal
+  area-key overlap, many-to-one from the truth side (the B4 fix: printed
+  tiers grouped into coarser extracted levels now score on their areas
+  instead of losing them to a level-number mismatch), and skips
+  level-targeted connections in the connections family.
 - The eval scorer: `treasure` in truth files is assertion-aware (an omitted
   block keeps the area out of both treasure denominators — partial truth
   stays honestly denominated), and the areas family gains

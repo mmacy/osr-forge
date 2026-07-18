@@ -16,11 +16,13 @@ from typing import Any, cast
 
 from osrforge.contracts.run import Stage
 from osrforge.contracts.stages import (
+    CONNECTION_VIAS,
     DICE_PATTERN,
     DIRECTIONS,
     AreaConnection,
     AreaContent,
     AreaEncounter,
+    ConnectionVia,
     Direction,
     LevelContent,
     SurveyArea,
@@ -56,10 +58,16 @@ not keyed encounters.
 anything the module says about count that fits neither (rates, conditions, ranges) goes in "count_note". \
 Leave unused count fields null.
 - "trap" describes the area's trap, null when it has none. "features" lists notable fixtures a referee \
-should know about (altars, pools, levers, secret doors); "treasure" lists the area's treasure as printed.
+should know about (altars, pools, levers); "treasure" lists the area's treasure as printed. A secret door \
+that conceals a way to another keyed area is a connection with via "secret_door", not a feature; a secret \
+door concealing no keyed connection (a false closet) stays a feature.
 - "connections": derive each connection's "direction" from the level map when the text is silent; use \
-"unknown" only when neither the text nor the map says. For "to_key", use the connected area's canonical key \
-when it appears in the area list; otherwise its printed label.
+"unknown" only when neither the text nor the map says. "via" is the connection's stated mechanism — a \
+door, secret door, stairs, trapdoor, or chute — "passage" when the text names none, "other" for anything \
+else; "door_stuck" and "door_locked" record the door conditions the text states.
+- Connection targets: prefer "to_key" — the connected area's canonical key when it appears in the area \
+list, otherwise its printed label. When the text states only a level, not a keyed area ("stairs descend \
+to the second level"), leave "to_key" null and put the level number in "to_level".
 - "source_pages" refer to the [page N] markers in this request, never to page numbers printed on the pages.
 - "confidence" is your self-assessment in [0, 1] of how faithfully you extracted that area.
 """
@@ -237,10 +245,14 @@ def batch_schema(keys: Sequence[str]) -> dict[str, object]:
                             "items": {
                                 "type": "object",
                                 "properties": {
-                                    "to_key": {"type": "string"},
+                                    "to_key": {"type": ["string", "null"]},
+                                    "to_level": {"type": ["integer", "null"], "minimum": 1},
                                     "direction": {"type": "string", "enum": list(DIRECTIONS)},
+                                    "via": {"type": "string", "enum": list(CONNECTION_VIAS)},
+                                    "door_stuck": {"type": "boolean"},
+                                    "door_locked": {"type": "boolean"},
                                 },
-                                "required": ["to_key", "direction"],
+                                "required": ["to_key", "to_level", "direction", "via", "door_stuck", "door_locked"],
                                 "additionalProperties": False,
                             },
                         },
@@ -342,8 +354,12 @@ def _response_areas(data: object, page_count: int) -> list[AreaContent]:
                 features=tuple(cast(list[str], entry["features"])),
                 connections=tuple(
                     AreaConnection(
-                        to_key=cast(str, connection["to_key"]),
+                        to_key=cast(str | None, connection["to_key"]),
                         direction=cast(Direction, connection["direction"]),
+                        via=cast(ConnectionVia, connection["via"]),
+                        door_stuck=cast(bool, connection["door_stuck"]),
+                        door_locked=cast(bool, connection["door_locked"]),
+                        to_level=cast(int | None, connection["to_level"]),
                     )
                     for connection in cast(list[dict[str, Any]], entry["connections"])
                 ),
