@@ -81,7 +81,8 @@
   ],
   "monsters": {
     "resolved": 5,
-    "unresolved": []
+    "unresolved": [],
+    "custom": []
   },
   "usage": {
     "input_tokens": 9830,

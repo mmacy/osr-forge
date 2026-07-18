@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "fingerprint": "0cb4cc787e2dfdcbd31ddf147d8b6a01009fb9b1f0c938fef0dcad23fa52ddec",
+  "tag": "statblock.tentacle-worm",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"tentacle worm\" from the pages below.\n"
+      },
+      {
+        "text": "[page 16]\nThe Town and Surroundings The Chaotic Caves\nAll of the horses and wagons belong to the\nmerchants inside. If rescued, the owners will\nbe grateful and offer a 500 gp reward, which is\nmost of the money they have with them. They\nwere moving their small household when\nambushed. \nIf the PCs kill or rob the merchants, there is a\ngood chance they will later be recognized and\nreported as bandits if they keep the wagons\nand horses and remain in the area.\nThe horses are detailed in case they become a\ntarget.\nBandit Leader, Human Fighter 2: AC 15, AB +2, \n#At 1 shortsword, Dam 1d6, Mv 20', Sv F2, ML 8,\nXP 75\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n9 Bandits, Human Fighter 1: AC 13, AB +1, \n#At 1 shortsword, Dam 1d6, Mv 30', Sv F1, ML 8,\nXP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐ 4 ☐☐☐☐\n2 Dogs: AC 14, HD 1+1, #At 1 bite, Dam 1d4 + \nhold, Mv 50', Sv F1, ML 9, XP 25 ea.\nHP 6 ☐☐☐☐☐ ☐ 4 ☐☐☐☐\n6 Riding Horses: AC 13, HD 2, #At 2 hooves, \nDam 1d4 hoof, Mv 80' (10'), Sv F2, ML 7, \nXP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 7 ☐☐☐☐☐ ☐☐\n6 ☐☐☐☐☐ ☐ 6 ☐☐☐☐☐ ☐\n5 ☐☐☐☐☐ 4 ☐☐☐☐\n3. HALFLING HOME (See the Miscellaneous\nMaps): The party comes across what was once\na Halfling farm and orchard. From all evidence,\nthis was abandoned decades ago. It is now\ngrown over with brush, weeds, and trees. The\nmain buildings are built like a burrow, with\nonly the round front door and round windows\n(shown as circles on the maps) exposed. The\nrest is buried underneath a dozen feet of earth.\nThe ceilings are uniformly 6 feet high. The\nfloors and walls are stone; the ceilings are\nmade of and held up by heavy timbers.\nCobwebs and dirt clutter all the inner rooms.\nOnly the windows provide light inside. The\nwindows are filthy from decades of neglect.\nThey are composed of multiple panes of glass\nwith wooden framework, but exact details are\nleft to the GM's imagination.\nH1. FRONT DOOR: A large, round green door\ngreets visitors. The door is locked, but is old\nand rotten, and can be easily knocked in.\nH2. LIVING ROOM: The main living room, with a\nfireplace in the south wall and a round window\nabout 4' in diameter in the north. There is no\nfurniture here. Searching the fireplace for\nloose stones will reveal a small, secret niche\n(about 1' squared) off to one side which\ncontains an old, ornate jewelry box. Inside are\n100 gp, a gem worth 250 gp, and a large silver\nhat pin that was once magical but is not any\nlonger.\nThe stink of death is here. A long-dead body\nclad in old, rotten leather armor lies mauled in\nthe center of the room. It has a silver dagger\nin a belt sheath, 2 vials of holy water, 1 Potion\nof Healing, and a leather pouch with 3 cp.\nA tentacle worm lurks in the dark, scuttling to\nany sounds that occur in adjacent rooms, such\nas the sound of the front door being knocked\nin.\nTentacle Worm: AC 13, HD 3*, #At 6 tentacles, \nDam paralysis, Mv 40', Sv F3, ML 9, XP 175\nHP 12 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐\nH3. DINING ROOM: This 15 x 17 foot room has\ntwo round windows in the north wall. The\ncolor of the floor and shapes in the dust\nindicate that tables and chairs were once\nplaced in the light of the windows.\nH4. KITCHEN: A stone stove rests against the\nnorth wall with a chimney going out the roof\n(with a flue about 1 foot square). There are no\nother furnishings. A round window about 4\nfeet in diameter is in the northwest corner (the\nglass is broken out). A pool of slimy green\nwater is running down the sill of the window to\nthe floor (it looks exactly like a green slime\nmonster but is not one).\nH5, H6, H7. BEDROOMS: Empty of even\nfurniture. Each has a round window about 4' in\ndiameter in the south wall (in the southwest\ncorner of H7).\n14"
+      },
+      {
+        "sha256": "61198487e9f4ca07389f05e00a2ee4ba4576581741bbff3aedf00d90988b3d2d",
+        "bytes": 508458
+      },
+      {
+        "text": "[page 21]\nThe Chaotic Caves The Town and Surroundings\nMiscellaneous Maps\n19"
+      },
+      {
+        "sha256": "3102a1d0e21bee9266e7ff4a219892e6084adbabe09e0c7885609fed4154aeba",
+        "bytes": 212238
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "13",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "3*",
+      "class_level": null,
+      "hp": 12,
+      "attacks": [
+        "6 tentacles, Dam paralysis"
+      ],
+      "movement": "40'",
+      "saves": "F3",
+      "morale": 9,
+      "alignment": null,
+      "xp": 175,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        16
+      ]
+    },
+    "usage": {
+      "input_tokens": 3854,
+      "output_tokens": 106
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

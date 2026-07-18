@@ -282,13 +282,16 @@ class TestSurveyStage:
             survey(workdir, ScriptedProvider([]))
 
 
-def test_success_clears_the_monsters_cache_too(tmp_path: Path):
+def test_success_clears_the_monsters_and_statblock_caches_too(tmp_path: Path):
     workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=2)
     workdir.stages_dir.mkdir()
     stale_monsters = workdir.monsters_json
     stale_monsters.write_text("{}", encoding="utf-8")
+    stale_blocks = workdir.statblocks_json
+    stale_blocks.write_text("{}", encoding="utf-8")
     survey(workdir, ScriptedProvider([raw_survey()]))
     assert not stale_monsters.exists()
+    assert not stale_blocks.exists()
 
 
 class TestSurveyWindows:

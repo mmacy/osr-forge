@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "fingerprint": "b9a22570d0372191491b7951a08c9adf7b80dd8109c992830a18b759e15d17ae",
+  "tag": "statblock.giant-gecko-lizard",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"giant gecko lizard\" from the pages below.\n"
+      },
+      {
+        "text": "[page 32]\nThe Caves The Chaotic Caves\n48. CHIEF'S ROOM: The kobold chief, two\nbodyguards, and four normal kobolds live here.\nThe chief has the key to the store room at #43.\nThe chief wields a silver-bladed hand-axe\nworth about 40 to 50 gp and has a pouch\naround his neck with six 100 gp gems in it.\nEach bodyguard has a golden arm-band on one\narm worth 50 gp. There is a large clay urn in\nback with a wooden lid tied on by rough fiber\nrope, inside which are 306 gp, 312 sp, and\n108 cp.\nKobold Chief: AC 13, HD 2, #At 1 shortsword, \nDam 1d6, Mv 20', Sv F2, ML 7, XP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\n2 Kobold Bodyguards: AC 13, HD 1, \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv F1, ML 8 \n(7 if chief is defeated or leaves the area), \nXP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 Kobolds: AC 13, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv NM, ML 7\n(6 if chief and bodyguards are defeated or \nleave the area), XP 10 ea.\nHP 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n49. ESCAPE ROUTE: As shown on the map, a\npit trap with stakes (2d6 damage) is some 10'\nor 20' from the entranceway: it is covered by a\npretty good false floor, although a careful\nsearch should have a high chance of finding it.\nThe outside exit is in the middle of the woods\nand has been covered by living brush and\ndebris such that it is hard to find.\nScuttling in the brush just outside the entrance\nare seven giant centipedes, attacking anyone\nwho comes near:\n7 Giant Centipedes: AC 11, HD ½ (1d4 HP), \n#At 1 bite, Dam poison, Mv 40', Sv NM, ML 7, \nXP 10 ea.\nHP 2 ☐☐ 3 ☐☐☐ 2 ☐☐ 3 ☐☐☐\n1 ☐ 2 ☐☐ 4 ☐☐☐☐\nH. LIZARD MAN LAIR\nThe lizard man lair is located in a swampy area\nformed where a stream slows down, spreads\nout, and pools in this area. The tunnels of the\nlair are wet and muddy, with water dripping\ndown from the ceiling to form small pools.\nGnarled tree roots grow through the ceiling and\nwalls. The inner chambers are 10' tall and the\nconnecting passages are low (6' or so).\nDECORATION: Each of the lizard men wears a\n25 gp gem on a leather thong around its neck\nas a tribal identifier, and is painted in garish\nred colors.\nSTREAM: The stream is cool and clean, running\nnorthwest to southeast. It has pools up to ten\nfeet deep, shallow places less than a foot\ndeep, and is easily crossed by finding a shallow\nplace. In some places it is overgrown with\nreeds. The bank can rise to a height of 10' or\n20' and is occasionally flat. Normal inhabitants\ninclude crayfish, fish, frogs, beavers, ducks,\nand other animals coming to drink.\n50. NORTH ENTRANCE: Two totem poles flank\nthe rough entrance that has been clawed into\nthe hard, rocky ground. Each is capped with\nthe bleached skull of a bear and feathers.\nThree lizard men (wearing tough hide and bone\narmor) and a giant gecko lizard lounge some\ntwenty feet inside, warding off any intruders.\nThe tunnel slopes down sharply from the\nopening to the first chamber, dropping some\n30' in elevation. There are several boulders\nthere which can be rolled into the hallway and\npacked with mud to prevent flooding.\n3 Lizard Men: AC 15, HD 2, #At 1 spear, \nDam 1d6+1, Mv 20', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\nGiant Gecko Lizard: AC 15, HD 3+1, #At 1 bite, \nDam 1d8, Mv 40', Sv F2, ML 7, XP 145\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n51. EMPTY CHAMBER: An empty chamber,\nstacked with firewood, dry grass for tinder, and\nrocks.\n30"
+      },
+      {
+        "sha256": "d5cbfd47e4e6259b375c22b2fd6de8a78276758f8b185e14b0204e6651f7ddf2",
+        "bytes": 488586
+      },
+      {
+        "text": "[page 34]\nThe Caves The Chaotic Caves\n55. COMMON ROOM: Three males are busy\nhere, readying simple bamboo gigs for a fish\u0002and-frog hunt.\n3 Lizard Men: AC 12, HD 2, #At 1 spear, \nDam 1d6+1, Mv 30', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n56. GUARD POST: Three lizard men (wearing\ntough hide and bone armor) and a giant gecko\nlizard on a thick fiber rope lurk in the dark\nhere, keeping intruders (including animals) out.\nThe tunnel slopes down sharply from the\nopening to here, dropping some 30'. There are\nseveral boulders here which can be rolled into\nthe hallway and packed with mud to prevent\nflooding.\n3 Lizard Men: AC 15, HD 2, #At 1 spear, \nDam 1d6+1, Mv 20', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\nGiant Gecko Lizard: AC 15, HD 3+1, #At 1 bite, \nDam 1d8, Mv 40', Sv F2, ML 7, XP 145\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n57. SOUTH ENTRANCE: This entrance opens\ninto the bank of the stream, which is some 20\nfeet high here. It is flanked by two 9-foot\ntotem poles (featuring crude animals and\nlizards) capped by bear skulls and feathers.\nI. BUGBEAR LAIR\nThese bugbears are planning a takeover of the\nregion. For now they are biding their time and\nwaiting for an opportunity. Heavy wooden\nbeams support the ceilings of the halls of their\nlair, tunneled from the loose, rocky earth by\nskilled hands. Most ceilings are 15 feet high.\n58. ENTRANCE: Two bugbears with pole arms\nstand outside the entranceway, one on each\nside. Another is in the niche inside. Each\ncarries 1d6 gp.\n3 Bugbears: AC 15, HD 3+1, #At 1 polearm, \nDam 1d10+1, Mv 30', Sv F3, ML 9, XP 145 ea.\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n59. SWINGING ARM TRAP: Both ends of this\nhall are protected by a trap. A swinging frame\nset with sharp, hard wooden spikes slashes out\nwhen a pressure plate is stepped on, attacking\nas a 2 HD monster and doing 2d6 points of\ndamage to each person hit. Each person in\nfront might be hit.\n60. STORE ROOM: The door to this room is\nopen. Just inside is a tarp hanging down to\nprevent light from getting in or out, or so it\nmight seem. The tarp has been carefully\ncultured with a yellow mold on the west side\nsuch that anyone pushing brusquely through\nwill cause it to release spores. The bugbears\ntypically use a pole to carefully lift the tarp\naside from a distance. The room contains\ncrates of food, bags of meat, three 50-foot\nsections of rope, a dozen iron spikes and other\nitems.\nYellow Mold: AC Can always be hit, HD 2*, \n#At Spores, Dam All within 10 feet of the mold \nwill be affected by the spores and must save \nvs. Death Ray or take 1d8 points of damage per\nround for 6 rounds, Mv 0, Sv NM, ML N/A, \nXP 100\nHP 8 ☐☐☐☐☐ ☐☐☐\n61. COMMON ROOM: Three bugbears reside\nhere. Each has 1d6 gp on its person. The east\nwall is decorated with three long strips of\ncheap paper scattered with bugbear \"chicken\u0002tracks\" (writing). They are prayer scrolls\npleading for success in battle and many\nenemies to feast on. \n3 Bugbears: AC 15, HD 3+1, #At 1 scimitar, \nDam 1d8+1, Mv 30', Sv F3, ML 9, XP 145 ea.\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n62. EMPTY COMMON ROOM: This room has\nbenches and tables stacked on the north wall\nand bunks and boxes on the south wall. It is\nempty.\n32"
+      },
+      {
+        "sha256": "7a1ad5f707ccbcead52cdf69d1893f2dc837adcea981d53a60bb89aff2763662",
+        "bytes": 483989
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      },
+      {
+        "text": "[page 15]\nThe Chaotic Caves The Town and Surroundings\nSpecial Table\n1 1d3 Giant Bats: AC 14, HD 2, #At 1 bite, \nDam 1d4, Mv 10' Fly 60' (10'), Sv F2, \nML 8, XP 75 ea.\n2 1d6 Giant Bees: AC 13, HD ½ (1d4 HP)*, \n#At 1 sting, Dam 1d4 + poison, Mv 10' Fly\n50', Sv F1, ML 9, XP 13 ea.\n3 1d2 Giant Gecko Lizards: AC 15, HD 3+1, \n#At 1 bite, Dam 1d8, Mv 40' (special), \nSv F2, ML 7, XP 145 ea.\n4 1 Giant Crab Spider: AC 13, HD 2*, #At 1 \nbite, Dam 1d8 + poison, Mv 40', Sv F2, \nML 7, XP 100\n5 1d6 Stirges: AC 13, HD 1*, #At 1 bite, \nDam 1d4 + 1d4/round blood drain, Mv 10'\nFly 60', Sv F1, ML 9, XP 37 ea.\n6 1 Mountain Lion: AC 14, HD 3+2, #At 2 \nclaws/1 bite, Dam 1d4/1d4/1d6, Mv 50', \nSv F3, ML 8, XP 145\n7 1d2 Boars: AC 13, HD 3, #At 1 tusk, \nDam 2d4, Mv 50' (10'), Sv F3, ML 9, \nXP 145 ea.\n8 1d2 Ghouls: AC 14, HD 2*, #At 2 claws, \n1 bite, Dam 1d4 claw, 1d4 bite, all + \nparalysis, Mv 30', Sv F2, ML 9, XP 100 ea.\n9 1d2 Harpies: AC 13, HD 2*, #At 2 claws, \n1 shortsword + special, Dam 1d4 claw, \n1d6 shortsword + special, Mv 20' \nFly 50' (10'), Sv F2, ML 7, XP 100 ea.\n10 1d4+1 Soldiers on Patrol (not in cave \narea; see town description): AC 13, HD 1,\n#At 1 spear, Dam 1d6, Mv 30', Sv F1, \nML 8, XP 25 ea.\n11 1d3 Giant Toads: AC 13, HD 2, \n#At 1 tongue or 1 bite, Dam grab or \n1d4+1, Mv 30' Swim 30', Sv F2, ML 6, \nXP 75 ea.\n12 1d4 Wolves: AC 13, HD 2, #At 1 bite, \nDam 1d6, Mv 60', Sv F2, ML 8, XP 75 ea.\nPlaced Wilderness Encounters\nThese locations are marked on the map.\n1. RUINED CASTLE: This ruined castle has been\nquarried now and then for building stone and\nhence is known by the locals. There are\nseveral broken statues about. As the PCs\ninvestigate, they find it occupied by orcs:\nOrc War Leader: AC 14, HD 2, #At 1 longsword, \nDam 1d8+1, Mv 30', Sv F2, ML 8, XP 75\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n6 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nThese orcs are on their way to the caves. After\ndealing with the orcs, the PCs will find that\none has a piece of paper that helps narrow\ndown their search for the caves (if they have\nnot found it and if it is not here). The orcs also\nhave 60 gp in coins, six silver-tipped arrows,\nand a Potion of Healing.\n2. BANDITS ON THE ROAD: The PCs encounter\ntwo wagons. The lead one is a traveler's home\nor \"vardo\" (a small house on a wagon bed)\nfollowed by a cargo wagon. Each wagon is\npulled by four horses and driven by a two-man\ncrew. Six more men ride horses alongside, and\ntwo dogs lope along with them, tongues lolling.\nAll of the men are wearing what appears to be\nnormal clothing. A close look will reveal that\nthe dogs show some signs of a recent fight, as\ndo some of the men, and that the men wear\nleather or chain mail armor under their\nclothing.\nThese bandits have just captured these\nwagons. The owners are tied up inside the\nvardo. Their bodyguards of relatives who\nvolunteered to help them move are miles away\njust getting loose from ropes (they were tied\nup and left behind).\nThe bandits will try to trick and attack the PCs\nif success seems likely; otherwise they will try\nto pass by peacefully.\n13"
+      },
+      {
+        "sha256": "d0abe14998a061d3f9120e6902bef020632fc07e848e86a5e9204712e90293e2",
+        "bytes": 578620
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "3+1",
+      "class_level": null,
+      "hp": 13,
+      "attacks": [
+        "1 bite, Dam 1d8"
+      ],
+      "movement": "40'",
+      "saves": "Sv F2",
+      "morale": 7,
+      "alignment": null,
+      "xp": 145,
+      "number_appearing": "1d2",
+      "special": [
+        "Mv 40' (special)"
+      ],
+      "confidence": 0.97,
+      "source_pages": [
+        15,
+        32,
+        34
+      ]
+    },
+    "usage": {
+      "input_tokens": 8110,
+      "output_tokens": 125
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

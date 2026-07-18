@@ -31,6 +31,7 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
 from pydantic import Field as PydanticField
 
 from osrforge.contracts.report import AreaAddressString, LevelAddressString
+from osrforge.contracts.stages import AcNotation
 from osrforge.errors import OverrideError
 
 __all__ = [
@@ -41,6 +42,7 @@ __all__ = [
     "ModuleOverride",
     "MonsterOverride",
     "Overrides",
+    "StatBlockOverride",
     "TownOverride",
     "load_overrides",
 ]
@@ -87,6 +89,38 @@ class MonsterOverride(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     template_id: Annotated[str, StringConstraints(min_length=1)]
+    reason: Reason
+
+
+class StatBlockOverride(BaseModel):
+    """Patch fields of one name's extracted stat block, or supply a complete one.
+
+    Keyed by monster name like `monsters:`, matched under the same
+    normalization. Fields mirror the raw printed block
+    ([`RawStatBlock`][osrforge.contracts.stages.RawStatBlock]) — corrections
+    land *pre-mapping*, so one correction fixes a printed value once instead
+    of both derived forms. Absent means untouched; explicit `null` clears the
+    field back to unprinted. An entry on a name with no cached block supplies
+    the candidate block from its own fields alone; an entry on a name the
+    tiers resolved forces emission — the remedy for a flagless wrong LLM pick.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    ac: str | None = None
+    ac_notation: AcNotation | None = None
+    thac0: str | None = None
+    hit_dice: str | None = None
+    class_level: str | None = None
+    hp: Annotated[int, PydanticField(ge=1)] | None = None
+    attacks: tuple[str, ...] | None = None
+    movement: str | None = None
+    saves: str | None = None
+    morale: Annotated[int, PydanticField(ge=2, le=12)] | None = None
+    alignment: str | None = None
+    xp: Annotated[int, PydanticField(ge=0)] | None = None
+    number_appearing: str | None = None
+    special: tuple[str, ...] | None = None
     reason: Reason
 
 
@@ -163,6 +197,7 @@ class Overrides(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     monsters: dict[_NonEmptyKey, MonsterOverride] = {}
+    monster_templates: dict[_NonEmptyKey, StatBlockOverride] = {}
     areas: dict[AreaAddressString, AreaOverride] = {}
     geometry: dict[LevelAddressString, GeometryOverride] = {}
     town: TownOverride | None = None

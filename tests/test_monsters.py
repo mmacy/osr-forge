@@ -1,4 +1,4 @@
-"""The monsters stage: normalization, the four tiers, the LLM request, and stage choreography."""
+"""The monsters stage: normalization, the four tiers, the LLM request, the stat-block pass, and stage choreography."""
 
 import json
 from pathlib import Path
@@ -9,16 +9,21 @@ from osrlib.data import load_monsters
 
 from conftest import ScriptedProvider, fabricate_workdir
 from osrforge.contracts.run import Stage, StageStatus
-from osrforge.contracts.stages import LevelContent, MonsterResolutions, SurveyIndex
+from osrforge.contracts.stages import LevelContent, MonsterResolutions, RawStatBlock, StatBlocks, SurveyIndex
 from osrforge.monsters import (
     MONSTER_ALIASES,
+    STATBLOCK_PAGE_CAP,
     build_monsters_request,
+    build_statblock_request,
     deterministic_resolutions,
     llm_candidates,
     monsters,
     normalize_monster_name,
+    statblock_page_plan,
+    statblock_tag,
 )
-from osrforge.providers.base import TextPart
+from osrforge.providers.base import ImagePart, TextPart
+from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir, write_json_artifact
 
 CATALOG = load_monsters()
@@ -184,14 +189,21 @@ class TestLlmRequest:
             build_monsters_request([])
 
 
-def stage_workdir(root: Path, encounters_by_area: dict[str, list[str]]) -> Workdir:
+def stage_workdir(
+    root: Path,
+    encounters_by_area: dict[str, list[str]],
+    page_count: int = 1,
+    settings: ConversionSettings | None = None,
+    source_pages_by_area: dict[str, list[int]] | None = None,
+) -> Workdir:
     """A workdir with survey + content completed and one level whose areas carry the given monster names."""
-    workdir = fabricate_workdir(root, page_count=1)
+    workdir = fabricate_workdir(root, page_count=page_count, settings=settings)
     run = workdir.read_run()
     for stage in (Stage.SURVEY, Stage.CONTENT):
         run = run.with_stage(stage, StageStatus(status="completed"))
     workdir.write_run(run)
     workdir.stages_dir.mkdir(parents=True, exist_ok=True)
+    pages_by_area = source_pages_by_area if source_pages_by_area is not None else {}
     survey = {
         "schema_version": 1,
         "title": "Mod",
@@ -206,7 +218,13 @@ def stage_workdir(root: Path, encounters_by_area: dict[str, list[str]]) -> Workd
                         "number": 1,
                         "map_pages": [],
                         "areas": [
-                            {"key": key, "name": key, "source_label": None, "kind": "room", "source_pages": []}
+                            {
+                                "key": key,
+                                "name": key,
+                                "source_label": None,
+                                "kind": "room",
+                                "source_pages": pages_by_area.get(key, []),
+                            }
                             for key in encounters_by_area
                         ],
                     }
@@ -231,7 +249,7 @@ def stage_workdir(root: Path, encounters_by_area: dict[str, list[str]]) -> Workd
                 "treasure": [],
                 "features": [],
                 "connections": [],
-                "source_pages": [],
+                "source_pages": pages_by_area.get(key, []),
                 "confidence": 0.9,
             }
             for key, names in encounters_by_area.items()
@@ -312,3 +330,236 @@ def test_empty_names_are_excluded_from_the_population(tmp_path: Path):
     workdir = stage_workdir(tmp_path / "mod.forge", {"1": ["", "  ", "goblin"]})
     result = monsters(workdir, PoisonedProvider())
     assert set(result.resolutions) == {"goblin"}
+
+
+def level_content(areas: dict[str, tuple[list[str], list[int]]]) -> LevelContent:
+    """One fabricated level: area key → (monster names, source pages)."""
+    return LevelContent.model_validate(
+        {
+            "schema_version": 1,
+            "dungeon_id": "lair",
+            "level_number": 1,
+            "areas": [
+                {
+                    "key": key,
+                    "description": "",
+                    "encounters": [
+                        {"monster": monster, "count_fixed": 1, "count_dice": None, "count_note": None}
+                        for monster in names
+                    ],
+                    "trap": None,
+                    "treasure": [],
+                    "features": [],
+                    "connections": [],
+                    "source_pages": pages,
+                    "confidence": 0.9,
+                }
+                for key, (names, pages) in areas.items()
+            ],
+        }
+    )
+
+
+class TestStatblockTag:
+    @pytest.mark.parametrize(
+        ("name", "tag"),
+        [
+            ("orc chief", "statblock.orc-chief"),
+            ("human magic-user 4", "statblock.human-magic-user-4"),
+            ("tentacle worm", "statblock.tentacle-worm"),
+            ("½", "statblock.unnamed"),
+        ],
+    )
+    def test_slugging(self, name: str, tag: str):
+        assert statblock_tag(name) == tag
+
+
+class TestStatblockPagePlan:
+    def test_encounter_pages_then_ascending_text_hits(self):
+        levels = [level_content({"1": (["tentacle worm"], [7, 3])})]
+        texts = {1: "nothing", 5: "the Tentacle   Worm's lair", 2: "a tentacle worm again"}
+        assert statblock_page_plan("tentacle worm", levels, texts) == (3, 7, 2, 5)
+
+    def test_text_hit_already_an_encounter_page_is_not_repeated(self):
+        levels = [level_content({"1": (["orc war leader"], [4])})]
+        texts = {4: "the orc war leader", 9: "orc war leader again"}
+        assert statblock_page_plan("orc war leader", levels, texts) == (4, 9)
+
+    def test_cap_prefers_encounter_pages(self):
+        levels = [level_content({"1": (["gnoll"], [1, 2, 3, 4, 5, 6, 7])})]
+        texts = {page: "a gnoll" for page in range(8, 15)}
+        plan = statblock_page_plan("gnoll", levels, texts)
+        assert len(plan) == STATBLOCK_PAGE_CAP
+        assert plan == (1, 2, 3, 4, 5, 6, 7, 8)
+
+    def test_empty_text_layer_degrades_to_encounter_pages(self):
+        levels = [level_content({"1": (["gnoll"], [2, 5])})]
+        texts = {page: "" for page in range(1, 6)}
+        assert statblock_page_plan("gnoll", levels, texts) == (2, 5)
+
+    def test_name_absent_everywhere_plans_nothing(self):
+        levels = [level_content({"1": (["gnoll"], [])})]
+        texts = {1: "no monsters here"}
+        assert statblock_page_plan("gnoll", levels, texts) == ()
+
+    def test_only_the_named_monsters_encounters_contribute_pages(self):
+        levels = [level_content({"1": (["gnoll"], [2]), "2": (["orc"], [9])})]
+        assert statblock_page_plan("gnoll", levels, {}) == (2,)
+
+
+def statblock_answer(**overrides: object) -> dict[str, object]:
+    base: dict[str, object] = {
+        "found": True,
+        "ac": "5 [14]",
+        "ac_notation": "dual",
+        "thac0": None,
+        "hit_dice": "3+1",
+        "class_level": None,
+        "hp": 14,
+        "attacks": ["1 bite (1d6)"],
+        "movement": "120' (40')",
+        "saves": "D12 W13 P14 B15 S16",
+        "morale": 8,
+        "alignment": "C",
+        "xp": None,
+        "number_appearing": "1d6 (2d6)",
+        "special": ["paralysing touch"],
+        "confidence": 0.9,
+        "source_pages": [2],
+    }
+    return {**base, **overrides}
+
+
+class TestStatblockRequest:
+    def test_schema_covers_every_block_field_and_the_found_marker(self):
+        request = build_statblock_request("tentacle worm", (TextPart(text="[page 2]\nworm"), ImagePart(png=b"png")))
+        assert request.tag == "statblock.tentacle-worm"
+        schema = request.schema
+        properties = cast(dict[str, Any], schema["properties"])
+        assert set(cast(list[str], schema["required"])) == set(properties)
+        assert "found" in properties
+        assert cast(dict[str, Any], properties["ac_notation"])["enum"] == ["descending", "ascending", "dual", None]
+        assert schema["additionalProperties"] is False
+
+    def test_header_names_the_creature_and_parts_follow(self):
+        parts = (TextPart(text="[page 2]\nworm"), ImagePart(png=b"png"))
+        request = build_statblock_request("tentacle worm", parts)
+        header = request.parts[0]
+        assert isinstance(header, TextPart)
+        assert '"tentacle worm"' in header.text
+        assert request.parts[1:] == parts
+
+    def test_request_is_pure(self):
+        parts = (TextPart(text="[page 2]\nworm"), ImagePart(png=b"png"))
+        assert (
+            build_statblock_request("worm", parts).fingerprint() == build_statblock_request("worm", parts).fingerprint()
+        )
+
+    def test_empty_parts_is_misuse(self):
+        with pytest.raises(ValueError, match="at least one page part"):
+            build_statblock_request("worm", ())
+
+
+def read_statblocks(workdir: Workdir) -> StatBlocks:
+    return StatBlocks.model_validate_json(workdir.statblocks_json.read_text(encoding="utf-8"))
+
+
+class TestStatblockPass:
+    def test_unresolved_name_gets_a_transcription_request_over_its_planned_pages(self, tmp_path: Path):
+        workdir = stage_workdir(
+            tmp_path / "mod.forge",
+            {"1": ["gray jelly"]},
+            page_count=3,
+            source_pages_by_area={"1": [2]},
+        )
+        provider = ScriptedProvider([{"gray jelly": {"template_id": None}}, statblock_answer()])
+        monsters(workdir, provider)
+        resolution_request, block_request = provider.requests
+        assert resolution_request.tag == "monsters"
+        assert block_request.tag == "statblock.gray-jelly"
+        texts = [part.text for part in block_request.parts if isinstance(part, TextPart)]
+        assert any(text.startswith("[page 2]") for text in texts)
+        assert any(isinstance(part, ImagePart) for part in block_request.parts)
+        cache = read_statblocks(workdir)
+        assert cache.custom_monsters == "emit"
+        expected = {key: value for key, value in statblock_answer().items() if key != "found"}
+        assert cache.blocks == {"gray jelly": RawStatBlock.model_validate(expected)}
+
+    def test_found_false_caches_an_explicit_absent_marker(self, tmp_path: Path):
+        workdir = stage_workdir(
+            tmp_path / "mod.forge", {"1": ["gray jelly"]}, page_count=2, source_pages_by_area={"1": [1]}
+        )
+        provider = ScriptedProvider([{"gray jelly": {"template_id": None}}, {**statblock_answer(), "found": False}])
+        monsters(workdir, provider)
+        cache = json.loads(workdir.statblocks_json.read_text(encoding="utf-8"))
+        assert cache["blocks"] == {"gray jelly": None}
+
+    def test_empty_page_plan_writes_an_absent_marker_without_a_model_call(self, tmp_path: Path):
+        # No source pages and no text-layer hit: the pass has nothing to send.
+        workdir = stage_workdir(tmp_path / "mod.forge", {"1": ["gray jelly"]})
+        provider = ScriptedProvider([{"gray jelly": {"template_id": None}}])
+        monsters(workdir, provider)
+        assert len(provider.requests) == 1
+        cache = json.loads(workdir.statblocks_json.read_text(encoding="utf-8"))
+        assert cache["blocks"] == {"gray jelly": None}
+
+    def test_text_layer_hits_widen_the_page_set(self, tmp_path: Path):
+        workdir = stage_workdir(tmp_path / "mod.forge", {"1": ["gray jelly"]}, page_count=3)
+        workdir.page_txt(3).write_text("Appendix: the Gray Jelly, a bespoke horror.\n", encoding="utf-8")
+        provider = ScriptedProvider([{"gray jelly": {"template_id": None}}, statblock_answer()])
+        monsters(workdir, provider)
+        block_request = provider.requests[1]
+        texts = [part.text for part in block_request.parts if isinstance(part, TextPart)]
+        assert any(text.startswith("[page 3]") for text in texts)
+
+    def test_off_skips_the_pass_and_writes_the_echo_with_empty_blocks(self, tmp_path: Path):
+        workdir = stage_workdir(
+            tmp_path / "mod.forge",
+            {"1": ["gray jelly"]},
+            page_count=2,
+            settings=ConversionSettings(custom_monsters="off"),
+            source_pages_by_area={"1": [1]},
+        )
+        provider = ScriptedProvider([{"gray jelly": {"template_id": None}}])
+        monsters(workdir, provider)
+        assert len(provider.requests) == 1  # the resolution tier only
+        cache = read_statblocks(workdir)
+        assert cache.custom_monsters == "off"
+        assert cache.blocks == {}
+
+    def test_every_unresolved_name_gets_an_entry(self, tmp_path: Path):
+        workdir = stage_workdir(
+            tmp_path / "mod.forge",
+            {"1": ["gray jelly"], "2": ["tentacle worm"]},
+            page_count=2,
+            source_pages_by_area={"2": [2]},
+        )
+        provider = ScriptedProvider(
+            [
+                {"gray jelly": {"template_id": None}, "tentacle worm": {"template_id": None}},
+                statblock_answer(source_pages=[2]),
+            ]
+        )
+        monsters(workdir, provider)
+        cache = read_statblocks(workdir)
+        # "gray jelly" planned no pages (absent marker); "tentacle worm" transcribed.
+        assert list(cache.blocks) == ["gray jelly", "tentacle worm"]
+        assert cache.blocks["gray jelly"] is None
+        assert cache.blocks["tentacle worm"] is not None
+
+    def test_fully_resolved_population_still_writes_the_cache(self, tmp_path: Path):
+        workdir = stage_workdir(tmp_path / "mod.forge", {"1": ["goblin"]})
+        monsters(workdir, PoisonedProvider())
+        cache = read_statblocks(workdir)
+        assert cache.custom_monsters == "emit"
+        assert cache.blocks == {}
+
+    def test_resolved_names_never_reach_the_pass(self, tmp_path: Path):
+        # The LLM tier resolves the name, so the pass has no population.
+        workdir = stage_workdir(
+            tmp_path / "mod.forge", {"1": ["hobgoblin chieftain"]}, page_count=2, source_pages_by_area={"1": [1]}
+        )
+        provider = ScriptedProvider([{"hobgoblin chieftain": {"template_id": "hobgoblin"}}])
+        monsters(workdir, provider)
+        assert len(provider.requests) == 1
+        assert read_statblocks(workdir).blocks == {}

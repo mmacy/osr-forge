@@ -1713,9 +1713,13 @@ def test_jn1_pinned_baseline_over_the_committed_caches(tmp_path: Path):
     assert metrics.encounters.count_denominator == 100
     assert metrics.encounters.count_matched == 99
     assert metrics.encounters.count_accuracy == 0.99
+    # The phase 7 monsters re-record (null-hardened prompt) moved one LLM
+    # answer: gray jelly now resolves grey_ooze — agreeing with the truth and
+    # with the phase 3 correction session's remap — where the old recording
+    # picked ochre_jelly.
     assert metrics.encounters.resolution_denominator == 85
-    assert metrics.encounters.resolution_matched == 74
-    assert metrics.encounters.resolution_accuracy == 0.8706
+    assert metrics.encounters.resolution_matched == 75
+    assert metrics.encounters.resolution_accuracy == 0.8824
     assert metrics.encounters.non_srd == 15
 
     assert metrics.connections.truth_edges == 39

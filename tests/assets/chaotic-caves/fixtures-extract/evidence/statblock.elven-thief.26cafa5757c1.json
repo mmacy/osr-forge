@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "fingerprint": "26cafa5757c1712be81ccc18cac6c1b44416666a55760a2587f244266d600eee",
+  "tag": "statblock.elven-thief",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"elven thief\" from the pages below.\n"
+      },
+      {
+        "text": "[page 30]\nThe Caves The Chaotic Caves\n37. STABLES: The bandits keep their animals\nhidden here, taking them out to browse during\nthe day. The dotted lines are wooden fences,\nwith gates where needed. \nIn the stalls are two riding horses, two mules,\nand two cows. A wagon, two saddles and\nbridles, and two sets of saddle bags can be\nfound in one corner. The wagon also holds\nseveral large bags of grain, buckets, and other\nitems.\n38. DUNGEON: This is a holding area for\ncaptives and anyone the captain wants to\nthrow into irons. The captain currently has the\nkeys with him in room #36. The contents of\nthe cells are as follows:\nCell \"a\" has three merchants. They are\nnoncombatants and (if rescued and returned to\ntown) one offers a necklace with gems worth\n100 gp, while the other two offer 100 gp each.\nCell \"b\" is empty.\nCell \"c\" contains a recalcitrant bandit, who was\nput here for pilfering and bad-mouthing\neveryone. She knows no boundaries and will\nattempt to get into anyone's good graces\n(posing as the guard of a merchant), only to\nsteal what she can and run off. She has no\narmor and no weapon.\nBandit: AC 11, HD 1, #At 1 fist, Dam 1d3, Mv 40', \nSv F1, ML 8, XP 25\nHP 4 ☐☐☐☐\nCell \"d\" holds three jars of good wine, two jars\nof cheap wine, and a dozen bottles of ale in a\nbox.\nCell \"e\" is empty.\n39. GUARD POST: Three men are always posted\nhere to guard the main loot, with strict\ninstructions as to who to let in. Each has 1d6 +\n6 sp on their person. A common oil lamp\n(wooden bowl with wick) provides light.\n3 Bandits: AC 13, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐\n40. TREASURE ROOM: The best loot is stored\nhere behind a strong, locked door. The bandit\ncaptain in #36 keeps the key. The contents are\nas follows:\n• 10 silver cups worth 10 gp each (100 gp\ntotal)\n• 10 silver plates worth 25 gp each\n(finely engraved and decorated) (250\ngp total)\n• 10 forks and 10 spoons of silver worth\n5 gp each (100 gp value)\n• 1 dress worth 250 gp\n• 3 dresses worth 100 gp each\n41. BANDIT LIEUTENANT: These quarters are\nshared by the bandit leader's deputy and\ncronies (usually the cronies are with the\nleader, see room #36). The lieutenant is an\nElven Thief wearing leather armor and carrying\na dagger and shortsword. A shortbow and\nquiver of arrows is hung on a peg by the door.\nThe main room has tables, couches, and\nfurnishings and items for normal living. The\nthree back rooms (41a, 41b, and 41c, labeled for\nthe GM's convenience) contain beds and other\nitems for personal use. All furniture here is\ncrude and hand made from materials found in\nthe immediate area, not brought by the\nbandits. Each room has a plain oil lamp\n(wooden bowl with notch for wick) and the\nmain room has a wooden jug with a quart of\noil.\nElven Thief 3: AC 14 due to dexterity, \n#At 1 shortsword or 1 shortbow, Dam 1d6, \nMv 30', Sv E-T3, ML 8, XP 145\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n28"
+      },
+      {
+        "sha256": "c2577d0670e6f8b1234be959cfa5b65e17c1dbb195ed68c37cd04187bfbc380e",
+        "bytes": 432319
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "14 due to dexterity",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": null,
+      "class_level": "Elven Thief 3",
+      "hp": 9,
+      "attacks": [
+        "1 shortsword",
+        "1 shortbow"
+      ],
+      "movement": "30'",
+      "saves": "Sv E-T3",
+      "morale": 8,
+      "alignment": null,
+      "xp": 145,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        30
+      ]
+    },
+    "usage": {
+      "input_tokens": 3502,
+      "output_tokens": 116
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

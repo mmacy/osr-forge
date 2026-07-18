@@ -28,11 +28,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from osrforge.versioning import SCHEMA_VERSION
 
 __all__ = [
+    "AC_NOTATIONS",
     "AREA_KINDS",
     "CANONICAL_SLUG_PATTERN",
     "CONNECTION_VIAS",
     "DICE_PATTERN",
     "DIRECTIONS",
+    "AcNotation",
     "AreaConnection",
     "AreaContent",
     "AreaEncounter",
@@ -42,7 +44,9 @@ __all__ = [
     "LevelContent",
     "MonsterResolution",
     "MonsterResolutions",
+    "RawStatBlock",
     "ResolutionMethod",
+    "StatBlocks",
     "SurveyArea",
     "SurveyDungeon",
     "SurveyIndex",
@@ -289,12 +293,13 @@ class LevelContent(BaseModel):
         return _canonical(value)
 
 
-ResolutionMethod = Literal["exact", "alias", "fuzzy", "llm", "unresolved", "override"]
-"""How a monster name resolved: one of the spec's four tiers, not at all, or a human override.
+ResolutionMethod = Literal["exact", "alias", "fuzzy", "llm", "unresolved", "override", "custom"]
+"""How a monster name resolved: one of the spec's four tiers, not at all, a human override, or emission.
 
-`override` appears only in memory, when a monster override supersedes a cached
-resolution during assembly — the `monsters.json` cache is written by the
-monsters stage alone and never contains it.
+`override` and `custom` appear only in memory, when a monster override
+supersedes a cached resolution or template emission gives an unresolved name
+the module's own creature during assembly — the `monsters.json` cache is
+written by the monsters stage alone and never contains either.
 """
 
 
@@ -331,4 +336,69 @@ class MonsterResolutions(BaseModel):
     @field_validator("resolutions")
     @classmethod
     def _keys_sorted(cls, value: dict[str, MonsterResolution]) -> dict[str, MonsterResolution]:
+        return dict(sorted(value.items()))
+
+
+AcNotation = Literal["descending", "ascending", "dual"]
+"""How a printed armour class counts: classic descending, modern ascending, or both (`5 [14]`)."""
+
+AC_NOTATIONS: tuple[str, ...] = get_args(AcNotation)
+"""The `AcNotation` wire values, for building extraction-schema enums."""
+
+
+class RawStatBlock(BaseModel):
+    """One creature's printed stat block, transcribed system-neutrally — never converted.
+
+    Every field is the page's text or number as printed; the stat-block pass
+    transcribes and classifies notation, nothing more — every rules judgment
+    (AC complements, THAC0/saves/XP derivation, movement rates) lives in
+    assembly's deterministic mapping, where it is testable and correctable.
+    `hit_dice` and `class_level` are the two printed forms of the same fact:
+    a Hit Dice line as printed, or a class-and-level designation (`F 3`,
+    `"3rd-level cleric"`) — the leveled-NPC shape that prints no HD line.
+    `attacks` and `special` keep one entry per printed line. `confidence`
+    defaults to 1.0 because an override-supplied block is the human's word;
+    the model pass always sets its own self-assessment.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    ac: str | None = None
+    ac_notation: AcNotation | None = None
+    thac0: str | None = None
+    hit_dice: str | None = None
+    class_level: str | None = None
+    hp: int | None = Field(default=None, ge=1)
+    attacks: tuple[str, ...] = ()
+    movement: str | None = None
+    saves: str | None = None
+    morale: int | None = Field(default=None, ge=2, le=12)
+    alignment: str | None = None
+    xp: int | None = Field(default=None, ge=0)
+    number_appearing: str | None = None
+    special: tuple[str, ...] = ()
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    source_pages: tuple[int, ...] = ()
+
+
+class StatBlocks(BaseModel):
+    """The `stages/statblocks.json` cache: raw printed stat blocks for the unresolved names.
+
+    `custom_monsters` echoes the knob the stage ran under — assembly never
+    reads the knob itself, only this echo. `blocks` is keyed by normalized
+    name, sorted ascending for byte stability, and carries an entry for
+    *every* name the resolution tiers left unresolved: a raw block, or an
+    explicit `null` absent marker (the pass ran and found nothing). Under
+    `off` the stage writes the echo and an empty `blocks`.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: int = SCHEMA_VERSION
+    custom_monsters: Literal["emit", "off"]
+    blocks: dict[str, RawStatBlock | None] = {}
+
+    @field_validator("blocks")
+    @classmethod
+    def _keys_sorted(cls, value: dict[str, RawStatBlock | None]) -> dict[str, RawStatBlock | None]:
         return dict(sorted(value.items()))

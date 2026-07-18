@@ -307,13 +307,16 @@ class TestContentStage:
         assert not stale.exists()
         assert workdir.areas_json("lair", 1).is_file()
 
-    def test_stale_monsters_cache_cleared_upfront(self, tmp_path: Path):
+    def test_stale_monsters_and_statblock_caches_cleared_upfront(self, tmp_path: Path):
         index = make_index({1: (make_area("1", (1,)),)})
         workdir = prepare_content_workdir(tmp_path / "mod.forge", index, page_count=1)
         stale = workdir.monsters_json
         stale.write_text("{}", encoding="utf-8")
+        stale_blocks = workdir.statblocks_json
+        stale_blocks.write_text("{}", encoding="utf-8")
         content(workdir, ScriptedProvider([batch_payload("1")]))
         assert not stale.exists()
+        assert not stale_blocks.exists()
 
     def test_level_with_no_pages_writes_empty_cache_without_model_call(self, tmp_path: Path):
         index = make_index({1: (make_area("1", ()),)})

@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "fingerprint": "24a072d479ef36f90e9608382dd902d2a70b59ebc87b8edb1f0a8ec34c8fd5f1",
+  "tag": "statblock.human-fighter-1",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"human fighter 1\" from the pages below.\n"
+      },
+      {
+        "text": "[page 41]\nThe Chaotic Caves The Abandoned Manor\nMAP K – MANOR FORT GROUND\n77. GATEWAY FLANKED BY TOWERS: A\ncorroded brass plaque over the gates reads\n\"Roslof Manor.\" The old wooden gates have\nbeen torn aside, battered down long ago in a\nforgotten fight which led to the manor being\nabandoned. Recently (within the last few\ndays) someone has taken out the stronger\ntimbers and much of the metal hardware. The\nrest is laid out as a pattern, as if plans are\nbeing made to replace them.\nThe area has been cleaned up somewhat for\neasy access. Hoof prints and wagon tracks\npoint in and out on the soft earth, amid badly\u0002broken paving stones.\n78. WEST GATE TOWER: This tower is three\nstories high (counting the roof as the fourth),\nbut the top floors have collapsed inward,\nleaving only the bottom one. It is a simple\nhollow tube with a steep stairway that would\nprovide access to each floor if they were still\nintact. Arrow slits are every 10 feet, positioned\nwhere they can face out. The entrance door\nhas a lock but is not kept locked; a heavy bar\nis kept beside it to fit into brackets on the\nframe.\nThis is a guard post for human fighters wearing\nscarlet cloaks, red-enameled helmets, and\nchain mail. Each has 1d6 gp. They are busy\ndealing with a giant black widow spider that\njust crawled into the rubble of the tower\noverhead. It might come scuttling down the\nwall to attack the PCs!\nHuman Fighter 2: AC 15, AB +2, #At 1 \nlongsword, Dam 1d8 (1d8+1 for one for sword \n+1), Mv 20', Sv F2, ML 8, XP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\n6 Human Fighter 1: AC 15, AB +1, #At 1 spear, \nDam 1d6, Mv 20', Sv F1, ML 8, XP 25 ea.\nHP 6 ☐☐☐☐☐ ☐ 4 ☐☐☐☐\n5 ☐☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nGiant Black Widow Spider: AC 14, HD 3*, \n#At 1 bite, Dam 2d6 + poison, Mv 20' 40' web, \nSv F3, ML 8, XP 175\nHP 12 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐\n79. EAST GATE TOWER: As #78 except It has\nbeen badly damaged and is not safe to use; no\nhumans are found here. The door has a lock,\nbut it has been broken off its hinges and leans\naskew in the frame, wedged in place by heavy\nwooden pegs.\nThe lower floor is occupied by giant\ncentipedes, crawling amid rubble. The rubble\nof the next floor is overrun with giant rats\nscurrying amid broken furniture and various\nskeletal remains (harmless). \n9 Giant Centipedes: AC 11, HD ½ (1d4 HP), \n#At 1 bite, Dam poison, Mv 40', Sv NM, ML 7, \nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n9 Giant Rats: AC 13, HD ½ (1d4 HP), #At 1 bite, \nDam 1d4+disease, Mv 40' swim 20', Sv F1, ML 8,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n80. STABLES: These stables are in ruins from\nneglect. There was once a smithy, small\ncottages, hay storage, wagon storage, rooms\nfor grooms, and so on. The structures have\ncollapsed, leaving a maze of darkness and ruin.\nSoot and burned timbers, the signs of ancient\nfires, are everywhere. New weeds are growing\nthrough the rubbish.\nA giant weasel is sparring with three giant\nshrews that have killed a pack of giant rats and\nare going to feast on them. If they smell fresh\nmeat, they will attack it instead.\nGiant Weasel: AC 17, HD 5, #At 1 bite + hold, \nDam 2d4 bite + 2d4/round hold (rending), \nMv 50', Sv F5, ML 8, XP 360\nHP 22 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐\n☐☐\n3 Giant Shrews: AC 16, HD 1, #At 2 bites, \nDam 1d6 bite, Mv 60', Sv F2, ML 10, XP 25 ea.\nHP 5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐\n39"
+      },
+      {
+        "sha256": "448aa67cfd14d9a07a7b42f6cd336e83ce60aa4d1e4577563418005542abb462",
+        "bytes": 496727
+      },
+      {
+        "text": "[page 42]\nThe Abandoned Manor The Chaotic Caves\n81. COTTAGES: These were quarters for\ngardeners and other staff, but they are now in\nruins, much like #80. Berries, fruit trees, and\nvegetables are growing wild. During the\ngrowing season, the player characters can\nstock up on 1d6 weeks of rations quite easily,\nmost of which will spoil in a week or two\nunless dried or otherwise preserved.\n82. NORTH WALL: This collection of rotten\nwooden buildings and weeds mark the area\nonce used for dog kennels. \nThe wall in this area is patrolled by the\nminotaur ally of the humans. If it notices the\nplayer characters, it will bellow to try to\nattract guards and hurl a few rocks (for 1d6\nrounds or as reasonable) then charge down the\nclosest set of steps (randomly roll if need be).\nIf the GM needs rules for rock throwing:\nRock Damage Range\nlight 1d6 30/60/90\nmedium 1d8 20/40/60\nboulder 1d10 10/20/30\nIt wears a necklace of 100 gp and 50 pp (these\nwere minted with a hole in the center and\nweigh as much as normal coins). A rude lean\u0002to of hides stands on the northeast corner,\nunder which is the half-eaten, raw carcass of a\ndeer. Various animal parts are strewn about.\nMinotaur: AC 14, HD 6, #At 1 gore, 1 bite, or 1 \nbattle axe Dam 1d6 gore, 1d6 bite, 1d8+1 battle \naxe, Mv 30', Sv F6, ML 11, XP 500\nHP 27 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐\n☐☐☐☐☐ ☐☐\n83. MOAT: The main house relies on a 10' deep\nmoat for security (it is currently full), with a\nsimple wooden bridge crossing it at the front\nentrance. The bridge is gone, burned down\nlong ago, leaving only the planks and timbers\nof the footing on each side. The moat is fed by\na slow-moving stream that comes under the\nnorth wall and exits to the east. Each\nentrance is serviced by an arched undercut\nwith two sets of heavy iron bars (one on each\nside of the opening) to help keep out intruders.\n84. MAIN DOORS: The great iron double doors\nof the main house are firmly shut and barred\nfrom the inside. Short of using a massive ram,\nthey cannot be opened. There are quite a\nnumber of high, wide windows along the walls,\nwith heavy iron bars keeping out anything\nbigger than a squirrel. Ripping out the window\nbars (or using some other noisy method to get\nin) would likely attract a lot of attention from\noccupants inside.\nIf the party looks around, they find that some\nof the blocks on the west side of the door can\nbe easily pulled out of the walls. Invaders had\nknocked a hole there and the blocks were\nstacked sloppily when the house was restored\nby its current denizens. The characters can\neasily open holes in the wall and step inside\ninto room #85.\nTo one side lie three wooden ramps, each\nabout 24 feet long and made from timbers and\niron hardware collected from elsewhere. They\nallow wagons to cross the moat.\n85. MAIN HALL: The lower floor has been used\nhard. Many of the hardwood timbers are torn\nout or scuffed with abuse and dirt is\neverywhere. Upstairs areas are less damaged\nand the rooms are cleaner.\nA heavy iron chandelier hangs overhead for\nlanterns or torches. There are also small wall\nmounts here and there throughout the manor.\nSkylights illuminate the main hall well during\nthe day; most of the rooms in the manor have\nwindows on the outside facing walls for plenty\nof light during the day.\nTwo sets of ornate stairs (\"a\" and \"b\") lead up\nto second floor balcony (see entry #98 on the\nsecond floor map), going up some 20 feet.\nUnder the balcony are swinging double doors\nthat lead into the back. The main hall ceiling is\nsome 30' high. The ceilings in other rooms are\n20' high.\nRecent bootprints in the dust on the floor lead\neverywhere. The walls of some of the\nadjoining rooms were once of thick hardwood\nbut have been torn down in places. Horses can\nbe heard snorting: read entry #86 and #87 for\nmore.\nAs the adventurers enter, three people wearing\nred surcoats over chain mail and carrying\nswords are met coming down the stairs. They\nare discussing whether they can get richer\n40"
+      },
+      {
+        "sha256": "44c849cdcc363ed5906bcd5ff7a5be4c76098428788f2de9b57fba78d259dd80",
+        "bytes": 551494
+      },
+      {
+        "text": "[page 43]\nThe Chaotic Caves The Abandoned Manor\nraiding towns or by waylaying travelers\n(whether or not they note the adventurers\ndepends on what the PCs are doing and what\nthe GM wishes). One is a woman, and she is\narmed with a longsword +1. They will try to\nlure the party into an ambush if the player's\naren't wary: one will excuse himself and go to\nroom #88 to get the troops there, while the\nothers lead the party upstairs to #106 before\nattacking.\n3 Fighters: AC 15, F2, #At 1 weapon, Dam 1d8 \n(1d8+1 for one for longword +1), Mv 20', Sv F2, \nML 8, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\nA smith and two assistants working in the\nstables will come join them at a shout or any\nnoise of a fight.\nSmith, Human Fighter 2: AC 13, AB +2, \n#At 1 hammer, Dam 1d6+1 (bonus for strength), \nMv 30', Sv F2, ML 8, XP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\nApprentice Smiths, Human Fighter 1: AC 13, \nAB +1, #At 1 hammer, Dam 1d6, Mv 30', Sv F1, \nML 8, XP 25 ea.\nHP 6 ☐☐☐☐☐ ☐ 5 ☐☐☐☐☐\n86. RENOVATED STABLES: These rooms were\nonce a library, music room, and gymnasium,\nbut the space has been gutted and affixed with\nsimple wooden stalls to serve as a smithy and\nstables. There are four riding horses, three\nmules, and three oxen here. Hay, feed bags,\nsacks of feed grain, and other items are\nnearby. In one corner are a small traveling\nanvil, a pile of bricks, bags of coal, several\nhammers, and other tools, along with a few\nhorse shoes. Two horses were lost to\nwandering monsters before the rest of the\nanimals were brought inside for safe keeping.\n87. WAGON STORAGE: The south end of this\narea was once a posh sitting room. The walls\nwere knocked out to make room for wagons\nand other equipment. There are two wagons\nand two carts here, plus boxes, tarps, and\nother items.\nThe northern end was once a long dining hall.\nOld, smashed tables and chairs are piled up in\nneat stacks arranged like firewood in short\nlengths. Some of the strong, thicker pieces are\narranged like building timbers ready for use.\nThere is plenty of room between the piles to\nget to and from the kitchen and prep room in\nback.\n88. PREP ROOM: Once a prep room for meals\nready to bring into the dining room (and to\nbuffer the racket and business of the kitchen),\nthis room now holds tables and chairs, usually\nwith dirty wooden plates and pewter or\nwooden mugs and other items on them. A keg\nof cheap beer is propped on a table in one\ncorner.\nA group of men are sitting down to a meal of\nbread, meat, gravy, and cheap beer. The sound\nof a fight will bring two more men running\nfrom the kitchen (see room #89). The leader\nhas chain mail and a sword. The others wear\nred-stained leather armor and have various\nweapons (short swords, hand axes, and war\nhammers). Each has 2d6 gp on him.\nSergeant, Human Fighter 2: AC 15, AB +2, \n#At 1 longsword, Dam 1d8, Mv 20', Sv F2, ML 8, \nXP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\n6 Human Fighter 1: AC 13, AB +1, #At 1 spear, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 7 ☐☐☐☐☐ ☐☐ 4 ☐☐☐☐\n5 ☐☐☐☐☐ 3 ☐☐☐\n5 ☐☐☐☐☐ 2 ☐☐\n89. KITCHEN: Appointed to cook large meals,\nwith several ovens and stoves along the outer\nwalls. There are plenty of tables, sinks, etc.\nDirty wooden dishes are common here. \nThere are two men here cooking a stew on one\nof the stoves. They will join the six in room\n#88 if a fight breaks out. They are armed with\nhand axes and dressed in red-stained leather\narmor. Each has 2d6 gp on him.\n2 Human Fighter 1: AC 13, AB +1, #At 1 spear, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 5 ☐☐☐☐☐ 4 ☐☐☐☐\n41"
+      },
+      {
+        "sha256": "efc25caa9293c5462cad9b66c62b64fa441a3b7a6698af15d2d1b74f0ce18b61",
+        "bytes": 507560
+      },
+      {
+        "text": "[page 44]\nThe Abandoned Manor The Chaotic Caves\n90. STORE ROOM: For dry foods and such.\nSome bags of flour and other grains and\nvegetables are stacked here. A narrow set of\nstairs leads down 10' to a cold room where the\nfresh carcasses of venison, boar, rabbits, and\nother game animals hang on iron hooks.\n91. LAUNDRY ROOM: Buckets and tubs once\nresided here. Now there are only long ropes to\nhang laundry up to dry. Wooden shelves for\nlinens and rugs gawk emptily at the observer.\nIn one corner are two sealed buckets: one\ncontains red paint and the other red varnish.\n92. WASH ROOM: For humans, clothes, dishes,\netc. It contains bath tubs, cloth screens on\nwooden frames, and a table with bars of soap.\n93. BACK DOOR. The rear exit. The door is a\nheavy security door with two iron bars that can\nbe thrown across from the inside.\n94 to 97. SERVANT QUARTERS: These\nchambers once held servants and their guests\nand are now occupied in part by foot troops,\nmost of whom are eating or elsewhere. The\ninner partitions of each set have been torn\ndown to enlarge the rooms.\nIn room #94, two men are resting after a fight\nwith giant rats. They can still fight and will\naccost intruders to the best of their ability\n(they are not wearing their leather armor but\ncan put it on, given time).\n2 Human Fighter 1: AC 13 or 11, #At 1 spear, \nDam 1d6, Mv 30' or 40', Sv F1, ML 8, XP 25 ea.\nHP 2 ☐☐ 2 ☐☐\nAs the adventurers enter the hall around #97, a\nman will come out of the door and then\n(unless stopped) duck back inside and call for\nhelp. Four men occupy this room, sleeping\nafter watch. Their spears and hand axes are\nnearby. They are not currently wearing their\nred-stained leather armor, but will put it on if\ngiven time. Each has 2d6 gp on him. \n4 Human Fighter 1: AC 13, AB +1, #At 1 spear, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 6 ☐☐☐☐☐ ☐ 4 ☐☐☐☐\n5 ☐☐☐☐☐ 3 ☐☐☐\nMAP L – MANOR UPPER FLOOR\nThe upper floor is occupied by the leaders of\nthis band of fighters. Each room has several\ngas lights, tapped from a natural deposit of gas\nin the rock far below, as well as windows and\ntorch holders. The ceilings of the rooms on\nthis floor are about 10' high (the stairs rise 20').\n98. STAIRWAY: The stairs go down into the\nground floor to #85. A railing along the side\nprovides safety.\n99. GUEST ROOM: This is the residence of the\nfemale fighter and one of the male fighters\nwho are met coming down the stairs in entry\n#85. Furnishings include makeshift bed, table,\nchairs, and such. There is a single locked\ncasket here (with a crude lock only intended to\nindicate tampering, not really keep anyone out)\nwith 345 gp and five gems worth 50 gp each.\n100. GUEST ROOM: One of the three fighters\nencountered on the stairs (entry #85 on the\nground floor) lives here. It is furnished by a\nmakeshift bed, table, chairs, and such. Under\nthe bed is a sack with ten gems worth 50 gp\neach, plus coins: 198 gp and 31 sp. It is being\nguarded by the owner's pet snake which might\nimmediately grab and pull someone under if\nthey investigate unwisely.\nPython: AC 14, HD 5*, #At 1 bite, 1 constrict, \nDam 1d4 bite, 2d4 + 2d4/round constrict, \nMv 30', Sv F5, ML 8, XP 405\nHP 20 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐\n101. GUEST ROOM: Now being used by one of\nthe clerics as a private room (see #106). It has\nmakeshift furnishings: bed, table, chairs, etc.\nOn a chest of drawers are three silver holy\nsymbols (worth 25 gp each) arranged in a\nworshipful way around a golden icon of some\nevil demonic being (valued at 100 gp) known\nfor austerity and obedience.\n102. GUEST ROOM: Now claimed by one of the\nclerics as a private room (see #106). It\ncontains shabby, slapped-together furniture:\nbed, table, chairs, and such. Hung on one wall\nis a painting of horrors and stark terror that in\ngeneral has no value. A church of good nature\nmight buy it for 100 gp or so in order to burn it\nor use it as an educational tool to illustrate the\ntrue face of evil. Hung under it are a holy\n42"
+      },
+      {
+        "sha256": "9af28e0b971f603055e3392aecf05546b3d14d1f67592429c16318a50ca54085",
+        "bytes": 580854
+      },
+      {
+        "text": "[page 46]\nThe Abandoned Manor The Chaotic Caves\n44"
+      },
+      {
+        "sha256": "c1adda4c85801fc9305eb1d78da18464da69a15b2004ca6d3cf65c3ee86a5148",
+        "bytes": 453582
+      },
+      {
+        "text": "[page 14]\nThe Town and Surroundings The Chaotic Caves\nExploring the Wilderness\nThe elevation lines on the wilderness map\nrepresent an increase of 500 feet each. There\nis a base line (0 feet\\') showing where the\nmajor change starts, then a 500 and 1,000 foot\nline. Only major changes are shown; the area\nundulates a lot.\nOne way of tracking movement between\ndifferent terrain types is to look up the scale\n(in miles) of 1 square of terrain on the table\nbelow. This chart is based on the scale of the\nmain map (1 square = 1 mile of distance).\nDiagonal distances are technically around 40%\nlonger, but since distances do not need to be\nexact in the game, it can be treated as 50%\nlonger. \nScale in Miles\nTerrain Adjust Straight Diagonal\nJungle, Mountains, \nSwamp\nx ⅓ 3 4.5\nDesert, Forest, Hills x ⅔ 1.5 2.25\nClear, Plains, Trail x 1 1 1.5\nRoad (Paved) x 1 ⅓ .75 1\nExample: A party can move 12 miles in a day.\nThey walk up the trail four squares (4 miles),\ntravel through the forest for 3 squares (4.5\nmiles) and enter one square of a swamp (3\nmiles) for a total of 11.5 miles of movement. If\nthey are surrounded by swamp and forest, the\nGM can credit them with an extra 1/2 mile of\nmovement the next day, or otherwise hand\u0002wave the remainder.\nRandom Encounters\nEncounters might occur once a day while\nexploring the wilderness: a 1 or 2 on a roll of\n1d6 indicates an encounter. They would occur\nmore often (use the same chance and roll once\nevery 4 hours) while exploring the general area\nof the caves, where the monsters are more\ncommon, lessening as the caves take\ncasualties. The author assumes the GM will\nplace or mention ordinary people going about\ntheir business near the town or along the road\nnow and then.\nStandard Table\n1 1d6 Bandits, Human Fighter 1: AC 13, \n#At 1 spear, Dam 1d6, Mv 40', Sv F1, \nML 8, XP 25 ea.\n2 1d3 Bugbears: AC 15, HD 3+1, \n#At 1 scimitar, Dam 1d8+1, Mv 30', Sv F3,\nML 9, XP 145 ea.\n3 1d6 Giant Rats: AC 13, HD ½ (1d4 HP), \n#At 1 bite, Dam 1d4 + disease, Mv 40' \nswim 20', Sv F1, ML 8, XP 10 ea.\n4 1d3 Gnolls: AC 15, HD 2, \n#At 1 spiked club, Dam 2d4, Mv 30', \nSv F2, ML 8, XP 75 ea.\n5-7 1d6 Goblins: AC 14, HD 1-1, #At 1 spear, \nDam 1d6, Mv 20', Sv F1, ML 7, XP 25 ea.\n8-9 1d6 Hobgoblins: AC 14, HD 1, \n#At 1 scimitar, Dam 1d8, Mv 30', Sv F1, \nML 8, XP 25 ea.\n10-11 1d8 Kobolds: AC 13, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 20', \nSv NM, ML 6, XP 10 ea.\n12 1d3 Lizard Men: AC 15, HD 2, \n#At 1 spear, Dam 1d6+1, Mv 20', Sv F2, \nML 11, XP 75 ea.\n13-19 1d8 Orcs: AC 14, HD 1, #At 1 longsword, \nDam 1d8, Mv 30', Sv F1, ML 8, XP 25 ea.\n20 Roll on the special table below\n12"
+      },
+      {
+        "sha256": "1df85d7d6ac1f75cf272d011d3470f375a970a6e2af695dd5b8a5908986368a8",
+        "bytes": 691527
+      },
+      {
+        "text": "[page 16]\nThe Town and Surroundings The Chaotic Caves\nAll of the horses and wagons belong to the\nmerchants inside. If rescued, the owners will\nbe grateful and offer a 500 gp reward, which is\nmost of the money they have with them. They\nwere moving their small household when\nambushed. \nIf the PCs kill or rob the merchants, there is a\ngood chance they will later be recognized and\nreported as bandits if they keep the wagons\nand horses and remain in the area.\nThe horses are detailed in case they become a\ntarget.\nBandit Leader, Human Fighter 2: AC 15, AB +2, \n#At 1 shortsword, Dam 1d6, Mv 20', Sv F2, ML 8,\nXP 75\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n9 Bandits, Human Fighter 1: AC 13, AB +1, \n#At 1 shortsword, Dam 1d6, Mv 30', Sv F1, ML 8,\nXP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐ 4 ☐☐☐☐\n2 Dogs: AC 14, HD 1+1, #At 1 bite, Dam 1d4 + \nhold, Mv 50', Sv F1, ML 9, XP 25 ea.\nHP 6 ☐☐☐☐☐ ☐ 4 ☐☐☐☐\n6 Riding Horses: AC 13, HD 2, #At 2 hooves, \nDam 1d4 hoof, Mv 80' (10'), Sv F2, ML 7, \nXP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 7 ☐☐☐☐☐ ☐☐\n6 ☐☐☐☐☐ ☐ 6 ☐☐☐☐☐ ☐\n5 ☐☐☐☐☐ 4 ☐☐☐☐\n3. HALFLING HOME (See the Miscellaneous\nMaps): The party comes across what was once\na Halfling farm and orchard. From all evidence,\nthis was abandoned decades ago. It is now\ngrown over with brush, weeds, and trees. The\nmain buildings are built like a burrow, with\nonly the round front door and round windows\n(shown as circles on the maps) exposed. The\nrest is buried underneath a dozen feet of earth.\nThe ceilings are uniformly 6 feet high. The\nfloors and walls are stone; the ceilings are\nmade of and held up by heavy timbers.\nCobwebs and dirt clutter all the inner rooms.\nOnly the windows provide light inside. The\nwindows are filthy from decades of neglect.\nThey are composed of multiple panes of glass\nwith wooden framework, but exact details are\nleft to the GM's imagination.\nH1. FRONT DOOR: A large, round green door\ngreets visitors. The door is locked, but is old\nand rotten, and can be easily knocked in.\nH2. LIVING ROOM: The main living room, with a\nfireplace in the south wall and a round window\nabout 4' in diameter in the north. There is no\nfurniture here. Searching the fireplace for\nloose stones will reveal a small, secret niche\n(about 1' squared) off to one side which\ncontains an old, ornate jewelry box. Inside are\n100 gp, a gem worth 250 gp, and a large silver\nhat pin that was once magical but is not any\nlonger.\nThe stink of death is here. A long-dead body\nclad in old, rotten leather armor lies mauled in\nthe center of the room. It has a silver dagger\nin a belt sheath, 2 vials of holy water, 1 Potion\nof Healing, and a leather pouch with 3 cp.\nA tentacle worm lurks in the dark, scuttling to\nany sounds that occur in adjacent rooms, such\nas the sound of the front door being knocked\nin.\nTentacle Worm: AC 13, HD 3*, #At 6 tentacles, \nDam paralysis, Mv 40', Sv F3, ML 9, XP 175\nHP 12 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐\nH3. DINING ROOM: This 15 x 17 foot room has\ntwo round windows in the north wall. The\ncolor of the floor and shapes in the dust\nindicate that tables and chairs were once\nplaced in the light of the windows.\nH4. KITCHEN: A stone stove rests against the\nnorth wall with a chimney going out the roof\n(with a flue about 1 foot square). There are no\nother furnishings. A round window about 4\nfeet in diameter is in the northwest corner (the\nglass is broken out). A pool of slimy green\nwater is running down the sill of the window to\nthe floor (it looks exactly like a green slime\nmonster but is not one).\nH5, H6, H7. BEDROOMS: Empty of even\nfurniture. Each has a round window about 4' in\ndiameter in the south wall (in the southwest\ncorner of H7).\n14"
+      },
+      {
+        "sha256": "61198487e9f4ca07389f05e00a2ee4ba4576581741bbff3aedf00d90988b3d2d",
+        "bytes": 508458
+      },
+      {
+        "text": "[page 29]\nThe Chaotic Caves The Caves\nF. BANDIT LAIR\nThis lair has two entrances: see locations #32\nand #42 on the map. Both are out of sight\nfrom each other in the woods. The denizens of\nthis lair are bandits. They might try to trick an\nadventuring party with clever guises (like\nposing as soldiers sent to help clear-cut the\nmonsters), but they will ambush and attack if\nthey get a chance. They are allies to those in\nthe abandoned mansion fort (see Part Two),\nbut unless interrogated or something odd\nhappens, they will not give that away.\n32. EAST ENTRANCE: Four humans and a dwarf\nstand guard here; on hot days they take cover\njust inside the cave entrance. They each have\na crossbow and a case of bolts which are\ntraded out as the guard changes. Each has\n1d6+6 sp on their person. At night, a dozen\ntorches will be kept just inside the entrance\nalong with a covered bowl of hot coals.\nBandit, Dwarf Fighter 1: AC 13, AB +1, \n#At 1 shortsword or 1 light crossbow, Dam 1d6, \nMv 30', Sv F1D, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐\n4 Bandits, Human Fighter 1: AC 13, AB +1, \n#At 1 shortsword or 1 light crossbow, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n33. COMMON ROOM: Six human fighters are\nbunked here, amid furniture that is light and\neasy to break down and move, but not very\nsturdy. Each has 1d6+6 sp on their person.\nThe room is lit by two common oil lamps\n(wooden bowls with a notch for a wick). Oil is\nbrought in with a wooden cup when needed.\n6 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n34. LOCKED STORE ROOM: The door to this\nroom is heavy and locked; knocking it in will\ntake some time. The deputy to the leader (in\nroom #41) usually has the key. This room\ncontains provisions and loot from raids. A well\nhas been driven down for water, and barrels of\nbeer, bags of grains, vegetables, and other\nsundries can be found. A large clay jug holds\neight gallons of lantern oil and there are three\ndozen torches. \n35. COMMON ROOM: Six bandits reside here.\nEach has 1d6+6 sp on his or her person. The\nroom is lit by two common oil lamps (wooden\nbowls with a notch for a wick). Oil is brought\nin with a wooden cup when needed. \n6 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n36. LEADER'S ROOM: The bandit leader (a\nfighter) is here. He wields a longsword +1,\nwears chainmail +1, and is carrying a shield.\nTwo of his main cronies are also here, each\nwearing normal chain mail. The three of them\nare sitting at a table looking at a map of the\ngeneral area with notes about best prospects\nfor ambushing traders. This room features a\nlantern on a swinging hook and a gallon of\nlantern oil in a wooden jar. The lantern has a\ncontinual light spell cast inside it; it is kept\nfueled in case it is dispelled or countered by a\ncontinual darkness spell. The captain has the\nkey to the storage room at #40.\nUnder the table is a locked strong box\ncontaining 500 gp, 1,000 sp, and 2,000 cp. The\ncaptain has the key to it stuffed in one boot.\nHe has a ring of keys that go to the dungeon\ndoors at #38 on his belt.\nBandit Leader, Human Fighter 4: AC 16 (17), \nAB +3 (+4 with magic longsword), \n#At 1 longsword +1, Dam 1d8+1, Mv 30', Sv F4, \nML 8, XP 240\nHP 16 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐\n2 Bandit Cronies, Human Fighter 2: AC 15, \nAB +2, #At 1 shortsword, Dam 1d6, Mv 20', \nSv F2, ML 8, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n27"
+      },
+      {
+        "sha256": "a321ba52d68467cbd1b808359f837068e3f457dcfb571cbce6dd30e2a01782c9",
+        "bytes": 519082
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": "+1",
+      "hit_dice": null,
+      "class_level": "Human Fighter 1",
+      "hp": 6,
+      "attacks": [
+        "1 spear"
+      ],
+      "movement": "20'",
+      "saves": "Sv F1",
+      "morale": 8,
+      "alignment": null,
+      "xp": 25,
+      "number_appearing": "6",
+      "special": [],
+      "confidence": 0.71,
+      "source_pages": [
+        41
+      ]
+    },
+    "usage": {
+      "input_tokens": 16289,
+      "output_tokens": 106
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

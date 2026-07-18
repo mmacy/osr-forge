@@ -465,7 +465,7 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "fire_beetle",
+                      "template_id": "tentacle_worm",
                       "count_dice": null,
                       "count_fixed": 1
                     }
@@ -2312,7 +2312,7 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "ochre_jelly",
+                      "template_id": "grey_ooze",
                       "count_dice": null,
                       "count_fixed": 1
                     }
@@ -5295,7 +5295,7 @@
                       "count_fixed": 1
                     },
                     {
-                      "template_id": "halfling_monster",
+                      "template_id": "orc_war_leader",
                       "count_dice": null,
                       "count_fixed": 1
                     },
@@ -8899,7 +8899,7 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "skeleton",
+                      "template_id": "elven_thief",
                       "count_dice": null,
                       "count_fixed": 1
                     }
@@ -10249,7 +10249,7 @@
                       "count_fixed": 3
                     },
                     {
-                      "template_id": "skeleton",
+                      "template_id": "giant_gecko_lizard",
                       "count_dice": null,
                       "count_fixed": 1
                     }
@@ -10782,7 +10782,7 @@
                       "count_fixed": 3
                     },
                     {
-                      "template_id": "skeleton",
+                      "template_id": "giant_gecko_lizard",
                       "count_dice": null,
                       "count_fixed": 1
                     }
@@ -14408,12 +14408,12 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "acolyte",
+                      "template_id": "human_fighter_2",
                       "count_dice": null,
                       "count_fixed": 1
                     },
                     {
-                      "template_id": "gecko",
+                      "template_id": "human_fighter_1",
                       "count_dice": null,
                       "count_fixed": 6
                     },
@@ -15154,17 +15154,17 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "dwarf_monster",
+                      "template_id": "fighters",
                       "count_dice": null,
                       "count_fixed": 3
                     },
                     {
-                      "template_id": "acolyte",
+                      "template_id": "human_fighter_2",
                       "count_dice": null,
                       "count_fixed": 1
                     },
                     {
-                      "template_id": "gecko",
+                      "template_id": "human_fighter_1",
                       "count_dice": null,
                       "count_fixed": 2
                     }
@@ -15643,12 +15643,12 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "acolyte",
+                      "template_id": "human_fighter_2",
                       "count_dice": null,
                       "count_fixed": 1
                     },
                     {
-                      "template_id": "gecko",
+                      "template_id": "human_fighter_1",
                       "count_dice": null,
                       "count_fixed": 6
                     }
@@ -15754,7 +15754,7 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "gecko",
+                      "template_id": "human_fighter_1",
                       "count_dice": null,
                       "count_fixed": 2
                     }
@@ -16196,7 +16196,7 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "gecko",
+                      "template_id": "human_fighter_1",
                       "count_dice": null,
                       "count_fixed": 2
                     }
@@ -16339,7 +16339,7 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "gecko",
+                      "template_id": "human_fighter_1",
                       "count_dice": null,
                       "count_fixed": 4
                     }
@@ -17518,12 +17518,12 @@
                 "encounter": {
                   "monsters": [
                     {
-                      "template_id": "grey_ooze",
+                      "template_id": "human_magic_user_4",
                       "count_dice": null,
                       "count_fixed": 1
                     },
                     {
-                      "template_id": "lizard_man",
+                      "template_id": "human_cleric_3",
                       "count_dice": null,
                       "count_fixed": 2
                     }
@@ -17729,6 +17729,981 @@
         ]
       }
     ],
-    "monsters": []
+    "monsters": [
+      {
+        "id": "elven_thief",
+        "name": "elven thief",
+        "page": "p. 30",
+        "intro": "",
+        "ac": 5,
+        "ac_ascending": 14,
+        "ac_alternates": [],
+        "attack_roll_required": true,
+        "hit_dice": {
+          "count": 3,
+          "die": 8,
+          "modifier": 0,
+          "asterisks": 0,
+          "average_hp": null,
+          "fixed_hp": 9
+        },
+        "attacks": [
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "shortsword",
+                "damage": null,
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          },
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "shortbow",
+                "damage": null,
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          }
+        ],
+        "thac0": 17,
+        "attack_bonus": 2,
+        "movement": [
+          {
+            "rate_feet": 30,
+            "encounter_rate_feet": 10,
+            "descriptor": null
+          }
+        ],
+        "saves": {
+          "values": {
+            "death": 13,
+            "wands": 14,
+            "paralysis": 13,
+            "breath": 16,
+            "spells": 15
+          },
+          "save_as": "T3"
+        },
+        "morale": 8,
+        "morale_alternates": [],
+        "alignment": {
+          "options": [
+            "neutral"
+          ],
+          "usual": null
+        },
+        "xp": 145,
+        "xp_notes": [],
+        "number_appearing": {
+          "dungeon": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          },
+          "lair": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          }
+        },
+        "treasure": {
+          "letters": [],
+          "parenthetical": [],
+          "extra_gp": 0,
+          "multiplier": 1,
+          "special": [],
+          "see_below": false
+        },
+        "abilities": [],
+        "defenses": {
+          "harmed_only_by": [],
+          "reductions": [],
+          "energy": {},
+          "condition_immunities": []
+        },
+        "categories": [],
+        "overrides_applied": []
+      },
+      {
+        "id": "fighters",
+        "name": "fighters",
+        "page": "p. 43",
+        "intro": "",
+        "ac": 4,
+        "ac_ascending": 15,
+        "ac_alternates": [],
+        "attack_roll_required": true,
+        "hit_dice": {
+          "count": 2,
+          "die": 8,
+          "modifier": 0,
+          "asterisks": 1,
+          "average_hp": null,
+          "fixed_hp": 8
+        },
+        "attacks": [
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "weapon",
+                "damage": null,
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          }
+        ],
+        "thac0": 18,
+        "attack_bonus": 1,
+        "movement": [
+          {
+            "rate_feet": 20,
+            "encounter_rate_feet": 10,
+            "descriptor": null
+          }
+        ],
+        "saves": {
+          "values": {
+            "death": 12,
+            "wands": 13,
+            "paralysis": 14,
+            "breath": 15,
+            "spells": 16
+          },
+          "save_as": "F2"
+        },
+        "morale": 8,
+        "morale_alternates": [],
+        "alignment": {
+          "options": [
+            "neutral"
+          ],
+          "usual": null
+        },
+        "xp": 75,
+        "xp_notes": [],
+        "number_appearing": {
+          "dungeon": {
+            "dice": null,
+            "fixed": 3,
+            "see_below": false
+          },
+          "lair": {
+            "dice": null,
+            "fixed": 3,
+            "see_below": false
+          }
+        },
+        "treasure": {
+          "letters": [],
+          "parenthetical": [],
+          "extra_gp": 0,
+          "multiplier": 1,
+          "special": [],
+          "see_below": false
+        },
+        "abilities": [
+          {
+            "tag": "custom",
+            "name": "Dam 1d8 (1d8+1 for one for longword +1)",
+            "prose": "Dam 1d8 (1d8+1 for one for longword +1)",
+            "manual": true,
+            "params": {}
+          }
+        ],
+        "defenses": {
+          "harmed_only_by": [],
+          "reductions": [],
+          "energy": {},
+          "condition_immunities": []
+        },
+        "categories": [],
+        "overrides_applied": []
+      },
+      {
+        "id": "giant_gecko_lizard",
+        "name": "giant gecko lizard",
+        "page": "p. 15",
+        "intro": "",
+        "ac": 4,
+        "ac_ascending": 15,
+        "ac_alternates": [],
+        "attack_roll_required": true,
+        "hit_dice": {
+          "count": 3,
+          "die": 8,
+          "modifier": 1,
+          "asterisks": 1,
+          "average_hp": 13,
+          "fixed_hp": null
+        },
+        "attacks": [
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "bite",
+                "damage": "1d8",
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          }
+        ],
+        "thac0": 16,
+        "attack_bonus": 3,
+        "movement": [
+          {
+            "rate_feet": 40,
+            "encounter_rate_feet": 10,
+            "descriptor": null
+          }
+        ],
+        "saves": {
+          "values": {
+            "death": 12,
+            "wands": 13,
+            "paralysis": 14,
+            "breath": 15,
+            "spells": 16
+          },
+          "save_as": "F2"
+        },
+        "morale": 7,
+        "morale_alternates": [],
+        "alignment": {
+          "options": [
+            "neutral"
+          ],
+          "usual": null
+        },
+        "xp": 145,
+        "xp_notes": [],
+        "number_appearing": {
+          "dungeon": {
+            "dice": "1d2",
+            "fixed": null,
+            "see_below": false
+          },
+          "lair": {
+            "dice": "1d2",
+            "fixed": null,
+            "see_below": false
+          }
+        },
+        "treasure": {
+          "letters": [],
+          "parenthetical": [],
+          "extra_gp": 0,
+          "multiplier": 1,
+          "special": [],
+          "see_below": false
+        },
+        "abilities": [
+          {
+            "tag": "custom",
+            "name": "Mv 40' (special)",
+            "prose": "Mv 40' (special)",
+            "manual": true,
+            "params": {}
+          }
+        ],
+        "defenses": {
+          "harmed_only_by": [],
+          "reductions": [],
+          "energy": {},
+          "condition_immunities": []
+        },
+        "categories": [],
+        "overrides_applied": []
+      },
+      {
+        "id": "human_cleric_3",
+        "name": "human cleric 3",
+        "page": "p. 45",
+        "intro": "",
+        "ac": 1,
+        "ac_ascending": 18,
+        "ac_alternates": [],
+        "attack_roll_required": true,
+        "hit_dice": {
+          "count": 3,
+          "die": 8,
+          "modifier": 0,
+          "asterisks": 8,
+          "average_hp": null,
+          "fixed_hp": 11
+        },
+        "attacks": [
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "mace",
+                "damage": "1d8+1",
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          },
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "mace",
+                "damage": "1d8-1",
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          }
+        ],
+        "thac0": 17,
+        "attack_bonus": 2,
+        "movement": [
+          {
+            "rate_feet": 20,
+            "encounter_rate_feet": 10,
+            "descriptor": null
+          }
+        ],
+        "saves": {
+          "values": {
+            "death": 11,
+            "wands": 12,
+            "paralysis": 14,
+            "breath": 16,
+            "spells": 15
+          },
+          "save_as": "C3"
+        },
+        "morale": 9,
+        "morale_alternates": [],
+        "alignment": {
+          "options": [
+            "neutral"
+          ],
+          "usual": null
+        },
+        "xp": 145,
+        "xp_notes": [],
+        "number_appearing": {
+          "dungeon": {
+            "dice": null,
+            "fixed": 2,
+            "see_below": false
+          },
+          "lair": {
+            "dice": null,
+            "fixed": 2,
+            "see_below": false
+          }
+        },
+        "treasure": {
+          "letters": [],
+          "parenthetical": [],
+          "extra_gp": 0,
+          "multiplier": 1,
+          "special": [],
+          "see_below": false
+        },
+        "abilities": [
+          {
+            "tag": "custom",
+            "name": "wearing plate mail and wielding mace and shield",
+            "prose": "wearing plate mail and wielding mace and shield",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "Spells: 1st level – cure light wounds, remove fear",
+            "prose": "Spells: 1st level – cure light wounds, remove fear",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "Magic Items: 2 Potions of Healing",
+            "prose": "Magic Items: 2 Potions of Healing",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "STR 15 (+1)",
+            "prose": "STR 15 (+1)",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "wearing plate mail and wielding mace and shield",
+            "prose": "wearing plate mail and wielding mace and shield",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "Spells: 1st level – cure light wounds, light",
+            "prose": "Spells: 1st level – cure light wounds, light",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "Magic Items: Potion of Healing, Potion of Invisibility",
+            "prose": "Magic Items: Potion of Healing, Potion of Invisibility",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "STR 8 (-1), CHA 7 (-1)",
+            "prose": "STR 8 (-1), CHA 7 (-1)",
+            "manual": true,
+            "params": {}
+          }
+        ],
+        "defenses": {
+          "harmed_only_by": [],
+          "reductions": [],
+          "energy": {},
+          "condition_immunities": []
+        },
+        "categories": [],
+        "overrides_applied": []
+      },
+      {
+        "id": "human_fighter_1",
+        "name": "human fighter 1",
+        "page": "p. 41",
+        "intro": "",
+        "ac": 4,
+        "ac_ascending": 15,
+        "ac_alternates": [],
+        "attack_roll_required": true,
+        "hit_dice": {
+          "count": 1,
+          "die": 8,
+          "modifier": 0,
+          "asterisks": 0,
+          "average_hp": null,
+          "fixed_hp": 6
+        },
+        "attacks": [
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "spear",
+                "damage": null,
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          }
+        ],
+        "thac0": 18,
+        "attack_bonus": 1,
+        "movement": [
+          {
+            "rate_feet": 20,
+            "encounter_rate_feet": 10,
+            "descriptor": null
+          }
+        ],
+        "saves": {
+          "values": {
+            "death": 12,
+            "wands": 13,
+            "paralysis": 14,
+            "breath": 15,
+            "spells": 16
+          },
+          "save_as": "F1"
+        },
+        "morale": 8,
+        "morale_alternates": [],
+        "alignment": {
+          "options": [
+            "neutral"
+          ],
+          "usual": null
+        },
+        "xp": 25,
+        "xp_notes": [],
+        "number_appearing": {
+          "dungeon": {
+            "dice": null,
+            "fixed": 6,
+            "see_below": false
+          },
+          "lair": {
+            "dice": null,
+            "fixed": 6,
+            "see_below": false
+          }
+        },
+        "treasure": {
+          "letters": [],
+          "parenthetical": [],
+          "extra_gp": 0,
+          "multiplier": 1,
+          "special": [],
+          "see_below": false
+        },
+        "abilities": [],
+        "defenses": {
+          "harmed_only_by": [],
+          "reductions": [],
+          "energy": {},
+          "condition_immunities": []
+        },
+        "categories": [],
+        "overrides_applied": []
+      },
+      {
+        "id": "human_fighter_2",
+        "name": "human fighter 2",
+        "page": "p. 41",
+        "intro": "",
+        "ac": 4,
+        "ac_ascending": 15,
+        "ac_alternates": [],
+        "attack_roll_required": true,
+        "hit_dice": {
+          "count": 2,
+          "die": 8,
+          "modifier": 0,
+          "asterisks": 0,
+          "average_hp": null,
+          "fixed_hp": 8
+        },
+        "attacks": [
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "longsword",
+                "damage": null,
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          }
+        ],
+        "thac0": 17,
+        "attack_bonus": 2,
+        "movement": [
+          {
+            "rate_feet": 20,
+            "encounter_rate_feet": 10,
+            "descriptor": null
+          }
+        ],
+        "saves": {
+          "values": {
+            "death": 12,
+            "wands": 13,
+            "paralysis": 14,
+            "breath": 15,
+            "spells": 16
+          },
+          "save_as": "F2"
+        },
+        "morale": 8,
+        "morale_alternates": [],
+        "alignment": {
+          "options": [
+            "neutral"
+          ],
+          "usual": null
+        },
+        "xp": 75,
+        "xp_notes": [],
+        "number_appearing": {
+          "dungeon": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          },
+          "lair": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          }
+        },
+        "treasure": {
+          "letters": [],
+          "parenthetical": [],
+          "extra_gp": 0,
+          "multiplier": 1,
+          "special": [],
+          "see_below": false
+        },
+        "abilities": [],
+        "defenses": {
+          "harmed_only_by": [],
+          "reductions": [],
+          "energy": {},
+          "condition_immunities": []
+        },
+        "categories": [],
+        "overrides_applied": []
+      },
+      {
+        "id": "human_magic_user_4",
+        "name": "human magic-user 4",
+        "page": "p. 45",
+        "intro": "",
+        "ac": 4,
+        "ac_ascending": 15,
+        "ac_alternates": [],
+        "attack_roll_required": true,
+        "hit_dice": {
+          "count": 4,
+          "die": 8,
+          "modifier": 0,
+          "asterisks": 4,
+          "average_hp": null,
+          "fixed_hp": 10
+        },
+        "attacks": [
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "dagger",
+                "damage": null,
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          },
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "spell",
+                "damage": "1d4",
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          }
+        ],
+        "thac0": 17,
+        "attack_bonus": 2,
+        "movement": [
+          {
+            "rate_feet": 40,
+            "encounter_rate_feet": 10,
+            "descriptor": null
+          }
+        ],
+        "saves": {
+          "values": {
+            "death": 13,
+            "wands": 14,
+            "paralysis": 13,
+            "breath": 16,
+            "spells": 15
+          },
+          "save_as": "MU4"
+        },
+        "morale": 9,
+        "morale_alternates": [],
+        "alignment": {
+          "options": [
+            "neutral"
+          ],
+          "usual": null
+        },
+        "xp": 280,
+        "xp_notes": [],
+        "number_appearing": {
+          "dungeon": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          },
+          "lair": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          }
+        },
+        "treasure": {
+          "letters": [],
+          "parenthetical": [],
+          "extra_gp": 0,
+          "multiplier": 1,
+          "special": [],
+          "see_below": false
+        },
+        "abilities": [
+          {
+            "tag": "custom",
+            "name": "Spells: 1st level – sleep, magic missile; 2nd level – detect invisible, web",
+            "prose": "Spells: 1st level – sleep, magic missile; 2nd level – detect invisible, web",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "Magic Items: Wand of Magic Missiles (11 charges), Ring of Protection +1, Cloak of Displacement",
+            "prose": "Magic Items: Wand of Magic Missiles (11 charges), Ring of Protection +1, Cloak of Displacement",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "Scrolls: magic missile, sleep",
+            "prose": "Scrolls: magic missile, sleep",
+            "manual": true,
+            "params": {}
+          },
+          {
+            "tag": "custom",
+            "name": "STR 8 (-1), DEX 15 (+1)",
+            "prose": "STR 8 (-1), DEX 15 (+1)",
+            "manual": true,
+            "params": {}
+          }
+        ],
+        "defenses": {
+          "harmed_only_by": [],
+          "reductions": [],
+          "energy": {},
+          "condition_immunities": []
+        },
+        "categories": [],
+        "overrides_applied": []
+      },
+      {
+        "id": "orc_war_leader",
+        "name": "orc war leader",
+        "page": "p. 15",
+        "intro": "",
+        "ac": 5,
+        "ac_ascending": 14,
+        "ac_alternates": [],
+        "attack_roll_required": true,
+        "hit_dice": {
+          "count": 2,
+          "die": 8,
+          "modifier": 0,
+          "asterisks": 0,
+          "average_hp": 10,
+          "fixed_hp": null
+        },
+        "attacks": [
+          {
+            "attacks": [
+              {
+                "count": 1,
+                "name": "longsword",
+                "damage": "1d8+1",
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": []
+              }
+            ]
+          }
+        ],
+        "thac0": 18,
+        "attack_bonus": 1,
+        "movement": [
+          {
+            "rate_feet": 30,
+            "encounter_rate_feet": 10,
+            "descriptor": null
+          }
+        ],
+        "saves": {
+          "values": {
+            "death": 12,
+            "wands": 13,
+            "paralysis": 14,
+            "breath": 15,
+            "spells": 16
+          },
+          "save_as": "F2"
+        },
+        "morale": 8,
+        "morale_alternates": [],
+        "alignment": {
+          "options": [
+            "neutral"
+          ],
+          "usual": null
+        },
+        "xp": 75,
+        "xp_notes": [],
+        "number_appearing": {
+          "dungeon": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          },
+          "lair": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          }
+        },
+        "treasure": {
+          "letters": [],
+          "parenthetical": [],
+          "extra_gp": 0,
+          "multiplier": 1,
+          "special": [],
+          "see_below": false
+        },
+        "abilities": [],
+        "defenses": {
+          "harmed_only_by": [],
+          "reductions": [],
+          "energy": {},
+          "condition_immunities": []
+        },
+        "categories": [],
+        "overrides_applied": []
+      },
+      {
+        "id": "tentacle_worm",
+        "name": "tentacle worm",
+        "page": "p. 16",
+        "intro": "",
+        "ac": 6,
+        "ac_ascending": 13,
+        "ac_alternates": [],
+        "attack_roll_required": true,
+        "hit_dice": {
+          "count": 3,
+          "die": 8,
+          "modifier": 0,
+          "asterisks": 1,
+          "average_hp": 12,
+          "fixed_hp": null
+        },
+        "attacks": [
+          {
+            "attacks": [
+              {
+                "count": 6,
+                "name": "tentacles",
+                "damage": null,
+                "fixed_damage": null,
+                "fixed_damage_options": [],
+                "by_weapon": false,
+                "by_weapon_modifier": 0,
+                "effects": [
+                  "paralysis"
+                ]
+              }
+            ]
+          }
+        ],
+        "thac0": 17,
+        "attack_bonus": 2,
+        "movement": [
+          {
+            "rate_feet": 40,
+            "encounter_rate_feet": 10,
+            "descriptor": null
+          }
+        ],
+        "saves": {
+          "values": {
+            "death": 12,
+            "wands": 13,
+            "paralysis": 14,
+            "breath": 15,
+            "spells": 16
+          },
+          "save_as": "F3"
+        },
+        "morale": 9,
+        "morale_alternates": [],
+        "alignment": {
+          "options": [
+            "neutral"
+          ],
+          "usual": null
+        },
+        "xp": 175,
+        "xp_notes": [],
+        "number_appearing": {
+          "dungeon": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          },
+          "lair": {
+            "dice": null,
+            "fixed": 1,
+            "see_below": false
+          }
+        },
+        "treasure": {
+          "letters": [],
+          "parenthetical": [],
+          "extra_gp": 0,
+          "multiplier": 1,
+          "special": [],
+          "see_below": false
+        },
+        "abilities": [],
+        "defenses": {
+          "harmed_only_by": [],
+          "reductions": [],
+          "energy": {},
+          "condition_immunities": []
+        },
+        "categories": [],
+        "overrides_applied": []
+      }
+    ]
   }
 }
