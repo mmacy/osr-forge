@@ -115,7 +115,9 @@ def _print_metrics(module_id: str, metrics: ModuleMetrics) -> None:
         f"  encounters:  name_recall={show(metrics.encounters.name_recall)} "
         f"count_accuracy={show(metrics.encounters.count_accuracy)} "
         f"resolution_accuracy={show(metrics.encounters.resolution_accuracy)} "
-        f"(non_srd={metrics.encounters.non_srd})"
+        f"custom_accuracy={show(metrics.encounters.custom_accuracy)} "
+        f"({metrics.encounters.custom_matched}/{metrics.encounters.custom_denominator} custom, "
+        f"non_srd={metrics.encounters.non_srd})"
     )
     print(
         f"  connections: f1={show(metrics.connections.f1)} precision={show(metrics.connections.precision)} "

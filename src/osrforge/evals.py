@@ -24,8 +24,15 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from osrforge.assemble import parse_treasure
-from osrforge.contracts.stages import AreaContent, LevelContent, MonsterResolutions, SurveyDungeon, SurveyIndex
+from osrforge.assemble import parse_treasure, usable_stat_block
+from osrforge.contracts.stages import (
+    AreaContent,
+    LevelContent,
+    MonsterResolutions,
+    StatBlocks,
+    SurveyDungeon,
+    SurveyIndex,
+)
 from osrforge.monsters import normalize_monster_name
 from osrforge.settings import ConversionSettings
 from osrforge.survey import canonical_slug
@@ -73,15 +80,28 @@ class TruthEncounter(BaseModel):
 
     `template` is the osrlib catalog id the name *should* resolve to, omitted
     when the module's monster genuinely has no SRD template (rank variants
-    with their own stat blocks, module-specific creatures). `count` is
-    omitted when the module states none or a variable one.
+    with their own stat blocks, module-specific creatures). `custom` is legal
+    only with `template` omitted: it asserts *this creature should emit* — the
+    printed page carries a usable stat block (an AC plus an HD line or a
+    class-level notation, exactly assembly's refusal-ladder predicate).
+    Omitted-with-`custom` moves the encounter into the custom metric pair;
+    omitted-without stays `non_srd` — no SRD template and no assertion about
+    emission. `count` is omitted when the module states none or a variable
+    one.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
     template: str | None = None
+    custom: bool = False
     count: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def _custom_only_without_template(self) -> TruthEncounter:
+        if self.custom and self.template is not None:
+            raise ValueError(f"{self.name!r}: custom asserts emission and is legal only when template is omitted")
+        return self
 
 
 class TruthTreasure(BaseModel):
@@ -369,7 +389,13 @@ class AreaMetrics(BaseModel):
 
 
 class EncounterMetrics(BaseModel):
-    """The encounters family: name recall, count accuracy, resolution accuracy."""
+    """The encounters family: name recall, count accuracy, resolution accuracy, custom-emission accuracy.
+
+    The custom pair scores the truth's `custom: true` assertions against the
+    stat-block cache, so emission is its own legible number rather than
+    diluting SRD-resolution accuracy; `non_srd` keeps meaning "no SRD
+    template and no assertion about emission."
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -382,6 +408,9 @@ class EncounterMetrics(BaseModel):
     resolution_denominator: int
     resolution_matched: int
     resolution_accuracy: float | None
+    custom_denominator: int = 0
+    custom_matched: int = 0
+    custom_accuracy: float | None = None
     non_srd: int
 
 
@@ -836,16 +865,24 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
 
     Reads `stages/survey.json` (area recall/precision), the
     `stages/areas.*.json` content caches (encounters, connections, treasure),
-    and `stages/monsters.json` (resolution accuracy). Deterministic: scoring
-    the same workdir twice yields byte-identical metrics.
+    `stages/monsters.json` (resolution accuracy), and `stages/statblocks.json`
+    (custom-emission accuracy — a missing file scores no matches, the honest
+    pre-phase-7 state, never an error). Deterministic: scoring the same
+    workdir twice yields byte-identical metrics.
 
     Encounter names match under a minimal morphological fold (`_match_fold`) —
     the truth's singular authoring convention meets extraction's printed
     plural on folded forms; a truth encounter's count compares against the
     fold-matched encounter group's summed fixed counts, and its resolution
     matches only when every fold-matched extracted name resolved to the
-    asserted template. An area whose truth lists one name twice (two
-    separately statted groups printed under one name) scores each entry
+    asserted template. A custom-asserted encounter matches only when every
+    fold-matched extracted name carries a *usable* block in the stat-block
+    cache — usability being exactly assembly's refusal-ladder predicate,
+    shared as one helper, so the metric can never score an emission assembly
+    would refuse; the signal is honest by construction, because the pass only
+    runs over unresolved names, so a wrongly-SRD-resolved bespoke creature
+    has no block and scores a miss. An area whose truth lists one name twice
+    (two separately statted groups printed under one name) scores each entry
     against the whole group — the summed count can then match neither entry
     and resolution can credit at most one of the two templates; a known
     conservative shape, recorded rather than special-cased.
@@ -867,6 +904,10 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
         raise ValueError(f"the monsters cache is missing: {workdir.monsters_json} — evals score completed extractions")
     index = SurveyIndex.model_validate_json(workdir.survey_json.read_text(encoding="utf-8"))
     resolutions = MonsterResolutions.model_validate_json(workdir.monsters_json.read_text(encoding="utf-8"))
+    usable_names: frozenset[str] = frozenset()
+    if workdir.statblocks_json.is_file():
+        statblocks = StatBlocks.model_validate_json(workdir.statblocks_json.read_text(encoding="utf-8"))
+        usable_names = frozenset(name for name, block in statblocks.blocks.items() if usable_stat_block(block))
 
     matches = _align_dungeons(truth, index)
 
@@ -880,6 +921,8 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     count_matched = 0
     resolution_denominator = 0
     resolution_matched = 0
+    custom_denominator = 0
+    custom_matched = 0
     non_srd = 0
 
     truth_edges: set[tuple[str, str, int, frozenset[str]]] = set()
@@ -945,7 +988,12 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                         if _extracted_count(extracted_area, matched_names) == truth_encounter.count:
                             count_matched += 1
                     if truth_encounter.template is None:
-                        non_srd += 1
+                        if truth_encounter.custom:
+                            custom_denominator += 1
+                            if matched_names <= usable_names:
+                                custom_matched += 1
+                        else:
+                            non_srd += 1
                     else:
                         resolution_denominator += 1
                         resolved = {
@@ -1024,6 +1072,9 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
             resolution_denominator=resolution_denominator,
             resolution_matched=resolution_matched,
             resolution_accuracy=_ratio(resolution_matched, resolution_denominator),
+            custom_denominator=custom_denominator,
+            custom_matched=custom_matched,
+            custom_accuracy=_ratio(custom_matched, custom_denominator),
             non_srd=non_srd,
         ),
         connections=ConnectionMetrics(
@@ -1070,6 +1121,7 @@ def corpus_means(scoreboard: Scoreboard) -> dict[str, float | None]:
         "encounter_resolution_accuracy": _module_mean(
             [score.metrics.encounters.resolution_accuracy for score in modules]
         ),
+        "encounter_custom_accuracy": _module_mean([score.metrics.encounters.custom_accuracy for score in modules]),
         "connection_f1": _module_mean([score.metrics.connections.f1 for score in modules]),
         "treasure_presence_agreement": _module_mean([score.metrics.treasure.presence_agreement for score in modules]),
         "treasure_letter_accuracy": _module_mean([score.metrics.treasure.letter_accuracy for score in modules]),

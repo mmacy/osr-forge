@@ -15,6 +15,8 @@ from osrforge.contracts.stages import (
     LevelContent,
     MonsterResolution,
     MonsterResolutions,
+    RawStatBlock,
+    StatBlocks,
     SurveyArea,
     SurveyDungeon,
     SurveyIndex,
@@ -28,6 +30,7 @@ from osrforge.evals import (
     ModuleTruth,
     RunInfo,
     Scoreboard,
+    TruthEncounter,
     _match_fold,
     corpus_means,
     enforce_source_integrity,
@@ -342,6 +345,109 @@ dungeons:
         assert metrics.encounters.resolution_denominator == 0
         assert metrics.encounters.resolution_accuracy is None
         assert metrics.encounters.non_srd == 1
+
+
+class TestCustomAssertions:
+    """The custom metric pair: `custom: true` scored against the stat-block cache via the shared predicate."""
+
+    CUSTOM_TRUTH = truth_from_yaml(
+        """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: tentacle worm
+                custom: true
+"""
+    )
+
+    def _workdir(self, tmp_path: Path, blocks: dict[str, RawStatBlock | None] | None) -> Path:
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1", encounters=(encounter("tentacle worms", 1),))])])],
+            resolutions={"tentacle worms": MonsterResolution(template_id=None, method="unresolved")},
+        )
+        if blocks is not None:
+            write_json_artifact(Workdir(root).statblocks_json, StatBlocks(custom_monsters="emit", blocks=blocks))
+        return root
+
+    def test_custom_is_rejected_beside_a_template(self):
+        with pytest.raises(ValidationError, match="legal only when template is omitted"):
+            TruthEncounter(name="orc chief", template="orc", custom=True)
+
+    def test_custom_round_trips_through_truth_yaml(self):
+        (encounter_truth,) = self.CUSTOM_TRUTH.dungeons[0].levels[0].areas[0].encounters
+        assert encounter_truth.custom is True
+        assert encounter_truth.template is None
+
+    def test_usable_block_scores_a_match(self, tmp_path: Path):
+        block = RawStatBlock(ac="5 [14]", ac_notation="dual", hit_dice="3", hp=12)
+        root = self._workdir(tmp_path, {"tentacle worms": block})
+        metrics = score_workdir(root, self.CUSTOM_TRUTH)
+        assert metrics.encounters.custom_denominator == 1
+        assert metrics.encounters.custom_matched == 1
+        assert metrics.encounters.custom_accuracy == 1.0
+        # The custom-asserted encounter left non_srd and the resolution family.
+        assert metrics.encounters.non_srd == 0
+        assert metrics.encounters.resolution_denominator == 0
+
+    def test_extracted_but_unusable_block_scores_a_miss(self, tmp_path: Path):
+        # No AC: assembly's refusal ladder would refuse this emission, so the
+        # shared predicate must refuse the match too.
+        block = RawStatBlock(hit_dice="3", hp=12)
+        root = self._workdir(tmp_path, {"tentacle worms": block})
+        metrics = score_workdir(root, self.CUSTOM_TRUTH)
+        assert metrics.encounters.custom_denominator == 1
+        assert metrics.encounters.custom_matched == 0
+        assert metrics.encounters.custom_accuracy == 0.0
+
+    def test_absent_marker_scores_a_miss(self, tmp_path: Path):
+        root = self._workdir(tmp_path, {"tentacle worms": None})
+        metrics = score_workdir(root, self.CUSTOM_TRUTH)
+        assert metrics.encounters.custom_matched == 0
+
+    def test_missing_statblock_cache_pins_matches_at_zero(self, tmp_path: Path):
+        # The pre-phase-7 workdir state: the assertion still counts, honestly unmatched.
+        root = self._workdir(tmp_path, None)
+        metrics = score_workdir(root, self.CUSTOM_TRUTH)
+        assert metrics.encounters.custom_denominator == 1
+        assert metrics.encounters.custom_matched == 0
+
+    def test_wrongly_resolved_bespoke_creature_scores_a_miss(self, tmp_path: Path):
+        # An SRD-resolved name never entered the stat-block pass, so it has no
+        # block — the right verdict for a bespoke creature the LLM mis-picked.
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1", encounters=(encounter("tentacle worms", 1),))])])],
+            resolutions={"tentacle worms": MonsterResolution(template_id="carcass_crawler", method="llm")},
+        )
+        write_json_artifact(Workdir(root).statblocks_json, StatBlocks(custom_monsters="emit", blocks={}))
+        metrics = score_workdir(root, self.CUSTOM_TRUTH)
+        assert metrics.encounters.custom_denominator == 1
+        assert metrics.encounters.custom_matched == 0
+
+    def test_omitted_without_custom_stays_non_srd(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: tentacle worm
+"""
+        )
+        block = RawStatBlock(ac="5 [14]", ac_notation="dual", hit_dice="3", hp=12)
+        root = self._workdir(tmp_path, {"tentacle worms": block})
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.non_srd == 1
+        assert metrics.encounters.custom_denominator == 0
+        assert metrics.encounters.custom_accuracy is None
 
 
 class TestMatchFolding:
@@ -1720,7 +1826,17 @@ def test_jn1_pinned_baseline_over_the_committed_caches(tmp_path: Path):
     assert metrics.encounters.resolution_denominator == 85
     assert metrics.encounters.resolution_matched == 75
     assert metrics.encounters.resolution_accuracy == 0.8824
-    assert metrics.encounters.non_srd == 15
+    # The phase 7 truth edits assert emission on all 15 name-matched
+    # template-omitted encounters, moving them out of non_srd into the custom
+    # pair. Four match against the committed caches — the names the tiers
+    # left unresolved with usable transcribed blocks (elven thief, human
+    # cleric 3, human magic-user 4, orc war leader); the eleven misses are
+    # bespoke variants the recorded LLM pass resolved to SRD picks, which is
+    # the phase 5 wrong-pick asymmetry made visible on its own metric.
+    assert metrics.encounters.custom_denominator == 15
+    assert metrics.encounters.custom_matched == 4
+    assert metrics.encounters.custom_accuracy == 0.2667
+    assert metrics.encounters.non_srd == 0
 
     assert metrics.connections.truth_edges == 39
     assert metrics.connections.extracted_edges == 51

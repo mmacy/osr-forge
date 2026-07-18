@@ -68,6 +68,7 @@ dungeons:
           - key: "14"
             encounters:
               - name: human cleric
+                custom: true
                 count: 1
               - name: human fighter
                 template: veteran_2
@@ -88,6 +89,7 @@ dungeons:
           - key: "16"
             encounters:
               - name: giant parasitic wasp
+                custom: true
                 count: 8
             connections: ["15", "17"]
             treasure:
@@ -115,6 +117,7 @@ dungeons:
           - key: "3"
             encounters:
               - name: komodo dragon
+                custom: true
                 count: 8
             connections: ["2"]
             treasure:
@@ -141,6 +144,7 @@ dungeons:
           - key: "8"
             encounters:
               - name: necrotic ooze
+                custom: true
                 count: 5
             connections: ["7"]
             treasure:
@@ -235,10 +239,13 @@ dungeons:
           - key: "10"
             encounters:
               - name: evil sect witch doctor
+                custom: true
                 count: 1
               - name: native
+                custom: true
                 count: 2
               - name: native
+                custom: true
                 count: 10
               - name: pit viper
                 template: pit_viper
@@ -289,8 +296,10 @@ dungeons:
           - key: "3"
             encounters:
               - name: gorilla
+                custom: true
                 count: 3
               - name: chimpanzee
+                custom: true
                 count: 1
               - name: baboon
                 template: rock_baboon
@@ -300,14 +309,17 @@ dungeons:
           - key: "4"
             encounters:
               - name: giant bola spider
+                custom: true
                 count: 2
             treasure:
               present: false
           - key: "5"
             encounters:
               - name: gorilla
+                custom: true
                 count: 2
               - name: hyena
+                custom: true
                 count: 3
             connections: ["4"]
             treasure:
@@ -331,10 +343,13 @@ dungeons:
           - key: "9"
             encounters:
               - name: orangutan cleric
+                custom: true
                 count: 1
               - name: orangutan
+                custom: true
                 count: 2
               - name: gorilla
+                custom: true
                 count: 2
               - name: baboon
                 template: rock_baboon
@@ -363,24 +378,28 @@ dungeons:
           - key: "3"
             encounters:
               - name: giant waterbug
+                custom: true
                 count: 2
             treasure:
               present: true
           - key: "4"
             encounters:
               - name: giant diving bell spider
+                custom: true
                 count: 3
             treasure:
               present: true
           - key: "5"
             encounters:
               - name: giant eel
+                custom: true
                 count: 1
             treasure:
               present: false
           - key: "6"
             encounters:
               - name: giant jellyfish
+                custom: true
                 count: 1
             treasure:
               present: false
@@ -391,6 +410,7 @@ dungeons:
           - key: "8"
             encounters:
               - name: giant two-headed snake
+                custom: true
                 count: 1
             connections: ["7", "9", "10"]
             treasure:
@@ -423,6 +443,7 @@ dungeons:
           - key: "13"
             encounters:
               - name: troglodyte chief
+                custom: true
                 count: 1
               - name: troglodyte
                 template: troglodyte
@@ -432,6 +453,7 @@ dungeons:
           - key: "14"
             encounters:
               - name: troglodyte priest
+                custom: true
                 count: 1
               - name: troglodyte
                 template: troglodyte
@@ -451,6 +473,7 @@ dungeons:
           - key: "2"
             encounters:
               - name: human magic-user
+                custom: true
                 count: 1
               - name: human fighter
                 template: veteran_3
@@ -460,14 +483,17 @@ dungeons:
           - key: "3"
             encounters:
               - name: giant wolf spider
+                custom: true
                 count: 8
             treasure:
               present: false
           - key: "4"
             encounters:
               - name: giant trapdoor spider
+                custom: true
                 count: 1
               - name: jaguar
+                custom: true
                 count: 1
             treasure:
               present: false
@@ -501,6 +527,7 @@ dungeons:
           - key: "9"
             encounters:
               - name: megatherium
+                custom: true
                 count: 1
             treasure:
               present: false
