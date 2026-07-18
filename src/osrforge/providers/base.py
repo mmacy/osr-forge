@@ -32,14 +32,17 @@ _TAG_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
 
 @dataclass(frozen=True)
 class TextPart:
-    """One ordered text content part."""
+    """One ordered text content part of a request.
+
+    A page's extracted text layer, or prompt text like a batch header.
+    """
 
     text: str
 
 
 @dataclass(frozen=True)
 class ImagePart:
-    """One ordered image content part.
+    """One ordered image content part of a request — a page render.
 
     Preprocessing emits PNG; adapters do their own base64/data-URL packaging.
     """

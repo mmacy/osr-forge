@@ -247,9 +247,18 @@ class LintFinding(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: LintCheck
+    """Which check fired."""
+
     severity: Literal["error", "warning"]
+    """`error` breaks the correction loop's exit code; `warning` records an
+    acceptable-by-decision condition."""
+
     location: str
+    """Where the finding points: an area address, a level address, or a
+    dungeon id, at whichever granularity the check works."""
+
     message: str
+    """The human-readable finding text."""
 
 
 class ModuleInfo(BaseModel):
@@ -258,7 +267,10 @@ class ModuleInfo(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     title: str
+    """The adventure title, as built (a defaulted title is flagged)."""
+
     pages: int = Field(ge=0)
+    """The source module's page count."""
 
 
 class ValidationResult(BaseModel):
@@ -267,7 +279,10 @@ class ValidationResult(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     passed: bool
+    """Whether osrlib's `validate_adventure` accepted the draft."""
+
     errors: tuple[str, ...] = ()
+    """The validation error messages when it didn't."""
 
 
 class AreaReport(BaseModel):
@@ -276,10 +291,20 @@ class AreaReport(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: AreaAddressString
+    """The area's address, `<dungeon-id>/<level-number>/<area-key>`."""
+
     source_pages: tuple[int, ...] = ()
+    """The source pages the area's content came from — an extraction fact
+    that persists under overrides."""
+
     confidence: float = Field(ge=0.0, le=1.0)
+    """The extraction confidence — likewise a persistent extraction fact."""
+
     flags: tuple[FlagString, ...] = ()
+    """The area's flags, describing the built draft."""
+
     overridden: tuple[str, ...] = ()
+    """Which override fields were applied to this area."""
 
 
 class CustomMonsterRecord(BaseModel):
@@ -294,9 +319,17 @@ class CustomMonsterRecord(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     id: str
+    """The emitted template's id in the draft's catalog union."""
+
     name: str
+    """The extracted monster name the template serves."""
+
     source_pages: tuple[int, ...] = ()
+    """The pages the stat block was transcribed from."""
+
     derived: tuple[str, ...] = ()
+    """Every field the mapping derived, defaulted, or discarded-and-rederived
+    rather than read off the printed page."""
 
 
 class MonsterSummary(BaseModel):
@@ -310,8 +343,13 @@ class MonsterSummary(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     resolved: int = Field(ge=0)
+    """How many names resolved to a catalog template."""
+
     unresolved: tuple[str, ...] = ()
+    """The names that resolved to nothing."""
+
     custom: tuple[CustomMonsterRecord, ...] = ()
+    """The emitted custom templates actually bundled into the draft."""
 
 
 class ExtractionReport(BaseModel):
@@ -327,11 +365,29 @@ class ExtractionReport(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     schema_version: int = SCHEMA_VERSION
+    """The report schema version."""
+
     osrforge_version: str = Field(default_factory=osrforge_version)
+    """The producing package version."""
+
     module: ModuleInfo
+    """The source module's identity."""
+
     validation: ValidationResult
+    """The `validate_adventure` outcome."""
+
     areas: tuple[AreaReport, ...] = ()
+    """One record per keyed area, in draft order."""
+
     monsters: MonsterSummary
+    """The monster-resolution summary."""
+
     usage: TokenUsage
+    """The conversion's total token consumption."""
+
     flags: tuple[FlagString, ...] = ()
+    """Module-scope flags with no per-area home."""
+
     findings: tuple[LintFinding, ...] = ()
+    """The playability findings — empty from `assemble()`, populated by
+    `check()`."""

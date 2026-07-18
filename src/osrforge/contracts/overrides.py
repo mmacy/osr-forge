@@ -90,7 +90,11 @@ class MonsterOverride(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     template_id: Annotated[str, StringConstraints(min_length=1)]
+    """The catalog template the name should resolve to — including an emitted
+    custom template's id."""
+
     reason: Reason
+    """Why this correction is right; every override entry carries one."""
 
 
 class StatBlockOverride(BaseModel):
@@ -136,13 +140,29 @@ class AreaOverride(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str | None = None
+    """Replace the area's name."""
+
     description: str | None = None
+    """Replace the area's description."""
+
     encounter: KeyedEncounter | None = None
+    """Replace the area's whole built encounter (an osrlib spec, post-mapping)."""
+
     trap: TrapSpec | None = None
+    """Replace the area's trap."""
+
     treasure: AreaTreasureSpec | None = None
+    """Replace the area's treasure — the parsed grammar never runs on an
+    overridden slot."""
+
     features: tuple[FeatureSpec, ...] | None = None
+    """Replace the area's features."""
+
     remove: bool = False
+    """Remove the area from the draft entirely."""
+
     reason: Reason
+    """Why this correction is right; every override entry carries one."""
 
 
 class AreaGeometryOverride(BaseModel):
@@ -163,10 +183,20 @@ class GeometryOverride(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     areas: dict[_AreaKeyString, AreaGeometryOverride] = {}
+    """Area key → its replacement cell cluster."""
+
     edges: dict[EdgeKeyString, Edge] = {}
+    """Edge key → its replacement edge; an override edge always wins over the
+    synthesized one."""
+
     entrance: Position | None = None
+    """Replace the level's entrance cell."""
+
     transitions: tuple[TransitionSpec, ...] | None = None
+    """Replace the level's transitions wholesale."""
+
     reason: Reason
+    """Why this correction is right; every override entry carries one."""
 
 
 class TownOverride(BaseModel):
@@ -175,10 +205,20 @@ class TownOverride(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str | None = None
+    """Replace the town's name."""
+
     description: str | None = None
+    """Replace the town's description."""
+
     services: tuple[str, ...] | None = None
+    """Replace the town's services list."""
+
     travel_turns: dict[str, int] | None = None
+    """Replace the dungeon id → town-to-entrance travel cost (in exploration
+    turns) table."""
+
     reason: Reason
+    """Why this correction is right; every override entry carries one."""
 
 
 class ModuleOverride(BaseModel):
@@ -198,11 +238,25 @@ class Overrides(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     monsters: dict[_NonEmptyKey, MonsterOverride] = {}
+    """Extracted monster name → catalog remap. Keys match under the monsters
+    stage's normalization (casefold, whitespace collapsed)."""
+
     monster_templates: dict[_NonEmptyKey, StatBlockOverride] = {}
+    """Extracted monster name → stat-block patch or supply, same key
+    normalization. The same name under both this and `monsters:` is rejected
+    as contradictory."""
+
     areas: dict[AreaAddressString, AreaOverride] = {}
+    """Area address → its field replacements, add, or removal."""
+
     geometry: dict[LevelAddressString, GeometryOverride] = {}
+    """Level address → its geometry corrections."""
+
     town: TownOverride | None = None
+    """Base-town metadata replacements."""
+
     module: ModuleOverride | None = None
+    """Adventure metadata replacements."""
 
 
 class _DuplicateKeyRejectingLoader(yaml.SafeLoader):

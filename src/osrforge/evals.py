@@ -379,13 +379,29 @@ class AreaMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     truth_dungeons: int
+    """How many dungeons the truth asserts."""
+
     extracted_dungeons: int
+    """How many dungeons the survey extracted."""
+
     matched_dungeons: int
+    """How many truth dungeons aligned to an extracted dungeon."""
+
     truth_areas: int
+    """How many keyed areas the truth asserts, across aligned dungeons."""
+
     extracted_areas: int
+    """How many keyed areas extraction produced, across aligned dungeons."""
+
     matched: int
+    """How many truth areas matched an extracted area."""
+
     recall: float | None
+    """`matched / truth_areas`; `None` on an empty denominator."""
+
     precision: float | None
+    """`matched / extracted_areas` — the hallucination guard; `None` on an
+    empty denominator."""
 
 
 class EncounterMetrics(BaseModel):
@@ -400,18 +416,44 @@ class EncounterMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     truth_encounters: int
+    """How many encounters the truth asserts."""
+
     name_matched: int
+    """How many truth encounters matched an extracted name in their area."""
+
     name_recall: float | None
+    """`name_matched / truth_encounters`; `None` on an empty denominator."""
+
     count_denominator: int
+    """How many truth encounters assert a count."""
+
     count_matched: int
+    """How many asserted counts the extraction reproduced."""
+
     count_accuracy: float | None
+    """`count_matched / count_denominator`; `None` on an empty denominator."""
+
     resolution_denominator: int
+    """How many truth encounters assert an SRD template."""
+
     resolution_matched: int
+    """How many asserted templates resolution reproduced."""
+
     resolution_accuracy: float | None
+    """`resolution_matched / resolution_denominator`; `None` on an empty
+    denominator."""
+
     custom_denominator: int = 0
+    """How many truth encounters assert custom emission (`custom: true`)."""
+
     custom_matched: int = 0
+    """How many custom assertions have a usable cached stat block."""
+
     custom_accuracy: float | None = None
+    """`custom_matched / custom_denominator`; `None` on an empty denominator."""
+
     non_srd: int
+    """Truth encounters asserting no SRD template and nothing about emission."""
 
 
 class ConnectionMetrics(BaseModel):
@@ -420,11 +462,23 @@ class ConnectionMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     truth_edges: int
+    """How many undirected edges the truth asserts."""
+
     extracted_edges: int
+    """How many undirected edges extraction produced within the asserted
+    universe."""
+
     true_positives: int
+    """The edges both agree on."""
+
     precision: float | None
+    """`true_positives / extracted_edges`; `None` on an empty denominator."""
+
     recall: float | None
+    """`true_positives / truth_edges`; `None` on an empty denominator."""
+
     f1: float | None
+    """The harmonic mean of precision and recall; `None` when either is."""
 
 
 class TreasureMetrics(BaseModel):
@@ -433,11 +487,24 @@ class TreasureMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     presence_denominator: int
+    """How many areas the truth asserts treasure presence (or absence) for."""
+
     presence_matched: int
+    """How many of those the extraction agreed with."""
+
     presence_agreement: float | None
+    """`presence_matched / presence_denominator`; `None` on an empty
+    denominator."""
+
     letters_denominator: int
+    """How many treasure-type letters the truth asserts."""
+
     letters_matched: int
+    """How many asserted letters the extraction reproduced."""
+
     letter_accuracy: float | None
+    """`letters_matched / letters_denominator`; `None` on an empty
+    denominator."""
 
 
 class ModuleMetrics(BaseModel):
@@ -446,9 +513,16 @@ class ModuleMetrics(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     areas: AreaMetrics
+    """The areas family."""
+
     encounters: EncounterMetrics
+    """The encounters family."""
+
     connections: ConnectionMetrics
+    """The connections family."""
+
     treasure: TreasureMetrics
+    """The treasure family."""
 
 
 class RunInfo(BaseModel):
