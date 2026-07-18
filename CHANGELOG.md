@@ -8,6 +8,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Custom monster emission (phase 7): a name the resolution tiers leave
+  unresolved now gets the module's *own* creature instead of a flagged
+  stand-in. The monsters stage's new stat-block pass (gated by the
+  `custom_monsters` knob, default `emit`) transcribes each unresolved name's
+  printed stat block — over its encounter pages plus deterministic
+  text-layer hits, text and images — into the new `stages/statblocks.json`
+  cache; assembly deterministically maps usable blocks (an AC plus an HD
+  line or class-level notation) into `MonsterTemplate`s under a pinned
+  per-format policy, flags every derived field `monster_custom` with the
+  full record in the report's new `monsters.custom` section, and bundles
+  referenced templates into `Adventure.monsters` (the osrlib 1.2 seam), so
+  emitted drafts validate, spawn, and play unchanged.
+- The `monster_templates:` override kind: patch fields of an extracted
+  name's raw stat block pre-mapping or supply a complete one; an entry on a
+  resolved name forces emission — the remedy for a flagless wrong LLM pick.
+- The eval custom pair: truth encounters may assert `custom: true`
+  (template omitted), scored against the stat-block cache under assembly's
+  own usability predicate — `custom_denominator`/`custom_matched`/
+  `custom_accuracy` join the encounters family, and JN1/JN2 truths assert
+  emission on every template-omitted encounter with a printed stat line.
+
 - Playable structure (phase 6): connections extract their stated mechanism
   (door, secret door, stairs, trapdoor, chute, with stuck/locked conditions)
   and level-shaped targets; geometry synthesizes door and secret-door edges
@@ -43,6 +64,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The monster-resolution LLM prompt is null-hardened: with emission behind
+  it, "none of these" now yields the module's own creature, so the prompt
+  prefers null on doubt.
+- `monster_unresolved` now marks only names with no usable printed block,
+  and its generated badge description documents the best-effort stand-in
+  detail form (`name → stand-in`).
 - The eval scorer matches encounter names under a minimal morphological
   fold — truth's singular authoring convention meets extraction's printed
   plural (`kobold` matches `kobolds`, `lizard man` matches `lizard men`);

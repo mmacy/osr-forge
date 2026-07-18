@@ -73,20 +73,27 @@ cp jn1.forge/stages/*.json tests/assets/chaotic-caves/stages/
 rm -rf jn1.forge
 ```
 
-## The JN1 monsters session (replay-grade)
+## The JN1 monsters session (resolution replay-grade, stat blocks evidence-grade)
 
 Resolves the committed JN1 stage caches' encounter names, recording the one
-LLM request (text-only — unresolved names plus catalog candidates, so it
-replays with zero network from committed assets alone) and writing the
-produced `monsters.json` beside the other caches. **Sequencing rule:** the
-`MONSTER_ALIASES` table must be final before this session — a later alias
-edit covering a JN1 name changes the request fingerprint and strands the
-fixture (see the asset README's couplings section):
+LLM resolution request (text-only — unresolved names plus catalog
+candidates, so it replays with zero network from committed assets alone) and
+writing the produced `monsters.json` beside the other caches. With `--pdf`,
+the stat-block pass then runs over the names still unresolved: the module
+preprocesses into a temp workdir for pages, each name's transcription
+request records into the *evidence* directory (the requests embed page
+images the asset directory doesn't commit — no replay promise), and the
+produced `statblocks.json` lands beside `monsters.json`. **Sequencing
+rule:** the `MONSTER_ALIASES` table must be final before this session — a
+later alias edit covering a JN1 name changes the request fingerprint and
+strands the fixture (see the asset README's couplings section):
 
 ```sh
 uv run tools/extract/run_extraction.py monsters \
     --stages-dir tests/assets/chaotic-caves/stages \
-    --record-fixtures tests/assets/chaotic-caves/fixtures-extract/replay
+    --pdf tests/assets/chaotic-caves/JN1-Chaotic-Caves-r28.pdf \
+    --record-fixtures tests/assets/chaotic-caves/fixtures-extract/replay \
+    --record-statblock-fixtures tests/assets/chaotic-caves/fixtures-extract/evidence
 ```
 
 Then produce the JN1 goldens by assembling over the committed caches

@@ -42,6 +42,11 @@ OVERRIDES_TEMPLATE = """\
 #     template_id: hobgoblin
 #     reason: No SRD template for the named chieftain; base hobgoblin is closest.
 #
+# monster_templates:
+#   "tentacle worm":
+#     ac: "3 [16]"
+#     reason: The extracted stat block read AC 8; the page prints 3.
+#
 # areas:
 #   barrow/1/7:
 #     description: Corrected text copied from p. 14.

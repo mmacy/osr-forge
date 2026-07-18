@@ -49,14 +49,21 @@ extraction gaps:
   printed tiers extraction grouped into coarser levels still scores on its
   areas instead of losing them to a level-number mismatch.
 - **Encounters** — name recall, count accuracy over encounters where the
-  module states a fixed count, and resolution accuracy against the osrlib
-  catalog id the name should resolve to (truth entries with no SRD template
-  are excluded and tallied as `non_srd`). Names match under a minimal
-  morphological fold — truth's singular authoring convention meets
-  extraction's printed plural (`kobold` matches `kobolds`, `lizard man`
-  matches `lizard men`) — while token subsets and renames never match: a
-  `hobgoblin chief` is not a `hobgoblin`, and a renamed creature stays the
-  extraction disagreement the metric should report. A fold-matched
+  module states a fixed count, resolution accuracy against the osrlib
+  catalog id the name should resolve to, and custom-emission accuracy. A
+  truth entry asserts exactly one of three things: `template: <id>` asserts
+  the SRD resolution; `custom: true` (legal only with `template` omitted)
+  asserts *this creature should emit* — the printed page carries a usable
+  stat block — and matches when the workdir's stat-block cache carries a
+  usable block for every fold-matched extracted name, usability being
+  assembly's own refusal-ladder predicate shared as one helper, so the
+  metric can never score an emission assembly would refuse; omitted-without
+  stays `non_srd` (no SRD template and no assertion about emission). Names
+  match under a minimal morphological fold — truth's singular authoring
+  convention meets extraction's printed plural (`kobold` matches `kobolds`,
+  `lizard man` matches `lizard men`) — while token subsets and renames never
+  match: a `hobgoblin chief` is not a `hobgoblin`, and a renamed creature
+  stays the extraction disagreement the metric should report. A fold-matched
   encounter's count compares against the whole matched group's summed fixed
   counts, and its resolution matches only when every matched extracted name
   resolved to the asserted template.

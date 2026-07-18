@@ -17,11 +17,19 @@ started with.
 | `survey_max_pages` | 50 | The survey chunk size — the service's measured 50-images-per-request cap: a source at or under this many pages surveys in one request; a larger source surveys in page windows of this size, merged before normalization |
 | `monster_fuzzy_threshold` | 0.85 | Monster resolution's fuzzy-tier auto-accept floor, pinned against measured catalog pairs |
 | `monster_llm_top_k` | 8 | Candidate templates offered per name in the monster-resolution LLM tier |
-| `unresolved_fallback` | `best-effort` | Where resolution or parsing came up empty: flagged level-band monster stand-ins and unguarded-treasure rolls (`best-effort`), or leave the gap (`omit`) |
+| `custom_monsters` | `emit` | Whether the monsters stage runs the stat-block pass feeding custom-template emission: `emit` gives unresolved names the module's own creatures; `off` skips the per-unresolved-name model spend and keeps the draft SRD-catalog-pure |
+| `unresolved_fallback` | `best-effort` | Where resolution or parsing came up empty and no usable stat block exists: flagged level-band monster stand-ins and unguarded-treasure rolls (`best-effort`), or leave the gap (`omit`) |
 
 On the CLI, `--set KEY=VALUE` is the repeatable settings channel; values parse
 as YAML, so `--set 'blank_page_renders=[21]'` and `--set
 unresolved_fallback=omit` both coerce naturally.
+
+One asymmetry worth knowing: `custom_monsters` is owned by the *monsters*
+stage — assembly is driven purely by cache contents and never reads the knob
+— so `rerun assemble --set custom_monsters=off` is rejected with "rerun
+monsters instead", and toggling it re-rolls the monsters stage's LLM
+resolution tier along with the stat-block pass. `unresolved_fallback`, its
+policy sibling, is assembly-owned and flips for free.
 
 ## Rerun: resume any stage
 

@@ -14,7 +14,8 @@ my-module.forge/
 ├── stages/               # cached extraction-stage outputs
 │   ├── survey.json
 │   ├── areas.<dungeon>.<level>.json
-│   └── monsters.json
+│   ├── monsters.json
+│   └── statblocks.json   # raw printed stat blocks for unresolved names
 ├── overrides.yaml        # the human correction channel
 ├── previews/
 │   └── <dungeon>.<level>.svg
@@ -43,7 +44,10 @@ review UI needs:
 - `areas[]` — per keyed area: its `<dungeon>/<level>/<key>` address, source
   pages, self-assessed confidence, [flags](vocabulary.md), and which fields an
   override replaced.
-- `monsters` — the resolution summary: resolved count and unresolved names.
+- `monsters` — the resolution summary: resolved count, unresolved names, and
+  the `custom` records — per emitted template bundled into the draft, its id,
+  source name, transcription pages, and every field the mapping derived
+  rather than read off the printed page.
 - `usage` — total input/output tokens.
 - `flags[]` — module-scope conditions with no per-area home (a defaulted
   title, an unnamed town), in the same `<flag>` / `<flag>:<detail>` grammar.
@@ -65,6 +69,10 @@ for the workflow. The supported kinds:
 - **`monsters:`** — remap an extracted name to a catalog `template_id`. Keys
   match under the monsters stage's own normalization (casefold, whitespace
   collapsed).
+- **`monster_templates:`** — patch fields of an extracted name's raw stat
+  block pre-mapping, or supply a complete one; keyed by name like
+  `monsters:`, and contradictory beside it. See
+  [the correction loop](../guides/correction-loop.md)'s monster decision tree.
 - **`areas:`** — per-area field replacement (`name`, `description`,
   `encounters`, `trap`, `treasure`, `features`), area removal (`remove:
   true`), and area adds (a new address carrying `name`, `description`, and
