@@ -17,19 +17,31 @@
       "trap": null,
       "treasure": [],
       "features": [
-        "broken steps descending from the surface",
-        "rubble nest"
+        "Broken steps descending from the surface",
+        "Rubble nest"
       ],
       "connections": [
         {
+          "to_key": null,
+          "direction": "up",
+          "via": "stairs",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
           "to_key": "2",
-          "direction": "south"
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         3
       ],
-      "confidence": 0.92
+      "confidence": 0.76
     },
     {
       "key": "2",
@@ -39,36 +51,48 @@
           "monster": "goblin",
           "count_fixed": 1,
           "count_dice": null,
-          "count_note": "scavenger named Snagg"
+          "count_note": null
         }
       ],
       "trap": null,
       "treasure": [],
       "features": [
-        "rotted bins"
+        "Rotted bins"
       ],
       "connections": [
         {
-          "to_key": "1",
-          "direction": "north"
+          "to_key": "3",
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
-          "to_key": "3",
-          "direction": "east"
+          "to_key": "1",
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "4",
-          "direction": "south"
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         3
       ],
-      "confidence": 0.88
+      "confidence": 0.55
     },
     {
       "key": "3",
-      "description": "A 20' x 20' room dominated by a ruined press.",
+      "description": "A 20' x 20' room dominated by a ruined press. Under the press bed is a loose flagstone hiding treasure.",
       "encounters": [],
       "trap": null,
       "treasure": [
@@ -76,23 +100,23 @@
         "silver locket worth 25 gp"
       ],
       "features": [
-        "ruined press",
-        "loose flagstone under the press bed"
+        "Ruined press",
+        "Loose flagstone under the press bed"
       ],
       "connections": [
         {
           "to_key": "2",
-          "direction": "west"
-        },
-        {
-          "to_key": "4",
-          "direction": "east"
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         3
       ],
-      "confidence": 0.91
+      "confidence": 0.78
     },
     {
       "key": "4",
@@ -102,30 +126,37 @@
           "monster": "giant centipedes",
           "count_fixed": 4,
           "count_dice": null,
-          "count_note": "cling to the ceiling beams"
+          "count_note": null
         }
       ],
       "trap": null,
       "treasure": [],
       "features": [
-        "ankle-deep seep water",
-        "ceiling beams",
-        "stuck door in the east wall"
+        "Ankle-deep seep water",
+        "Ceiling beams"
       ],
       "connections": [
         {
-          "to_key": "2",
-          "direction": "north"
+          "to_key": "5",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": true,
+          "door_locked": false,
+          "to_level": null
         },
         {
-          "to_key": "5",
-          "direction": "east"
+          "to_key": "2",
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         3
       ],
-      "confidence": 0.95
+      "confidence": 0.84
     },
     {
       "key": "5",
@@ -135,28 +166,36 @@
           "monster": "skeleton",
           "count_fixed": 1,
           "count_dice": null,
-          "count_note": "in a scorched apron; attacks anyone who touches the shelves"
+          "count_note": null
         }
       ],
       "trap": null,
       "treasure": [],
       "features": [
-        "shelves stocked with preserves"
+        "Shelves stocked with preserves"
       ],
       "connections": [
         {
           "to_key": "4",
-          "direction": "west"
+          "direction": "west",
+          "via": "door",
+          "door_stuck": true,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "6",
-          "direction": "down"
+          "direction": "south",
+          "via": "other",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         5
       ],
-      "confidence": 0.89
+      "confidence": 0.73
     },
     {
       "key": "6",
@@ -166,7 +205,7 @@
           "monster": "stirges",
           "count_fixed": 3,
           "count_dice": null,
-          "count_note": "roost above a heap of grain sacks"
+          "count_note": null
         }
       ],
       "trap": null,
@@ -175,19 +214,23 @@
         "potion of healing"
       ],
       "features": [
-        "ladder access",
-        "heap of grain sacks"
+        "Ladder access",
+        "Heap of grain sacks"
       ],
       "connections": [
         {
           "to_key": "5",
-          "direction": "up"
+          "direction": "up",
+          "via": "other",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         5
       ],
-      "confidence": 0.94
+      "confidence": 0.72
     }
   ]
 }
