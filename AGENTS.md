@@ -10,26 +10,7 @@ osr-forge is a standalone Python package and CLI that converts tabletop adventur
 
 ## The phase loop
 
-Each roadmap phase in `docs/spec.md` ships as two PRs — a plan, then an implementation — and both follow the same create → rubber-duck → revise-until-solid → PR loop. "Work up a plan for phase N" or "implement the plan for phase N" means run this loop end to end, unprompted. The workflow mirrors osrlib-python's `AGENTS.md`; keep parity with it unless this file says otherwise.
-
-### Planning a phase
-
-1. Research first: the phase's roadmap entry and every contract it touches in `docs/spec.md`, the prior phase plans in `docs/`, the existing code, and the osrlib surfaces the phase consumes. Hazards found during research (model quirks, PDF edge cases, osrlib validation behavior) belong in the plan so the implementer doesn't rediscover them.
-2. Write `docs/phase-N-plan.md` following the structure of the prior plans: intro with the spec milestone, scope (in and out, naming the phase that picks up each deferral), work items, sequencing, definition of done. Plans are decision-complete: every choice an implementer would otherwise guess at is pinned with a rationale.
-3. Branch `phase-N-plan`; commit the draft as `add phase N implementation plan (pre-review draft)`.
-4. Rubber-duck it (below), revise until SOLID, open the PR.
-
-### Implementing a phase
-
-The same loop on branch `phase-N-impl`: implement to the plan with tests green, commit, rubber-duck the result, and address findings as `address rubber-duck review findings`. The plan is the contract — when implementation reveals the plan was wrong or silent, amend the plan document on the same branch (`amend phase N plan: ...`) so plan and code never diverge.
-
-### The rubber-duck loop
-
-- Spawn a fresh subagent as a skeptical senior reviewer. Give it an ordered reading list — the spec, prior plans, this file, the artifact under review, the relevant code, and the osrlib models or docs the work touches — and require evidence: every finding must quote the spec, the code, or the artifact, be ranked blocking vs non-blocking, and the review must end in a verdict (SOLID or NEEDS REVISION) plus a verified-good list of claims it actively checked.
-- The reviewer's mandate covers design hygiene, not just spec fidelity: it must hunt for the greenfield anti-patterns below (back-compat shims, dual import paths, deprecation scaffolding, dead accommodation code) and flag any it finds.
-- Judge findings on the merits. Verify disputed claims against the spec, osrlib, or the code yourself; push back on findings that are wrong instead of deferring to the duck. Address what survives and commit as `revise phase N plan per rubber-duck review` (or the address-findings message above).
-- Send the revision back to the same reviewer, context intact, for re-verification of each fix. Loop until SOLID. Fold in any sign-off notes.
-- Commits tell the honest story — draft, revision(s), sign-off tweaks — and the PR description summarizes the notable decisions plus the review provenance (what the duck found, what changed).
+Each roadmap phase in `docs/spec.md` ships as two PRs — a plan, then an implementation — and both follow the same create → rubber-duck → revise-until-solid → PR loop. "Work up a plan for phase N" or "implement the plan for phase N" means run this loop end to end, unprompted. The full runbook — planning, implementing, and the rubber-duck review loop — is `.claude/skills/phase-loop/SKILL.md`. The workflow mirrors osrlib-python's `AGENTS.md`; keep parity with it unless this file says otherwise.
 
 ## Toolchain
 
@@ -52,12 +33,7 @@ Refactor freely and update every call site — tests are the safety net. No re-e
 
 ## Releasing
 
-- The version lives in `pyproject.toml` alone; `osrforge.versioning.osrforge_version()` reads installed metadata at runtime. The bump procedure: edit the version, run `uv lock`, and nothing else — the goldens re-bless deliberately on version bumps per `tests/assets/README.md`.
-- A release is an annotated `vX.Y.Z` tag on the merge commit (`git tag -a vX.Y.Z -m "osr-forge X.Y.Z"`, then push the tag). `release.yml` does the rest: fails fast if the tag doesn't match the pyproject version, re-runs the full standing gate plus the strict docs build, builds once, audits the artifacts with `tools/release/check_dist.py` (the licensing fence, machine-checked: no `tests/` or `tools/` content, no PDFs, renders, or fixtures in the wheel or sdist), smoke-tests the wheel in a fresh venv on both OSes with `tools/release/install_smoke.py`, publishes to PyPI via trusted publishing (no tokens anywhere in the repository), and creates the GitHub Release from the tagged version's changelog section.
-- The local dry run before tagging: `uv build`, then `python3 tools/release/check_dist.py dist X.Y.Z`, then install the wheel into a fresh venv and run `tools/release/install_smoke.py X.Y.Z` with that venv's interpreter.
-- Recovery: any failure before the publish job leaves PyPI untouched — delete the tag, fix on a branch, re-tag. Once publish succeeds, that version's filenames are burned on PyPI and the next attempt is a new version.
-- One-time setup, completed during the 0.1.0 release (2026-07-20): the PyPI pending publisher for project `osr-forge` (workflow `release.yml`, environment `pypi`) and the matching `pypi` environment in the GitHub repo. The Pages source ("GitHub Actions") was set earlier, when docs deploy first landed. Provenance correction: a prior version of this line recorded the pending publisher and the `pypi` environment as already-done state — they were not; both were created as part of shipping 0.1.0.
-- Versioned documentation is not adopted; Pages-from-`main` is the whole deployment. The adoption trigger, carried from osrlib verbatim: the first post-1.0 release whose published docs must describe behavior different from `main` adopts mike or equivalent in that release's own plan. Patch and docs-only releases do not trigger it.
+The version lives in `pyproject.toml` alone and the bump procedure is: edit the version, run `uv lock`, and nothing else — the goldens re-bless deliberately on version bumps per `tests/assets/README.md`. The full runbook — the annotated tag that drives `release.yml`, the machine-checked licensing fence in `check_dist.py`, the local dry run, recovery, and the 0.1.0 one-time setup provenance — is `.claude/skills/release/SKILL.md`.
 
 ## Invariants the spec imposes
 
