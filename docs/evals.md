@@ -1,7 +1,7 @@
 # Evals
 
 Extraction changes are measured, not vibed: a corpus of freely licensed
-adventures with verified structural ground truth, scored on four pinned
+adventures with verified structural ground truth, scored on seven pinned
 metric families, with the results on a committed scoreboard. Evals are
 on-demand — never per-commit CI — because extraction is nondeterministic run
 to run and live runs cost real money; the *scorer* itself
@@ -50,8 +50,11 @@ extraction gaps:
   areas instead of losing them to a level-number mismatch.
 - **Encounters** — name recall, count accuracy over encounters where the
   module states a fixed count, resolution accuracy against the osrlib
-  catalog id the name should resolve to, and custom-emission accuracy. A
-  truth entry asserts exactly one of three things: `template: <id>` asserts
+  catalog id the name should resolve to, custom-emission accuracy, and name
+  precision — the hallucination guard, counted only over matched areas whose
+  truth asserts encounters, riding the asserted-empty convention:
+  `encounters: []` asserts a verified-empty area, while an omitted key
+  asserts nothing. A truth entry asserts exactly one of three things: `template: <id>` asserts
   the SRD resolution; `custom: true` (legal only with `template` omitted)
   asserts *this creature should emit* — the printed page carries a usable
   stat block — and matches when the workdir's stat-block cache carries a
@@ -74,6 +77,16 @@ extraction gaps:
   module states treasure-type codes, within the truth file's asserted
   universe: like connections, an area's treasure block is asserted or
   omitted, so partial truth stays honestly denominated.
+- **Doors** — presence recall and precision plus kind and locked accuracy
+  over undirected edges between matched areas with at least one endpoint
+  asserting `doors`: an asserting area's door set is complete, so an
+  extracted door its truth omits is a false positive.
+- **Transitions** — dungeon-scoped vertical links matched undirected on
+  truth endpoint pairs (levels are peers, so a printed inter-level stair
+  survives a collapsed-level extraction), with kind accuracy scored as an
+  attribute of the matched link.
+- **Entrance** — does the pipeline's entrance selection pick the printed way
+  in, per aligned dungeon whose truth asserts one.
 
 ## Running the harness
 
@@ -132,6 +145,12 @@ monster alias table, resolution logic, or the model deployment re-runs the
 sweep and commits the updated scoreboard in the same PR. A metric dropping by
 more than the band requires an explicit justification in the PR description;
 silence is a blocked merge.
+
+A PR that changes the scorer's semantics instead carries the offline
+counterpart: `run_eval.py rescore` regenerates the standing entries from
+their retained workdirs against current truth — run blocks carried verbatim,
+metrics re-scored, no live spend — and the refreshed pair records in the
+phase amendment.
 
 The full corpus rules, authoring conventions, and per-module license records
 live in

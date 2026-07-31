@@ -1,6 +1,7 @@
 """The eval scorer: synthetic metric tables, alignment edge cases, determinism, and the JN1 pinned baseline."""
 
 import hashlib
+import json
 import shutil
 from pathlib import Path
 
@@ -39,6 +40,7 @@ from osrforge.evals import (
     load_scoreboard,
     load_truth,
     publish_module,
+    rescore_modules,
     save_byom_scoreboard,
     save_scoreboard,
     score_workdir,
@@ -114,8 +116,7 @@ def truth_from_yaml(text: str) -> ModuleTruth:
     return ModuleTruth.model_validate(yaml.safe_load(text))
 
 
-PERFECT_TRUTH = truth_from_yaml(
-    """
+PERFECT_TRUTH_YAML = """
 dungeons:
   - name: lair
     levels:
@@ -135,7 +136,8 @@ dungeons:
             treasure:
               present: false
 """
-)
+
+PERFECT_TRUTH = truth_from_yaml(PERFECT_TRUTH_YAML)
 
 
 def perfect_workdir(tmp_path: Path) -> Path:
@@ -165,6 +167,89 @@ def perfect_workdir(tmp_path: Path) -> Path:
     )
 
 
+SEVEN_FAMILY_TRUTH = truth_from_yaml(
+    """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: orc
+                template: orc
+                count: 2
+            connections: ["2"]
+            doors:
+              "2": {kind: door, locked: true}
+            treasure:
+              present: true
+              letters: [B]
+          - key: "2"
+            encounters: []
+            connections: ["1"]
+            doors:
+              "1": {kind: door, locked: true}
+            treasure:
+              present: false
+      - number: 2
+        areas:
+          - key: "3"
+            encounters: []
+            connections: []
+            doors: {}
+            treasure:
+              present: false
+    transitions:
+      - {from_level: 1, from_key: "2", to_level: 2, to_key: "3", kind: stairs}
+    entrance:
+      level: 1
+      key: "1"
+"""
+)
+
+
+def seven_family_workdir(tmp_path: Path) -> Path:
+    """An extraction agreeing with `SEVEN_FAMILY_TRUTH` on every family."""
+    return fabricate_eval_workdir(
+        tmp_path / "mod.forge",
+        [
+            (
+                "lair",
+                [
+                    (
+                        1,
+                        [survey_area("1"), survey_area("2")],
+                        [
+                            content_area(
+                                "1",
+                                encounters=(encounter("orc", count_fixed=2),),
+                                connections=(
+                                    AreaConnection(to_key="2", direction="north", via="door", door_locked=True),
+                                ),
+                                treasure=("Treasure Type B.",),
+                            ),
+                            content_area(
+                                "2",
+                                connections=(
+                                    AreaConnection(to_key="1", direction="south", via="door"),
+                                    AreaConnection(to_key="3", direction="down", via="stairs"),
+                                ),
+                            ),
+                        ],
+                    ),
+                    (
+                        2,
+                        [survey_area("3")],
+                        [content_area("3", connections=(AreaConnection(to_key="2", direction="up", via="stairs"),))],
+                    ),
+                ],
+            )
+        ],
+        resolutions={"orc": MonsterResolution(template_id="orc", method="exact")},
+    )
+
+
 class TestMetricFamilies:
     def test_perfect_extraction_scores_ones(self, tmp_path: Path):
         metrics = score_workdir(perfect_workdir(tmp_path), PERFECT_TRUTH)
@@ -179,6 +264,38 @@ class TestMetricFamilies:
         assert metrics.connections.f1 == 1.0
         assert metrics.treasure.presence_agreement == 1.0
         assert metrics.treasure.letter_accuracy == 1.0
+        # The truth asserts no doors, transitions, or entrance: the new
+        # families stay honestly empty rather than inventing agreement.
+        assert metrics.encounters.precision == 1.0
+        assert metrics.doors.truth_doors == 0 and metrics.doors.recall is None
+        assert metrics.transitions.asserted_dungeons == 0 and metrics.transitions.recall is None
+        assert metrics.entrances.asserted == 0 and metrics.entrances.accuracy is None
+
+    def test_perfect_seven_family_extraction_scores_ones(self, tmp_path: Path):
+        metrics = score_workdir(seven_family_workdir(tmp_path), SEVEN_FAMILY_TRUTH)
+        assert metrics.areas.recall == 1.0 and metrics.areas.precision == 1.0
+        assert metrics.encounters.name_recall == 1.0
+        assert metrics.encounters.precision_denominator == 1
+        assert metrics.encounters.precision == 1.0
+        assert metrics.connections.truth_edges == 1
+        assert metrics.connections.f1 == 1.0
+        assert metrics.treasure.presence_agreement == 1.0
+        assert metrics.doors.truth_doors == 1
+        assert metrics.doors.extracted_doors == 1
+        assert metrics.doors.true_positives == 1
+        assert metrics.doors.recall == 1.0 and metrics.doors.precision == 1.0
+        # Locked was stated on one directed mention only: either side suffices.
+        assert metrics.doors.kind_accuracy == 1.0 and metrics.doors.locked_accuracy == 1.0
+        assert metrics.transitions.asserted_dungeons == 1
+        assert metrics.transitions.truth_transitions == 1
+        # The reciprocal cross-level mentions merged into one claim.
+        assert metrics.transitions.extracted_transitions == 1
+        assert metrics.transitions.true_positives == 1
+        assert metrics.transitions.recall == 1.0 and metrics.transitions.precision == 1.0
+        assert metrics.transitions.kind_accuracy == 1.0
+        assert metrics.entrances.asserted == 1
+        assert metrics.entrances.matched == 1
+        assert metrics.entrances.accuracy == 1.0
 
     def test_empty_extraction_scores_zero_recall(self, tmp_path: Path):
         root = fabricate_eval_workdir(
@@ -379,7 +496,9 @@ dungeons:
             TruthEncounter(name="orc chief", template="orc", custom=True)
 
     def test_custom_round_trips_through_truth_yaml(self):
-        (encounter_truth,) = self.CUSTOM_TRUTH.dungeons[0].levels[0].areas[0].encounters
+        encounters = self.CUSTOM_TRUTH.dungeons[0].levels[0].areas[0].encounters
+        assert encounters is not None
+        (encounter_truth,) = encounters
         assert encounter_truth.custom is True
         assert encounter_truth.template is None
 
@@ -664,6 +783,105 @@ dungeons:
         assert metrics.encounters.resolution_denominator == 0
 
 
+class TestEncounterPrecision:
+    """Name-level precision over matched areas whose truth asserts encounters — the asserted-empty convention."""
+
+    def _workdir(self, tmp_path: Path, encounters, resolutions=None):
+        return fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1", encounters=encounters)])])],
+            resolutions=resolutions,
+        )
+
+    def test_hallucinated_names_cost_precision(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: orc
+"""
+        )
+        root = self._workdir(
+            tmp_path,
+            (encounter("orcs", count_fixed=2), encounter("goblin", count_fixed=1)),
+            {
+                "orcs": MonsterResolution(template_id="orc", method="exact"),
+                "goblin": MonsterResolution(template_id="goblin", method="exact"),
+            },
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.name_recall == 1.0
+        assert metrics.encounters.precision_denominator == 2
+        assert metrics.encounters.precision_matched == 1
+        assert metrics.encounters.precision == 0.5
+
+    def test_unasserted_encounters_leave_both_denominators(self, tmp_path: Path):
+        # Omitted asserts nothing: extracted names in the area are neither
+        # recall targets nor precision liabilities.
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+"""
+        )
+        root = self._workdir(tmp_path, (encounter("goblin", count_fixed=1),))
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.truth_encounters == 0
+        assert metrics.encounters.name_recall is None
+        assert metrics.encounters.precision_denominator == 0
+        assert metrics.encounters.precision is None
+
+    def test_asserted_empty_makes_extracted_names_false_positives(self, tmp_path: Path):
+        # The asserted-empty flip: [] is a complete (empty) list, so any
+        # extracted name is provably a hallucination.
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters: []
+"""
+        )
+        root = self._workdir(tmp_path, (encounter("goblin", count_fixed=1),))
+        metrics = score_workdir(root, truth)
+        assert metrics.encounters.truth_encounters == 0
+        assert metrics.encounters.name_recall is None
+        assert metrics.encounters.precision_denominator == 1
+        assert metrics.encounters.precision_matched == 0
+        assert metrics.encounters.precision == 0.0
+
+    def test_precision_counts_distinct_folds_not_mentions(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters:
+              - name: orc
+"""
+        )
+        root = self._workdir(tmp_path, (encounter("orc", count_fixed=1), encounter("orcs", count_fixed=2)))
+        metrics = score_workdir(root, truth)
+        # "orc" and "orcs" fold together: one denominator entry, matched.
+        assert metrics.encounters.precision_denominator == 1
+        assert metrics.encounters.precision == 1.0
+
+
 class TestTreasureAssertion:
     def test_unasserted_treasure_leaves_both_denominators(self, tmp_path: Path):
         truth = truth_from_yaml(
@@ -746,6 +964,220 @@ dungeons:
         metrics = score_workdir(root, truth)
         assert metrics.treasure.presence_denominator == 0
         assert metrics.treasure.presence_agreement is None
+
+
+class TestTruthAssertionSchema:
+    """The phase 9 truth extension's validators: contradictions unrepresentable, assertion-awareness preserved."""
+
+    def test_omitted_encounters_are_unasserted_and_empty_is_asserted(self):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            encounters: []
+          - key: "2"
+"""
+        )
+        asserted, omitted = truth.dungeons[0].levels[0].areas
+        assert asserted.encounters == ()
+        assert omitted.encounters is None
+
+    def test_doors_require_asserted_connections(self):
+        with pytest.raises(ValidationError, match="doors asserted without connections"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            doors:
+              "2": {kind: door}
+"""
+            )
+
+    def test_doors_keys_must_appear_in_connections(self):
+        with pytest.raises(ValidationError, match="not among its connections"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+            doors:
+              "9": {kind: door}
+          - key: "2"
+          - key: "9"
+"""
+            )
+
+    def test_both_endpoint_door_assertions_must_agree_on_facts(self):
+        with pytest.raises(ValidationError, match="contradictory door assertions"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+            doors:
+              "2": {kind: door}
+          - key: "2"
+            connections: ["1"]
+            doors:
+              "1": {kind: secret_door}
+"""
+            )
+
+    def test_implicit_no_door_against_an_explicit_door_is_a_contradiction(self):
+        # Endpoint A asserts a doors set omitting B while B lists A: presence
+        # disagreement, rejected the same as a kind or locked mismatch.
+        with pytest.raises(ValidationError, match="including omission"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+            doors: {}
+          - key: "2"
+            connections: ["1"]
+            doors:
+              "1": {kind: door}
+"""
+            )
+
+    def test_agreeing_door_assertions_round_trip(self):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+            doors:
+              "2": {kind: secret_door, locked: true}
+          - key: "2"
+            connections: ["1"]
+            doors:
+              "1": {kind: secret_door, locked: true}
+"""
+        )
+        doors = truth.dungeons[0].levels[0].areas[0].doors
+        assert doors is not None
+        assert doors["2"].kind == "secret_door"
+        assert doors["2"].locked is True
+
+    def test_one_sided_door_assertion_is_legal(self):
+        # Only one endpoint asserts doors: no pair to contradict.
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+            doors:
+              "2": {kind: door}
+          - key: "2"
+            connections: ["1"]
+"""
+        )
+        assert truth.dungeons[0].levels[0].areas[1].doors is None
+
+    def test_transition_endpoints_must_exist(self):
+        with pytest.raises(ValidationError, match="does not have"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+    transitions:
+      - {from_level: 1, from_key: "1", to_level: 2, to_key: "9", kind: stairs}
+"""
+            )
+        with pytest.raises(ValidationError, match="does not have"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+      - number: 2
+        areas:
+          - key: "9"
+    transitions:
+      - {from_level: 1, from_key: "1", to_level: 2, to_key: "99", kind: stairs}
+"""
+            )
+
+    def test_transitions_link_two_levels(self):
+        with pytest.raises(ValidationError, match="links two levels"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+          - key: "2"
+    transitions:
+      - {from_level: 1, from_key: "1", to_level: 1, to_key: "2", kind: stairs}
+"""
+            )
+
+    def test_entrance_endpoint_must_exist(self):
+        with pytest.raises(ValidationError, match="does not have"):
+            truth_from_yaml(
+                """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+    entrance:
+      level: 1
+      key: "9"
+"""
+            )
+
+    def test_omitted_transitions_and_entrance_assert_nothing(self):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+"""
+        )
+        assert truth.dungeons[0].transitions is None
+        assert truth.dungeons[0].entrance is None
 
 
 class TestDungeonCounts:
@@ -1006,6 +1438,520 @@ dungeons:
         assert metrics.connections.truth_edges == 1
         assert metrics.connections.extracted_edges == 1
         assert metrics.connections.f1 == 1.0
+
+
+class TestDoorMetrics:
+    """The doors family off the edge-fact seam: the pinned dedup rule and the doors-asserting universe."""
+
+    def _workdir(self, tmp_path: Path, connections: dict[str, tuple[AreaConnection, ...]]) -> Path:
+        keys = ("1", "2")
+        return fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "lair",
+                    [
+                        (
+                            1,
+                            [survey_area(key) for key in keys],
+                            [content_area(key, connections=connections.get(key, ())) for key in keys],
+                        )
+                    ],
+                )
+            ],
+        )
+
+    def _truth(self, doors_yaml: str) -> ModuleTruth:
+        return truth_from_yaml(
+            f"""
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+{doors_yaml}
+          - key: "2"
+            connections: ["1"]
+"""
+        )
+
+    def test_either_directed_mention_states_the_door(self, tmp_path: Path):
+        truth = self._truth('            doors:\n              "2": {kind: door}')
+        root = self._workdir(
+            tmp_path,
+            {
+                "1": (AreaConnection(to_key="2", direction="north", via="passage"),),
+                "2": (AreaConnection(to_key="1", direction="south", via="door"),),
+            },
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.doors.truth_doors == 1
+        assert metrics.doors.extracted_doors == 1
+        assert metrics.doors.true_positives == 1
+        assert metrics.doors.recall == 1.0 and metrics.doors.precision == 1.0
+        assert metrics.doors.kind_accuracy == 1.0
+        assert metrics.doors.locked_accuracy == 1.0
+        # The seam feeds the F1 the same edge.
+        assert metrics.connections.f1 == 1.0
+
+    def test_kind_conflict_resolves_to_secret_door(self, tmp_path: Path):
+        root = self._workdir(
+            tmp_path,
+            {
+                "1": (AreaConnection(to_key="2", direction="north", via="door"),),
+                "2": (AreaConnection(to_key="1", direction="south", via="secret_door"),),
+            },
+        )
+        metrics = score_workdir(root, self._truth('            doors:\n              "2": {kind: secret_door}'))
+        assert metrics.doors.true_positives == 1
+        assert metrics.doors.kind_matched == 1
+        assert metrics.doors.kind_accuracy == 1.0
+
+    def test_a_kind_conflict_can_genuinely_miss_a_plain_door(self, tmp_path: Path):
+        root = self._workdir(
+            tmp_path,
+            {
+                "1": (AreaConnection(to_key="2", direction="north", via="door"),),
+                "2": (AreaConnection(to_key="1", direction="south", via="secret_door"),),
+            },
+        )
+        metrics = score_workdir(root, self._truth('            doors:\n              "2": {kind: door}'))
+        # Presence still agrees; the resolved secret_door misses the plain kind.
+        assert metrics.doors.true_positives == 1
+        assert metrics.doors.kind_accuracy == 0.0
+
+    def test_locked_if_either_side_states_it(self, tmp_path: Path):
+        truth = self._truth('            doors:\n              "2": {kind: door, locked: true}')
+        root = self._workdir(
+            tmp_path,
+            {
+                "1": (AreaConnection(to_key="2", direction="north", via="door"),),
+                "2": (AreaConnection(to_key="1", direction="south", via="door", door_locked=True),),
+            },
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.doors.true_positives == 1
+        assert metrics.doors.locked_matched == 1
+        assert metrics.doors.locked_accuracy == 1.0
+
+    def test_door_conditions_on_a_non_door_via_contribute_nothing(self, tmp_path: Path):
+        # Geometry's discard posture, mirrored: a locked flag on a passage
+        # states no door fact, so the asserted door is a plain miss.
+        truth = self._truth('            doors:\n              "2": {kind: door, locked: true}')
+        root = self._workdir(
+            tmp_path,
+            {"1": (AreaConnection(to_key="2", direction="north", via="passage", door_locked=True),)},
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.doors.truth_doors == 1
+        assert metrics.doors.extracted_doors == 0
+        assert metrics.doors.recall == 0.0
+        assert metrics.doors.precision is None
+
+    def test_implicit_no_door_makes_an_extracted_door_a_false_positive(self, tmp_path: Path):
+        # An asserting area's door set is complete: doors: {} plus an
+        # extracted door via is the hallucination the metric must see.
+        truth = self._truth("            doors: {}")
+        root = self._workdir(
+            tmp_path,
+            {"1": (AreaConnection(to_key="2", direction="north", via="door"),)},
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.doors.truth_doors == 0
+        assert metrics.doors.extracted_doors == 1
+        assert metrics.doors.true_positives == 0
+        assert metrics.doors.precision == 0.0
+        assert metrics.doors.recall is None
+
+    def test_edges_outside_the_asserting_universe_are_ignored(self, tmp_path: Path):
+        # Neither endpoint asserts doors (the minimod 4/5 shape): the
+        # extracted door is outside the universe, not a false positive.
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+          - key: "2"
+            connections: ["1"]
+"""
+        )
+        root = self._workdir(
+            tmp_path,
+            {"1": (AreaConnection(to_key="2", direction="north", via="door"),)},
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.doors.truth_doors == 0
+        assert metrics.doors.extracted_doors == 0
+        assert metrics.doors.recall is None and metrics.doors.precision is None
+        # The same edge still scores in the connection family.
+        assert metrics.connections.f1 == 1.0
+
+
+class TestTransitionMetrics:
+    """The dungeon-scoped transitions family: the four-clause classifier, dedup, and endpoint resolution."""
+
+    COLLAPSED_TRUTH = truth_from_yaml(
+        """
+dungeons:
+  - name: temple
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+          - key: "2"
+      - number: 2
+        areas:
+          - key: "9"
+          - key: "10"
+    transitions:
+      - {from_level: 1, from_key: "2", to_level: 2, to_key: "9", kind: stairs}
+"""
+    )
+
+    def _collapsed(self, tmp_path: Path, connections: dict[str, tuple[AreaConnection, ...]]) -> Path:
+        """The JN2 shape: two printed levels the survey collapsed into one extracted level."""
+        keys = ("1", "2", "9", "10")
+        return fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "temple",
+                    [
+                        (
+                            1,
+                            [survey_area(key) for key in keys],
+                            [content_area(key, connections=connections.get(key, ())) for key in keys],
+                        )
+                    ],
+                )
+            ],
+        )
+
+    def test_jn2_collapsed_level_shape_scores_the_printed_stair(self, tmp_path: Path):
+        # The printed inter-level stair reads as a same-extracted-level
+        # connection; the pairing claims recover the truth levels.
+        root = self._collapsed(tmp_path, {"2": (AreaConnection(to_key="9", direction="up", via="stairs"),)})
+        metrics = score_workdir(root, self.COLLAPSED_TRUTH)
+        assert metrics.transitions.asserted_dungeons == 1
+        assert metrics.transitions.truth_transitions == 1
+        assert metrics.transitions.extracted_transitions == 1
+        assert metrics.transitions.true_positives == 1
+        assert metrics.transitions.recall == 1.0 and metrics.transitions.precision == 1.0
+        assert metrics.transitions.kind_accuracy == 1.0
+
+    def test_cross_level_keyed_target_resolves_on_a_sibling_pairing(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: mine
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+      - number: 2
+        areas:
+          - key: "3"
+    transitions:
+      - {from_level: 1, from_key: "1", to_level: 2, to_key: "3", kind: stairs}
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "mine",
+                    [
+                        (
+                            1,
+                            [survey_area("1")],
+                            [
+                                content_area(
+                                    "1", connections=(AreaConnection(to_key="3", direction="down", via="stairs"),)
+                                )
+                            ],
+                        ),
+                        (2, [survey_area("3")], [content_area("3")]),
+                    ],
+                )
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.transitions.true_positives == 1
+        assert metrics.transitions.recall == 1.0 and metrics.transitions.precision == 1.0
+
+    def test_level_shaped_stub_matches_on_source_and_level_number(self, tmp_path: Path):
+        root = self._collapsed(
+            tmp_path, {"2": (AreaConnection(to_key=None, direction="up", via="stairs", to_level=2),)}
+        )
+        metrics = score_workdir(root, self.COLLAPSED_TRUTH)
+        # The stub claims (source, level 2): the truth stair's landing key is
+        # geometry's guess policy, not extraction's claim.
+        assert metrics.transitions.extracted_transitions == 1
+        assert metrics.transitions.true_positives == 1
+        assert metrics.transitions.kind_accuracy == 1.0
+
+    def test_a_stub_never_matches_a_transition_from_another_source(self, tmp_path: Path):
+        root = self._collapsed(
+            tmp_path, {"1": (AreaConnection(to_key=None, direction="up", via="stairs", to_level=2),)}
+        )
+        metrics = score_workdir(root, self.COLLAPSED_TRUTH)
+        # The truth stair rises from "2"; a stub from "1" is a false positive.
+        assert metrics.transitions.extracted_transitions == 1
+        assert metrics.transitions.true_positives == 0
+        assert metrics.transitions.recall == 0.0 and metrics.transitions.precision == 0.0
+
+    def test_no_target_mention_is_dropped(self, tmp_path: Path):
+        root = self._collapsed(tmp_path, {"2": (AreaConnection(to_key=None, direction="up", via="stairs"),)})
+        metrics = score_workdir(root, self.COLLAPSED_TRUTH)
+        # Geometry's `no target stated` discard, mirrored: no claim, no FP.
+        assert metrics.transitions.extracted_transitions == 0
+        assert metrics.transitions.recall == 0.0
+        assert metrics.transitions.precision is None
+
+    def test_an_unresolved_keyed_target_is_dropped(self, tmp_path: Path):
+        root = self._collapsed(tmp_path, {"2": (AreaConnection(to_key="99", direction="up", via="stairs"),)})
+        metrics = score_workdir(root, self.COLLAPSED_TRUTH)
+        # The connection F1's conservatism, mirrored: an unmatched target
+        # never becomes a false positive.
+        assert metrics.transitions.extracted_transitions == 0
+        assert metrics.transitions.precision is None
+
+    def test_an_unresolved_key_with_a_level_falls_back_to_stub_form(self, tmp_path: Path):
+        root = self._collapsed(
+            tmp_path,
+            {"2": (AreaConnection(to_key="ninety-nine", direction="up", via="stairs", to_level=2),)},
+        )
+        metrics = score_workdir(root, self.COLLAPSED_TRUTH)
+        assert metrics.transitions.extracted_transitions == 1
+        assert metrics.transitions.true_positives == 1
+
+    def test_reciprocal_and_repeated_mentions_merge(self, tmp_path: Path):
+        root = self._collapsed(
+            tmp_path,
+            {
+                "2": (
+                    AreaConnection(to_key="9", direction="up", via="stairs"),
+                    AreaConnection(to_key="9", direction="up", via="stairs"),
+                ),
+                "9": (AreaConnection(to_key="2", direction="down", via="stairs"),),
+            },
+        )
+        metrics = score_workdir(root, self.COLLAPSED_TRUTH)
+        assert metrics.transitions.extracted_transitions == 1
+        assert metrics.transitions.true_positives == 1
+        assert metrics.transitions.precision == 1.0
+
+    def test_a_stub_merges_into_the_pair_form_claim_of_the_same_link(self, tmp_path: Path):
+        root = self._collapsed(
+            tmp_path,
+            {
+                "2": (
+                    AreaConnection(to_key="9", direction="up", via="stairs"),
+                    AreaConnection(to_key=None, direction="up", via="stairs", to_level=2),
+                ),
+            },
+        )
+        metrics = score_workdir(root, self.COLLAPSED_TRUTH)
+        # Same source endpoint, pair far endpoint on the stub's target level:
+        # one physical link, the richer pair form wins.
+        assert metrics.transitions.extracted_transitions == 1
+        assert metrics.transitions.true_positives == 1
+
+    def test_kind_conflicts_resolve_by_the_pinned_total_order(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: temple
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+          - key: "2"
+      - number: 2
+        areas:
+          - key: "9"
+          - key: "10"
+    transitions:
+      - {from_level: 1, from_key: "2", to_level: 2, to_key: "9", kind: chute}
+"""
+        )
+        root = self._collapsed(
+            tmp_path,
+            {
+                "2": (AreaConnection(to_key="9", direction="down", via="chute"),),
+                "9": (AreaConnection(to_key="2", direction="up", via="trapdoor"),),
+            },
+        )
+        metrics = score_workdir(root, truth)
+        # trapdoor > chute: the resolved attribute misses the printed chute,
+        # while endpoint matching still lands the true positive.
+        assert metrics.transitions.true_positives == 1
+        assert metrics.transitions.kind_matched == 0
+        assert metrics.transitions.kind_accuracy == 0.0
+
+    def test_same_truth_level_target_is_a_same_level_edge_only(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2"]
+          - key: "2"
+    transitions: []
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "lair",
+                    [
+                        (
+                            1,
+                            [survey_area("1"), survey_area("2")],
+                            [
+                                content_area(
+                                    "1", connections=(AreaConnection(to_key="2", direction="down", via="stairs"),)
+                                ),
+                                content_area("2"),
+                            ],
+                        )
+                    ],
+                )
+            ],
+        )
+        metrics = score_workdir(root, truth)
+        # One extraction claim is never scored in two families: the printed
+        # same-level stair is a connection edge and only that.
+        assert metrics.connections.extracted_edges == 1
+        assert metrics.connections.f1 == 1.0
+        assert metrics.transitions.asserted_dungeons == 1
+        assert metrics.transitions.extracted_transitions == 0
+        assert metrics.transitions.recall is None and metrics.transitions.precision is None
+
+    def test_a_cross_level_target_without_a_vertical_signal_is_neither(self, tmp_path: Path):
+        root = self._collapsed(tmp_path, {"2": (AreaConnection(to_key="9", direction="north", via="passage"),)})
+        metrics = score_workdir(root, self.COLLAPSED_TRUTH)
+        # Crediting it as a transition would score a claim extraction never
+        # made; the F1 machinery already ignores the cross-pairing target.
+        assert metrics.transitions.extracted_transitions == 0
+        assert metrics.transitions.recall == 0.0
+        assert metrics.connections.extracted_edges == 0
+
+    def test_an_unasserted_dungeon_contributes_nothing(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: temple
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+          - key: "2"
+      - number: 2
+        areas:
+          - key: "9"
+          - key: "10"
+"""
+        )
+        root = self._collapsed(tmp_path, {"2": (AreaConnection(to_key="9", direction="up", via="stairs"),)})
+        metrics = score_workdir(root, truth)
+        assert metrics.transitions.asserted_dungeons == 0
+        assert metrics.transitions.truth_transitions == 0
+        assert metrics.transitions.extracted_transitions == 0
+        assert metrics.transitions.recall is None and metrics.transitions.precision is None
+
+
+class TestEntranceMetrics:
+    """The entrance family: geometry's positional heuristic reproduced from the survey index alone."""
+
+    ENTRANCE_TRUTH = truth_from_yaml(
+        """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+          - key: "2"
+    entrance:
+      level: 1
+      key: "1"
+"""
+    )
+
+    def test_first_listed_area_of_the_lowest_level_matches(self, tmp_path: Path):
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1"), survey_area("2")], [content_area("1"), content_area("2")])])],
+        )
+        metrics = score_workdir(root, self.ENTRANCE_TRUTH)
+        assert metrics.entrances.asserted == 1
+        assert metrics.entrances.matched == 1
+        assert metrics.entrances.accuracy == 1.0
+
+    def test_a_mislisted_first_area_misses(self, tmp_path: Path):
+        # The survey lists "2" first: the heuristic picks it, the truth says "1".
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("2"), survey_area("1")], [content_area("2"), content_area("1")])])],
+        )
+        metrics = score_workdir(root, self.ENTRANCE_TRUTH)
+        assert metrics.entrances.asserted == 1
+        assert metrics.entrances.matched == 0
+        assert metrics.entrances.accuracy == 0.0
+
+    def test_unasserted_entrance_scores_nothing(self, tmp_path: Path):
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [survey_area("1")], [content_area("1")])])],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.entrances.asserted == 0
+        assert metrics.entrances.accuracy is None
+
+    def test_selection_skips_empty_levels(self, tmp_path: Path):
+        # Geometry's rule verbatim: the lowest-numbered level *with any
+        # areas*; an empty survey level never holds the entrance.
+        truth = truth_from_yaml(
+            """
+dungeons:
+  - name: lair
+    levels:
+      - number: 2
+        areas:
+          - key: "1"
+    entrance:
+      level: 2
+      key: "1"
+"""
+        )
+        root = fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [("lair", [(1, [], []), (2, [survey_area("1")], [content_area("1")])])],
+        )
+        metrics = score_workdir(root, truth)
+        assert metrics.entrances.asserted == 1
+        assert metrics.entrances.matched == 1
 
 
 class TestAlignment:
@@ -1386,9 +2332,11 @@ def test_committed_caches_pair_levels_by_equal_number(member: str, caches: str):
 
 
 def test_scoring_is_deterministic(tmp_path: Path):
-    root = perfect_workdir(tmp_path)
-    first = score_workdir(root, PERFECT_TRUTH)
-    second = score_workdir(root, PERFECT_TRUTH)
+    # The seven-family fixture exercises every family — doors, transitions,
+    # and the entrance included — through the byte-stability check.
+    root = seven_family_workdir(tmp_path)
+    first = score_workdir(root, SEVEN_FAMILY_TRUTH)
+    second = score_workdir(root, SEVEN_FAMILY_TRUTH)
     assert first == second
     score = ModuleScore(
         run=RunInfo(
@@ -1728,6 +2676,123 @@ class TestPublish:
             )
 
 
+STALE_RUN_BLOCK = {
+    "date": "2026-07-17",
+    "model_id": "gpt-5.4-2026-03-05",
+    "osrforge_version": "0.1.0",
+    "input_tokens": 307478,
+    "output_tokens": 47175,
+    "usd": 1.4763,
+}
+
+
+def stale_entry(input_tokens: int = 307478) -> dict[str, object]:
+    """A pre-extension scoreboard entry: a metrics shape the current models refuse."""
+    return {
+        "run": {**STALE_RUN_BLOCK, "input_tokens": input_tokens},
+        "truth_sha256": "00" * 32,
+        "settings_overrides": ["render_dpi=300"],
+        "metrics": {"note": "the pre-phase-9 four-family shape"},
+    }
+
+
+class TestRescore:
+    """The offline regeneration mechanism: same runs, re-scored — raw read in, one validated save out."""
+
+    def _corpus(self, tmp_path: Path, entries: dict[str, dict[str, object]]) -> tuple[Path, Path]:
+        """A corpus with one member directory (plus truth) per raw board entry."""
+        corpus = tmp_path / "corpus"
+        corpus.mkdir(parents=True)
+        for module_id in entries:
+            member = corpus / module_id
+            member.mkdir()
+            (member / "truth.yaml").write_text(PERFECT_TRUTH_YAML, encoding="utf-8")
+        board_path = corpus / "scoreboard.json"
+        board_path.write_text(json.dumps({"schema_version": 1, "modules": entries}, indent=2) + "\n", encoding="utf-8")
+        return corpus, board_path
+
+    def _target(self, tmp_path: Path, corpus: Path, module_id: str) -> tuple[str, Path, Path]:
+        """One rescore target: the module id, a matching fabricated workdir, and its truth path."""
+        return (module_id, perfect_workdir(tmp_path / module_id), corpus / module_id / "truth.yaml")
+
+    def test_run_block_carried_verbatim_and_truth_sha_repinned(self, tmp_path: Path):
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
+        target = self._target(tmp_path, corpus, "mod")
+        results = rescore_modules(board_path, [target])
+        board = load_scoreboard(board_path)
+        entry = board.modules["mod"]
+        # The entry stays a record of the run: the run's own date, tokens,
+        # cost, model id, and package version — never today's.
+        assert entry.run == RunInfo.model_validate(STALE_RUN_BLOCK)
+        assert entry.settings_overrides == ("render_dpi=300",)
+        assert entry.truth_sha256 == hashlib.sha256(target[2].read_bytes()).hexdigest()
+        assert entry.truth_sha256 != "00" * 32
+        assert entry.metrics == results["mod"]
+        assert results["mod"] == score_workdir(target[1], PERFECT_TRUTH)
+
+    def test_a_stale_board_reads_raw(self, tmp_path: Path):
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
+        # The stale shape is exactly what the extended models refuse — the
+        # raw-JSON read is what makes regeneration possible at all.
+        with pytest.raises(ValidationError):
+            load_scoreboard(board_path)
+        rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
+        assert load_scoreboard(board_path).modules["mod"].run.date == "2026-07-17"
+
+    def test_a_whole_stale_board_migrates_in_one_save(self, tmp_path: Path):
+        # The committed-board migration shape: every entry predates the model
+        # extension, so the board can only become valid whole — all three
+        # rebuild in one invocation and the board saves once.
+        entries = {"mod-a": stale_entry(1), "mod-b": stale_entry(2), "mod-c": stale_entry(3)}
+        corpus, board_path = self._corpus(tmp_path, entries)
+        targets = [self._target(tmp_path, corpus, module_id) for module_id in ("mod-a", "mod-b", "mod-c")]
+        results = rescore_modules(board_path, targets)
+        board = load_scoreboard(board_path)
+        assert list(results) == ["mod-a", "mod-b", "mod-c"]
+        assert set(board.modules) == {"mod-a", "mod-b", "mod-c"}
+        for module_id, tokens in (("mod-a", 1), ("mod-b", 2), ("mod-c", 3)):
+            # Each entry carried its own run block, not a neighbor's.
+            assert board.modules[module_id].run.input_tokens == tokens
+            assert board.modules[module_id].metrics == results[module_id]
+
+    def test_a_leftover_stale_entry_refuses_the_save_by_name(self, tmp_path: Path):
+        corpus, board_path = self._corpus(
+            tmp_path, {"mod": stale_entry(), "other": stale_entry(), "third": stale_entry()}
+        )
+        before = board_path.read_bytes()
+        # "other" and "third" stay stale in the rebuilt board: the loud
+        # refusal names them, and the file is untouched — the whole-board
+        # pin working, not an obstacle.
+        with pytest.raises(ValueError, match="stale entries: other, third"):
+            rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
+        assert board_path.read_bytes() == before
+
+    def test_refuses_a_module_with_no_existing_entry(self, tmp_path: Path):
+        corpus, board_path = self._corpus(tmp_path, {"other": stale_entry()})
+        (corpus / "mod").mkdir()
+        with pytest.raises(ValueError, match="no existing entry"):
+            rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
+
+    def test_refuses_a_repeated_module_id(self, tmp_path: Path):
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
+        target = self._target(tmp_path, corpus, "mod")
+        with pytest.raises(ValueError, match="name each entry once"):
+            rescore_modules(board_path, [target, target])
+
+    def test_refuses_a_missing_board(self, tmp_path: Path):
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
+        board_path.unlink()
+        with pytest.raises(ValueError, match="no scoreboard"):
+            rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
+
+    def test_saved_board_keeps_the_pinned_byte_format(self, tmp_path: Path):
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
+        rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
+        first = board_path.read_bytes()
+        save_scoreboard(board_path, load_scoreboard(board_path))
+        assert board_path.read_bytes() == first
+
+
 class TestCommittedCorpus:
     def test_every_committed_member_validates(self):
         members = sorted(child.name for child in CORPUS.iterdir() if child.is_dir())
@@ -1741,10 +2806,14 @@ class TestCommittedCorpus:
     def test_committed_members_stay_fully_pinned_and_asserted(self):
         """The gating corpus never gets thinner by accident.
 
-        Optionality (unpinned sha256, absent license, partial treasure truth)
-        exists for private BYOM corpora; every committed member must keep the
-        full posture — plus the backfilled truth provenance — or the corpus
-        scoreboard's meaning silently changes.
+        Optionality (unpinned sha256, absent license, partial truth) exists
+        for private BYOM corpora; every committed member must keep the full
+        posture — plus the backfilled truth provenance — or the corpus
+        scoreboard's meaning silently changes. The phase 9 posture, in full:
+        `encounters` asserted on every area (the asserted-empty convention),
+        `doors` on every asserted-connections area, and `transitions` and
+        `entrance` on every dungeon — a new family that can thin without a
+        failure here isn't enforced.
         """
         members = sorted(child.name for child in CORPUS.iterdir() if child.is_dir())
         for member in members:
@@ -1754,9 +2823,14 @@ class TestCommittedCorpus:
             assert manifest.truth_provenance is not None, member
             truth = load_truth(CORPUS / member / "truth.yaml")
             for dungeon in truth.dungeons:
+                assert dungeon.transitions is not None, (member, dungeon.name)
+                assert dungeon.entrance is not None, (member, dungeon.name)
                 for level in dungeon.levels:
                     for area in level.areas:
                         assert area.treasure is not None, (member, dungeon.name, area.key)
+                        assert area.encounters is not None, (member, dungeon.name, area.key)
+                        if area.connections is not None:
+                            assert area.doors is not None, (member, dungeon.name, area.key)
 
     def test_truth_templates_exist_in_the_catalog(self):
         from osrlib.data import load_monsters
@@ -1767,7 +2841,7 @@ class TestCommittedCorpus:
             for dungeon in truth.dungeons:
                 for level in dungeon.levels:
                     for area in level.areas:
-                        for creature in area.encounters:
+                        for creature in area.encounters or ():
                             if creature.template is not None:
                                 assert creature.template in ids, (member, creature.name, creature.template)
 
@@ -1849,3 +2923,31 @@ def test_jn1_pinned_baseline_over_the_committed_caches(tmp_path: Path):
     assert metrics.treasure.presence_matched == 130
     assert metrics.treasure.presence_agreement == 0.9489
     assert metrics.treasure.letter_accuracy is None
+
+    # The phase 9 families, blessed over the committed test caches against the
+    # phase 9 truth pass (the existing four families above are byte-identical
+    # to their pre-phase-9 values — the truth-key freeze makes any movement
+    # there a scorer bug by construction). The committed test caches predate
+    # phase 6's door extraction, so every via is `passage` and the door family
+    # reads zero extracted doors — recall 0.0 with an empty-denominator
+    # precision is the honest pin for these caches, not a defect.
+    assert metrics.encounters.precision_denominator == 107
+    assert metrics.encounters.precision_matched == 100
+    assert metrics.encounters.precision == 0.9346
+    assert metrics.doors.truth_doors == 21
+    assert metrics.doors.extracted_doors == 0
+    assert metrics.doors.true_positives == 0
+    assert metrics.doors.recall == 0.0
+    assert metrics.doors.precision is None
+    assert metrics.doors.kind_accuracy is None
+    assert metrics.doors.locked_accuracy is None
+    assert metrics.transitions.asserted_dungeons == 14
+    assert metrics.transitions.truth_transitions == 1
+    assert metrics.transitions.extracted_transitions == 1
+    assert metrics.transitions.true_positives == 1
+    assert metrics.transitions.recall == 1.0
+    assert metrics.transitions.precision == 1.0
+    assert metrics.transitions.kind_accuracy == 1.0
+    assert metrics.entrances.asserted == 14
+    assert metrics.entrances.matched == 13
+    assert metrics.entrances.accuracy == 0.9286

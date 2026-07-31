@@ -34,4 +34,11 @@ truth_provenance:
     The authoring conventions of tools/eval/README.md plus the CI structural
     validators (template ids exist in the catalog, connections reference
     same-level keys) — honestly thinner than JN1's record. Predates the
-    adversarial verification pass phase 5 introduced.
+    adversarial verification pass phase 5 introduced. 2026-07-31: the phase 9
+    families (doors, transitions, entrances, asserted-empty encounters) were
+    agent-authored from the r22 pages and maps under the independence line
+    and adversarially verified in a fresh context (Claude Fable 5 — a
+    different model family than the extraction deployment) — VERIFIED, all
+    families, zero refutations, all 12 judgment calls upheld; two frozen-key
+    findings (R5 area 9's connections and the R1 outlook-wing loop, both vs
+    the printed maps) recorded for the phase's follow-up issue.

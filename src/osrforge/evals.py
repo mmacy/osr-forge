@@ -17,12 +17,14 @@ and are authored from the printed module under the independence discipline
 
 import hashlib
 import json
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
+from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
+from typing import Any, Literal, cast
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from osrforge.assemble import parse_treasure, usable_stat_block
 from osrforge.contracts.stages import (
@@ -33,6 +35,7 @@ from osrforge.contracts.stages import (
     SurveyDungeon,
     SurveyIndex,
 )
+from osrforge.geometry import transition_via
 from osrforge.monsters import normalize_monster_name
 from osrforge.settings import ConversionSettings
 from osrforge.survey import canonical_slug
@@ -45,19 +48,25 @@ __all__ = [
     "ByomScoreboard",
     "ConnectionMetrics",
     "CorpusManifest",
+    "DoorMetrics",
     "EncounterMetrics",
+    "EntranceMetrics",
     "ManifestLicense",
     "ModuleMetrics",
     "ModuleScore",
     "ModuleTruth",
     "RunInfo",
     "Scoreboard",
+    "TransitionMetrics",
     "TreasureMetrics",
     "TruthArea",
+    "TruthDoor",
     "TruthDungeon",
     "TruthEncounter",
+    "TruthEntrance",
     "TruthLevel",
     "TruthProvenance",
+    "TruthTransition",
     "TruthTreasure",
     "corpus_means",
     "enforce_source_integrity",
@@ -66,6 +75,7 @@ __all__ = [
     "load_scoreboard",
     "load_truth",
     "publish_module",
+    "rescore_modules",
     "save_byom_scoreboard",
     "save_scoreboard",
     "score_workdir",
@@ -127,25 +137,60 @@ class TruthTreasure(BaseModel):
         return value
 
 
+class TruthDoor(BaseModel):
+    """A door fact asserted on one of an area's connections.
+
+    `kind` mirrors the extraction contract's door vocabulary (`door` /
+    `secret_door`); `locked` is asserted alongside it. Stuck state is
+    deliberately not asserted — the corpus carries almost no printed signal
+    for it, so a stuck metric would run on an empty denominator.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: Literal["door", "secret_door"]
+    locked: bool = False
+
+
 class TruthArea(BaseModel):
     """One keyed area, identified by its printed key.
 
-    `connections` and `treasure` are assertion-aware: `None` (omitted) means
-    the fact was not asserted — the area's edges are out of the connection
-    metric's universe, or the area is outside both treasure denominators. A
-    present value asserts the complete fact set: the area's full same-level
-    connected printed-key list (possibly empty), or the area's treasure facts.
+    `encounters`, `connections`, `doors`, and `treasure` are assertion-aware:
+    `None` (omitted) means the fact was not asserted — the area is out of the
+    corresponding metric's universe. A present value asserts the complete
+    fact set: the area's full encounter list (possibly empty — the
+    asserted-empty convention the encounter-precision metric rides), its full
+    same-level connected printed-key list (possibly empty), the complete
+    door-fact set over its asserted connections, or its treasure facts.
     Assertion-awareness is what makes time-boxed partial truth honest: a truth
     file covering every area key plus a verified sample of areas still yields
-    exact area recall and honestly-denominated treasure agreement.
+    exact area recall and honestly-denominated agreement everywhere else.
+
+    `doors` is keyed by neighbor printed key; every key must appear in the
+    same area's `connections` (slug-matched), and asserting `doors` requires
+    asserting `connections` — a door fact on an unasserted edge set would
+    have no universe to score in.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     key: str
-    encounters: tuple[TruthEncounter, ...] = ()
+    encounters: tuple[TruthEncounter, ...] | None = None
     connections: tuple[str, ...] | None = None
+    doors: dict[str, TruthDoor] | None = None
     treasure: TruthTreasure | None = None
+
+    @model_validator(mode="after")
+    def _doors_ride_asserted_connections(self) -> TruthArea:
+        if self.doors is None:
+            return self
+        if self.connections is None:
+            raise ValueError(f"{self.key!r}: doors asserted without connections — assert the edge set first")
+        connection_slugs = {canonical_slug(neighbor) for neighbor in self.connections}
+        for neighbor in self.doors:
+            if canonical_slug(neighbor) not in connection_slugs:
+                raise ValueError(f"{self.key!r}: doors names {neighbor!r}, which is not among its connections")
+        return self
 
 
 class TruthLevel(BaseModel):
@@ -169,20 +214,108 @@ class TruthLevel(BaseModel):
             raise ValueError(f"truth area keys must be unique per level under canonical_slug: {slugs}")
         return self
 
+    @model_validator(mode="after")
+    def _door_assertions_agree(self) -> TruthLevel:
+        implications: dict[frozenset[str], tuple[str, TruthDoor | None]] = {}
+        asserting = [area for area in self.areas if area.doors is not None]
+        asserting_slugs = {canonical_slug(area.key) for area in asserting}
+        for area in asserting:
+            area_slug = canonical_slug(area.key)
+            for neighbor in area.connections or ():
+                neighbor_slug = canonical_slug(neighbor)
+                if neighbor_slug not in asserting_slugs:
+                    continue
+                pair = frozenset({area_slug, neighbor_slug})
+                door = next(
+                    (fact for key, fact in (area.doors or {}).items() if canonical_slug(key) == neighbor_slug),
+                    None,
+                )
+                if pair in implications:
+                    other_key, other_door = implications[pair]
+                    if other_door != door:
+                        raise ValueError(
+                            f"contradictory door assertions on the pair {area.key!r}/{other_key}: "
+                            f"{door!r} vs {other_door!r} — both endpoints assert doors and must agree, "
+                            "including omission (an omitted neighbor is an explicit no-door)"
+                        )
+                else:
+                    implications[pair] = (area.key, door)
+        return self
+
+
+class TruthTransition(BaseModel):
+    """One vertical link between two levels of a dungeon, asserted once.
+
+    Endpoint order is free — matching is undirected — and `kind` uses
+    geometry's own narrowing (`trapdoor` and `chute` as themselves,
+    everything else `stairs`). The travel sense is deliberately not asserted.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    from_level: int = Field(ge=1)
+    from_key: str
+    to_level: int = Field(ge=1)
+    to_key: str
+    kind: Literal["stairs", "trapdoor", "chute"]
+
+    @model_validator(mode="after")
+    def _levels_differ(self) -> TruthTransition:
+        if self.from_level == self.to_level:
+            raise ValueError(f"a transition links two levels; got {self.from_level} on both ends")
+        return self
+
+
+class TruthEntrance(BaseModel):
+    """The printed key of the area holding a dungeon's entrance."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    level: int = Field(ge=1)
+    key: str
+
 
 class TruthDungeon(BaseModel):
-    """One printed adventuring site."""
+    """One printed adventuring site.
+
+    `transitions` and `entrance` are assertion-aware, dungeon-scoped facts:
+    omitted asserts nothing; a present `transitions` asserts the dungeon's
+    complete vertical-link set (levels are peers, so an edge between them
+    belongs to the dungeon, not to either level), and a present `entrance`
+    asserts which printed area holds the way in.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
     levels: tuple[TruthLevel, ...] = Field(min_length=1)
+    transitions: tuple[TruthTransition, ...] | None = None
+    entrance: TruthEntrance | None = None
 
     @model_validator(mode="after")
     def _level_numbers_unique(self) -> TruthDungeon:
         numbers = [level.number for level in self.levels]
         if len(set(numbers)) != len(numbers):
             raise ValueError(f"truth level numbers must be unique per dungeon: {numbers}")
+        return self
+
+    @model_validator(mode="after")
+    def _endpoints_exist(self) -> TruthDungeon:
+        by_number = {level.number: level for level in self.levels}
+
+        def check(level_number: int, key: str, label: str) -> None:
+            level = by_number.get(level_number)
+            if level is None:
+                raise ValueError(f"{label} names level {level_number}, which this dungeon does not have")
+            key_slug = canonical_slug(key)
+            if not any(canonical_slug(area.key) == key_slug for area in level.areas):
+                raise ValueError(f"{label} names key {key!r}, which level {level_number} does not have")
+
+        for transition in self.transitions or ():
+            check(transition.from_level, transition.from_key, f"transition in {self.name!r}")
+            check(transition.to_level, transition.to_key, f"transition in {self.name!r}")
+        if self.entrance is not None:
+            check(self.entrance.level, self.entrance.key, f"entrance of {self.name!r}")
         return self
 
 
@@ -408,12 +541,15 @@ class AreaMetrics(BaseModel):
 
 
 class EncounterMetrics(BaseModel):
-    """The encounters family: name recall, count accuracy, resolution accuracy, custom-emission accuracy.
+    """The encounters family: name recall and precision, count accuracy, resolution accuracy, custom-emission accuracy.
 
     The custom pair scores the truth's `custom: true` assertions against the
     stat-block cache, so emission is its own legible number rather than
     diluting SRD-resolution accuracy; `non_srd` keeps meaning "no SRD
-    template and no assertion about emission."
+    template and no assertion about emission." The precision triple rides the
+    asserted-empty convention: it counts only over matched areas whose truth
+    asserts encounters, because only there is an extracted name that matches
+    nothing provably a hallucination rather than an unasserted fact.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -426,6 +562,17 @@ class EncounterMetrics(BaseModel):
 
     name_recall: float | None
     """`name_matched / truth_encounters`; `None` on an empty denominator."""
+
+    precision_denominator: int
+    """How many distinct folded extracted names appear in matched areas whose
+    truth asserts encounters."""
+
+    precision_matched: int
+    """How many of those folds appear in their truth area's fold set."""
+
+    precision: float | None
+    """`precision_matched / precision_denominator`; `None` on an empty
+    denominator."""
 
     count_denominator: int
     """How many *name-matched* truth encounters assert a count."""
@@ -512,8 +659,111 @@ class TreasureMetrics(BaseModel):
     denominator."""
 
 
+class DoorMetrics(BaseModel):
+    """The doors family: presence recall and precision plus kind/locked accuracy, over the asserted door universe.
+
+    The universe is undirected edges between matched areas with at least one
+    endpoint asserting `doors` — an asserting area's door set is complete, so
+    an extracted door its truth omits is a false positive, and a door fact
+    stated on neither directed mention is a miss. The extracted facts flow
+    through the edge-fact seam, so phase 11 can swap the fact source without
+    touching these semantics.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    truth_doors: int
+    """How many door edges the truth asserts within the universe."""
+
+    extracted_doors: int
+    """How many door edges extraction stated within the universe."""
+
+    true_positives: int
+    """The door edges both agree on."""
+
+    recall: float | None
+    """`true_positives / truth_doors`; `None` on an empty denominator."""
+
+    precision: float | None
+    """`true_positives / extracted_doors`; `None` on an empty denominator."""
+
+    kind_matched: int
+    """How many true positives agree on kind (`door` / `secret_door`)."""
+
+    kind_accuracy: float | None
+    """`kind_matched / true_positives`; `None` on an empty denominator."""
+
+    locked_matched: int
+    """How many true positives agree on the locked condition."""
+
+    locked_accuracy: float | None
+    """`locked_matched / true_positives`; `None` on an empty denominator."""
+
+
+class TransitionMetrics(BaseModel):
+    """The transitions family: dungeon-scoped vertical links matched on truth endpoint pairs.
+
+    Dungeon-scoped because levels are peers: a claim's endpoints resolve
+    through the pairing claims to truth `(level, key)` addresses, so a
+    printed inter-level stair survives the JN2 collapsed-level shape (one
+    extracted level holding two printed levels) and the cross-level keyed
+    shape alike. Kind is a resolved attribute of the merged link — matching
+    is by endpoints alone, so the kind row can genuinely miss.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    asserted_dungeons: int
+    """How many aligned dungeons assert `transitions`."""
+
+    truth_transitions: int
+    """How many vertical links those dungeons' truth asserts."""
+
+    extracted_transitions: int
+    """How many deduplicated vertical links extraction claimed in those
+    dungeons."""
+
+    true_positives: int
+    """The links both agree on."""
+
+    recall: float | None
+    """`true_positives / truth_transitions`; `None` on an empty denominator."""
+
+    precision: float | None
+    """`true_positives / extracted_transitions`; `None` on an empty
+    denominator."""
+
+    kind_matched: int
+    """How many true positives agree on kind (`stairs` / `trapdoor` /
+    `chute`)."""
+
+    kind_accuracy: float | None
+    """`kind_matched / true_positives`; `None` on an empty denominator."""
+
+
+class EntranceMetrics(BaseModel):
+    """The entrance family: does the pipeline's entrance heuristic pick the printed way in?
+
+    Scores geometry's pure positional selection (the first listed area of the
+    lowest-numbered non-empty level), reproduced here from the survey index
+    alone — the pre-change baseline phase 11's map-proposed entrance will be
+    measured against through the same seam.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    asserted: int
+    """How many aligned dungeons assert `entrance`."""
+
+    matched: int
+    """How many of those the selection heuristic agreed with."""
+
+    accuracy: float | None
+    """`matched / asserted`; `None` on an empty denominator."""
+
+
 class ModuleMetrics(BaseModel):
-    """One module's metrics block: the four pinned families."""
+    """One module's metrics block: the seven pinned families."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -528,6 +778,15 @@ class ModuleMetrics(BaseModel):
 
     treasure: TreasureMetrics
     """The treasure family."""
+
+    doors: DoorMetrics
+    """The doors family."""
+
+    transitions: TransitionMetrics
+    """The transitions family."""
+
+    entrances: EntranceMetrics
+    """The entrance family."""
 
 
 class RunInfo(BaseModel):
@@ -768,6 +1027,96 @@ def publish_module(
     )
 
 
+def _stale_module_ids(modules: dict[str, Any]) -> list[str]:
+    """The raw board entries the extended models refuse, sorted — the loud half of the rescore refusal."""
+    stale: list[str] = []
+    for module_id, entry in modules.items():
+        try:
+            ModuleScore.model_validate(entry)
+        except ValidationError:
+            stale.append(module_id)
+    return sorted(stale)
+
+
+def rescore_modules(board_path: Path, targets: Sequence[tuple[str, Path, Path]]) -> dict[str, ModuleMetrics]:
+    """Re-score existing scoreboard entries' workdirs against current truth — one rebuilt board, one save.
+
+    The offline-regeneration mechanism: same runs, re-scored. The stale board
+    is read as raw JSON — never through the models, whose required fields a
+    pre-extension entry cannot satisfy — and each rebuilt entry carries its
+    raw run block verbatim (the run's own date, tokens, cost, model id,
+    package version: the entry stays a record of the run) plus the carried
+    `settings_overrides`, a freshly pinned `truth_sha256`, and the fresh
+    metrics from [`score_workdir`][osrforge.evals.score_workdir]. The entire
+    rebuilt board then validates through the extended models before the
+    single save, so a save never persists a board the current schema rejects.
+
+    Taking the targets together is what makes a schema migration saveable at
+    all: a board whose every entry predates a model extension can only become
+    valid whole, so its entries rebuild in one invocation and the board saves
+    once. A leftover entry the extended models still refuse is a loud
+    refusal naming the stale ids — the whole-board pin working, not an
+    obstacle to route around. A single target stays valid whenever the rest
+    of the board is already current-shaped.
+
+    Args:
+        board_path: The corpus's `scoreboard.json`; must exist.
+        targets: `(module id, workdir path, truth path)` per entry to
+            rebuild, each id named once. Every id must already hold an entry
+            — a module with no scored run has no run block to carry, and a
+            new run records itself through `score --update-scoreboard`.
+
+    Returns:
+        Module id → the fresh metrics written into its entry, in target
+        order.
+
+    Raises:
+        ValueError: If no targets are given, an id repeats, the board does
+            not exist, an id holds no entry, or the rebuilt board still
+            contains stale entries (named in the message) — nothing is
+            written.
+        pydantic.ValidationError: If the rebuilt board fails the extended
+            models for any other reason — nothing is written.
+    """
+    if not targets:
+        raise ValueError("rescore needs at least one (module id, workdir, truth) target")
+    names = [module_id for module_id, _, _ in targets]
+    if len(set(names)) != len(names):
+        raise ValueError(f"a module id repeats across the rescore targets: {names} — name each entry once")
+    if not board_path.is_file():
+        raise ValueError(f"no scoreboard at {board_path} — rescore regenerates existing entries only")
+    raw: dict[str, Any] = json.loads(board_path.read_text(encoding="utf-8"))
+    raw_modules = raw.get("modules")
+    existing = cast(dict[str, Any], raw_modules) if isinstance(raw_modules, dict) else {}
+    missing = sorted(module_id for module_id in names if module_id not in existing)
+    if missing:
+        raise ValueError(
+            f"no existing entry for {', '.join(missing)} in {board_path} — rescore regenerates scored entries; "
+            "a new run records itself through score --update-scoreboard"
+        )
+    results: dict[str, ModuleMetrics] = {}
+    for module_id, workdir_path, truth_path in targets:
+        truth = load_truth(truth_path)
+        metrics = score_workdir(workdir_path, truth)
+        entry: dict[str, Any] = existing[module_id]
+        existing[module_id] = {
+            "run": entry["run"],
+            "truth_sha256": hashlib.sha256(truth_path.read_bytes()).hexdigest(),
+            "settings_overrides": entry.get("settings_overrides", []),
+            "metrics": metrics.model_dump(mode="json"),
+        }
+        results[module_id] = metrics
+    stale = _stale_module_ids(existing)
+    if stale:
+        raise ValueError(
+            f"the rebuilt board still holds stale entries: {', '.join(stale)} — name them in the same rescore "
+            "invocation (each with its retained workdir) so the board saves once, whole and valid"
+        )
+    board = Scoreboard.model_validate(raw)
+    save_scoreboard(board_path, board)
+    return results
+
+
 def _ratio(numerator: int, denominator: int) -> float | None:
     """A metric ratio, rounded for scoreboard readability; None when the denominator is empty."""
     if denominator == 0:
@@ -939,16 +1288,206 @@ def _treasure_signal(area: AreaContent) -> bool:
     return any(text.strip() for text in area.treasure)
 
 
+_DOOR_VIAS = ("door", "secret_door")
+
+_VERTICAL_VIAS = ("stairs", "trapdoor", "chute")
+
+_TRANSITION_KIND_ORDER = ("trapdoor", "chute", "stairs")
+"""The pinned kind-conflict total order for merged transition mentions:
+trapdoor > chute > stairs — arbitrary but deterministic."""
+
+
+@dataclass(frozen=True)
+class _EdgeFact:
+    """One undirected extracted edge's merged facts, as collapsed from its directed mentions.
+
+    The pinned dedup rule over the mentions of one edge: `door` if either
+    side states a door via; `kind` resolves a conflict to `secret_door` (the
+    more specific claim); `locked` if either side states it on a door via —
+    door conditions on a non-door via contribute nothing (geometry's discard
+    posture).
+    """
+
+    door: bool
+    kind: Literal["door", "secret_door"] | None
+    locked: bool
+
+
+def _edge_facts(cache: LevelContent, matched: Collection[str]) -> dict[frozenset[str], _EdgeFact]:
+    """The edge-fact seam: one pairing's undirected edge facts, derived from the level cache.
+
+    Every edge fact — presence, door, kind, locked — flows through here, and
+    both the connection F1 and the door family consume the result: the F1
+    reads presence (every key), the door family the door facts. Phase 11
+    reroutes this function through its deterministic reconciliation without
+    touching either consumer's semantics.
+
+    Endpoints are matched slugs: a mention is an edge only when both its
+    areas matched this pairing's truth areas — a level-shaped target
+    (`to_key: null`) and an unmatched or self target stay outside the edge
+    universe entirely, semantics and denominators untouched.
+
+    Args:
+        cache: The pairing's extracted level cache.
+        matched: The pairing's matched slugs (extracted keys that matched a
+            truth area).
+
+    Returns:
+        Undirected endpoint pair → merged edge fact.
+    """
+    facts: dict[frozenset[str], _EdgeFact] = {}
+    for area in cache.areas:
+        if area.key not in matched:
+            continue
+        for connection in area.connections:
+            if connection.to_key is None:
+                continue
+            to_key = canonical_slug(connection.to_key)
+            if to_key not in matched or to_key == area.key:
+                continue
+            pair = frozenset({area.key, to_key})
+            fact = facts.get(pair, _EdgeFact(door=False, kind=None, locked=False))
+            if connection.via in _DOOR_VIAS:
+                fact = _EdgeFact(
+                    door=True,
+                    kind="secret_door" if "secret_door" in (connection.via, fact.kind) else "door",
+                    locked=fact.locked or connection.door_locked,
+                )
+            facts[pair] = fact
+    return facts
+
+
+@dataclass(frozen=True)
+class _Pairing:
+    """One truth-level-to-extracted-level pairing's record, kept for the post-loop dungeon-scoped families."""
+
+    truth_level: TruthLevel
+    extracted_number: int
+    matched: dict[str, TruthArea]
+    cache: LevelContent
+
+
+@dataclass(frozen=True)
+class _DungeonPairings:
+    """One aligned dungeon's pairing records — the claim registry the transition and entrance families read."""
+
+    truth_dungeon: TruthDungeon
+    extracted_dungeon: SurveyDungeon
+    level_matches: dict[int, int]
+    pairings: list[_Pairing]
+
+
+def _truth_endpoint(dungeon: TruthDungeon, level_number: int, key: str) -> tuple[int, str]:
+    """A truth transition or entrance endpoint as `(level number, matching slug)`.
+
+    The slug is the same `_truth_key_slug` the pairing claims carry, so
+    endpoint comparison and area matching can never use two spellings of one
+    key. The dungeon validator guarantees the endpoint exists.
+    """
+    level = next(level for level in dungeon.levels if level.number == level_number)
+    key_slug = canonical_slug(key)
+    for position, area in enumerate(level.areas, start=1):
+        if canonical_slug(area.key) == key_slug:
+            return (level_number, _truth_key_slug(area, position))
+    raise AssertionError(f"truth endpoint {key!r} missing from level {level_number} — the dungeon validator gates this")
+
+
+def _resolved_transition_kind(kinds: Collection[str]) -> str:
+    """A merged transition claim's resolved kind attribute, under the pinned total order."""
+    return next(kind for kind in _TRANSITION_KIND_ORDER if kind in kinds)
+
+
+def _dungeon_transition_claims(
+    record: _DungeonPairings,
+) -> tuple[dict[frozenset[tuple[int, str]], list[str]], dict[tuple[tuple[int, str], int], list[str]]]:
+    """One asserting dungeon's deduplicated vertical claims: pair-form and stub-form, with their mention kinds.
+
+    The pinned four-clause classifier over each matched area's connection
+    mentions, ordered and total:
+
+    1. `to_level` set and `to_key` null → a vertical claim in stub form,
+       keyed by `(source endpoint, target level number)`. A mention carrying
+       *both* takes the keyed path, falling back to stub form only when the
+       key does not resolve.
+    2. A keyed target that resolves through the claim registry → a vertical
+       claim iff its truth level differs from the source's *and* the mention
+       carries a vertical signal (via in stairs/trapdoor/chute, or an
+       up/down direction — mirroring geometry). A same-truth-level target is
+       a same-level edge and only that; a different-level target with no
+       vertical signal is neither — one extraction claim is never scored in
+       two families.
+    3. A keyed target that resolves nowhere (and no `to_level`) → dropped,
+       mirroring the connection F1's conservatism.
+    4. No target of any kind → dropped, mirroring geometry's
+       `no target stated` discard.
+
+    Keyed-target lookup order, pinned: the source's own extracted level
+    first, then sibling pairings in survey order — geometry's
+    resolve-locally-then-on-siblings. After classification, a stub-form
+    claim merges into a pair-form claim of the same physical link (same
+    source endpoint, pair far endpoint on the stub's target level; the
+    richer pair form wins), first pair claim in derivation order on the
+    vanishingly rare tie.
+    """
+    claims: dict[tuple[int, str], tuple[int, str]] = {}
+    for pairing in record.pairings:
+        for slug in pairing.matched:
+            claims[(pairing.extracted_number, slug)] = (pairing.truth_level.number, slug)
+    survey_numbers = [level.number for level in record.extracted_dungeon.levels]
+
+    def resolve(source_extracted: int, slug: str) -> tuple[int, str] | None:
+        hit = claims.get((source_extracted, slug))
+        if hit is not None:
+            return hit
+        for number in survey_numbers:
+            if number == source_extracted:
+                continue
+            hit = claims.get((number, slug))
+            if hit is not None:
+                return hit
+        return None
+
+    pair_claims: dict[frozenset[tuple[int, str]], list[str]] = {}
+    stub_claims: dict[tuple[tuple[int, str], int], list[str]] = {}
+    for pairing in record.pairings:
+        for area in pairing.cache.areas:
+            if area.key not in pairing.matched:
+                continue
+            source = (pairing.truth_level.number, area.key)
+            for connection in area.connections:
+                kind = transition_via(connection.via)
+                target: tuple[int, str] | None = None
+                if connection.to_key is not None:
+                    target = resolve(pairing.extracted_number, canonical_slug(connection.to_key))
+                if target is not None:
+                    if target[0] == source[0]:
+                        continue
+                    if connection.via not in _VERTICAL_VIAS and connection.direction not in ("up", "down"):
+                        continue
+                    pair_claims.setdefault(frozenset({source, target}), []).append(kind)
+                elif connection.to_level is not None:
+                    stub_claims.setdefault((source, connection.to_level), []).append(kind)
+    for stub_key, kinds in list(stub_claims.items()):
+        source, to_level = stub_key
+        for pair, pair_kinds in pair_claims.items():
+            if source in pair and next(endpoint for endpoint in pair if endpoint != source)[0] == to_level:
+                pair_kinds.extend(kinds)
+                del stub_claims[stub_key]
+                break
+    return pair_claims, stub_claims
+
+
 def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     """Score one converted workdir's stage caches against a module's truth.
 
-    Reads `stages/survey.json` (area recall/precision), the
-    `stages/areas.*.json` content caches (encounters, connections, treasure),
-    `stages/monsters.json` (resolution accuracy), and `stages/statblocks.json`
-    (custom-emission accuracy — a missing file scores no matches, the honest
-    state of a workdir converted before the stat-block pass existed, never an
-    error). Deterministic: scoring the same
-    workdir twice yields byte-identical metrics.
+    Reads `stages/survey.json` (area recall/precision, the entrance
+    heuristic), the `stages/areas.*.json` content caches (encounters,
+    connections, doors, transitions, treasure), `stages/monsters.json`
+    (resolution accuracy), and `stages/statblocks.json` (custom-emission
+    accuracy — a missing file scores no matches, the honest state of a
+    workdir converted before the stat-block pass existed, never an error).
+    Deterministic: scoring the same workdir twice yields byte-identical
+    metrics.
 
     Encounter names match under a minimal morphological fold (`_match_fold`) —
     the truth's singular authoring convention meets extraction's printed
@@ -967,12 +1506,18 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     and resolution can credit at most one of the two templates; a known
     conservative shape, recorded rather than special-cased.
 
+    The edge families ride the edge-fact seam (`_edge_facts`): the
+    connection F1 and the door family consume one derivation of the caches'
+    undirected edge facts.
+    Transitions and the entrance score dungeon-scoped, after the level loop,
+    over each aligned dungeon's recorded pairing claims.
+
     Args:
         workdir_path: A workdir whose extraction stages have completed.
         truth: The module's ground truth.
 
     Returns:
-        The four metric families.
+        The seven metric families.
 
     Raises:
         ValueError: If a required stage cache is missing.
@@ -1008,6 +1553,8 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
 
     truth_encounters = 0
     name_matched = 0
+    precision_denominator = 0
+    precision_matched = 0
     count_denominator = 0
     count_matched = 0
     resolution_denominator = 0
@@ -1019,20 +1566,26 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     truth_edges: set[tuple[str, str, int, frozenset[str]]] = set()
     extracted_edges: set[tuple[str, str, int, frozenset[str]]] = set()
 
+    truth_doors: dict[tuple[str, str, int, frozenset[str]], TruthDoor] = {}
+    extracted_doors: dict[tuple[str, str, int, frozenset[str]], _EdgeFact] = {}
+
     presence_denominator = 0
     presence_matched = 0
     letters_denominator = 0
     letters_matched = 0
 
+    dungeon_records: list[_DungeonPairings] = []
+
     for truth_position, truth_dungeon in enumerate(truth.dungeons):
         for level in truth_dungeon.levels:
-            truth_encounters += sum(len(area.encounters) for area in level.areas)
+            truth_encounters += sum(len(area.encounters) for area in level.areas if area.encounters is not None)
 
         extracted_position = matches.get(truth_position)
         if extracted_position is None:
             continue
         extracted_dungeon = index.dungeons[extracted_position]
         level_matches = _align_levels(truth_dungeon, extracted_dungeon)
+        pairings: list[_Pairing] = []
         # Several truth levels may pair with one extracted level, so an
         # extracted area key must match at most one truth area across all of
         # them: pairings process in truth-level order, and a claimed key is
@@ -1057,6 +1610,9 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                     matched[slug] = truth_area
                     level_claimed.add(slug)
             matched_areas += len(matched)
+            pairings.append(
+                _Pairing(truth_level=level, extracted_number=extracted_number, matched=matched, cache=cache)
+            )
 
             # Encounters and treasure, per matched truth area.
             for position, truth_area in enumerate(level.areas, start=1):
@@ -1068,7 +1624,17 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                 for encounter in extracted_area.encounters:
                     name = normalize_monster_name(encounter.monster)
                     folded_names.setdefault(_match_fold(name), set()).add(name)
-                for truth_encounter in truth_area.encounters:
+                if truth_area.encounters is not None:
+                    # Precision only where the truth asserts the complete
+                    # list: an unmatched fold in an unasserted area is an
+                    # unasserted fact, not a hallucination.
+                    truth_folds = {
+                        _match_fold(normalize_monster_name(truth_encounter.name))
+                        for truth_encounter in truth_area.encounters
+                    }
+                    precision_denominator += len(folded_names)
+                    precision_matched += sum(1 for fold in folded_names if fold in truth_folds)
+                for truth_encounter in truth_area.encounters or ():
                     normalized = normalize_monster_name(truth_encounter.name)
                     matched_names = folded_names.get(_match_fold(normalized))
                     if matched_names is None:
@@ -1104,34 +1670,44 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                         if sorted(parsed.letters) == sorted(truth_area.treasure.letters):
                             letters_matched += 1
 
+            # Connections and doors, off the shared edge-fact seam.
             # Connections: undirected same-level edges between matched areas,
             # in the asserted universe (at least one endpoint's neighbor set
             # asserted — an asserted area's list is complete, so any extracted
-            # edge incident to it is scoreable).
+            # edge incident to it is scoreable). Doors: the same edges,
+            # restricted to the doors-asserting universe.
             level_id = (truth_dungeon.name, extracted_dungeon.id, level.number)
+            doors_asserting = {slug for slug, truth_area in matched.items() if truth_area.doors is not None}
             for position, truth_area in enumerate(level.areas, start=1):
                 if truth_area.connections is None:
                     continue
                 slug = _truth_key_slug(truth_area, position)
-                if slug not in matched:
+                if matched.get(slug) is not truth_area:
                     continue
                 for neighbor_key in truth_area.connections:
                     neighbor = canonical_slug(neighbor_key)
                     if neighbor in matched and neighbor != slug:
                         truth_edges.add((*level_id, frozenset({slug, neighbor})))
-            for extracted_area in cache.areas:
-                if extracted_area.key not in matched:
-                    continue
-                for connection in extracted_area.connections:
-                    if connection.to_key is None:
-                        # Level-targeted links are outside the same-level edge
-                        # universe; edge semantics and denominators untouched.
-                        continue
-                    to_key = canonical_slug(connection.to_key)
-                    if to_key not in matched or to_key == extracted_area.key:
-                        continue
-                    if extracted_area.key in asserted or to_key in asserted:
-                        extracted_edges.add((*level_id, frozenset({extracted_area.key, to_key})))
+                for neighbor_key, door in (truth_area.doors or {}).items():
+                    neighbor = canonical_slug(neighbor_key)
+                    if neighbor in matched and neighbor != slug:
+                        # Both-endpoint assertions agree by validator, so the
+                        # overwrite on the reciprocal visit is a no-op.
+                        truth_doors[(*level_id, frozenset({slug, neighbor}))] = door
+            for pair, fact in _edge_facts(cache, matched).items():
+                if pair & asserted:
+                    extracted_edges.add((*level_id, pair))
+                if fact.door and pair & doors_asserting:
+                    extracted_doors[(*level_id, pair)] = fact
+
+        dungeon_records.append(
+            _DungeonPairings(
+                truth_dungeon=truth_dungeon,
+                extracted_dungeon=extracted_dungeon,
+                level_matches=level_matches,
+                pairings=pairings,
+            )
+        )
 
     true_positives = len(truth_edges & extracted_edges)
     precision = _ratio(true_positives, len(extracted_edges))
@@ -1141,6 +1717,85 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
         f1 = round(2 * precision * recall / (precision + recall), 4)
     elif precision is not None and recall is not None:
         f1 = 0.0
+
+    door_pairs = truth_doors.keys() & extracted_doors.keys()
+    door_kind_matched = sum(1 for pair in door_pairs if extracted_doors[pair].kind == truth_doors[pair].kind)
+    door_locked_matched = sum(1 for pair in door_pairs if extracted_doors[pair].locked == truth_doors[pair].locked)
+
+    # Transitions: a dungeon-scoped pass over aligned dungeons whose truth
+    # asserts the complete vertical-link set — assertion-aware on both sides,
+    # like connections, so an unasserted dungeon's claims are never false
+    # positives and its links never misses.
+    transition_asserted_dungeons = 0
+    truth_transition_count = 0
+    extracted_transition_count = 0
+    transition_true_positives = 0
+    transition_kind_matched = 0
+    for record in dungeon_records:
+        if record.truth_dungeon.transitions is None:
+            continue
+        transition_asserted_dungeons += 1
+        truth_entries = [
+            (
+                frozenset(
+                    {
+                        _truth_endpoint(record.truth_dungeon, transition.from_level, transition.from_key),
+                        _truth_endpoint(record.truth_dungeon, transition.to_level, transition.to_key),
+                    }
+                ),
+                transition.kind,
+            )
+            for transition in record.truth_dungeon.transitions
+        ]
+        truth_transition_count += len(truth_entries)
+        pair_claims, stub_claims = _dungeon_transition_claims(record)
+        extracted_transition_count += len(pair_claims) + len(stub_claims)
+        taken = [False] * len(truth_entries)
+        # Pair-form claims match first (the richer form), then stubs claim
+        # what remains: a stub matches on its source endpoint plus the far
+        # endpoint's level *number*, compared directly — the landing key is
+        # geometry's guess policy, not extraction's claim.
+        for pair, kinds in pair_claims.items():
+            for position, (truth_pair, truth_kind) in enumerate(truth_entries):
+                if taken[position] or truth_pair != pair:
+                    continue
+                taken[position] = True
+                transition_true_positives += 1
+                if _resolved_transition_kind(kinds) == truth_kind:
+                    transition_kind_matched += 1
+                break
+        for (source, to_level), kinds in stub_claims.items():
+            for position, (truth_pair, truth_kind) in enumerate(truth_entries):
+                if taken[position] or source not in truth_pair:
+                    continue
+                if next(endpoint for endpoint in truth_pair if endpoint != source)[0] != to_level:
+                    continue
+                taken[position] = True
+                transition_true_positives += 1
+                if _resolved_transition_kind(kinds) == truth_kind:
+                    transition_kind_matched += 1
+                break
+
+    # The entrance: geometry's positional selection — the first listed area
+    # of the lowest-numbered non-empty level — reproduced from the survey
+    # index alone, per aligned dungeon whose truth asserts the way in.
+    entrance_asserted = 0
+    entrance_matched = 0
+    for record in dungeon_records:
+        entrance = record.truth_dungeon.entrance
+        if entrance is None:
+            continue
+        entrance_asserted += 1
+        entrance_number = min((level.number for level in record.extracted_dungeon.levels if level.areas), default=None)
+        if entrance_number is None or record.level_matches.get(entrance.level) != entrance_number:
+            continue
+        selected = next(level for level in record.extracted_dungeon.levels if level.number == entrance_number)
+        selected_key = selected.areas[0].key
+        if _truth_endpoint(record.truth_dungeon, entrance.level, entrance.key)[1] != selected_key:
+            continue
+        pairing = next(pairing for pairing in record.pairings if pairing.truth_level.number == entrance.level)
+        if selected_key in pairing.matched:
+            entrance_matched += 1
 
     return ModuleMetrics(
         areas=AreaMetrics(
@@ -1157,6 +1812,9 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
             truth_encounters=truth_encounters,
             name_matched=name_matched,
             name_recall=_ratio(name_matched, truth_encounters),
+            precision_denominator=precision_denominator,
+            precision_matched=precision_matched,
+            precision=_ratio(precision_matched, precision_denominator),
             count_denominator=count_denominator,
             count_matched=count_matched,
             count_accuracy=_ratio(count_matched, count_denominator),
@@ -1183,6 +1841,32 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
             letters_denominator=letters_denominator,
             letters_matched=letters_matched,
             letter_accuracy=_ratio(letters_matched, letters_denominator),
+        ),
+        doors=DoorMetrics(
+            truth_doors=len(truth_doors),
+            extracted_doors=len(extracted_doors),
+            true_positives=len(door_pairs),
+            recall=_ratio(len(door_pairs), len(truth_doors)),
+            precision=_ratio(len(door_pairs), len(extracted_doors)),
+            kind_matched=door_kind_matched,
+            kind_accuracy=_ratio(door_kind_matched, len(door_pairs)),
+            locked_matched=door_locked_matched,
+            locked_accuracy=_ratio(door_locked_matched, len(door_pairs)),
+        ),
+        transitions=TransitionMetrics(
+            asserted_dungeons=transition_asserted_dungeons,
+            truth_transitions=truth_transition_count,
+            extracted_transitions=extracted_transition_count,
+            true_positives=transition_true_positives,
+            recall=_ratio(transition_true_positives, truth_transition_count),
+            precision=_ratio(transition_true_positives, extracted_transition_count),
+            kind_matched=transition_kind_matched,
+            kind_accuracy=_ratio(transition_kind_matched, transition_true_positives),
+        ),
+        entrances=EntranceMetrics(
+            asserted=entrance_asserted,
+            matched=entrance_matched,
+            accuracy=_ratio(entrance_matched, entrance_asserted),
         ),
     )
 
@@ -1213,7 +1897,16 @@ def corpus_means(scoreboard: Scoreboard) -> dict[str, float | None]:
             [score.metrics.encounters.resolution_accuracy for score in modules]
         ),
         "encounter_custom_accuracy": _module_mean([score.metrics.encounters.custom_accuracy for score in modules]),
+        "encounter_precision": _module_mean([score.metrics.encounters.precision for score in modules]),
         "connection_f1": _module_mean([score.metrics.connections.f1 for score in modules]),
         "treasure_presence_agreement": _module_mean([score.metrics.treasure.presence_agreement for score in modules]),
         "treasure_letter_accuracy": _module_mean([score.metrics.treasure.letter_accuracy for score in modules]),
+        "door_recall": _module_mean([score.metrics.doors.recall for score in modules]),
+        "door_precision": _module_mean([score.metrics.doors.precision for score in modules]),
+        "door_kind_accuracy": _module_mean([score.metrics.doors.kind_accuracy for score in modules]),
+        "door_locked_accuracy": _module_mean([score.metrics.doors.locked_accuracy for score in modules]),
+        "transition_recall": _module_mean([score.metrics.transitions.recall for score in modules]),
+        "transition_precision": _module_mean([score.metrics.transitions.precision for score in modules]),
+        "transition_kind_accuracy": _module_mean([score.metrics.transitions.kind_accuracy for score in modules]),
+        "entrance_accuracy": _module_mean([score.metrics.entrances.accuracy for score in modules]),
     }

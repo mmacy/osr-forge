@@ -3,7 +3,7 @@
 The on-demand measurement half of the spec's "extraction changes are measured,
 not vibed": a corpus of freely licensed adventures with verified structural
 ground truth — authored from the printed module under the independence
-discipline ([`AUTHORING.md`](AUTHORING.md)) — scored on the four pinned metric
+discipline ([`AUTHORING.md`](AUTHORING.md)) — scored on the seven pinned metric
 families. Evals are never per-commit CI — extraction is nondeterministic run
 to run and live runs cost real money — but the *scorer* is deterministic
 package code (`osrforge.evals`), fully unit-tested, with the JN1 pinned
@@ -45,7 +45,15 @@ relied on for the module's text; JN2, the pinned fallback, passed (sole
 copyright holder, same verified pattern as JN1). All v1 members share BFRPG
 layout conventions — a standing limitation; corpus diversity is future,
 additive growth. Growing the corpus is additive: a new module is a manifest, a
-truth file, and a sweep — no code.
+truth file, and a sweep — no code. The phase 9 candidate search for a
+non-BFRPG member came up empty under the same verification bar: the Agarwood
+pamphlets (Paleskin Princess, Varanus Lair) declare CC BY 4.0 on their
+itch.io pages but print no license statement in the PDF itself, and Tomb of
+the Serpent Kings is CC BY-NC-SA (NC cannot be cleanly relied on for
+committed text) — the full candidate record is in the phase 9 plan's
+amendments. The recorded next avenue: One Page Dungeon Contest winners,
+whose submission rules print the CC BY-SA 4.0 grant on the page by
+construction.
 
 Fetching stays manual: manifests carry source URLs, but URLs rot, the sha256
 check is the integrity gate, and the harness takes no HTTP dependency.
@@ -130,6 +138,10 @@ structural conventions, applied to all members:
   fighter NPCs where the level matches (F1 → `veteran_1`, F2 → `veteran_2`,
   F3 → `veteran_3`); clerics, magic-users, and higher-level fighters have no
   same-creature entry and take the omitted-`template` treatment above.
+  `encounters` itself is assertion-aware with the asserted-empty convention:
+  a present list — `[]` included — asserts the area's complete encounter set
+  (`[]` asserts a verified-empty area), while an omitted key asserts nothing
+  and keeps the area out of the encounter-precision universe.
 - **Counts** are recorded when the module states a fixed one; omitted when it
   states none or a variable one ("1d6 orcs", "up to 48 skeletons").
 - **Treasure** is assertion-aware, exactly like connections: an omitted
@@ -149,6 +161,25 @@ structural conventions, applied to all members:
   asserted endpoint, so an unasserted area never turns a correct extraction
   into a false positive. Areas connected only through unkeyed passages count
   as connected in consecutive order along the passage.
+- **Doors** are assertion-aware per area and ride asserted connections: a
+  `doors` map is keyed by neighbor printed key and is complete over that
+  area's asserted connections — an omitted neighbor is an explicit no-door,
+  and `{}` asserts none of the area's connections are doors. `kind` is
+  `door` / `secret_door` with `locked` asserted alongside; both endpoints of
+  an edge may assert and must agree, including omission. Stuck state is
+  deliberately not asserted — the corpus carries almost no printed signal, so
+  a stuck metric would run on an empty denominator.
+- **Transitions** are dungeon-scoped and assertion-aware: a present
+  `transitions` list asserts the dungeon's complete vertical-link set (`[]`
+  is legal on a single-level dungeon). Endpoints are (level, printed key)
+  pairs with order free — matching is undirected — and `kind` uses geometry's
+  own narrowing (`stairs` / `trapdoor` / `chute`). The travel sense is not
+  asserted.
+- **Entrance** is per dungeon: the printed key holding the entrance the
+  module presents as the primary way in. Committed members always assert it
+  (on a genuinely co-equal multi-entrance case, the one the module presents
+  first, with the judgment call flagged inline); BYOM members may omit the
+  assertion — the assertion-aware escape.
 
 ## Running the harness
 
@@ -171,6 +202,14 @@ uv run tools/eval/run_eval.py convert my-module ~/modules/my-module.pdf --corpus
 uv run tools/eval/run_eval.py score my-module --corpus ~/my-corpus --workdir /tmp/my.forge --update-scoreboard
 uv run tools/eval/run_eval.py publish my-module --corpus ~/my-corpus
 uv run tools/eval/run_eval.py report --byom
+
+# Offline scoreboard regeneration after a scorer or truth-schema change —
+# run blocks carried verbatim, metrics re-scored from the retained workdirs;
+# name every stale entry (each with its workdir) so the board saves once:
+uv run tools/eval/run_eval.py rescore \
+  --module jn1-chaotic-caves --workdir ~/osr-forge-measurement/phase7/sweep1-jn1-chaotic-caves.forge \
+  --module jn2-monkey-isle --workdir ~/osr-forge-measurement/phase7/sweep1-jn2-monkey-isle.forge \
+  --module minimod --workdir ~/osr-forge-measurement/phase7/sweep1-minimod.forge
 ```
 
 `convert` runs the package pipeline with `FoundryProvider` — recording off:
@@ -194,11 +233,10 @@ amendment records both runs side by side, and the regression band is the
 observed per-metric spread, floored at 0.02 absolute.
 
 The current noise band — the living table each sweep-pair updates, with
-history staying in the phase amendments (this table: the phase 7 double
-sweep of 2026-07-17 — the first pair measured with the stat-block pass and
-the null-hardened resolution prompt live, and the first carrying the custom
-row; every spread sat at or under the floor except connection F1's 0.028 on
-JN2):
+history staying in the phase amendments (this table: the phase 9 offline
+re-score of the phase 7 double sweep, 2026-07-31 — both runs re-scored under
+the seven-family scorer against the extended truth; the existing families
+reproduced their committed numbers exactly, so their bands stand unchanged):
 
 | metric | band |
 | --- | --- |
@@ -210,6 +248,22 @@ JN2):
 | custom accuracy | 0.02 |
 | connection F1 | 0.028 |
 | treasure presence | 0.02 |
+| door recall | 0.118 |
+| door precision | 0.269 |
+| door kind accuracy | 0.02 |
+| door locked accuracy | 0.02 |
+| transition recall | 0.02 |
+| transition precision | 0.5 |
+| transition kind accuracy | 0.02 |
+| entrance accuracy | 0.02 |
+| encounter precision | 0.02 |
+
+The door and transition ratio bands are wide because their denominators are
+small — 17–21 door edges and 1–2 vertical links per member — so a single
+flipped edge moves the ratio by tenths. At this corpus size the *counts*
+(true positives, extracted totals) are the sensitive regression signal for
+those families, and regression judgment should read them beside the ratios,
+the same way the mode-flip check below reads dungeon counts.
 
 The survey mode-flip phase 4 measured (a JN1 re-roll collapsed ten cave
 lairs into one dungeon) did not recur in either phase 6 run — the area
@@ -227,7 +281,9 @@ the same PR — the same edits that strand fixtures re-measure quality: one
 workflow, two obligations (the fixture re-record rule lives in
 `tools/extract/README.md`). A PR that changes the *scorer's* matching or
 metric semantics carries the offline counterpart: re-score the standing
-sweep pair from its retained workdirs, refresh the band, and record the
-re-scored pair in the phase amendment — no live spend, same discipline. A
+sweep pair from its retained workdirs (`run_eval.py rescore` for the entries
+the board holds, plain `score` for the second half of the pair), refresh the
+band, and record the re-scored pair in the phase amendment — no live spend,
+same discipline. A
 metric dropping by more than the band requires an explicit justification in
 the PR description; silence is a blocked merge.

@@ -37,6 +37,7 @@ __all__ = [
     "edge_sort_key",
     "parse_dimensions",
     "synthesize_geometry",
+    "transition_via",
 ]
 
 DEFAULT_ROOM_CELLS = (2, 2)
@@ -260,8 +261,20 @@ def _resolve_target(to_key: str, level_keys: Sequence[str]) -> str | None:
     return None
 
 
-def _transition_via(via: str) -> str:
-    """Narrow a mention's `via` to a transition family: trapdoors and chutes as themselves, else stairs."""
+def transition_via(via: str) -> str:
+    """Narrow a mention's `via` to a transition family: trapdoors and chutes as themselves, else stairs.
+
+    Public because the eval scorer's transition family narrows each mention
+    through this exact function (the [`usable_stat_block`][osrforge.assemble.usable_stat_block]
+    precedent: the metric shares geometry's own predicate so the two can
+    never disagree).
+
+    Args:
+        via: A connection mention's stated mechanism.
+
+    Returns:
+        `trapdoor`, `chute`, or `stairs`.
+    """
     return via if via in ("trapdoor", "chute") else "stairs"
 
 
@@ -321,7 +334,7 @@ def _resolve_dungeon_connections(
                             source_key=area.key,
                             to_level=connection.to_level,
                             down=down,
-                            via=_transition_via(connection.via),
+                            via=transition_via(connection.via),
                         )
                     )
                     continue
@@ -332,7 +345,7 @@ def _resolve_dungeon_connections(
                         if hit is not None:
                             sibling_number, sibling_key = hit
                             pair = frozenset(((level.number, area.key), (sibling_number, sibling_key)))
-                            stated_via = _transition_via(connection.via) if connection.via != "passage" else None
+                            stated_via = transition_via(connection.via) if connection.via != "passage" else None
                             existing = linked_by_pair.get(pair)
                             if existing is None:
                                 link = _CrossLevelLink(
