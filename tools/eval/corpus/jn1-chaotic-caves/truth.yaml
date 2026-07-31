@@ -20,6 +20,7 @@ dungeons:
             treasure:
               present: true
           - key: "2"
+            encounters: []
             treasure:
               present: false
           - key: "3"
@@ -45,6 +46,18 @@ dungeons:
                 template: orc
                 count: 2
             connections: ["4", "Jail Area"]
+            doors:
+              # The area title's own door ("5. DOOR TO JAIL", page 21) sits at
+              # the room's threshold off the wolf-pen hall, drawn as a plain
+              # door on the caves map (page 36); the wolf-pen fence gates on
+              # the same route are dotted fence lines, not door glyphs.
+              "4":
+                kind: door
+                locked: false
+              # "The locked door to the east opens into the jail" (page 21).
+              "Jail Area":
+                kind: door
+                locked: true
             treasure:
               present: true
           - key: Jail Area
@@ -53,6 +66,12 @@ dungeons:
                 template: merchant
                 count: 1
             connections: ["5"]
+            doors:
+              # The jail's one way out is the locked door back into the
+              # warden's room (page 21).
+              "5":
+                kind: door
+                locked: true
             treasure:
               present: false
           - key: "6"
@@ -79,15 +98,30 @@ dungeons:
             treasure:
               present: true
           - key: "8"
+            encounters: []
             treasure:
               present: false
           - key: "9"
+            encounters: []
             treasure:
               present: false
           - key: "10"
+            encounters: []
             connections: ["9"]
+            # The temple's heavy locked doors sit at the two ends of shared
+            # hallway 9 (page 22) — edges this file does not assert — and the
+            # caves map (page 36) draws the 9-10 opening itself plain: no door
+            # fact on this area's one asserted connection.
+            doors: {}
             treasure:
               present: true
+    # Single printed level — no vertical links on the caves map (page 36).
+    transitions: []
+    # "1. ENTRANCE" (page 20), the cave mouth marked A on the caves map
+    # (page 36).
+    entrance:
+      level: 1
+      key: "1"
   - name: B. Orc Lair
     levels:
       - number: 1
@@ -103,6 +137,7 @@ dungeons:
             treasure:
               present: true
           - key: "11"
+            encounters: []
             treasure:
               present: true
           - key: "12"
@@ -111,6 +146,18 @@ dungeons:
                 template: orc
                 count: 2
             connections: ["13", "14"]
+            doors:
+              # Guarded door plus buffer corridor between the guard post and
+              # the chief's quarters (page 22); the caves map (page 36) draws
+              # two plain door glyphs on that corridor.
+              "13":
+                kind: door
+                locked: false
+              # Plain door glyph at room 14's threshold on the passage up
+              # from 12 (caves map, page 36).
+              "14":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "13"
@@ -132,6 +179,16 @@ dungeons:
                 template: orc
                 count: 9
             connections: ["12", "15"]
+            doors:
+              "12":
+                kind: door
+                locked: false
+              # The door glyph at 14's north exit sits on the unkeyed hall
+              # linking 14 to 15 (caves map, page 36) — the 14-15 route is
+              # door-bearing at the 14 end.
+              "15":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "15"
@@ -140,8 +197,18 @@ dungeons:
                 template: orc
                 count: 7
             connections: ["14"]
+            doors:
+              "14":
+                kind: door
+                locked: false
             treasure:
               present: true
+    # Single printed level — no vertical links.
+    transitions: []
+    # The keyed ENTRANCE chamber just inside lair B's cave mouth (page 22).
+    entrance:
+      level: 1
+      key: Entrance
   - name: C. Hobgoblin Lair
     levels:
       - number: 1
@@ -154,6 +221,7 @@ dungeons:
             treasure:
               present: true
           - key: "16"
+            encounters: []
             treasure:
               present: false
           - key: "17"
@@ -164,6 +232,7 @@ dungeons:
             treasure:
               present: true
           - key: "18"
+            encounters: []
             treasure:
               present: false
           - key: "19"
@@ -190,6 +259,14 @@ dungeons:
                 count: 3
             treasure:
               present: true
+    # Single printed level — no vertical links.
+    transitions: []
+    # "Twin entrances lead into the first chamber" (page 23): both printed
+    # mouths open into the one keyed Entrance area, so no co-equal choice
+    # arises.
+    entrance:
+      level: 1
+      key: Entrance
   - name: D. Abandoned Crypts
     levels:
       - number: 1
@@ -200,6 +277,10 @@ dungeons:
                 template: ghoul
                 count: 3
             connections: ["23"]
+            # Open crypt passages throughout — the caves map (page 36) draws
+            # no door glyphs inside D; the rubble-choked door toward 20 rides
+            # the unasserted 22-20 edge.
+            doors: {}
             treasure:
               present: false
           - key: "23"
@@ -208,6 +289,7 @@ dungeons:
                 template: skeleton
                 count: 6
             connections: ["22", "24"]
+            doors: {}
             treasure:
               present: true
           - key: "24"
@@ -216,6 +298,7 @@ dungeons:
                 template: zombie
                 count: 4
             connections: ["23", "25"]
+            doors: {}
             treasure:
               present: true
           - key: "25"
@@ -224,8 +307,19 @@ dungeons:
                 template: skeleton
                 count: 6
             connections: ["24"]
+            doors: {}
             treasure:
               present: true
+    # Single printed level — no vertical links.
+    transitions: []
+    # Judgment call: the ruined facade (the D label on the caves map,
+    # page 36) is an unkeyed vestibule opening onto the foot of the central
+    # gallery keyed 23; 22 is the eastern side gallery by the rubble, though
+    # the key lists it first. Flagged for the verification pass and owner
+    # sample.
+    entrance:
+      level: 1
+      key: "23"
   - name: E. Goblin Lair
     levels:
       - number: 1
@@ -245,6 +339,7 @@ dungeons:
             treasure:
               present: true
           - key: "28"
+            encounters: []
             treasure:
               present: false
           - key: "29"
@@ -260,6 +355,7 @@ dungeons:
                 template: goblin
                 count: 11
             connections: ["31"]
+            doors: {}
             treasure:
               present: true
           - key: "31"
@@ -271,8 +367,18 @@ dungeons:
                 template: goblin
                 count: 3
             connections: ["28", "30"]
+            # The king's room hangs curtains, not doors (page 26); the caves
+            # map (page 36) draws no door glyphs in the goblin warren.
+            doors: {}
             treasure:
               present: true
+    # Single printed level — no vertical links.
+    transitions: []
+    # The net trap "marked on the map at the entrance" is controlled from
+    # guard post 26, the first keyed area inside the E cave mouth (page 25).
+    entrance:
+      level: 1
+      key: "26"
   - name: F. Bandit Lair
     levels:
       - number: 1
@@ -292,6 +398,7 @@ dungeons:
             treasure:
               present: true
           - key: "34"
+            encounters: []
             treasure:
               present: true
           - key: "35"
@@ -312,6 +419,10 @@ dungeons:
             treasure:
               present: true
           - key: "37"
+            # Asserted-empty judgment call: the stables entry (page 28) lists
+            # only livestock (riding horses, mules, cows) with no stat block —
+            # set dressing under the stat-block convention, not an encounter.
+            encounters: []
             treasure:
               present: false
           - key: "38"
@@ -332,6 +443,7 @@ dungeons:
             treasure:
               present: true
           - key: "40"
+            encounters: []
             treasure:
               present: true
           - key: "41"
@@ -348,6 +460,14 @@ dungeons:
                 count: 5
             treasure:
               present: true
+    # Single printed level — no vertical links.
+    transitions: []
+    # Judgment call: "This lair has two entrances: see locations #32 and #42"
+    # (page 27) — co-equal ways in; the first-presented east entrance is
+    # asserted per the committed-corpus convention.
+    entrance:
+      level: 1
+      key: "32"
   - name: G. Kobold Lair
     levels:
       - number: 1
@@ -381,6 +501,7 @@ dungeons:
             treasure:
               present: false
           - key: "47"
+            encounters: []
             treasure:
               present: false
           - key: "48"
@@ -403,6 +524,14 @@ dungeons:
                 count: 7
             treasure:
               present: false
+    # Single printed level — no vertical links.
+    transitions: []
+    # The G cave mouth opens onto guard post 43 (page 29); the outside exit
+    # at 49 is a concealed escape route "covered by living brush" (page 30),
+    # not a presented entrance.
+    entrance:
+      level: 1
+      key: "43"
   - name: H. Lizard Man Lair
     levels:
       - number: 1
@@ -418,6 +547,7 @@ dungeons:
             treasure:
               present: true
           - key: "51"
+            encounters: []
             treasure:
               present: false
           - key: "52"
@@ -428,6 +558,10 @@ dungeons:
             treasure:
               present: true
           - key: "53"
+            # Asserted-empty judgment call: the larder (page 31) stocks food
+            # animals (fish, eels, turtles, rabbits) behind reed walls with no
+            # stat block — provisions, not an encounter.
+            encounters: []
             treasure:
               present: false
           - key: "54"
@@ -461,8 +595,17 @@ dungeons:
             treasure:
               present: true
           - key: "57"
+            encounters: []
             treasure:
               present: false
+    # Single printed level — no vertical links.
+    transitions: []
+    # Judgment call: the lair prints a NORTH ENTRANCE (50, page 30) and a
+    # SOUTH ENTRANCE (57, page 32) — co-equal ways in; the first-presented
+    # north entrance is asserted per the committed-corpus convention.
+    entrance:
+      level: 1
+      key: "50"
   - name: I. Bugbear Lair
     levels:
       - number: 1
@@ -475,6 +618,7 @@ dungeons:
             treasure:
               present: true
           - key: "59"
+            encounters: []
             treasure:
               present: false
           - key: "60"
@@ -492,12 +636,15 @@ dungeons:
             treasure:
               present: true
           - key: "62"
+            encounters: []
             treasure:
               present: false
           - key: "63"
+            encounters: []
             treasure:
               present: false
           - key: "64"
+            encounters: []
             treasure:
               present: true
           - key: "65"
@@ -534,11 +681,22 @@ dungeons:
                 count: 2
             treasure:
               present: true
+    # Single printed level — no vertical links.
+    transitions: []
+    # "58. ENTRANCE" (page 32), the cave mouth marked I on the caves map
+    # (page 36).
+    entrance:
+      level: 1
+      key: "58"
   - name: J. Gnoll Lair
     levels:
       - number: 1
         areas:
           - key: "69"
+            # Asserted-empty judgment call: only days-old corpses lie at the
+            # entrance (page 34); the ambushing gnolls belong to guard posts
+            # 70 and 71, where their stat blocks print.
+            encounters: []
             treasure:
               present: false
           - key: "70"
@@ -566,6 +724,7 @@ dungeons:
             treasure:
               present: true
           - key: "73"
+            encounters: []
             treasure:
               present: false
           - key: "74"
@@ -584,9 +743,17 @@ dungeons:
                 template: black_widow
                 count: 1
             connections: ["74"]
+            doors:
+              # Trapped door into the hoard; the keys in the leader's room
+              # open "the treasure room to the south" (pages 34-35), and the
+              # caves map (page 36) draws it as a locked door.
+              "74":
+                kind: door
+                locked: true
             treasure:
               present: true
           - key: "75"
+            encounters: []
             treasure:
               present: false
           - key: "76"
@@ -596,12 +763,32 @@ dungeons:
                 count: 1
             treasure:
               present: true
+    # Single printed level — no vertical links.
+    transitions: []
+    # "69. ENTRANCE" (page 34), the cave mouth marked J on the caves map
+    # (page 36).
+    entrance:
+      level: 1
+      key: "69"
   - name: The Abandoned Manor
     levels:
       - number: 1
         areas:
           - key: "77"
+            encounters: []
             connections: ["78", "79"]
+            doors:
+              # West gate tower entrance door "has a lock but is not kept
+              # locked" (page 39).
+              "78":
+                kind: door
+                locked: false
+              # Judgment call: the east tower's door is broken off its hinges
+              # and wedged askew in the frame (page 39) — still a printed door
+              # on the edge, recorded unlocked.
+              "79":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "78"
@@ -616,6 +803,10 @@ dungeons:
                 template: black_widow
                 count: 1
             connections: ["77"]
+            doors:
+              "77":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "79"
@@ -627,6 +818,10 @@ dungeons:
                 template: giant_rat
                 count: 9
             connections: ["77"]
+            doors:
+              "77":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "80"
@@ -640,6 +835,7 @@ dungeons:
             treasure:
               present: false
           - key: "81"
+            encounters: []
             treasure:
               present: false
           - key: "82"
@@ -650,11 +846,24 @@ dungeons:
             treasure:
               present: true
           - key: "83"
+            encounters: []
             connections: ["84"]
+            # The bridge is burned and the moat is crossed on open ramps and
+            # footings (page 40) — no door on the 83-84 edge.
+            doors: {}
             treasure:
               present: false
           - key: "84"
+            encounters: []
             connections: ["83", "85"]
+            doors:
+              # Judgment call: the great iron double doors into the main hall
+              # are "firmly shut and barred from the inside" (page 40) —
+              # barred recorded as locked. The omitted moat-side neighbor 83
+              # is an explicit no-door.
+              "85":
+                kind: door
+                locked: true
             treasure:
               present: false
           - key: "85"
@@ -671,9 +880,15 @@ dungeons:
             treasure:
               present: false
           - key: "86"
+            # Asserted-empty judgment call: the renovated stables (page 41)
+            # hold only livestock with no stat block; the smith and apprentice
+            # smiths who work here print their stat blocks under entry 85,
+            # where this file already counts them.
+            encounters: []
             treasure:
               present: false
           - key: "87"
+            encounters: []
             treasure:
               present: false
           - key: "88"
@@ -692,18 +907,28 @@ dungeons:
                 template: veteran_1
                 count: 2
             connections: ["88"]
+            doors:
+              # Plain door between the kitchen and the prep room on Map K
+              # (page 44); no lock stated (page 41).
+              "88":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "90"
+            encounters: []
             treasure:
               present: false
           - key: "91"
+            encounters: []
             treasure:
               present: false
           - key: "92"
+            encounters: []
             treasure:
               present: false
           - key: "93"
+            encounters: []
             treasure:
               present: false
           - key: "94"
@@ -714,9 +939,15 @@ dungeons:
             treasure:
               present: false
           - key: "95"
+            # Asserted-empty: the 94-97 block (page 42) places its troops in
+            # 94 and 97 only; no creatures are stated in 95.
+            encounters: []
             treasure:
               present: false
           - key: "96"
+            # Asserted-empty: the 94-97 block (page 42) places its troops in
+            # 94 and 97 only; no creatures are stated in 96.
+            encounters: []
             treasure:
               present: false
           - key: "97"
@@ -729,11 +960,47 @@ dungeons:
       - number: 2
         areas:
           - key: "98"
+            encounters: []
             connections: ["99", "100", "101", "102", "103", "104", "105", "106"]
+            doors:
+              # Map L (page 45) draws a plain door glyph on every room off the
+              # balcony; 105's double doors hang open and 106's door is shut
+              # behind a warning bell, neither locked (page 43).
+              "99":
+                kind: door
+                locked: false
+              "100":
+                kind: door
+                locked: false
+              "101":
+                kind: door
+                locked: false
+              "102":
+                kind: door
+                locked: false
+              "103":
+                kind: door
+                locked: false
+              "104":
+                kind: door
+                locked: false
+              "105":
+                kind: door
+                locked: false
+              "106":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "99"
+            # Asserted-empty: the residents (the female fighter and one male
+            # fighter, page 42) are keyed where they are met, in entry 85.
+            encounters: []
             connections: ["98"]
+            doors:
+              "98":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "100"
@@ -742,26 +1009,61 @@ dungeons:
                 template: rock_python
                 count: 1
             connections: ["98"]
+            doors:
+              "98":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "101"
+            # Asserted-empty: the cleric who claims this room as private
+            # quarters is keyed at entry 106 with its stat block (page 42).
+            encounters: []
             connections: ["98"]
+            doors:
+              "98":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "102"
+            # Asserted-empty: the cleric who claims this room as private
+            # quarters is keyed at entry 106 with its stat block (page 42).
+            encounters: []
             connections: ["98"]
+            doors:
+              "98":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "103"
+            # Asserted-empty: the magic-user who uses this room is keyed at
+            # entry 106 with its stat block (page 43).
+            encounters: []
             connections: ["98"]
+            doors:
+              "98":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "104"
+            encounters: []
             connections: ["98"]
+            doors:
+              "98":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "105"
+            encounters: []
             connections: ["98"]
+            doors:
+              "98":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "106"
@@ -773,13 +1075,35 @@ dungeons:
                 custom: true
                 count: 2
             connections: ["98"]
+            doors:
+              "98":
+                kind: door
+                locked: false
             treasure:
               present: true
+    # The one printed vertical link: the twin ornate stair flights "a" and
+    # "b" from the main hall up to the balcony (pages 40 and 42) merge into a
+    # single 85-98 endpoint pair. Judgment call: the narrow stair in 90 drops
+    # to an unkeyed cold room (page 42) — a sub-room feature, not a link
+    # between keyed levels.
+    transitions:
+      - from_level: 1
+        from_key: "85"
+        to_level: 2
+        to_key: "98"
+        kind: stairs
+    # The breached gateway of "77. GATEWAY FLANKED BY TOWERS" (page 39) is
+    # the presented way in — "An old dirt road leads up to it, but stops at
+    # the entrance" (page 38).
+    entrance:
+      level: 1
+      key: "77"
   - name: Halfling Home
     levels:
       - number: 1
         areas:
           - key: H1
+            encounters: []
             treasure:
               present: false
           - key: H2
@@ -790,21 +1114,30 @@ dungeons:
             treasure:
               present: true
           - key: H3
+            encounters: []
             treasure:
               present: false
           - key: H4
+            # Asserted-empty judgment call: the slimy green pool by the window
+            # "looks exactly like a green slime monster but is not one"
+            # (page 14) — explicitly not a creature.
+            encounters: []
             treasure:
               present: false
           - key: H5
+            encounters: []
             treasure:
               present: false
           - key: H6
+            encounters: []
             treasure:
               present: false
           - key: H7
+            encounters: []
             treasure:
               present: false
           - key: H8
+            encounters: []
             treasure:
               present: false
           - key: H9
@@ -813,6 +1146,9 @@ dungeons:
                 template: fire_beetle
                 count: 3
             connections: []
+            # Free-standing tree house reached by climbing (page 15) — no
+            # asserted edges, no door facts.
+            doors: {}
             treasure:
               present: false
           - key: H10
@@ -821,10 +1157,22 @@ dungeons:
                 template: stirge
                 count: 6
             connections: []
+            # Detached shed; its double doors (page 15) face the outside, an
+            # edge this file does not assert.
+            doors: {}
             treasure:
               present: true
           - key: H11
+            encounters: []
             connections: [H12]
+            doors:
+              # Judgment call: the buried house's two main doors are boarded
+              # shut (page 15) — both printed doors open from the mound into
+              # the interior, recorded as one locked-door fact on the H11-H12
+              # edge, with boarded-shut recorded as locked.
+              H12:
+                kind: door
+                locked: true
             treasure:
               present: false
           - key: H12
@@ -833,10 +1181,30 @@ dungeons:
                 template: zombie
                 count: 4
             connections: [H11, H13, H15]
+            doors:
+              H11:
+                kind: door
+                locked: true
+              # Plain door glyphs on the miscellaneous maps (page 19).
+              H13:
+                kind: door
+                locked: false
+              H15:
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: H13
+            encounters: []
             connections: [H12, H14]
+            doors:
+              # Door glyph from the central space (miscellaneous maps,
+              # page 19). The omitted H14 neighbor is an explicit no-door: the
+              # printed H13-H14 wall is solid — see the frozen-connection
+              # finding in the phase 9 pass report.
+              H12:
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: H14
@@ -845,18 +1213,41 @@ dungeons:
                 template: zombie
                 count: 1
             connections: [H13]
+            # No printed opening on the H13-H14 wall (miscellaneous maps,
+            # page 19); H14's own printed door opens from the central H12
+            # space, an edge this file does not assert.
+            doors: {}
             treasure:
               present: true
           - key: H15
+            encounters: []
             connections: [H12]
+            doors:
+              H12:
+                kind: door
+                locked: false
             treasure:
               present: false
+    # Single printed level (every building keys on the one map, page 19) —
+    # the tree-house climb at H9 is a building entry, not a level link.
+    transitions: []
+    # Judgment call: the farmstead's buildings have their own ways in (H8,
+    # H10's shed doors, the boarded H11); the first-presented entry is the
+    # main house's "H1. FRONT DOOR" (page 14), flagged for the owner sample.
+    entrance:
+      level: 1
+      key: H1
   - name: Cave of Horrors
     levels:
       - number: 1
         areas:
           - key: C1
+            encounters: []
             connections: [C2, C3, C9]
+            # Natural winding tunnels throughout — the miscellaneous maps
+            # (page 19) draw no door glyphs in the cave; C8's smashed-in door
+            # rides an edge no area asserts.
+            doors: {}
             treasure:
               present: false
           - key: C2
@@ -865,6 +1256,7 @@ dungeons:
                 template: ogre
                 count: 1
             connections: [C1, C6]
+            doors: {}
             treasure:
               present: true
           - key: C3
@@ -873,18 +1265,25 @@ dungeons:
                 template: grey_ooze
                 count: 1
             connections: [C1, C4]
+            doors: {}
             treasure:
               present: true
           - key: C4
+            encounters: []
             connections: [C3, C5]
+            doors: {}
             treasure:
               present: false
           - key: C5
+            encounters: []
             connections: [C4, C7]
+            doors: {}
             treasure:
               present: false
           - key: C6
+            encounters: []
             connections: [C2, C7]
+            doors: {}
             treasure:
               present: false
           - key: C7
@@ -893,13 +1292,20 @@ dungeons:
                 template: stirge
                 count: 12
             connections: [C5, C6]
+            doors: {}
             treasure:
               present: true
           - key: C8
+            # Asserted-empty judgment call: the ornate room's "single skeletal
+            # figure sitting in a chair" (page 17) is inanimate set dressing
+            # with no stat block, not an encounter.
+            encounters: []
             treasure:
               present: true
           - key: C9
+            encounters: []
             connections: [C1, C10]
+            doors: {}
             treasure:
               present: false
           - key: C10
@@ -908,6 +1314,7 @@ dungeons:
                 template: cave_locust
                 count: 6
             connections: [C9, C11]
+            doors: {}
             treasure:
               present: false
           - key: C11
@@ -916,8 +1323,18 @@ dungeons:
                 template: sea_snake
                 count: 1
             connections: [C10]
+            doors: {}
             treasure:
               present: true
+    # Single printed level: the steps at C2, C4, and C5, the C6 slope, and
+    # C11's ladder to the woods are elevation changes on the one printed map
+    # (page 19), not links between keyed levels.
+    transitions: []
+    # "C1. ENTRANCEWAY" (page 16), the arched mouth on the miscellaneous
+    # maps (page 19).
+    entrance:
+      level: 1
+      key: C1
   - name: Crypt
     levels:
       - number: 1
@@ -928,5 +1345,14 @@ dungeons:
                 template: wight
                 count: 1
             connections: []
+            # The rusted gate and door at the tomb mouth (page 18) is the
+            # entrance, not a connection — no asserted edges, no door facts.
+            doors: {}
             treasure:
               present: true
+    # Single keyed chamber on a single printed level — no vertical links.
+    transitions: []
+    # The tomb's gated doorway (page 18) opens into the one keyed chamber.
+    entrance:
+      level: 1
+      key: Crypt
