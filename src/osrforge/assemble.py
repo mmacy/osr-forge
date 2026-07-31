@@ -100,6 +100,7 @@ from osrforge.overrides import (
 )
 from osrforge.previews import render_level_svg
 from osrforge.settings import ConversionSettings
+from osrforge.statblocks import ParsedHd, parse_ac, parse_class_level, parse_hd_text
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
 
 __all__ = [
@@ -246,32 +247,6 @@ def parse_treasure(strings: tuple[str, ...]) -> ParsedTreasure:
 # value is either traceably printed or recorded as derived.
 # ---------------------------------------------------------------------------
 
-_AC_DUAL = re.compile(r"^\s*(-?\d+)\s*\[\s*(-?\d+)\s*\]\s*$")
-_FIRST_INT = re.compile(r"-?\d+")
-_HD_FRACTION = re.compile(r"½|¼|\b1\s*/\s*[248]\b")
-_HD_MAIN = re.compile(r"(\d+)\s*(?:d\s*(\d+))?\s*([+-]\s*\d+)?")
-_CLASS_LETTER = re.compile(r"^\s*(mu|[fcmtdeh])\W*(\d+)\s*$", re.IGNORECASE)
-_CLASS_WORDS: tuple[tuple[str, str], ...] = (
-    ("magic-user", "magic_user"),
-    ("magic user", "magic_user"),
-    ("magicuser", "magic_user"),
-    ("fighter", "fighter"),
-    ("cleric", "cleric"),
-    ("thief", "thief"),
-    ("dwarf", "dwarf"),
-    ("elf", "elf"),
-    ("halfling", "halfling"),
-)
-_CLASS_LETTER_IDS = {
-    "f": "fighter",
-    "c": "cleric",
-    "m": "magic_user",
-    "mu": "magic_user",
-    "t": "thief",
-    "d": "dwarf",
-    "e": "elf",
-    "h": "halfling",
-}
 _SAVE_AS_LETTERS = {
     "fighter": "F",
     "cleric": "C",
@@ -317,84 +292,12 @@ _DIE_SIZES = frozenset({2, 3, 4, 6, 8, 10, 12, 20, 100})
 
 
 @dataclass(frozen=True)
-class _ParsedHd:
-    """A printed Hit Dice line, structurally parsed: count, printed die (if any), modifier, asterisks."""
-
-    count: int
-    die: int | None
-    modifier: int
-    asterisks: int
-    fractional: bool
-
-
-@dataclass(frozen=True)
 class EmittedTemplate:
     """One emitted custom template with its review record inputs."""
 
     template: MonsterTemplate
     derived: tuple[str, ...]
     source_pages: tuple[int, ...]
-
-
-def _parse_ac(block: RawStatBlock) -> tuple[int, int, bool] | None:
-    """Parse the printed AC into `(descending, ascending, complement_derived)`, or None.
-
-    Dual notation carries both values as printed; a single value converts by
-    the 19-complement (the B/X identity OSE prints directly: `AC 5 [14]`) in
-    the direction the block's notation states, defaulting to descending — the
-    B/X reading — when the notation is unclassified.
-    """
-    if block.ac is None:
-        return None
-    dual = _AC_DUAL.match(block.ac)
-    if dual is not None:
-        return int(dual.group(1)), int(dual.group(2)), False
-    match = _FIRST_INT.search(block.ac)
-    if match is None:
-        return None
-    value = int(match.group())
-    if block.ac_notation == "ascending":
-        return 19 - value, value, True
-    return value, 19 - value, True
-
-
-def _parse_hd_text(text: str | None) -> _ParsedHd | None:
-    """Structurally parse a printed HD line (`3+1`, `1-1`, `3*`, `½`, `2d8`), or None."""
-    if text is None or not text.strip():
-        return None
-    stripped = text.strip()
-    asterisks = stripped.count("*")
-    if _HD_FRACTION.search(stripped):
-        return _ParsedHd(count=0, die=None, modifier=0, asterisks=asterisks, fractional=True)
-    match = _HD_MAIN.search(stripped)
-    if match is None:
-        return None
-    die = int(match.group(2)) if match.group(2) else None
-    modifier = int(match.group(3).replace(" ", "")) if match.group(3) else 0
-    return _ParsedHd(count=int(match.group(1)), die=die, modifier=modifier, asterisks=asterisks, fractional=False)
-
-
-def _parse_class_level(text: str | None) -> tuple[str, int] | None:
-    """Parse a printed class-level notation (`F 3`, `MU4`, `"3rd-level cleric"`) into `(class_id, level)`.
-
-    A level below 1 refuses in both forms — a 0-level notation carries no
-    combat math to derive, so it must fall to the refusal ladder, never into
-    mapping (which is total only over parses this function accepts).
-    """
-    if text is None:
-        return None
-    lowered = text.casefold()
-    letter = _CLASS_LETTER.match(lowered)
-    if letter is not None:
-        level = int(letter.group(2))
-        return (_CLASS_LETTER_IDS[letter.group(1)], level) if level >= 1 else None
-    for word, class_id in _CLASS_WORDS:
-        if word in lowered:
-            numbers = re.findall(r"\d+", lowered)
-            if numbers and int(numbers[0]) >= 1:
-                return class_id, int(numbers[0])
-            return None
-    return None
 
 
 def usable_stat_block(block: RawStatBlock | None) -> bool:
@@ -413,9 +316,9 @@ def usable_stat_block(block: RawStatBlock | None) -> bool:
     """
     if block is None:
         return False
-    if _parse_ac(block) is None:
+    if parse_ac(block) is None:
         return False
-    return _parse_hd_text(block.hit_dice) is not None or _parse_class_level(block.class_level) is not None
+    return parse_hd_text(block.hit_dice) is not None or parse_class_level(block.class_level) is not None
 
 
 def _class_row(class_id: str, level: int):
@@ -435,7 +338,7 @@ def _band_saves(hit_dice: MonsterHitDice) -> tuple[SavingThrows, str]:
     raise AssertionError(f"no monster save band labelled {label!r}")  # pragma: no cover — the bands are total
 
 
-def _map_hit_dice(parsed: _ParsedHd, hp: int | None, special_count: int) -> tuple[MonsterHitDice, list[str]]:
+def _map_hit_dice(parsed: ParsedHd, hp: int | None, special_count: int) -> tuple[MonsterHitDice, list[str]]:
     """Map the parsed HD onto `MonsterHitDice` under the pinned anchors.
 
     Die 8 unless the block prints d4; a printed die the model can't carry
@@ -517,13 +420,13 @@ def _map_saves(
             return MonsterSaves(values=values, save_as=save_as), derived
         save_as_match = _SAVE_AS.search(text)
         if save_as_match is not None:
-            parsed = _parse_class_level(save_as_match.group(1))
+            parsed = parse_class_level(save_as_match.group(1))
             if parsed is not None:
                 class_id, level = parsed
                 row = _class_row(class_id, level)
                 return MonsterSaves(values=row.saves, save_as=f"{_SAVE_AS_LETTERS[class_id]}{level}"), derived
         # The labelled and bare BFRPG forms: "Sv F2", "Saves: F3", "F3".
-        bare = _parse_class_level(_SAVE_LABEL.sub("", text))
+        bare = parse_class_level(_SAVE_LABEL.sub("", text))
         if bare is not None:
             class_id, level = bare
             row = _class_row(class_id, level)
@@ -744,9 +647,9 @@ def map_stat_block(
         ValueError: If the block is not usable (programmer misuse — callers
             gate on the shared predicate).
     """
-    ac_parsed = _parse_ac(block)
-    hd_parsed = _parse_hd_text(block.hit_dice)
-    class_parsed = _parse_class_level(block.class_level)
+    ac_parsed = parse_ac(block)
+    hd_parsed = parse_hd_text(block.hit_dice)
+    class_parsed = parse_class_level(block.class_level)
     if ac_parsed is None or (hd_parsed is None and class_parsed is None):
         raise ValueError(f"stat block for {name!r} is not usable — callers must gate on usable_stat_block")
     derived: list[str] = ["treasure"]
