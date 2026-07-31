@@ -35,6 +35,7 @@ from osrforge.evals import (
     load_scoreboard,
     load_truth,
     publish_module,
+    rescore_module,
     save_byom_scoreboard,
     save_scoreboard,
     score_workdir,
@@ -113,6 +114,7 @@ def _print_metrics(module_id: str, metrics: ModuleMetrics) -> None:
     )
     print(
         f"  encounters:  name_recall={show(metrics.encounters.name_recall)} "
+        f"precision={show(metrics.encounters.precision)} "
         f"count_accuracy={show(metrics.encounters.count_accuracy)} "
         f"resolution_accuracy={show(metrics.encounters.resolution_accuracy)} "
         f"custom_accuracy={show(metrics.encounters.custom_accuracy)} "
@@ -127,6 +129,24 @@ def _print_metrics(module_id: str, metrics: ModuleMetrics) -> None:
     print(
         f"  treasure:    presence_agreement={show(metrics.treasure.presence_agreement)} "
         f"letter_accuracy={show(metrics.treasure.letter_accuracy)}"
+    )
+    print(
+        f"  doors:       recall={show(metrics.doors.recall)} precision={show(metrics.doors.precision)} "
+        f"kind_accuracy={show(metrics.doors.kind_accuracy)} locked_accuracy={show(metrics.doors.locked_accuracy)} "
+        f"({metrics.doors.true_positives}/{metrics.doors.truth_doors} truth doors, "
+        f"{metrics.doors.extracted_doors} extracted)"
+    )
+    print(
+        f"  transitions: recall={show(metrics.transitions.recall)} "
+        f"precision={show(metrics.transitions.precision)} "
+        f"kind_accuracy={show(metrics.transitions.kind_accuracy)} "
+        f"({metrics.transitions.true_positives}/{metrics.transitions.truth_transitions} truth links, "
+        f"{metrics.transitions.extracted_transitions} extracted; "
+        f"{metrics.transitions.asserted_dungeons} dungeons asserted)"
+    )
+    print(
+        f"  entrances:   accuracy={show(metrics.entrances.accuracy)} "
+        f"({metrics.entrances.matched}/{metrics.entrances.asserted} asserted)"
     )
 
 
@@ -172,6 +192,19 @@ def cmd_score(args: argparse.Namespace) -> None:
     )
     save_scoreboard(board_path, scoreboard)
     print(f"updated {board_path}")
+
+
+def cmd_rescore(args: argparse.Namespace) -> None:
+    member = module_dir(args.corpus, args.module_id)
+    board_path = scoreboard_path(args.corpus)
+    metrics = rescore_module(
+        board_path=board_path,
+        module_id=args.module_id,
+        workdir_path=args.workdir,
+        truth_path=member / "truth.yaml",
+    )
+    _print_metrics(args.module_id, metrics)
+    print(f"re-scored {args.module_id} in {board_path}: run block carried verbatim, truth_sha256 re-pinned")
 
 
 def cmd_report(args: argparse.Namespace) -> None:
@@ -264,6 +297,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_corpus_option(score_parser)
     score_parser.set_defaults(handler=cmd_score)
+
+    rescore_parser = subcommands.add_parser(
+        "rescore",
+        help="re-score an existing entry's retained workdir against current truth, run block carried (offline)",
+    )
+    rescore_parser.add_argument("module_id", help="the corpus module id; must already hold a scoreboard entry")
+    rescore_parser.add_argument("--workdir", type=Path, required=True, help="the retained converted workdir")
+    _add_corpus_option(rescore_parser)
+    rescore_parser.set_defaults(handler=cmd_rescore)
 
     report_parser = subcommands.add_parser("report", help="render a corpus scoreboard (offline)")
     report_parser.add_argument("--byom", action="store_true", help="render the committed BYOM scoreboard instead")
