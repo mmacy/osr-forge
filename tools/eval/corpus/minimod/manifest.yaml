@@ -21,4 +21,9 @@ truth_provenance:
   verified: >-
     The generator source (tools/minimod/generate_minimod.py) *is* the module
     — truth and module share one committed, reviewable origin. Predates the
-    adversarial verification pass phase 5 introduced.
+    adversarial verification pass phase 5 introduced. 2026-07-31: the phase 9
+    families (doors, transitions, entrance, asserted-empty encounters) were
+    agent-authored from the rendered pages under the independence line and
+    adversarially verified in a fresh context — VERIFIED, zero refutations,
+    with one frozen-key finding (area 3's connections vs the unlabeled map)
+    recorded for the phase's follow-up issue.

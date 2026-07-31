@@ -10,7 +10,7 @@
         "output_tokens": 47175,
         "usd": 1.4763
       },
-      "truth_sha256": "ad990c399fcd47e43dd0efbb6abcf58f0bccd6ef775f32ab36058b219bd96686",
+      "truth_sha256": "25dcb71b97589e6485959eb04b0a92c16899e899a95dc8900bee822129a38364",
       "settings_overrides": [],
       "metrics": {
         "areas": {
@@ -27,6 +27,9 @@
           "truth_encounters": 109,
           "name_matched": 99,
           "name_recall": 0.9083,
+          "precision_denominator": 106,
+          "precision_matched": 99,
+          "precision": 0.934,
           "count_denominator": 99,
           "count_matched": 98,
           "count_accuracy": 0.9899,
@@ -53,6 +56,32 @@
           "letters_denominator": 0,
           "letters_matched": 0,
           "letter_accuracy": null
+        },
+        "doors": {
+          "truth_doors": 21,
+          "extracted_doors": 22,
+          "true_positives": 11,
+          "recall": 0.5238,
+          "precision": 0.5,
+          "kind_matched": 11,
+          "kind_accuracy": 1.0,
+          "locked_matched": 11,
+          "locked_accuracy": 1.0
+        },
+        "transitions": {
+          "asserted_dungeons": 14,
+          "truth_transitions": 1,
+          "extracted_transitions": 1,
+          "true_positives": 1,
+          "recall": 1.0,
+          "precision": 1.0,
+          "kind_matched": 1,
+          "kind_accuracy": 1.0
+        },
+        "entrances": {
+          "asserted": 14,
+          "matched": 13,
+          "accuracy": 0.9286
         }
       }
     },
@@ -65,7 +94,7 @@
         "output_tokens": 28781,
         "usd": 1.2196
       },
-      "truth_sha256": "7b97ea6e0309adeaf2b90ae82e3225e41ee292a4e9aa5b6fa484baf2df3054fa",
+      "truth_sha256": "ebdfe2f2658180a1bdf576767f94e0daa9f8ccff8c7617a19260c84cb1c90c2d",
       "settings_overrides": [],
       "metrics": {
         "areas": {
@@ -82,6 +111,9 @@
           "truth_encounters": 57,
           "name_matched": 52,
           "name_recall": 0.9123,
+          "precision_denominator": 51,
+          "precision_matched": 50,
+          "precision": 0.9804,
           "count_denominator": 50,
           "count_matched": 46,
           "count_accuracy": 0.92,
@@ -108,6 +140,32 @@
           "letters_denominator": 0,
           "letters_matched": 0,
           "letter_accuracy": null
+        },
+        "doors": {
+          "truth_doors": 17,
+          "extracted_doors": 17,
+          "true_positives": 10,
+          "recall": 0.5882,
+          "precision": 0.5882,
+          "kind_matched": 10,
+          "kind_accuracy": 1.0,
+          "locked_matched": 10,
+          "locked_accuracy": 1.0
+        },
+        "transitions": {
+          "asserted_dungeons": 6,
+          "truth_transitions": 2,
+          "extracted_transitions": 2,
+          "true_positives": 2,
+          "recall": 1.0,
+          "precision": 1.0,
+          "kind_matched": 2,
+          "kind_accuracy": 1.0
+        },
+        "entrances": {
+          "asserted": 6,
+          "matched": 5,
+          "accuracy": 0.8333
         }
       }
     },
@@ -120,7 +178,7 @@
         "output_tokens": 2218,
         "usd": 0.0705
       },
-      "truth_sha256": "0a26d52abb0ffb11e4ab2730c53e7f4e49e1e5403c8f52f90dc349f268bbc1fc",
+      "truth_sha256": "4287cdb557c7877636ff038a4e5005df3b65e409cb56efe1a07edd24ab6dbbf9",
       "settings_overrides": [],
       "metrics": {
         "areas": {
@@ -137,6 +195,9 @@
           "truth_encounters": 5,
           "name_matched": 5,
           "name_recall": 1.0,
+          "precision_denominator": 5,
+          "precision_matched": 5,
+          "precision": 1.0,
           "count_denominator": 5,
           "count_matched": 5,
           "count_accuracy": 1.0,
@@ -163,6 +224,32 @@
           "letters_denominator": 0,
           "letters_matched": 0,
           "letter_accuracy": null
+        },
+        "doors": {
+          "truth_doors": 0,
+          "extracted_doors": 0,
+          "true_positives": 0,
+          "recall": null,
+          "precision": null,
+          "kind_matched": 0,
+          "kind_accuracy": null,
+          "locked_matched": 0,
+          "locked_accuracy": null
+        },
+        "transitions": {
+          "asserted_dungeons": 1,
+          "truth_transitions": 0,
+          "extracted_transitions": 1,
+          "true_positives": 0,
+          "recall": null,
+          "precision": 0.0,
+          "kind_matched": 0,
+          "kind_accuracy": null
+        },
+        "entrances": {
+          "asserted": 1,
+          "matched": 1,
+          "accuracy": 1.0
         }
       }
     }

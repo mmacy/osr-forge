@@ -30,3 +30,11 @@ truth_provenance:
     against the printed pages, plus the pinned CI baseline over the committed
     JN1 caches. Predates the adversarial verification pass phase 5
     introduced — recorded honestly rather than claimed retroactively.
+    2026-07-31: the phase 9 families (doors, transitions, entrances,
+    asserted-empty encounters) were agent-authored from the r28 pages and
+    maps under the independence line and adversarially verified in a fresh
+    context (Claude Fable 5 — a different model family than the extraction
+    deployment) — VERIFIED, all families, zero refutations, 11/11 judgment
+    calls upheld; one frozen-key finding (H13/H14 connections vs the printed
+    map, independently confirmed by both passes) recorded for the phase's
+    follow-up issue. The committed corpus's first real adversarial leg.
