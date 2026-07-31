@@ -29,6 +29,7 @@ __all__ = [
     "ModuleInfo",
     "MonsterSummary",
     "ValidationResult",
+    "VetoedResolution",
     "format_flag",
     "parse_flag",
 ]
@@ -45,6 +46,8 @@ class Flag(StrEnum):
     TRANSITION_GUESSED = "transition_guessed"
     TREASURE_UNPARSED = "treasure_unparsed"
     PAGE_UNREADABLE = "page_unreadable"
+    RESOLUTION_SUSPECT = "resolution_suspect"
+    SURVEY_DISPUTED = "survey_disputed"
 
 
 def parse_flag(value: str) -> tuple[Flag, str | None]:
@@ -332,12 +335,34 @@ class CustomMonsterRecord(BaseModel):
     rather than read off the printed page."""
 
 
+class VetoedResolution(BaseModel):
+    """One resolution the stat-block veto discarded.
+
+    The vetoed pick's review record: the extracted name, the discarded
+    catalog pick, and the both-readings detail. `unresolved` stays a tuple of
+    strings — no existing surface re-shapes.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    name: str
+    """The extracted monster name whose pick was vetoed."""
+
+    vetoed_template_id: str
+    """The catalog template the LLM or fuzzy tier picked and the veto discarded."""
+
+    detail: str | None = None
+    """The human-readable both-readings record
+    (`orc chief → orc, printed HD 2 vs 1`)."""
+
+
 class MonsterSummary(BaseModel):
     """The monster-resolution summary.
 
     `custom` records the emitted templates actually bundled into the draft —
     additive and defaulted, so reports written before emission existed still
-    validate.
+    validate; `vetoed` (likewise additive and defaulted) records the picks
+    the stat-block veto discarded, straight from the monsters cache.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -351,6 +376,9 @@ class MonsterSummary(BaseModel):
 
     custom: tuple[CustomMonsterRecord, ...] = ()
     """The emitted custom templates actually bundled into the draft."""
+
+    vetoed: tuple[VetoedResolution, ...] = ()
+    """The resolutions the stat-block veto discarded, in name order."""
 
 
 class ExtractionReport(BaseModel):

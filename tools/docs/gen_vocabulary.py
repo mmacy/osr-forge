@@ -26,6 +26,16 @@ _FLAG_MEANINGS = {
     Flag.TRANSITION_GUESSED: "a level-targeted link's landing was guessed (detail: the chosen far end)",
     Flag.TREASURE_UNPARSED: "a treasure string the grammar could not place (detail: the string)",
     Flag.PAGE_UNREADABLE: "a page render was blanked via `blank_page_renders` (detail: the page)",
+    Flag.RESOLUTION_SUSPECT: (
+        "a surviving non-exact monster pick whose printed stat block disagrees on a non-vetoing axis — "
+        "an HD-modifier-only difference, an AC mismatch, or a derived-complement AC disagreement "
+        "(detail: both readings, `name → template, printed HD 2+1 vs 2`)"
+    ),
+    Flag.SURVEY_DISPUTED: (
+        "the survey census disagreed with the survey — a site in one answer and not the other, differing "
+        "level counts, or a printed key range against the survey's keyed extremes (detail: the disagreement; "
+        "module-scope)"
+    ),
 }
 
 _CHECK_MEANINGS = {

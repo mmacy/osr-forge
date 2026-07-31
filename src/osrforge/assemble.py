@@ -72,6 +72,7 @@ from osrforge.contracts.report import (
     ModuleInfo,
     MonsterSummary,
     ValidationResult,
+    VetoedResolution,
     format_flag,
 )
 from osrforge.contracts.run import Stage, TokenUsage
@@ -87,7 +88,7 @@ from osrforge.contracts.stages import (
 )
 from osrforge.errors import OverrideError
 from osrforge.geometry import LevelGeometry, synthesize_geometry
-from osrforge.monsters import encounter_names, normalize_monster_name
+from osrforge.monsters import encounter_names, normalize_monster_name, printed_hd_profile
 from osrforge.overrides import (
     AREA_OVERRIDE_FIELDS,
     OverridePlan,
@@ -104,6 +105,7 @@ from osrforge.statblocks import ParsedHd, parse_ac, parse_class_level, parse_hd_
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
 
 __all__ = [
+    "CONFIDENCE_FLOOR",
     "AssembleResult",
     "EmittedTemplate",
     "assemble",
@@ -112,8 +114,24 @@ __all__ = [
     "map_stat_block",
     "parse_treasure",
     "render_previews",
+    "resolution_suspects",
     "usable_stat_block",
 ]
+
+CONFIDENCE_FLOOR = 0.6
+"""The self-assessed confidence below which an area gains `low_confidence:<value> self-assessed`.
+
+An honest uncertainty badge, explicitly *not* a hallucination guard — the
+corpus's unmatched extracted areas carry confidences 0.84-0.99, above the
+workdir median. Pinned against the measured distributions over the ten
+retained phase 9 workdirs (771 areas): nothing sits below 0.5 anywhere (a
+0.5 floor is a no-op), 0.6 fires six times corpus-wide (a genuine rarity
+badge), and 0.7 fires 44 times on the steep part of between-sweep
+instability (JN1's under-0.6 count moved 5 → 0 across sweeps). Deliberately
+a constant, not a settings knob: a knob invites tuning what should be
+re-pinned against data, and the arc's flags are contracts, not preferences.
+Revisit if a corpus member's distribution shifts.
+"""
 
 # The unanchored dice scan (osrlib's die sizes, optional count): a treasure
 # string containing dice notation is per-monster or conditional treasure and
@@ -319,6 +337,78 @@ def usable_stat_block(block: RawStatBlock | None) -> bool:
     if parse_ac(block) is None:
         return False
     return parse_hd_text(block.hit_dice) is not None or parse_class_level(block.class_level) is not None
+
+
+def _hd_reading(count: int, modifier: int) -> str:
+    return f"{count}{modifier:+d}" if modifier else str(count)
+
+
+def resolution_suspects(
+    resolutions: MonsterResolutions,
+    blocks: Mapping[str, RawStatBlock | None],
+    templates: Mapping[str, MonsterTemplate],
+) -> dict[str, str]:
+    """Judge the veto's survivors: normalized name → the `resolution_suspect` detail — pure.
+
+    Per surviving non-exact pick (a cached `llm` or `fuzzy` resolution — the
+    veto already flipped the contradicted ones), the printed block is
+    compared to the picked template on the axes that flag but never veto:
+
+    - an HD-modifier-only difference (counts equal, modifiers differ);
+    - an AC mismatch when both values are printed (dual notation);
+    - a comparison that rests on a derived AC complement and disagrees — the
+      direction hazard, named as such in the detail.
+
+    A pick with no usable printed block stays unflagged — no evidence, no
+    badge — which also covers caches recorded before the stat-block pass
+    widened (their `llm`/`fuzzy` names have no entries at all). The detail
+    names both readings; multiple axes join into one detail per name.
+
+    Args:
+        resolutions: The effective resolutions (overrides and emission
+            applied — an overridden or emitted name is no longer `llm`/`fuzzy`
+            and takes no badge).
+        blocks: The cached raw blocks, as extracted.
+        templates: Catalog template id → template.
+
+    Returns:
+        Name → detail for exactly the names meeting a condition.
+    """
+    suspects: dict[str, str] = {}
+    for name, entry in sorted(resolutions.resolutions.items()):
+        if entry.method not in ("llm", "fuzzy") or entry.template_id is None:
+            continue
+        block = blocks.get(name)
+        if not usable_stat_block(block):
+            continue
+        assert block is not None
+        template = templates[entry.template_id]
+        details: list[str] = []
+        profile = printed_hd_profile(block)
+        if profile is not None:
+            printed_count, printed_modifier = profile
+            hit_dice = template.hit_dice
+            if printed_count == hit_dice.count and printed_modifier != hit_dice.modifier:
+                details.append(
+                    f"printed HD {_hd_reading(printed_count, printed_modifier)}"
+                    f" vs {_hd_reading(hit_dice.count, hit_dice.modifier)}"
+                )
+        ac_parsed = parse_ac(block)
+        if ac_parsed is not None and template.ac is not None:
+            descending, ascending, derived = ac_parsed
+            template_ascending = template.ac_ascending if template.ac_ascending is not None else 19 - template.ac
+            if (descending, ascending) != (template.ac, template_ascending):
+                if derived:
+                    assert block.ac is not None
+                    details.append(
+                        f"printed AC {block.ac.strip()} read as {descending} [{ascending}]"
+                        f" vs {template.ac} [{template_ascending}]"
+                    )
+                else:
+                    details.append(f"printed AC {descending} [{ascending}] vs {template.ac} [{template_ascending}]")
+        if details:
+            suspects[name] = f"{name} → {template.id}, " + "; ".join(details)
+    return suspects
 
 
 def _class_row(class_id: str, level: int):
@@ -845,6 +935,7 @@ def _build_encounter(
     settings: ConversionSettings,
     count_flags: list[str],
     monster_flags: list[str],
+    suspects: Mapping[str, str],
 ) -> tuple[KeyedEncounter | None, list[str]]:
     """Merge an area's cache encounters into one `KeyedEncounter`, applying the unresolved fallback.
 
@@ -868,6 +959,8 @@ def _build_encounter(
         if resolution.template_id is not None:
             if resolution.method == "custom":
                 monster_flags.append(format_flag(Flag.MONSTER_CUSTOM, name))
+            if name in suspects:
+                monster_flags.append(format_flag(Flag.RESOLUTION_SUSPECT, suspects[name]))
             keyed.append(_keyed_monster(resolution.template_id, encounter, name, count_flags))
             continue
         unresolved.append(name)
@@ -892,6 +985,7 @@ def _build_area(
     settings: ConversionSettings,
     override: AreaOverride | None,
     cells_overridden: bool,
+    suspects: Mapping[str, str],
 ) -> tuple[AreaSpec, AreaReport, list[str]]:
     """Build one `AreaSpec` and its report entry; returns them plus the area's unresolved names.
 
@@ -913,12 +1007,16 @@ def _build_area(
     unresolved: list[str] = []
 
     if content is None:
+        # The extraction placeholder keeps its structural flag and gains no
+        # second badge — its 0.0 is synthesized, not a cached self-assessment.
         low_confidence.append(format_flag(Flag.LOW_CONFIDENCE, "not extracted"))
         confidence = 0.0
         source_pages = survey_pages
     else:
         confidence = content.confidence
         source_pages = content.source_pages
+        if confidence < CONFIDENCE_FLOOR:
+            low_confidence.append(format_flag(Flag.LOW_CONFIDENCE, f"{confidence} self-assessed"))
 
     name = area_name
     if override is not None and "name" in fields:
@@ -931,7 +1029,9 @@ def _build_area(
         # The osrlib payload is used verbatim; the human's word is the last word.
         encounter = override.encounter
     elif content is not None:
-        encounter, unresolved = _build_encounter(content, resolutions, table, settings, low_confidence, monster_flags)
+        encounter, unresolved = _build_encounter(
+            content, resolutions, table, settings, low_confidence, monster_flags, suspects
+        )
     else:
         encounter = None
 
@@ -1093,6 +1193,7 @@ def build_draft(
     settings: ConversionSettings,
     plan: OverridePlan | None = None,
     custom_templates: Mapping[str, MonsterTemplate] | None = None,
+    suspects: Mapping[str, str] | None = None,
 ) -> DraftResult:
     """Build the draft adventure and per-area reports from validated caches plus overrides — pure.
 
@@ -1111,6 +1212,9 @@ def build_draft(
             built encounter actually references bundle into
             `Adventure.monsters` (sorted by id) — an emission every reference
             was remapped away from is dead content and stays out.
+        suspects: Name → `resolution_suspect` detail
+            ([`resolution_suspects`][osrforge.assemble.resolution_suspects]);
+            each area whose built encounter carries the name gains the flag.
 
     Returns:
         The draft, its per-area reports in survey order (removed areas keep a
@@ -1122,6 +1226,7 @@ def build_draft(
             stale cache (`convert`'s ordering makes it unreachable).
     """
     plan = plan if plan is not None else OverridePlan()
+    suspects = suspects if suspects is not None else {}
     module_flags: list[str] = []
     # Pure by construction: the settings echo in `run.json` is already an
     # assembly input, so the blanked-page flags derive from it, not from
@@ -1130,6 +1235,9 @@ def build_draft(
         format_flag(Flag.PAGE_UNREADABLE, f"page {page} render blanked")
         for page in sorted(set(settings.blank_page_renders))
     )
+    # The census's disagreements, straight off the survey cache — an
+    # extraction fact like the blanked pages, so it persists under overrides.
+    module_flags.extend(format_flag(Flag.SURVEY_DISPUTED, detail) for detail in index.census_disputes)
     name = _overridden_text(index.title, plan.module, "name")
     if not name:
         name = "Untitled module"
@@ -1190,6 +1298,7 @@ def build_draft(
                     settings=settings,
                     override=level_plan.area_overrides.get(survey_area.key) if level_plan is not None else None,
                     cells_overridden=level_plan is not None and survey_area.key in level_plan.cells,
+                    suspects=suspects,
                 )
                 areas.append(spec)
                 area_reports.append(report)
@@ -1308,6 +1417,13 @@ def assemble(workdir_path: Path) -> AssembleResult:
     if not workdir.monsters_json.is_file():
         raise ValueError(f"the monsters cache is missing: {workdir.monsters_json}")
     resolutions = MonsterResolutions.model_validate_json(workdir.monsters_json.read_text(encoding="utf-8"))
+    # The veto's review records, straight off the cache — collected before
+    # overrides and emission replace entries in memory.
+    vetoed_records = tuple(
+        VetoedResolution(name=name, vetoed_template_id=entry.vetoed_template_id, detail=entry.veto_detail)
+        for name, entry in sorted(resolutions.resolutions.items())
+        if entry.vetoed_template_id is not None
+    )
     missing = set(encounter_names(levels)) - resolutions.resolutions.keys()
     if missing:
         raise ValueError(f"the monsters cache is stale — unresolved names: {sorted(missing)}; re-run monsters")
@@ -1349,6 +1465,15 @@ def assemble(workdir_path: Path) -> AssembleResult:
             levels,
             frozenset(template.id for template in load_monsters().monsters),
         )
+    # Suspect detection judges the veto's survivors on the effective
+    # resolutions — an overridden or emitted name is no longer llm/fuzzy and
+    # takes no badge — against the *extracted* blocks, never override-supplied
+    # candidates.
+    suspects: dict[str, str] = {}
+    if statblocks is not None and statblocks.custom_monsters == "emit":
+        suspects = resolution_suspects(
+            resolutions, statblocks.blocks, {template.id: template for template in load_monsters().monsters}
+        )
     plan = plan_overrides(index, overrides)
 
     with track_stage(workdir, Stage.GEOMETRY):
@@ -1365,6 +1490,7 @@ def assemble(workdir_path: Path) -> AssembleResult:
             run.settings,
             plan,
             custom_templates={record.template.id: record.template for record in emitted.values()},
+            suspects=suspects,
         )
         validation = _run_validation(draft.adventure)
         resolved_count = sum(1 for resolution in resolutions.resolutions.values() if resolution.template_id is not None)
@@ -1385,7 +1511,9 @@ def assemble(workdir_path: Path) -> AssembleResult:
             module=ModuleInfo(title=index.title, pages=run.page_count),
             validation=validation,
             areas=draft.area_reports,
-            monsters=MonsterSummary(resolved=resolved_count, unresolved=draft.unresolved, custom=custom_records),
+            monsters=MonsterSummary(
+                resolved=resolved_count, unresolved=draft.unresolved, custom=custom_records, vetoed=vetoed_records
+            ),
             usage=usage,
             flags=draft.module_flags,
         )

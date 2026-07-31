@@ -59,14 +59,30 @@ IMAGE_TOKENS_PER_PAGE = 905
 _CHARS_PER_TOKEN = 4
 _SURVEY_OVERHEAD_TOKENS = 2_000  # prompt + schema
 _SURVEY_OUTPUT_TOKENS_PER_PAGE = 70
+# The census re-sends every survey window's pages with a much smaller prompt
+# and schema; its answer (site names, level numbers, key ranges) is small and
+# flat per window.
+_CENSUS_OVERHEAD_TOKENS = 500
+_CENSUS_OUTPUT_TOKENS_PER_WINDOW = 500
 # Pages are re-sent per level batch and map pages ride every batch, so a
 # send-once model undercounts (JN1 measured 1.20x, minimod 0.77x, B3 ~1.1x).
 _CONTENT_INPUT_FACTOR = 1.25
 _CONTENT_OUTPUT_TOKENS_PER_PAGE = 550
-# JN1 measured 4,305/340; zero when a module resolves deterministically, which
-# is unknowable in advance — the flat constant is the honest rough call.
+# The LLM resolution tier: JN1 measured 4,305/340; zero when a module resolves
+# deterministically, which is unknowable in advance — the flat constant is the
+# honest rough call.
 _MONSTERS_INPUT_TOKENS = 5_000
 _MONSTERS_OUTPUT_TOKENS = 500
+# The widened stat-block pass (emit is the default): one transcription request
+# per non-exact name. Names cannot be counted before extraction, so the term
+# prices from page count the way the content term does. Measured means over
+# the retained phase 9 sweep pair: JN1 30.5 non-exact names / 48 pages
+# (0.64/page), JN2 27.5 / 54 (0.51/page) — pinned at 0.6/page; per-request
+# usage from JN1's nine recorded transcription exchanges, mean 8,144 in /
+# 134 out — pinned at 8,000/150.
+_STATBLOCK_NAMES_PER_PAGE = 0.6
+_STATBLOCK_INPUT_TOKENS_PER_REQUEST = 8_000
+_STATBLOCK_OUTPUT_TOKENS_PER_REQUEST = 150
 
 
 @dataclass(frozen=True)
@@ -79,16 +95,22 @@ class CostEstimate:
         image_tokens: Estimated page-image tokens, all pages.
         survey_window_count: How many requests the survey runs as — 1 at or
             under `survey_max_pages` pages, one per chunked page window above.
+            The census runs over the same windows.
         survey_input_tokens: Estimated survey input, all windows.
         survey_output_tokens: Estimated survey output, all windows.
+        census_input_tokens: Estimated census input, all windows — the
+            survey's page-image-dominated input with a smaller overhead.
+        census_output_tokens: Estimated census output, all windows.
         content_input_tokens: Estimated content-pass input, all batches.
         content_output_tokens: Estimated content output.
-        monsters_input_tokens: The flat monsters-stage input constant.
-        monsters_output_tokens: The flat monsters-stage output constant.
+        monsters_input_tokens: Estimated monsters-stage input — the flat LLM
+            tier plus the page-count-priced stat-block pass.
+        monsters_output_tokens: Estimated monsters-stage output, same terms.
         input_tokens: The input total.
         output_tokens: The output total.
-        usd: The estimated cost, with each survey window priced at the doubled
-            tier when that window's estimated input crosses the 272K cliff.
+        usd: The estimated cost, with each survey and census window priced at
+            the doubled tier when that window's estimated input crosses the
+            272K cliff.
     """
 
     page_count: int
@@ -97,6 +119,8 @@ class CostEstimate:
     survey_window_count: int
     survey_input_tokens: int
     survey_output_tokens: int
+    census_input_tokens: int
+    census_output_tokens: int
     content_input_tokens: int
     content_output_tokens: int
     monsters_input_tokens: int
@@ -115,7 +139,13 @@ def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: Conve
     image half of a window's tokens, while text tokens are unbounded by page
     count (at the densest measured calibration module, ~1,015 text
     tokens/page, a window over ~140 pages crosses the cliff — reachable with
-    the `survey_max_pages` knob raised past its image-cap default).
+    the `survey_max_pages` knob raised past its image-cap default). The
+    census prices the same windows again with its smaller overhead and flat
+    per-window output — its cost lever is the page images, and blindness on
+    scanned modules is the wrong trade, so it re-sends the full page parts.
+    The monsters term is the flat LLM-tier constant plus the widened
+    stat-block pass priced from page count (the constants' provenance is
+    documented where they are defined).
     """
     page_count = len(page_text_tokens)
     text_tokens = sum(page_text_tokens)
@@ -124,27 +154,36 @@ def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: Conve
     windows = survey_windows(page_count, settings.survey_max_pages)
     survey_input = 0
     survey_output = 0
-    survey_usd = 0.0
+    census_input = 0
+    census_output = 0
+    windowed_usd = 0.0
     for first_page, last_page in windows:
         window_pages = last_page - first_page + 1
-        window_input = (
-            sum(page_text_tokens[first_page - 1 : last_page])
-            + IMAGE_TOKENS_PER_PAGE * window_pages
-            + _SURVEY_OVERHEAD_TOKENS
-        )
-        window_output = _SURVEY_OUTPUT_TOKENS_PER_PAGE * window_pages
-        window_crosses_cliff = window_input > LARGE_REQUEST_INPUT_TOKENS
-        window_input_rate = LARGE_INPUT_USD_PER_TOKEN if window_crosses_cliff else INPUT_USD_PER_TOKEN
-        window_output_rate = LARGE_OUTPUT_USD_PER_TOKEN if window_crosses_cliff else OUTPUT_USD_PER_TOKEN
-        survey_usd += window_input * window_input_rate + window_output * window_output_rate
-        survey_input += window_input
-        survey_output += window_output
+        window_page_tokens = sum(page_text_tokens[first_page - 1 : last_page]) + IMAGE_TOKENS_PER_PAGE * window_pages
+        for overhead, window_output in (
+            (_SURVEY_OVERHEAD_TOKENS, _SURVEY_OUTPUT_TOKENS_PER_PAGE * window_pages),
+            (_CENSUS_OVERHEAD_TOKENS, _CENSUS_OUTPUT_TOKENS_PER_WINDOW),
+        ):
+            window_input = window_page_tokens + overhead
+            window_crosses_cliff = window_input > LARGE_REQUEST_INPUT_TOKENS
+            window_input_rate = LARGE_INPUT_USD_PER_TOKEN if window_crosses_cliff else INPUT_USD_PER_TOKEN
+            window_output_rate = LARGE_OUTPUT_USD_PER_TOKEN if window_crosses_cliff else OUTPUT_USD_PER_TOKEN
+            windowed_usd += window_input * window_input_rate + window_output * window_output_rate
+            if overhead is _SURVEY_OVERHEAD_TOKENS:
+                survey_input += window_input
+                survey_output += window_output
+            else:
+                census_input += window_input
+                census_output += window_output
     content_input = math.ceil(_CONTENT_INPUT_FACTOR * page_tokens)
     content_output = _CONTENT_OUTPUT_TOKENS_PER_PAGE * page_count
+    statblock_requests = math.ceil(_STATBLOCK_NAMES_PER_PAGE * page_count)
+    monsters_input = _MONSTERS_INPUT_TOKENS + statblock_requests * _STATBLOCK_INPUT_TOKENS_PER_REQUEST
+    monsters_output = _MONSTERS_OUTPUT_TOKENS + statblock_requests * _STATBLOCK_OUTPUT_TOKENS_PER_REQUEST
     usd = (
-        survey_usd
-        + (content_input + _MONSTERS_INPUT_TOKENS) * INPUT_USD_PER_TOKEN
-        + (content_output + _MONSTERS_OUTPUT_TOKENS) * OUTPUT_USD_PER_TOKEN
+        windowed_usd
+        + (content_input + monsters_input) * INPUT_USD_PER_TOKEN
+        + (content_output + monsters_output) * OUTPUT_USD_PER_TOKEN
     )
     return CostEstimate(
         page_count=page_count,
@@ -153,12 +192,14 @@ def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: Conve
         survey_window_count=len(windows),
         survey_input_tokens=survey_input,
         survey_output_tokens=survey_output,
+        census_input_tokens=census_input,
+        census_output_tokens=census_output,
         content_input_tokens=content_input,
         content_output_tokens=content_output,
-        monsters_input_tokens=_MONSTERS_INPUT_TOKENS,
-        monsters_output_tokens=_MONSTERS_OUTPUT_TOKENS,
-        input_tokens=survey_input + content_input + _MONSTERS_INPUT_TOKENS,
-        output_tokens=survey_output + content_output + _MONSTERS_OUTPUT_TOKENS,
+        monsters_input_tokens=monsters_input,
+        monsters_output_tokens=monsters_output,
+        input_tokens=survey_input + census_input + content_input + monsters_input,
+        output_tokens=survey_output + census_output + content_output + monsters_output,
         usd=usd,
     )
 
