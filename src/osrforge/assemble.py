@@ -99,7 +99,7 @@ from osrforge.overrides import (
     plan_overrides,
     plan_template_overrides,
 )
-from osrforge.previews import render_level_svg
+from osrforge.previews import PreviewIndexLevel, render_level_svg, render_previews_index
 from osrforge.settings import ConversionSettings
 from osrforge.statblocks import ParsedHd, parse_ac, parse_class_level, parse_hd_text
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
@@ -1524,33 +1524,54 @@ def assemble(workdir_path: Path) -> AssembleResult:
             workdir.adventure_json, stamp_document("adventure", draft.adventure.model_dump(mode="json"))
         )
         write_json_artifact(workdir.report_json, report)
-        _write_previews(workdir, draft.adventure)
+        _write_previews(workdir, index, draft.adventure)
     return AssembleResult(adventure=draft.adventure, report=report)
 
 
-def _write_previews(workdir: Workdir, adventure: Adventure) -> None:
+def _write_previews(workdir: Workdir, index: SurveyIndex, adventure: Adventure) -> None:
     workdir.previews_dir.mkdir(parents=True, exist_ok=True)
     for dungeon in adventure.dungeons:
         for level in dungeon.levels:
             path = workdir.preview_svg(dungeon.id, level.number)
             path.write_text(render_level_svg(dungeon.id, level), encoding="utf-8")
+    _write_previews_index(workdir, index, adventure.name)
+
+
+def _write_previews_index(workdir: Workdir, index: SurveyIndex, title: str) -> Path:
+    # Hrefs are relative to previews/, so the page opens from any workdir
+    # checkout; map_pages comes off the survey cache, so the index is as pure
+    # as the SVGs beside it (a missing page render is a broken image link,
+    # never a different byte).
+    levels = tuple(
+        PreviewIndexLevel(
+            heading=f"{dungeon.name or dungeon.id} — level {level.number}",
+            svg_href=workdir.preview_svg(dungeon.id, level.number).name,
+            map_pages=tuple((page, f"../pages/{workdir.page_png(page).name}") for page in level.map_pages),
+        )
+        for dungeon in index.dungeons
+        for level in dungeon.levels
+    )
+    path = workdir.previews_index
+    path.write_text(render_previews_index(title, levels), encoding="utf-8")
+    return path
 
 
 def render_previews(workdir_path: Path) -> tuple[Path, ...]:
     """Regenerate the SVG previews alone — `osrforge preview`.
 
     Re-runs geometry synthesis and override application over the survey and
-    content caches plus `overrides.yaml` and rewrites `previews/` only,
-    touching neither the other artifacts nor `run.json`. The rendered bytes
-    are identical to assembly's — previews follow the draft, so corrected
-    cells and override-authored doors render here too.
+    content caches plus `overrides.yaml` and rewrites `previews/` only —
+    the level SVGs and `index.html` — touching neither the other artifacts
+    nor `run.json`. The rendered bytes are identical to assembly's — previews
+    follow the draft, so corrected cells and override-authored doors render
+    here too.
 
     Args:
         workdir_path: The workdir root; the survey and content caches must be
             present.
 
     Returns:
-        The written preview paths, in survey order.
+        The written preview paths — the SVGs in survey order, then `index.html`.
 
     Raises:
         ValueError: If the survey or a level's content cache is missing.
@@ -1586,4 +1607,6 @@ def render_previews(workdir_path: Path) -> tuple[Path, ...]:
             path = workdir.preview_svg(dungeon.id, survey_level.number)
             path.write_text(render_level_svg(dungeon.id, level), encoding="utf-8")
             written.append(path)
+    title = _overridden_text(index.title, plan.module, "name") or "Untitled module"
+    written.append(_write_previews_index(workdir, index, title))
     return tuple(written)

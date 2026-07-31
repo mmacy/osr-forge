@@ -9,12 +9,13 @@ osrforge convert <module.pdf> [--workdir DIR] [--provider foundry] [--set KEY=VA
 osrforge rerun <stage> [--workdir DIR] [--provider foundry] [--set KEY=VALUE]
 osrforge assemble [--workdir DIR]
 osrforge check [--workdir DIR]
+osrforge report [--workdir DIR]
 osrforge preview [--workdir DIR]
 osrforge estimate <module.pdf> [--workdir DIR]
 osrforge --version
 ```
 
-`assemble`, `check`, `preview`, and `rerun` discover a missing `--workdir`:
+`assemble`, `check`, `report`, `preview`, and `rerun` discover a missing `--workdir`:
 the working directory itself when it is a workdir (it contains `run.json`),
 else the unique `*.forge` directory within it. Finding several `*.forge`
 directories, or none, is a loud error naming what was found — pass
@@ -57,10 +58,24 @@ failed or any error-severity finding exists — warnings don't break the
 `assemble && check` loop. The finding vocabulary is
 [enumerated](vocabulary.md).
 
+## report
+
+Summarizes `report.json` without opening it — the review loop's first read.
+Prints the validation status (with the error messages when it failed), the
+flags grouped by kind with their locations (module-scope entries at location
+`module`), the monster-resolution summary with the unresolved names, and the
+playability findings by severity, errors first. Presentation only: machine
+consumers keep reading the artifact, and the exit code stays 0 — `check` owns
+the gate.
+
 ## preview
 
-Regenerates `previews/*.svg` from the assembled adventure — useful after
-hand-tuning geometry overrides when you only want to look at maps.
+Regenerates `previews/` from the assembled adventure — each level's SVG plus
+`index.html`, which pairs every synthesized map with the module's own map-page
+renders for side-by-side comparison. Useful after hand-tuning geometry
+overrides when you only want to look at maps. The SVGs carry a coordinate
+ruler printing the exact 0-based `x, y` values a geometry override's `cells`
+and edge keys use.
 
 ## estimate
 

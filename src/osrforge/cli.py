@@ -1,4 +1,4 @@
-"""The `osrforge` console script: `convert`, `rerun`, `assemble`, `check`, `preview`, and `estimate`.
+"""The `osrforge` console script: `convert`, `rerun`, `assemble`, `check`, `report`, `preview`, and `estimate`.
 
 House-scale argparse. Runtime failures ([`OsrForgeError`][osrforge.errors.OsrForgeError],
 pydantic validation errors from malformed workdirs or bad `--set` values, and
@@ -19,7 +19,7 @@ from pydantic import ValidationError
 
 from osrforge.assemble import assemble, render_previews
 from osrforge.check import check
-from osrforge.contracts.report import ExtractionReport
+from osrforge.contracts.report import ExtractionReport, Flag, parse_flag
 from osrforge.contracts.run import Stage
 from osrforge.convert import RUNNABLE_STAGES, StageEvent, convert, rerun
 from osrforge.errors import OsrForgeError
@@ -29,7 +29,7 @@ from osrforge.settings import ConversionSettings
 from osrforge.versioning import osrforge_version
 from osrforge.workdir import Workdir
 
-__all__ = ["main", "parse_set_values"]
+__all__ = ["format_report", "main", "parse_set_values"]
 
 OVERRIDES_TEMPLATE = """\
 # osr-forge correction file — applied on every `osrforge assemble`.
@@ -121,9 +121,77 @@ def parse_set_values(values: list[str] | None) -> dict[str, object]:
     return updates
 
 
+def _validation_line(passed: bool, error_count: int) -> str:
+    outcome = "passed" if passed else f"failed ({error_count} errors)"
+    return f"validation: {outcome}"
+
+
 def _print_validation(report_validation_passed: bool, error_count: int) -> None:
-    outcome = "passed" if report_validation_passed else f"failed ({error_count} errors)"
-    print(f"validation: {outcome}")
+    print(_validation_line(report_validation_passed, error_count))
+
+
+def format_report(report: ExtractionReport) -> str:
+    """Format the review summary `osrforge report` prints over a `report.json`.
+
+    Presentation only — machine consumers keep reading the artifact. The
+    sections mirror the review loop's reading order: validation, flags grouped
+    by kind with their locations (module-scope entries at location `module`),
+    the monster-resolution summary with the unresolved names, and the
+    playability findings by severity.
+
+    Args:
+        report: The parsed report.
+
+    Returns:
+        The summary text, ending in a newline.
+    """
+    lines = [f"{report.module.title} — {report.module.pages} pages, osrforge {report.osrforge_version}"]
+    lines.append(_validation_line(report.validation.passed, len(report.validation.errors)))
+    lines.extend(f"  {error}" for error in report.validation.errors)
+
+    grouped: dict[Flag, list[str]] = {}
+
+    def group(flag_string: str, location: str) -> None:
+        flag, detail = parse_flag(flag_string)
+        grouped.setdefault(flag, []).append(location if detail is None else f"{location} ({detail})")
+
+    for area in report.areas:
+        for flag_string in area.flags:
+            group(flag_string, area.id)
+    for flag_string in report.flags:
+        group(flag_string, "module")
+    total = sum(len(entries) for entries in grouped.values())
+    lines.append(f"flags: {total}" if grouped else "flags: none")
+    for flag in Flag:
+        entries = grouped.get(flag)
+        if entries:
+            lines.append(f"  {flag.value}: {', '.join(entries)}")
+
+    summary = report.monsters
+    lines.append(
+        f"monsters: {summary.resolved} resolved, {len(summary.unresolved)} unresolved, "
+        f"{len(summary.custom)} custom, {len(summary.vetoed)} vetoed"
+    )
+    if summary.unresolved:
+        lines.append(f"  unresolved: {', '.join(summary.unresolved)}")
+    if summary.custom:
+        emitted = ", ".join(f"{record.id} ({record.name})" for record in summary.custom)
+        lines.append(f"  custom: {emitted}")
+    for vetoed in summary.vetoed:
+        record = vetoed.detail or f"{vetoed.name} → {vetoed.vetoed_template_id}"
+        lines.append(f"  vetoed: {record}")
+
+    if report.findings:
+        errors = [finding for finding in report.findings if finding.severity == "error"]
+        warnings = [finding for finding in report.findings if finding.severity == "warning"]
+        lines.append(f"findings: {len(errors)} errors, {len(warnings)} warnings")
+        lines.extend(
+            f"  {finding.severity} {finding.id.value} {finding.location} {finding.message}"
+            for finding in (*errors, *warnings)
+        )
+    else:
+        lines.append("findings: none recorded (osrforge check records them)")
+    return "\n".join(lines) + "\n"
 
 
 def _resolve_workdir(explicit: Path | None) -> Path:
@@ -241,6 +309,17 @@ def _cmd_check(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def _cmd_report(args: argparse.Namespace) -> None:
+    workdir = _resolve_workdir(args.workdir)
+    report_path = Workdir(workdir).report_json
+    if not report_path.is_file():
+        raise OsrForgeError(f"no report.json in {workdir} — run osrforge assemble first")
+    report = ExtractionReport.model_validate_json(report_path.read_text(encoding="utf-8"))
+    # Presentation only: check owns the gating exit code; a failed validation
+    # summarized here still exits 0.
+    print(format_report(report), end="")
+
+
 def _cmd_preview(args: argparse.Namespace) -> None:
     workdir = _resolve_workdir(args.workdir)
     written = render_previews(workdir)
@@ -316,6 +395,10 @@ def build_parser() -> argparse.ArgumentParser:
     check_parser = subcommands.add_parser("check", help="validate_adventure + the playability lint")
     _add_workdir_option(check_parser, discover=True)
     check_parser.set_defaults(handler=_cmd_check)
+
+    report_parser = subcommands.add_parser("report", help="summarize report.json — the review loop's first read")
+    _add_workdir_option(report_parser, discover=True)
+    report_parser.set_defaults(handler=_cmd_report)
 
     preview_parser = subcommands.add_parser("preview", help="regenerate the SVG maps only")
     _add_workdir_option(preview_parser, discover=True)

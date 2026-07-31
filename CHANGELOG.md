@@ -34,6 +34,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A `convert` or `rerun` failure whose workdir records a failed stage now
   appends the exact resume command to the error message:
   `resume with: osrforge rerun <stage> --workdir <dir>`.
+- New `osrforge report` command: a read-only one-screen summary of
+  `report.json` — validation status, flags grouped by kind with their
+  locations, the monster-resolution summary with unresolved names, and the
+  playability findings by severity. Presentation only; exit code stays 0.
+- The preview SVGs carry a coordinate ruler printing the exact 0-based cell
+  coordinates geometry overrides use, and `previews/index.html` pairs each
+  level's synthesized map with the module's own map-page renders for
+  side-by-side comparison.
 
 ### Evals
 
