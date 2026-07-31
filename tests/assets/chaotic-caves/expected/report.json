@@ -1896,7 +1896,8 @@
           "treasure"
         ]
       }
-    ]
+    ],
+    "vetoed": []
   },
   "usage": {
     "input_tokens": 0,

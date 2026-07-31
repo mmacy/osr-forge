@@ -221,3 +221,43 @@ class TestMonsterResolutions:
     def test_carries_schema_version_only(self):
         assert "schema_version" in MonsterResolutions.model_fields
         assert "osrforge_version" not in MonsterResolutions.model_fields
+
+
+class TestVetoFields:
+    def test_vetoed_entry_round_trips(self):
+        entry = MonsterResolution(
+            template_id=None,
+            method="unresolved",
+            vetoed_template_id="orc",
+            veto_detail="orc chief → orc, printed HD 2 vs 1",
+        )
+        again = MonsterResolution.model_validate_json(entry.model_dump_json())
+        assert again == entry
+
+    def test_vetoed_template_id_is_legal_only_with_unresolved(self):
+        with pytest.raises(ValidationError, match="vetoed_template_id"):
+            MonsterResolution(template_id="orc", method="llm", vetoed_template_id="orc")
+
+    def test_defaults_keep_pre_veto_caches_loading(self):
+        entry = MonsterResolution.model_validate({"template_id": "orc", "method": "llm"})
+        assert entry.vetoed_template_id is None and entry.veto_detail is None
+
+
+def test_census_disputes_default_keeps_pre_census_caches_loading():
+    index = SurveyIndex.model_validate(
+        {
+            "schema_version": 1,
+            "title": "Mod",
+            "hooks": [],
+            "town": {"name": "", "description": ""},
+            "dungeons": [
+                {
+                    "id": "lair",
+                    "name": "Lair",
+                    "levels": [{"number": 1, "map_pages": [], "areas": []}],
+                }
+            ],
+            "monster_names": [],
+        }
+    )
+    assert index.census_disputes == ()

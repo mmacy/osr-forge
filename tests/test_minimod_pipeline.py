@@ -8,6 +8,11 @@ stage caches, `adventure.json`, `report.json`, and the preview —
 byte-for-byte. The monsters stage makes no model call: minimod's whole name
 population resolves in the exact tier, and no monsters fixture exists for
 FixtureProvider to answer with, so a call would fail loudly.
+
+The survey stage is a two-call stage since phase 10 (the census rides the
+same pages), so every replaying test needs the recorded census fixture —
+committed at `assets/minimod/fixtures/census.*.json`; deleting it fails the
+suite loudly, as a stranded fixture should.
 """
 
 import shutil

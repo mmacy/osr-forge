@@ -12,12 +12,18 @@ from osrforge.errors import ExtractionError, ProviderError
 from osrforge.providers.base import TextPart
 from osrforge.settings import ConversionSettings
 from osrforge.survey import (
+    CENSUS_SCHEMA,
+    CENSUS_SYSTEM,
     SURVEY_SCHEMA,
     SURVEY_SYSTEM,
+    build_census_request,
+    build_chunked_census_request,
     build_chunked_survey_request,
     build_survey_request,
     canonical_slug,
+    census_disputes,
     filter_index_to_pages,
+    merge_census_answers,
     merge_survey_answers,
     normalize_survey,
     survey,
@@ -27,6 +33,19 @@ from osrforge.survey import (
 
 def raw_area(key: str, name: str = "Somewhere", pages: list[int] | None = None, kind: str = "room") -> dict:
     return {"key": key, "name": name, "source_pages": pages if pages is not None else [3], "kind": kind}
+
+
+def census_level(number: int = 1, first_key: str = "1", last_key: str = "1") -> dict:
+    return {"number": number, "first_key": first_key, "last_key": last_key}
+
+
+def raw_census(dungeons: list[dict] | None = None) -> dict:
+    """A census answer agreeing with `raw_survey()`'s default single-dungeon shape."""
+    return {
+        "dungeons": dungeons
+        if dungeons is not None
+        else [{"name": "A. Orc Lair", "levels": [census_level(1, "1", "1")]}]
+    }
 
 
 def raw_survey(dungeons: list[dict] | None = None, **overrides) -> dict:
@@ -217,7 +236,13 @@ class TestSurveyStage:
             {"name": "Orc Lair", "levels": [{"number": 0, "map_pages": [2], "areas": areas}]},
             {"name": "Orc Lair", "levels": [{"number": 1, "map_pages": [], "areas": [raw_area("1", pages=[3])]}]},
         ]
-        provider = ScriptedProvider([raw_survey(dungeons)])
+        census = raw_census(
+            [
+                {"name": "Orc Lair", "levels": [census_level(1, "5", "5")]},
+                {"name": "Orc Lair", "levels": [census_level(1, "1", "1")]},
+            ]
+        )
+        provider = ScriptedProvider([raw_survey(dungeons), census])
         index = survey(workdir, provider)
         cached = SurveyIndex.model_validate(json.loads(workdir.survey_json.read_text(encoding="utf-8")))
         assert cached == index
@@ -225,26 +250,34 @@ class TestSurveyStage:
         assert [area.key for area in cached.dungeons[0].levels[0].areas] == ["5", "5-2"]
         assert cached.dungeons[0].levels[0].number == 1
         assert cached.dungeons[0].levels[0].areas[1].source_pages == (3,)
+        # The agreeing census: the bumped `5-2` compares by its printed label.
+        assert cached.census_disputes == ()
 
     def test_request_covers_all_pages_in_order(self, tmp_path: Path):
         workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=3)
-        provider = ScriptedProvider([raw_survey()])
+        provider = ScriptedProvider([raw_survey(), raw_census()])
         survey(workdir, provider)
-        (request,) = provider.requests
+        request, census_request = provider.requests
         assert request.tag == "survey"
         markers = [part.text.split("\n")[0] for part in request.parts if isinstance(part, TextPart)]
         assert markers == ["[page 1]", "[page 2]", "[page 3]"]
         rebuilt = build_survey_request(request.parts)
         assert rebuilt.fingerprint() == request.fingerprint()
+        # The census rides the same pages as a second, reduced request.
+        assert census_request.tag == "census"
+        census_markers = [part.text.split("\n")[0] for part in census_request.parts if isinstance(part, TextPart)]
+        assert census_markers == markers
+        assert build_census_request(census_request.parts).fingerprint() == census_request.fingerprint()
 
     def test_run_json_transitions_and_identity(self, tmp_path: Path):
         workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=2)
-        provider = ScriptedProvider([raw_survey()])
+        provider = ScriptedProvider([raw_survey(), raw_census()])
         survey(workdir, provider)
         run = workdir.read_run()
         status = run.stages[Stage.SURVEY]
         assert status.status == "completed"
-        assert status.usage is not None and status.usage.input_tokens == 100
+        # Census usage folds into the survey stage's block — two calls, one stage.
+        assert status.usage is not None and status.usage.input_tokens == 200
         assert run.provider == "ScriptedProvider"
         assert run.model_id == "stub-model-1"
 
@@ -253,7 +286,7 @@ class TestSurveyStage:
         workdir.stages_dir.mkdir()
         stale = workdir.areas_json("old-dungeon", 1)
         stale.write_text("{}", encoding="utf-8")
-        survey(workdir, ScriptedProvider([raw_survey()]))
+        survey(workdir, ScriptedProvider([raw_survey(), raw_census()]))
         assert not stale.exists()
         assert workdir.survey_json.is_file()
 
@@ -289,7 +322,7 @@ def test_success_clears_the_monsters_and_statblock_caches_too(tmp_path: Path):
     stale_monsters.write_text("{}", encoding="utf-8")
     stale_blocks = workdir.statblocks_json
     stale_blocks.write_text("{}", encoding="utf-8")
-    survey(workdir, ScriptedProvider([raw_survey()]))
+    survey(workdir, ScriptedProvider([raw_survey(), raw_census()]))
     assert not stale_monsters.exists()
     assert not stale_blocks.exists()
 
@@ -454,20 +487,32 @@ class TestChunkedSurvey:
             monster_names=["wolf"],
         )
         third = raw_survey([], title="", hooks=[], monster_names=["goblin"])
-        provider = ScriptedProvider([first, second, third])
+        census_windows = [
+            raw_census([{"name": "The Caves", "levels": [census_level(1, "5", "5")]}]),
+            raw_census([{"name": "The Caves", "levels": [census_level(1, "5", "5")]}]),
+            raw_census([]),
+        ]
+        provider = ScriptedProvider([first, second, third, *census_windows])
         index = survey(workdir, provider)
 
-        assert len(provider.requests) == 3
+        assert len(provider.requests) == 6
+        survey_requests, census_requests = provider.requests[:3], provider.requests[3:]
         markers = [
             [part.text.split("\n")[0] for part in request.parts if isinstance(part, TextPart)]
-            for request in provider.requests
+            for request in survey_requests
         ]
         # Absolute page markers, contiguous disjoint windows.
         assert markers == [["[page 1]", "[page 2]"], ["[page 3]", "[page 4]"], ["[page 5]"]]
-        for request, (first_page, last_page) in zip(provider.requests, ((1, 2), (3, 4), (5, 5)), strict=True):
+        for request, (first_page, last_page) in zip(survey_requests, ((1, 2), (3, 4), (5, 5)), strict=True):
             assert request.tag == "survey"
             assert request.schema == SURVEY_SCHEMA
             assert request.system.startswith(SURVEY_SYSTEM)
+            assert f"pages {first_page}-{last_page} of a 5-page module" in request.system
+        # The census chunks over the same windows with its own prompt and schema.
+        for request, (first_page, last_page) in zip(census_requests, ((1, 2), (3, 4), (5, 5)), strict=True):
+            assert request.tag == "census"
+            assert request.schema == CENSUS_SCHEMA
+            assert request.system.startswith(CENSUS_SYSTEM)
             assert f"pages {first_page}-{last_page} of a 5-page module" in request.system
 
         # Raw-level merge, one normalize pass: the joined `5` plus the appended
@@ -479,11 +524,14 @@ class TestChunkedSurvey:
         assert dungeon.levels[0].areas[0].source_pages == (2, 3)
         assert index.hooks == ("A rumor", "A job")
         assert index.monster_names == ("orc", "wolf", "goblin")
+        # The census windows merged to one dungeon spanning `5`-`5`; the
+        # survey's extremes span `5`-`5` by printed label, so no dispute.
+        assert index.census_disputes == ()
 
-        # Usage accumulated across windows; caches cleared once on success.
+        # Usage accumulated across windows and both passes; caches cleared once on success.
         run = workdir.read_run()
         usage = run.stages[Stage.SURVEY].usage
-        assert usage is not None and usage.input_tokens == 300 and usage.output_tokens == 30
+        assert usage is not None and usage.input_tokens == 600 and usage.output_tokens == 60
         assert not stale.exists()
         assert workdir.survey_json.is_file()
 
@@ -498,12 +546,13 @@ class TestChunkedSurvey:
     def test_at_the_chunk_size_uses_the_untouched_single_request_path(self, tmp_path: Path):
         settings = ConversionSettings(survey_max_pages=3)
         workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=3, settings=settings)
-        provider = ScriptedProvider([raw_survey()])
+        provider = ScriptedProvider([raw_survey(), raw_census()])
         survey(workdir, provider)
-        (request,) = provider.requests
+        request, census_request = provider.requests
         assert request.system == SURVEY_SYSTEM  # no preamble on the single-request path
         rebuilt = build_survey_request(request.parts)
         assert rebuilt.fingerprint() == request.fingerprint()
+        assert census_request.system == CENSUS_SYSTEM  # the census single-request path likewise
 
 
 def test_single_request_path_is_digest_identical_to_the_committed_minimod_fixture(tmp_path: Path):
@@ -522,3 +571,232 @@ def test_single_request_path_is_digest_identical_to_the_committed_minimod_fixtur
     (fixture_path,) = (MINIMOD / "fixtures").glob("survey.*.json")
     fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
     assert request.fingerprint() == fixture["fingerprint"]
+
+
+def test_census_request_is_digest_identical_to_the_committed_minimod_fixture(tmp_path: Path):
+    """The census counterpart of the survey digest-identity gate."""
+    from osrforge.pages import page_request_parts
+    from test_minimod_pipeline import MINIMOD, PAGE_COUNT, minimod_workdir
+
+    workdir = minimod_workdir(tmp_path / "mod.forge")
+    request = build_census_request(page_request_parts(workdir, range(1, PAGE_COUNT + 1)))
+    (fixture_path,) = (MINIMOD / "fixtures").glob("census.*.json")
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    assert request.fingerprint() == fixture["fingerprint"]
+
+
+class TestCensusRequests:
+    def test_single_request_shape(self, tmp_path: Path):
+        from osrforge.pages import page_request_parts
+
+        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=2)
+        parts = page_request_parts(workdir, [1, 2])
+        request = build_census_request(parts)
+        assert request.tag == "census"
+        assert request.system == CENSUS_SYSTEM
+        assert request.schema == CENSUS_SCHEMA
+        assert request.parts == tuple(parts)
+
+    def test_chunked_request_appends_the_window_preamble_only(self, tmp_path: Path):
+        from osrforge.pages import page_request_parts
+
+        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=4)
+        request = build_chunked_census_request(page_request_parts(workdir, [1, 2]), 1, 2, 4)
+        assert request.tag == "census"
+        assert request.system.startswith(CENSUS_SYSTEM)
+        assert "pages 1-2 of a 4-page module" in request.system
+        assert request.schema == CENSUS_SCHEMA
+
+    def test_distinct_windows_produce_distinct_fingerprints(self, tmp_path: Path):
+        from osrforge.pages import page_request_parts
+
+        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=4)
+        one = build_chunked_census_request(page_request_parts(workdir, [1, 2]), 1, 2, 4)
+        two = build_chunked_census_request(page_request_parts(workdir, [3, 4]), 3, 4, 4)
+        assert one.fingerprint() != two.fingerprint()
+
+    def test_census_schema_is_a_strict_projection(self):
+        # No per-area records, no town, no monster names — sites, levels, and
+        # printed key ranges only.
+        assert set(CENSUS_SCHEMA["properties"]) == {"dungeons"}  # type: ignore[index]
+        level_schema = CENSUS_SCHEMA["properties"]["dungeons"]["items"]["properties"]["levels"]["items"]  # type: ignore[index]
+        assert set(level_schema["properties"]) == {"number", "first_key", "last_key"}
+
+
+class TestMergeCensusAnswers:
+    def test_boundary_split_dungeon_rejoins_on_slug_first_wins_scalars(self):
+        first = raw_census([{"name": "The Crypt", "levels": [census_level(1, "1", "6")]}])
+        second = raw_census(
+            [
+                {
+                    "name": "THE CRYPT!",
+                    "levels": [census_level(1, "1", "9"), census_level(2, "10", "14")],
+                }
+            ]
+        )
+        merged = merge_census_answers([first, second])
+        (dungeon,) = merged["dungeons"]
+        assert dungeon["name"] == "The Crypt"
+        # Level 1 joined (first occurrence wins the range); level 2 appended.
+        assert dungeon["levels"] == [census_level(1, "1", "6"), census_level(2, "10", "14")]
+
+    def test_same_window_duplicate_slugs_survive_verbatim(self):
+        only = raw_census(
+            [
+                {"name": "Lair", "levels": [census_level(1, "1", "4")]},
+                {"name": "Lair", "levels": [census_level(1, "5", "9")]},
+            ]
+        )
+        merged = merge_census_answers([only])
+        assert len(merged["dungeons"]) == 2
+
+    def test_cross_window_joins_are_occurrence_indexed_and_append_past_count(self):
+        first = raw_census([{"name": "Lair", "levels": [census_level(1, "1", "4")]}])
+        second = raw_census(
+            [
+                {"name": "Lair", "levels": [census_level(1, "1", "5")]},
+                {"name": "Lair", "levels": [census_level(1, "6", "9")]},
+            ]
+        )
+        merged = merge_census_answers([first, second])
+        # The first joins (first occurrence wins), the second appends as new.
+        assert [dungeon["levels"] for dungeon in merged["dungeons"]] == [
+            [census_level(1, "1", "4")],
+            [census_level(1, "6", "9")],
+        ]
+
+    def test_empty_slugs_never_join(self):
+        first = raw_census([{"name": "!!!", "levels": [census_level(1, "1", "4")]}])
+        second = raw_census([{"name": "!!!", "levels": [census_level(1, "1", "4")]}])
+        merged = merge_census_answers([first, second])
+        assert len(merged["dungeons"]) == 2
+
+    def test_merge_does_not_mutate_its_inputs(self):
+        first = raw_census([{"name": "Lair", "levels": [census_level(1, "1", "4")]}])
+        second = raw_census([{"name": "Lair", "levels": [census_level(2, "5", "9")]}])
+        snapshots = copy.deepcopy([first, second])
+        merge_census_answers([first, second])
+        assert [first, second] == snapshots
+
+
+def surveyed(dungeons: list[dict]) -> SurveyIndex:
+    return normalize_survey(raw_survey(dungeons), page_count=48)
+
+
+class TestCensusDisputes:
+    def test_agreement_is_empty(self):
+        index = surveyed([one_dungeon("A. Orc Lair", [raw_area("1", "Entrance"), raw_area("4a", "Hall")])])
+        census = raw_census([{"name": "A. Orc Lair", "levels": [census_level(1, "1", "4a")]}])
+        assert census_disputes(index, census) == ()
+
+    def test_census_only_site(self):
+        index = surveyed([one_dungeon("Orc Lair", [raw_area("1")])])
+        census = raw_census(
+            [
+                {"name": "Orc Lair", "levels": [census_level(1, "1", "1")]},
+                {"name": "Crypt of Horrors", "levels": [census_level(1, "1", "8")]},
+            ]
+        )
+        assert census_disputes(index, census) == ("census names 'crypt-of-horrors'; survey does not",)
+
+    def test_survey_only_site(self):
+        index = surveyed([one_dungeon("Orc Lair", [raw_area("1")]), one_dungeon("Goblin Warren", [raw_area("1")])])
+        census = raw_census([{"name": "Orc Lair", "levels": [census_level(1, "1", "1")]}])
+        assert census_disputes(index, census) == ("survey names 'goblin-warren'; census does not",)
+
+    def test_multiset_count_mismatch_never_collapses_duplicate_sites(self):
+        index = surveyed([one_dungeon("Orc Lair", [raw_area("1")]), one_dungeon("Orc Lair", [raw_area("1")])])
+        census = raw_census([{"name": "Orc Lair", "levels": [census_level(1, "1", "1")]}])
+        assert census_disputes(index, census) == ("census names 'orc-lair' 1 times; survey names it 2 times",)
+
+    def test_level_count_mismatch_for_a_matched_site(self):
+        index = surveyed([one_dungeon("Manor", [raw_area("1")])])
+        census = raw_census([{"name": "Manor", "levels": [census_level(1, "1", "1"), census_level(2, "2", "9")]}])
+        assert census_disputes(index, census) == ("census counts 2 levels for 'manor'; survey counts 1",)
+
+    def test_key_range_dispute_on_a_matched_level(self):
+        index = surveyed([one_dungeon("Manor", [raw_area("1"), raw_area("12")])])
+        census = raw_census([{"name": "Manor", "levels": [census_level(1, "1", "14")]}])
+        assert census_disputes(index, census) == ("census keys 'manor' level 1 as '1'-'14'; survey spans '1'-'12'",)
+
+    def test_range_compares_by_printed_label_not_the_bumped_key(self):
+        # Two areas both printed "5": the survey uniques the second to `5-2`
+        # with its label preserved; the census can only answer the printed key.
+        index = surveyed([one_dungeon("Lair", [raw_area("1"), raw_area("5"), raw_area("5")])])
+        assert [area.key for area in index.dungeons[0].levels[0].areas] == ["1", "5", "5-2"]
+        census = raw_census([{"name": "Lair", "levels": [census_level(1, "1", "5")]}])
+        assert census_disputes(index, census) == ()
+
+    def test_unmatched_level_number_takes_no_range_check(self):
+        # Level counts agree; the census's level number has no survey
+        # counterpart, so the pinned shapes leave it undisputed.
+        index = surveyed([one_dungeon("Manor", [raw_area("1")], number=1)])
+        census = raw_census([{"name": "Manor", "levels": [census_level(3, "90", "99")]}])
+        assert census_disputes(index, census) == ()
+
+    def test_empty_slug_sites_stay_out_of_the_comparison(self):
+        index = surveyed([one_dungeon("Lair", [raw_area("1")])])
+        census = raw_census(
+            [
+                {"name": "Lair", "levels": [census_level(1, "1", "1")]},
+                {"name": "!!!", "levels": [census_level(1, "1", "1")]},
+            ]
+        )
+        assert census_disputes(index, census) == ()
+
+    def test_dispute_order_is_survey_side_then_census_only(self):
+        index = surveyed([one_dungeon("Alpha", [raw_area("1")]), one_dungeon("Beta", [raw_area("2")])])
+        census = raw_census([{"name": "Gamma", "levels": [census_level(1, "1", "1")]}])
+        assert census_disputes(index, census) == (
+            "survey names 'alpha'; census does not",
+            "survey names 'beta'; census does not",
+            "census names 'gamma'; survey does not",
+        )
+
+
+class TestCensusStage:
+    def test_disputes_land_on_the_cache(self, tmp_path: Path):
+        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=2)
+        census = raw_census([{"name": "Crypt of Horrors", "levels": [census_level(1, "1", "8")]}])
+        survey(workdir, ScriptedProvider([raw_survey(), census]))
+        cached = SurveyIndex.model_validate_json(workdir.survey_json.read_text(encoding="utf-8"))
+        assert cached.census_disputes == (
+            "survey names 'a-orc-lair'; census does not",
+            "census names 'crypt-of-horrors'; survey does not",
+        )
+
+    def test_census_failure_marks_the_stage_failed_and_writes_no_cache(self, tmp_path: Path):
+        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=2)
+        with pytest.raises(ProviderError):
+            survey(workdir, ScriptedProvider([raw_survey(), ProviderError("rate limited")]))
+        run = workdir.read_run()
+        assert run.stages[Stage.SURVEY].status == "failed"
+        assert not workdir.survey_json.exists()
+
+    def test_census_runs_after_normalization_sees_no_dungeon_survey(self, tmp_path: Path):
+        # A survey that normalizes to zero dungeons dies before the census —
+        # no census request is spent on a dead conversion.
+        workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=2)
+        provider = ScriptedProvider([raw_survey([])])
+        with pytest.raises(ExtractionError):
+            survey(workdir, provider)
+        assert len(provider.requests) == 1
+
+
+def test_census_disputed_path_replays_through_recorded_fixtures(tmp_path: Path):
+    # Record the survey and census exchanges as real fixture files, then
+    # replay the stage against them in an identical fresh workdir — the
+    # census-disputed path through FixtureProvider.
+    from osrforge.providers.fixtures import FixtureProvider, RecordingProvider
+
+    fixtures = tmp_path / "fixtures"
+    census = raw_census([{"name": "Crypt of Horrors", "levels": [census_level(1, "1", "8")]}])
+    recording_workdir = fabricate_workdir(tmp_path / "record.forge", page_count=2)
+    recorded = survey(recording_workdir, RecordingProvider(ScriptedProvider([raw_survey(), census]), fixtures))
+    replay_workdir = fabricate_workdir(tmp_path / "replay.forge", page_count=2)
+    replayed = survey(replay_workdir, FixtureProvider(fixtures))
+    assert replayed == recorded
+    assert replayed.census_disputes == (
+        "survey names 'a-orc-lair'; census does not",
+        "census names 'crypt-of-horrors'; survey does not",
+    )

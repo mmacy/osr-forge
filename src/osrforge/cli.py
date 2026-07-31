@@ -255,6 +255,7 @@ def _cmd_estimate(args: argparse.Namespace) -> None:
     print(f"pages: {result.page_count}")
     print(f"page tokens: {result.text_tokens} text + {result.image_tokens} image")
     print(f"survey:   in={result.survey_input_tokens} out={result.survey_output_tokens}{survey_note}")
+    print(f"census:   in={result.census_input_tokens} out={result.census_output_tokens}")
     print(f"content:  in={result.content_input_tokens} out={result.content_output_tokens}")
     print(f"monsters: in={result.monsters_input_tokens} out={result.monsters_output_tokens}")
     print(f"total:    in={result.input_tokens} out={result.output_tokens}")

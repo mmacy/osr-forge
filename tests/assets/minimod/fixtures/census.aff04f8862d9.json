@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "fingerprint": "aff04f8862d9e374540331acaa68865277e036d306f51e9e9601ae53c1612f0e",
+  "tag": "census",
+  "request": {
+    "system": "You take a census of a tabletop adventure module's keyed adventuring sites. The user message interleaves every page's extracted text (each headed by a [page N] marker) with that page's image. Answer only what the census schema asks: the dungeons, their levels, and each level's first and last printed area keys.\n\nRules:\n- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. A dungeon exists only where the module prints a keyed area list for it. The town or home base and its buildings are never dungeons.\n- One dungeon per independently keyed site: separate lairs or sites with their own maps and entrances are separate dungeons, even when they are drawn together on one regional map or share a running area-number sequence; maps connected internally by stairs or shafts are levels of one dungeon.\n- Each level's \"first_key\" and \"last_key\" are the first and last printed area keys in that level's keyed list, exactly as printed (like \"1\" or \"4a\"). A level's key range comes from its printed key list, never from the map alone.\n",
+    "parts": [
+      {
+        "text": "[page 1]\nThe Root Cellar of Old Wenna\nA one-evening dungeon crawl for characters of level 1.\nAn original mini-module authored as a test asset for osr-forge.\nTo the extent possible under law, the author has dedicated this\nwork to the public domain under CC0 1.0. No rights reserved."
+      },
+      {
+        "sha256": "cc26ab9beaa571930ebd11bcfe01feb05b6d1df9808ea12eda826723bdd4284b",
+        "bytes": 61221
+      },
+      {
+        "text": "[page 2]\nBackground and the village of Wennadale\nOld Wenna's farmhouse burned down a generation ago, but her\nfamous root cellar survives beneath the ruin, and lately things\nhave been crawling out of it at night.\nWennadale is a village of forty souls. The Dry Barrel inn offers\nbeds and rumors; Maro the peddler sells torches, rope, and oil.\nThe cellar mouth lies one mile east of the village green."
+      },
+      {
+        "sha256": "0cf1b976c4cc9275d06618107513c8de621965d782e71741ea0aa5c532134860",
+        "bytes": 79359
+      },
+      {
+        "text": "[page 3]\nThe cellar, level 1: areas 1 to 4\n1. Collapsed stair. A 20' x 30' chamber of packed earth. Broken\n steps descend from the surface. 2 giant rats nest in the\n rubble and attack anyone bearing a light.\n2. Turnip store. A 30' x 40' vault lined with rotted bins. A\n goblin scavenger named Snagg picks through the bins and will\n parley if offered food. A corridor continues north to area 3.\n3. Cider press. A 20' x 20' room dominated by a ruined press.\n Under the press bed is a loose flagstone hiding 120 sp and a\n silver locket worth 25 gp.\n4. Flooded gallery. A 40' x 10' gallery ankle-deep in seep\n water. 4 giant centipedes cling to the ceiling beams. A stuck\n door in the east wall leads to area 5."
+      },
+      {
+        "sha256": "d269e150a6c47ed92e03340b812fc7e7c76b9d15125ed8a25396496b9f9c844a",
+        "bytes": 129012
+      },
+      {
+        "text": "[page 4]\n"
+      },
+      {
+        "sha256": "f6475973849d7a88a881b912efa4dd7de482816a18567c02c13685ee28baf0c1",
+        "bytes": 11627
+      },
+      {
+        "text": "[page 5]\nThe cellar, level 1: areas 5 to 6\n5. Wenna's pantry. A 30' x 30' room, shelves still stocked with\n preserves. A skeleton in a scorched apron guards the room,\n attacking anyone who touches the shelves.\n6. The deep bin. A 10' x 10' pit-room reached by ladder. 3\n stirges roost above a heap of grain sacks. Buried in the\n grain: a pot of 200 gp and a potion of healing.\nWandering monsters (1 in 6, check every 2 turns): 1-2 giant\nrats (1d4), 3-4 goblin (1d2), 5-6 giant centipedes (1d2)."
+      },
+      {
+        "sha256": "74ea0968f5d753e2aedd7a7bbf43fb003d64674999f357c86ae471f3565e42ae",
+        "bytes": 97531
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "dungeons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "levels": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "integer"
+                    },
+                    "first_key": {
+                      "type": "string"
+                    },
+                    "last_key": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "number",
+                    "first_key",
+                    "last_key"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "levels"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "dungeons"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "dungeons": [
+        {
+          "name": "The Root Cellar of Old Wenna",
+          "levels": [
+            {
+              "number": 1,
+              "first_key": "1",
+              "last_key": "6"
+            }
+          ]
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 5406,
+      "output_tokens": 43
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

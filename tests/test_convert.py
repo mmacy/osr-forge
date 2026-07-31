@@ -104,7 +104,9 @@ def test_full_chain_events_and_result(tmp_path: Path, monkeypatch: pytest.Monkey
 def test_stage_failure_emits_failed_and_keeps_upstream(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(convert_module, "preprocess", fabricated_preprocess)
     events: list[StageEvent] = []
-    provider = FailAfter(FixtureProvider(MINIMOD / "fixtures"), passthrough=1)  # survey succeeds, content fails
+    # The survey is a two-call stage (survey + census), so two passthroughs
+    # let it complete and the content stage fail.
+    provider = FailAfter(FixtureProvider(MINIMOD / "fixtures"), passthrough=2)
     with pytest.raises(ProviderError):
         convert(
             MINIMOD / "minimod.pdf",

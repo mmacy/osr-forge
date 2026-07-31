@@ -3,23 +3,33 @@
   "resolutions": {
     "giant centipedes": {
       "template_id": "centipede_giant",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "giant rats": {
       "template_id": "giant_rat",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "goblin": {
       "template_id": "goblin",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "skeleton": {
       "template_id": "skeleton",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "stirges": {
       "template_id": "stirge",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     }
   }
 }

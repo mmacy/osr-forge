@@ -72,6 +72,7 @@ from osrforge.contracts.report import (
     ModuleInfo,
     MonsterSummary,
     ValidationResult,
+    VetoedResolution,
     format_flag,
 )
 from osrforge.contracts.run import Stage, TokenUsage
@@ -87,7 +88,7 @@ from osrforge.contracts.stages import (
 )
 from osrforge.errors import OverrideError
 from osrforge.geometry import LevelGeometry, synthesize_geometry
-from osrforge.monsters import encounter_names, normalize_monster_name
+from osrforge.monsters import encounter_names, normalize_monster_name, printed_hd_profile
 from osrforge.overrides import (
     AREA_OVERRIDE_FIELDS,
     OverridePlan,
@@ -100,9 +101,11 @@ from osrforge.overrides import (
 )
 from osrforge.previews import render_level_svg
 from osrforge.settings import ConversionSettings
+from osrforge.statblocks import ParsedHd, parse_ac, parse_class_level, parse_hd_text
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
 
 __all__ = [
+    "CONFIDENCE_FLOOR",
     "AssembleResult",
     "EmittedTemplate",
     "assemble",
@@ -111,8 +114,24 @@ __all__ = [
     "map_stat_block",
     "parse_treasure",
     "render_previews",
+    "resolution_suspects",
     "usable_stat_block",
 ]
+
+CONFIDENCE_FLOOR = 0.6
+"""The self-assessed confidence below which an area gains `low_confidence:<value> self-assessed`.
+
+An honest uncertainty badge, explicitly *not* a hallucination guard — the
+corpus's unmatched extracted areas carry confidences 0.84-0.99, above the
+workdir median. Pinned against the measured distributions over the ten
+retained phase 9 workdirs (771 areas): nothing sits below 0.5 anywhere (a
+0.5 floor is a no-op), 0.6 fires six times corpus-wide (a genuine rarity
+badge), and 0.7 fires 44 times on the steep part of between-sweep
+instability (JN1's under-0.6 count moved 5 → 0 across sweeps). Deliberately
+a constant, not a settings knob: a knob invites tuning what should be
+re-pinned against data, and the arc's flags are contracts, not preferences.
+Revisit if a corpus member's distribution shifts.
+"""
 
 # The unanchored dice scan (osrlib's die sizes, optional count): a treasure
 # string containing dice notation is per-monster or conditional treasure and
@@ -246,32 +265,6 @@ def parse_treasure(strings: tuple[str, ...]) -> ParsedTreasure:
 # value is either traceably printed or recorded as derived.
 # ---------------------------------------------------------------------------
 
-_AC_DUAL = re.compile(r"^\s*(-?\d+)\s*\[\s*(-?\d+)\s*\]\s*$")
-_FIRST_INT = re.compile(r"-?\d+")
-_HD_FRACTION = re.compile(r"½|¼|\b1\s*/\s*[248]\b")
-_HD_MAIN = re.compile(r"(\d+)\s*(?:d\s*(\d+))?\s*([+-]\s*\d+)?")
-_CLASS_LETTER = re.compile(r"^\s*(mu|[fcmtdeh])\W*(\d+)\s*$", re.IGNORECASE)
-_CLASS_WORDS: tuple[tuple[str, str], ...] = (
-    ("magic-user", "magic_user"),
-    ("magic user", "magic_user"),
-    ("magicuser", "magic_user"),
-    ("fighter", "fighter"),
-    ("cleric", "cleric"),
-    ("thief", "thief"),
-    ("dwarf", "dwarf"),
-    ("elf", "elf"),
-    ("halfling", "halfling"),
-)
-_CLASS_LETTER_IDS = {
-    "f": "fighter",
-    "c": "cleric",
-    "m": "magic_user",
-    "mu": "magic_user",
-    "t": "thief",
-    "d": "dwarf",
-    "e": "elf",
-    "h": "halfling",
-}
 _SAVE_AS_LETTERS = {
     "fighter": "F",
     "cleric": "C",
@@ -317,17 +310,6 @@ _DIE_SIZES = frozenset({2, 3, 4, 6, 8, 10, 12, 20, 100})
 
 
 @dataclass(frozen=True)
-class _ParsedHd:
-    """A printed Hit Dice line, structurally parsed: count, printed die (if any), modifier, asterisks."""
-
-    count: int
-    die: int | None
-    modifier: int
-    asterisks: int
-    fractional: bool
-
-
-@dataclass(frozen=True)
 class EmittedTemplate:
     """One emitted custom template with its review record inputs."""
 
@@ -336,74 +318,16 @@ class EmittedTemplate:
     source_pages: tuple[int, ...]
 
 
-def _parse_ac(block: RawStatBlock) -> tuple[int, int, bool] | None:
-    """Parse the printed AC into `(descending, ascending, complement_derived)`, or None.
-
-    Dual notation carries both values as printed; a single value converts by
-    the 19-complement (the B/X identity OSE prints directly: `AC 5 [14]`) in
-    the direction the block's notation states, defaulting to descending — the
-    B/X reading — when the notation is unclassified.
-    """
-    if block.ac is None:
-        return None
-    dual = _AC_DUAL.match(block.ac)
-    if dual is not None:
-        return int(dual.group(1)), int(dual.group(2)), False
-    match = _FIRST_INT.search(block.ac)
-    if match is None:
-        return None
-    value = int(match.group())
-    if block.ac_notation == "ascending":
-        return 19 - value, value, True
-    return value, 19 - value, True
-
-
-def _parse_hd_text(text: str | None) -> _ParsedHd | None:
-    """Structurally parse a printed HD line (`3+1`, `1-1`, `3*`, `½`, `2d8`), or None."""
-    if text is None or not text.strip():
-        return None
-    stripped = text.strip()
-    asterisks = stripped.count("*")
-    if _HD_FRACTION.search(stripped):
-        return _ParsedHd(count=0, die=None, modifier=0, asterisks=asterisks, fractional=True)
-    match = _HD_MAIN.search(stripped)
-    if match is None:
-        return None
-    die = int(match.group(2)) if match.group(2) else None
-    modifier = int(match.group(3).replace(" ", "")) if match.group(3) else 0
-    return _ParsedHd(count=int(match.group(1)), die=die, modifier=modifier, asterisks=asterisks, fractional=False)
-
-
-def _parse_class_level(text: str | None) -> tuple[str, int] | None:
-    """Parse a printed class-level notation (`F 3`, `MU4`, `"3rd-level cleric"`) into `(class_id, level)`.
-
-    A level below 1 refuses in both forms — a 0-level notation carries no
-    combat math to derive, so it must fall to the refusal ladder, never into
-    mapping (which is total only over parses this function accepts).
-    """
-    if text is None:
-        return None
-    lowered = text.casefold()
-    letter = _CLASS_LETTER.match(lowered)
-    if letter is not None:
-        level = int(letter.group(2))
-        return (_CLASS_LETTER_IDS[letter.group(1)], level) if level >= 1 else None
-    for word, class_id in _CLASS_WORDS:
-        if word in lowered:
-            numbers = re.findall(r"\d+", lowered)
-            if numbers and int(numbers[0]) >= 1:
-                return class_id, int(numbers[0])
-            return None
-    return None
-
-
 def usable_stat_block(block: RawStatBlock | None) -> bool:
     """The refusal ladder's eligibility predicate: an AC plus an HD line or a class-level notation.
 
     A block failing this refuses emission — there is nothing to derive combat
     math from, and emit-with-invented-combat-math would be invention. Shared
     verbatim with the eval scorer's custom-assertion match signal, so the
-    metric can never score an emission assembly would refuse.
+    metric can never score an emission assembly would refuse. The monsters
+    stage's [`stat_block_veto`][osrforge.monsters.stat_block_veto] composes
+    the identical gate from the shared parsers (it cannot import this module),
+    so an edit here must visit the veto too.
 
     Args:
         block: A cached raw block, or the absent marker.
@@ -413,9 +337,81 @@ def usable_stat_block(block: RawStatBlock | None) -> bool:
     """
     if block is None:
         return False
-    if _parse_ac(block) is None:
+    if parse_ac(block) is None:
         return False
-    return _parse_hd_text(block.hit_dice) is not None or _parse_class_level(block.class_level) is not None
+    return parse_hd_text(block.hit_dice) is not None or parse_class_level(block.class_level) is not None
+
+
+def _hd_reading(count: int, modifier: int) -> str:
+    return f"{count}{modifier:+d}" if modifier else str(count)
+
+
+def resolution_suspects(
+    resolutions: MonsterResolutions,
+    blocks: Mapping[str, RawStatBlock | None],
+    templates: Mapping[str, MonsterTemplate],
+) -> dict[str, str]:
+    """Judge the veto's survivors: normalized name → the `resolution_suspect` detail — pure.
+
+    Per surviving non-exact pick (a cached `llm` or `fuzzy` resolution — the
+    veto already flipped the contradicted ones), the printed block is
+    compared to the picked template on the axes that flag but never veto:
+
+    - an HD-modifier-only difference (counts equal, modifiers differ);
+    - an AC mismatch when both values are printed (dual notation);
+    - a comparison that rests on a derived AC complement and disagrees — the
+      direction hazard, named as such in the detail.
+
+    A pick with no usable printed block stays unflagged — no evidence, no
+    badge — which also covers caches recorded before the stat-block pass
+    widened (their `llm`/`fuzzy` names have no entries at all). The detail
+    names both readings; multiple axes join into one detail per name.
+
+    Args:
+        resolutions: The effective resolutions (overrides and emission
+            applied — an overridden or emitted name is no longer `llm`/`fuzzy`
+            and takes no badge).
+        blocks: The cached raw blocks, as extracted.
+        templates: Catalog template id → template.
+
+    Returns:
+        Name → detail for exactly the names meeting a condition.
+    """
+    suspects: dict[str, str] = {}
+    for name, entry in sorted(resolutions.resolutions.items()):
+        if entry.method not in ("llm", "fuzzy") or entry.template_id is None:
+            continue
+        block = blocks.get(name)
+        if not usable_stat_block(block):
+            continue
+        assert block is not None
+        template = templates[entry.template_id]
+        details: list[str] = []
+        profile = printed_hd_profile(block)
+        if profile is not None:
+            printed_count, printed_modifier = profile
+            hit_dice = template.hit_dice
+            if printed_count == hit_dice.count and printed_modifier != hit_dice.modifier:
+                details.append(
+                    f"printed HD {_hd_reading(printed_count, printed_modifier)}"
+                    f" vs {_hd_reading(hit_dice.count, hit_dice.modifier)}"
+                )
+        ac_parsed = parse_ac(block)
+        if ac_parsed is not None and template.ac is not None:
+            descending, ascending, derived = ac_parsed
+            template_ascending = template.ac_ascending if template.ac_ascending is not None else 19 - template.ac
+            if (descending, ascending) != (template.ac, template_ascending):
+                if derived:
+                    assert block.ac is not None
+                    details.append(
+                        f"printed AC {block.ac.strip()} read as {descending} [{ascending}]"
+                        f" vs {template.ac} [{template_ascending}]"
+                    )
+                else:
+                    details.append(f"printed AC {descending} [{ascending}] vs {template.ac} [{template_ascending}]")
+        if details:
+            suspects[name] = f"{name} → {template.id}, " + "; ".join(details)
+    return suspects
 
 
 def _class_row(class_id: str, level: int):
@@ -435,7 +431,7 @@ def _band_saves(hit_dice: MonsterHitDice) -> tuple[SavingThrows, str]:
     raise AssertionError(f"no monster save band labelled {label!r}")  # pragma: no cover — the bands are total
 
 
-def _map_hit_dice(parsed: _ParsedHd, hp: int | None, special_count: int) -> tuple[MonsterHitDice, list[str]]:
+def _map_hit_dice(parsed: ParsedHd, hp: int | None, special_count: int) -> tuple[MonsterHitDice, list[str]]:
     """Map the parsed HD onto `MonsterHitDice` under the pinned anchors.
 
     Die 8 unless the block prints d4; a printed die the model can't carry
@@ -517,13 +513,13 @@ def _map_saves(
             return MonsterSaves(values=values, save_as=save_as), derived
         save_as_match = _SAVE_AS.search(text)
         if save_as_match is not None:
-            parsed = _parse_class_level(save_as_match.group(1))
+            parsed = parse_class_level(save_as_match.group(1))
             if parsed is not None:
                 class_id, level = parsed
                 row = _class_row(class_id, level)
                 return MonsterSaves(values=row.saves, save_as=f"{_SAVE_AS_LETTERS[class_id]}{level}"), derived
         # The labelled and bare BFRPG forms: "Sv F2", "Saves: F3", "F3".
-        bare = _parse_class_level(_SAVE_LABEL.sub("", text))
+        bare = parse_class_level(_SAVE_LABEL.sub("", text))
         if bare is not None:
             class_id, level = bare
             row = _class_row(class_id, level)
@@ -744,9 +740,9 @@ def map_stat_block(
         ValueError: If the block is not usable (programmer misuse — callers
             gate on the shared predicate).
     """
-    ac_parsed = _parse_ac(block)
-    hd_parsed = _parse_hd_text(block.hit_dice)
-    class_parsed = _parse_class_level(block.class_level)
+    ac_parsed = parse_ac(block)
+    hd_parsed = parse_hd_text(block.hit_dice)
+    class_parsed = parse_class_level(block.class_level)
     if ac_parsed is None or (hd_parsed is None and class_parsed is None):
         raise ValueError(f"stat block for {name!r} is not usable — callers must gate on usable_stat_block")
     derived: list[str] = ["treasure"]
@@ -942,6 +938,7 @@ def _build_encounter(
     settings: ConversionSettings,
     count_flags: list[str],
     monster_flags: list[str],
+    suspects: Mapping[str, str],
 ) -> tuple[KeyedEncounter | None, list[str]]:
     """Merge an area's cache encounters into one `KeyedEncounter`, applying the unresolved fallback.
 
@@ -965,6 +962,8 @@ def _build_encounter(
         if resolution.template_id is not None:
             if resolution.method == "custom":
                 monster_flags.append(format_flag(Flag.MONSTER_CUSTOM, name))
+            if name in suspects:
+                monster_flags.append(format_flag(Flag.RESOLUTION_SUSPECT, suspects[name]))
             keyed.append(_keyed_monster(resolution.template_id, encounter, name, count_flags))
             continue
         unresolved.append(name)
@@ -989,6 +988,7 @@ def _build_area(
     settings: ConversionSettings,
     override: AreaOverride | None,
     cells_overridden: bool,
+    suspects: Mapping[str, str],
 ) -> tuple[AreaSpec, AreaReport, list[str]]:
     """Build one `AreaSpec` and its report entry; returns them plus the area's unresolved names.
 
@@ -1010,12 +1010,16 @@ def _build_area(
     unresolved: list[str] = []
 
     if content is None:
+        # The extraction placeholder keeps its structural flag and gains no
+        # second badge — its 0.0 is synthesized, not a cached self-assessment.
         low_confidence.append(format_flag(Flag.LOW_CONFIDENCE, "not extracted"))
         confidence = 0.0
         source_pages = survey_pages
     else:
         confidence = content.confidence
         source_pages = content.source_pages
+        if confidence < CONFIDENCE_FLOOR:
+            low_confidence.append(format_flag(Flag.LOW_CONFIDENCE, f"{confidence} self-assessed"))
 
     name = area_name
     if override is not None and "name" in fields:
@@ -1028,7 +1032,9 @@ def _build_area(
         # The osrlib payload is used verbatim; the human's word is the last word.
         encounter = override.encounter
     elif content is not None:
-        encounter, unresolved = _build_encounter(content, resolutions, table, settings, low_confidence, monster_flags)
+        encounter, unresolved = _build_encounter(
+            content, resolutions, table, settings, low_confidence, monster_flags, suspects
+        )
     else:
         encounter = None
 
@@ -1190,6 +1196,7 @@ def build_draft(
     settings: ConversionSettings,
     plan: OverridePlan | None = None,
     custom_templates: Mapping[str, MonsterTemplate] | None = None,
+    suspects: Mapping[str, str] | None = None,
 ) -> DraftResult:
     """Build the draft adventure and per-area reports from validated caches plus overrides — pure.
 
@@ -1208,6 +1215,9 @@ def build_draft(
             built encounter actually references bundle into
             `Adventure.monsters` (sorted by id) — an emission every reference
             was remapped away from is dead content and stays out.
+        suspects: Name → `resolution_suspect` detail
+            ([`resolution_suspects`][osrforge.assemble.resolution_suspects]);
+            each area whose built encounter carries the name gains the flag.
 
     Returns:
         The draft, its per-area reports in survey order (removed areas keep a
@@ -1219,6 +1229,7 @@ def build_draft(
             stale cache (`convert`'s ordering makes it unreachable).
     """
     plan = plan if plan is not None else OverridePlan()
+    suspects = suspects if suspects is not None else {}
     module_flags: list[str] = []
     # Pure by construction: the settings echo in `run.json` is already an
     # assembly input, so the blanked-page flags derive from it, not from
@@ -1227,6 +1238,9 @@ def build_draft(
         format_flag(Flag.PAGE_UNREADABLE, f"page {page} render blanked")
         for page in sorted(set(settings.blank_page_renders))
     )
+    # The census's disagreements, straight off the survey cache — an
+    # extraction fact like the blanked pages, so it persists under overrides.
+    module_flags.extend(format_flag(Flag.SURVEY_DISPUTED, detail) for detail in index.census_disputes)
     name = _overridden_text(index.title, plan.module, "name")
     if not name:
         name = "Untitled module"
@@ -1287,6 +1301,7 @@ def build_draft(
                     settings=settings,
                     override=level_plan.area_overrides.get(survey_area.key) if level_plan is not None else None,
                     cells_overridden=level_plan is not None and survey_area.key in level_plan.cells,
+                    suspects=suspects,
                 )
                 areas.append(spec)
                 area_reports.append(report)
@@ -1405,6 +1420,13 @@ def assemble(workdir_path: Path) -> AssembleResult:
     if not workdir.monsters_json.is_file():
         raise ValueError(f"the monsters cache is missing: {workdir.monsters_json}")
     resolutions = MonsterResolutions.model_validate_json(workdir.monsters_json.read_text(encoding="utf-8"))
+    # The veto's review records, straight off the cache — collected before
+    # overrides and emission replace entries in memory.
+    vetoed_records = tuple(
+        VetoedResolution(name=name, vetoed_template_id=entry.vetoed_template_id, detail=entry.veto_detail)
+        for name, entry in sorted(resolutions.resolutions.items())
+        if entry.vetoed_template_id is not None
+    )
     missing = set(encounter_names(levels)) - resolutions.resolutions.keys()
     if missing:
         raise ValueError(f"the monsters cache is stale — unresolved names: {sorted(missing)}; re-run monsters")
@@ -1446,6 +1468,15 @@ def assemble(workdir_path: Path) -> AssembleResult:
             levels,
             frozenset(template.id for template in load_monsters().monsters),
         )
+    # Suspect detection judges the veto's survivors on the effective
+    # resolutions — an overridden or emitted name is no longer llm/fuzzy and
+    # takes no badge — against the *extracted* blocks, never override-supplied
+    # candidates.
+    suspects: dict[str, str] = {}
+    if statblocks is not None and statblocks.custom_monsters == "emit":
+        suspects = resolution_suspects(
+            resolutions, statblocks.blocks, {template.id: template for template in load_monsters().monsters}
+        )
     plan = plan_overrides(index, overrides)
 
     with track_stage(workdir, Stage.GEOMETRY):
@@ -1462,6 +1493,7 @@ def assemble(workdir_path: Path) -> AssembleResult:
             run.settings,
             plan,
             custom_templates={record.template.id: record.template for record in emitted.values()},
+            suspects=suspects,
         )
         validation = _run_validation(draft.adventure)
         resolved_count = sum(1 for resolution in resolutions.resolutions.values() if resolution.template_id is not None)
@@ -1482,7 +1514,9 @@ def assemble(workdir_path: Path) -> AssembleResult:
             module=ModuleInfo(title=index.title, pages=run.page_count),
             validation=validation,
             areas=draft.area_reports,
-            monsters=MonsterSummary(resolved=resolved_count, unresolved=draft.unresolved, custom=custom_records),
+            monsters=MonsterSummary(
+                resolved=resolved_count, unresolved=draft.unresolved, custom=custom_records, vetoed=vetoed_records
+            ),
             usage=usage,
             flags=draft.module_flags,
         )

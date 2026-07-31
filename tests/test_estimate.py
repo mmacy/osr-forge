@@ -27,12 +27,18 @@ def test_minimod_estimate_is_pinned(tmp_path: Path):
     assert result.survey_window_count == 1
     assert result.survey_input_tokens == 462 + 4525 + 2000
     assert result.survey_output_tokens == 5 * 70
+    # The census re-sends the survey window's pages with its smaller overhead
+    # and flat per-window output.
+    assert result.census_input_tokens == 462 + 4525 + 500
+    assert result.census_output_tokens == 500
     assert result.content_input_tokens == 6234  # ceil(1.25 * (462 + 4525))
     assert result.content_output_tokens == 5 * 550
-    assert result.monsters_input_tokens == 5000
-    assert result.monsters_output_tokens == 500
-    assert result.input_tokens == 6987 + 6234 + 5000
-    assert result.output_tokens == 350 + 2750 + 500
+    # The monsters term: the flat LLM tier plus ceil(0.6 * 5) = 3 stat-block
+    # requests at 8,000/150 each.
+    assert result.monsters_input_tokens == 5000 + 3 * 8000
+    assert result.monsters_output_tokens == 500 + 3 * 150
+    assert result.input_tokens == 6987 + 5487 + 6234 + 29_000
+    assert result.output_tokens == 350 + 500 + 2750 + 950
     expected_usd = result.input_tokens * INPUT_USD_PER_TOKEN + result.output_tokens * OUTPUT_USD_PER_TOKEN
     assert result.usd == pytest.approx(expected_usd)
 
@@ -50,13 +56,15 @@ def test_estimate_leaves_a_warm_workdir(tmp_path: Path):
 
 def test_a_single_request_survey_crosses_the_tier_cliff_alone():
     settings = ConversionSettings(survey_max_pages=100)
-    # 100 pages of very dense text: survey input 392,500 tokens — over 272K.
+    # 100 pages of very dense text: survey input 392,500 tokens — over 272K,
+    # and the census window (the same pages, smaller overhead) crosses too.
     result = _estimate_from_measurements([3_000] * 100, settings=settings)
     assert result.survey_window_count == 1
     assert result.survey_input_tokens > 272_000
+    assert result.census_input_tokens > 272_000
     expected_usd = (
-        result.survey_input_tokens * LARGE_INPUT_USD_PER_TOKEN
-        + result.survey_output_tokens * LARGE_OUTPUT_USD_PER_TOKEN
+        (result.survey_input_tokens + result.census_input_tokens) * LARGE_INPUT_USD_PER_TOKEN
+        + (result.survey_output_tokens + result.census_output_tokens) * LARGE_OUTPUT_USD_PER_TOKEN
         + (result.content_input_tokens + result.monsters_input_tokens) * INPUT_USD_PER_TOKEN
         + (result.content_output_tokens + result.monsters_output_tokens) * OUTPUT_USD_PER_TOKEN
     )
@@ -78,7 +86,11 @@ def test_an_over_chunk_size_source_prices_per_window_at_pinned_numbers():
     second_window_input = 50 * 10 + 50 * 905 + 2000  # 47,750
     assert result.survey_input_tokens == first_window_input + second_window_input == 187_000
     assert result.survey_output_tokens == 150 * 70 + 50 * 70 == 14_000
-    # Neither window crosses 272K: everything at the base tier.
+    # The census re-prices the same windows with its 500-token overhead and
+    # flat 500-token output per window.
+    assert result.census_input_tokens == (150 * 10 + 150 * 905 + 500) + (50 * 10 + 50 * 905 + 500) == 184_000
+    assert result.census_output_tokens == 2 * 500
+    # No window crosses 272K: everything at the base tier.
     expected_usd = result.input_tokens * INPUT_USD_PER_TOKEN + result.output_tokens * OUTPUT_USD_PER_TOKEN
     assert result.usd == pytest.approx(expected_usd)
 
@@ -89,11 +101,15 @@ def test_the_tier_cliff_applies_per_window_for_text_dense_sources():
     result = _estimate_from_measurements([1_015] * 300, settings=ConversionSettings(survey_max_pages=150))
     assert result.survey_window_count == 2
     window_input = 150 * 1_015 + 150 * 905 + 2000
-    assert window_input > 272_000
+    census_window_input = 150 * 1_015 + 150 * 905 + 500
+    assert window_input > 272_000 and census_window_input > 272_000
     assert result.survey_input_tokens == 2 * window_input
+    assert result.census_input_tokens == 2 * census_window_input
     survey_usd = 2 * (window_input * LARGE_INPUT_USD_PER_TOKEN + 150 * 70 * LARGE_OUTPUT_USD_PER_TOKEN)
+    census_usd = 2 * (census_window_input * LARGE_INPUT_USD_PER_TOKEN + 500 * LARGE_OUTPUT_USD_PER_TOKEN)
     expected_usd = (
         survey_usd
+        + census_usd
         + (result.content_input_tokens + result.monsters_input_tokens) * INPUT_USD_PER_TOKEN
         + (result.content_output_tokens + result.monsters_output_tokens) * OUTPUT_USD_PER_TOKEN
     )
@@ -104,12 +120,12 @@ def test_the_tier_cliff_still_fires_for_a_single_request_survey_with_the_knob_ra
     result = _estimate_from_measurements([1_015] * 300, settings=ConversionSettings(survey_max_pages=400))
     assert result.survey_window_count == 1
     assert result.survey_input_tokens == 300 * 1_015 + 300 * 905 + 2000 > 272_000
-    expected_survey_usd = (
-        result.survey_input_tokens * LARGE_INPUT_USD_PER_TOKEN
-        + result.survey_output_tokens * LARGE_OUTPUT_USD_PER_TOKEN
-    )
+    assert result.census_input_tokens == 300 * 1_015 + 300 * 905 + 500 > 272_000
+    expected_windowed_usd = (result.survey_input_tokens + result.census_input_tokens) * LARGE_INPUT_USD_PER_TOKEN + (
+        result.survey_output_tokens + result.census_output_tokens
+    ) * LARGE_OUTPUT_USD_PER_TOKEN
     expected_usd = (
-        expected_survey_usd
+        expected_windowed_usd
         + (result.content_input_tokens + result.monsters_input_tokens) * INPUT_USD_PER_TOKEN
         + (result.content_output_tokens + result.monsters_output_tokens) * OUTPUT_USD_PER_TOKEN
     )

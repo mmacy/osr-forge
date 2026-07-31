@@ -423,12 +423,14 @@ class TestEstimateCommand:
                 survey_window_count=2,
                 survey_input_tokens=187_100,
                 survey_output_tokens=14_000,
+                census_input_tokens=184_100,
+                census_output_tokens=1_000,
                 content_input_tokens=226_375,
                 content_output_tokens=110_000,
-                monsters_input_tokens=5_000,
-                monsters_output_tokens=500,
-                input_tokens=418_475,
-                output_tokens=124_500,
+                monsters_input_tokens=965_000,
+                monsters_output_tokens=18_500,
+                input_tokens=1_562_575,
+                output_tokens=143_500,
                 usd=2.9,
             )
 
@@ -438,6 +440,7 @@ class TestEstimateCommand:
         out = capsys.readouterr().out
         assert "pages: 200" in out
         assert "(2 windows)" in out
+        assert "census:   in=184100 out=1000" in out
         assert "estimated cost: $2.90" in out
         # The guard warning is gone from the table — larger sources chunk.
         assert "survey guard" not in out

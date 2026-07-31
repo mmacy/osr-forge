@@ -233,27 +233,30 @@ amendment records both runs side by side, and the regression band is the
 observed per-metric spread, floored at 0.02 absolute.
 
 The current noise band — the living table each sweep-pair updates, with
-history staying in the phase amendments (this table: the phase 9 offline
-re-score of the phase 7 double sweep, 2026-07-31 — both runs re-scored under
-the seven-family scorer against the extended truth; the existing families
-reproduced their committed numbers exactly, so their bands stand unchanged):
+history staying in the phase amendments (this table: the phase 10 double
+sweep of 2026-07-31, the first pair with the stat veto and the survey census
+live; the wide name-recall, transition-precision, and door bands are
+small-denominator arithmetic, and the four-sample view across the phase 7
+and phase 10 pairs shows content-extraction run variance genuinely wider
+than any two-sample band suggested — the counts-first guidance below is the
+regression reader's tool for both):
 
 | metric | band |
 | --- | --- |
 | area recall | 0.02 |
 | area precision | 0.02 |
-| encounter name recall | 0.02 |
-| count accuracy | 0.02 |
+| encounter name recall | 0.2 |
+| count accuracy | 0.0234 |
 | resolution accuracy | 0.02 |
 | custom accuracy | 0.02 |
-| connection F1 | 0.028 |
+| connection F1 | 0.043 |
 | treasure presence | 0.02 |
-| door recall | 0.118 |
-| door precision | 0.269 |
+| door recall | 0.0953 |
+| door precision | 0.119 |
 | door kind accuracy | 0.02 |
-| door locked accuracy | 0.02 |
+| door locked accuracy | 0.0909 |
 | transition recall | 0.02 |
-| transition precision | 0.5 |
+| transition precision | 0.75 |
 | transition kind accuracy | 0.02 |
 | entrance accuracy | 0.02 |
 | encounter precision | 0.02 |

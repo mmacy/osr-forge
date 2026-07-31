@@ -91,4 +91,33 @@ The census term (page-image-dominated input identical to the survey's, output fl
 
 ## Amendments
 
-(Recorded during implementation.)
+- **The double sweep ran 2026-07-31** (deployment `gpt-5.4-2026-03-05`, verified unchanged from the phase 7 pair; sweep 1 ≈ $3.55, sweep 2 ≈ $3.66; the workdirs retained at `~/osr-forge-measurement/phase10/`). `tools/eval/corpus/scoreboard.json` carries run 1. Both runs side by side, with the refreshed band (the observed pair spread floored at 0.02):
+
+    | metric | minimod | jn1-chaotic-caves | jn2-monkey-isle | band |
+    | --- | --- | --- | --- | --- |
+    | area recall | 1.0 / 1.0 | 1.0 / 1.0 | 1.0 / 1.0 | 0.02 |
+    | area precision | 1.0 / 1.0 | 1.0 / 1.0 | 0.9149 / 0.9149 | 0.02 |
+    | encounter name recall | 0.8 / 1.0 | 0.9174 / 0.8991 | 0.8947 / 0.8772 | 0.2 |
+    | encounter precision | 1.0 / 1.0 | 0.9346 / 0.9159 | 0.9608 / 0.9796 | 0.02 |
+    | count accuracy | 1.0 / 1.0 | 0.99 / 0.9796 | 0.8776 / 0.8542 | 0.0234 |
+    | resolution accuracy | 1.0 / 1.0 | 0.8706 / 0.8706 | 0.6667 / 0.6667 | 0.02 |
+    | custom accuracy | n/a / n/a | 1.0 / 1.0 | 1.0 / 1.0 | 0.02 |
+    | connection F1 | 0.6667 / 0.6667 | 0.5843 / 0.6 | 0.8387 / 0.8817 | 0.043 |
+    | treasure presence | 1.0 / 1.0 | 0.9489 / 0.9562 | 0.9535 / 0.9651 | 0.02 |
+    | door recall | n/a / n/a | 0.7143 / 0.619 | 0.5882 / 0.6471 | 0.0953 |
+    | door precision | n/a / n/a | 0.5357 / 0.52 | 0.6667 / 0.7857 | 0.119 |
+    | door kind accuracy | n/a / n/a | 1.0 / 1.0 | 1.0 / 1.0 | 0.02 |
+    | door locked accuracy | n/a / n/a | 0.9333 / 0.8462 | 1.0 / 0.9091 | 0.0909 |
+    | transition recall | n/a / n/a | 1.0 / 1.0 | 1.0 / 1.0 | 0.02 |
+    | transition precision | n/a / n/a | 1.0 / 0.25 | 1.0 / 1.0 | 0.75 |
+    | transition kind accuracy | n/a / n/a | 1.0 / 1.0 | 1.0 / 1.0 | 0.02 |
+    | entrance accuracy | 1.0 / 1.0 | 0.9286 / 0.9286 | 0.8333 / 0.8333 | 0.02 |
+
+    No mode-flip in the *survey* in any run (JN1 14/14, JN2 6/6, minimod 1/1 dungeons, all four halves). The band-justified movements against the phase 9 board, each with its reading: **custom accuracy 0.2857 → 1.0 (JN1) and 0.72 → 1.0 (JN2)** — the veto's bullseye, every vetoed name emitting the module's own creature; **JN2 resolution 0.8519 → 0.6667** — deterministic in both runs, the veto list identical: beyond the two pre-registered rank-variant cases, the stat-block pass *revealed seven more* JN2 encounters whose printed blocks differ from their truth-asserted templates by 1–5 HD (the spiders at HD 4 vs `crab_spider`'s 2, megatherium at 9 vs 4, the module's own baboon at 1 vs 2 — the full list is issue #30's second addendum), all now emitting as the module's creatures with the custom family confirming their blocks usable — the metric's drop is truth's pre-custom-era template conventions lagging the pipeline, recoverable by a truth pass plus `rescore` without touching the pipeline; **JN1 resolution 0.8824 → 0.8706** — exactly the pre-registered −0.012; **minimod name recall 1.0 → 0.8** — a run-1 sampling miss on a five-encounter module (run 2: 1.0; no phase 10 mechanism touches content extraction); **JN1 connection F1 0.6436 → 0.5843 and JN2 count accuracy 0.92 → 0.8776** — content-extraction nondeterminism on surfaces this phase didn't touch: the four-sample view (phase 7 pair + this pair) shows true run variance wider than any two-sample band suggested (JN1 F1 spans 0.5843–0.6436), which is itself a finding the wider refreshed bands now carry. The protect populations held everywhere: JN1's six LLM picks and the fuzzy `yellow mold` survived, JN2's `crocodiles` and `python` survived.
+- **The census caught the mode-flip alive, on its first outing (2026-07-31).** JN1's census disagreed with its survey in *both* runs — run 1's census collapsed the ten cave lairs into a single site (the exact historical failure shape) against a correct survey; run 2's merged the two orc lairs — so `survey_disputed` flags landed on JN1's report both times, telling the human to eyeball the site list, while JN2 and minimod ran dispute-free. Two readings, recorded: the mode-flip's instability is real and now *visible at run time* (the phase's milestone, met — a flipped reading can no longer pass silently, whichever request exhibits it); and the disputes' precision is imperfect (run 1 emitted 12 entries where the survey was simply right — a noisy-but-honest signal, tuning deferred until phase 11's map pass gives a third opinion).
+- **The sweep's transition-precision outlier**: JN1 run 2 extracted three spurious vertical claims (precision 0.25), driving the 0.75 band — small-denominator arithmetic on a 1-link module, the counts-first regression guidance already covering it.
+
+- **The veto's usability gate is composed, not imported.** Work item 2 gates the comparator on `usable_stat_block`, which stays in `assemble.py` — above `monsters.py` in the import graph. The veto composes the identical predicate from the shared parsers (`parse_ac` succeeds ∧ the HD-or-class profile parses), which is `usable_stat_block` by definition, not a re-implementation; the code comment names the equivalence.
+- **The estimate's "JN1/JN2 measured means", sourced.** The monsters term's constants pin from the artifacts actually measurable: the widened population from the retained phase 9 sweep pair's `monsters.json` caches (JN1 32/29 non-exact names over 48 pages, JN2 28/27 over 54 — pinned 0.6 names/page) and per-request usage from JN1's nine committed stat-block evidence fixtures (mean 8,144 in / 134 out — pinned 8,000/150). The census term: the survey's per-window page tokens plus a 500-token overhead, flat 500 output per window (the plan's own ≈$0.21–0.31 figure reproduces).
+- **Census comparison details pinned finer than the plan.** Empty slugs stay out of both multisets (the merge's no-evidence-of-identity rule applied to comparison); range extremes compare on printed-key slugs, recovering a bumped key's printed form through `source_label`; a survey level with no areas takes no range check; dispute order is survey-side order then census-only sites; a shared slug with differing multiset counts reports both counts in one entry.
+- **Golden and cache regeneration split across the fixture boundary.** The committed JN1 `stages/monsters.json` and minimod `expected/monsters.json` + `expected/survey.json` regenerated through the zero-network replays (the new defaulted fields serialize; resolutions verified unchanged), and the JN1 `expected/` + `expected-corrected/` goldens re-blessed through the documented goldens path (only movement: the additive `vetoed: []`). Minimod's `expected/report.json`/`adventure.json` re-bless rides the census-fixture recording — `run_pipeline` is their documented producer and the report's usage block will carry the recorded census usage, unknowable before recording.

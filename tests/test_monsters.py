@@ -9,7 +9,13 @@ from osrlib.data import load_monsters
 
 from conftest import ScriptedProvider, fabricate_workdir
 from osrforge.contracts.run import Stage, StageStatus
-from osrforge.contracts.stages import LevelContent, MonsterResolutions, RawStatBlock, StatBlocks, SurveyIndex
+from osrforge.contracts.stages import (
+    LevelContent,
+    MonsterResolutions,
+    RawStatBlock,
+    StatBlocks,
+    SurveyIndex,
+)
 from osrforge.monsters import (
     MONSTER_ALIASES,
     STATBLOCK_PAGE_CAP,
@@ -19,6 +25,8 @@ from osrforge.monsters import (
     llm_candidates,
     monsters,
     normalize_monster_name,
+    printed_hd_profile,
+    stat_block_veto,
     statblock_page_plan,
     statblock_tag,
 )
@@ -554,12 +562,180 @@ class TestStatblockPass:
         assert cache.custom_monsters == "emit"
         assert cache.blocks == {}
 
-    def test_resolved_names_never_reach_the_pass(self, tmp_path: Path):
-        # The LLM tier resolves the name, so the pass has no population.
+    def test_exact_and_alias_names_never_reach_the_pass(self, tmp_path: Path):
+        # The pass population is unresolved plus the llm and fuzzy tiers;
+        # exact- and alias-resolved names stay out of it.
+        workdir = stage_workdir(
+            tmp_path / "mod.forge", {"1": ["goblin", "wolf"]}, page_count=2, source_pages_by_area={"1": [1]}
+        )
+        monsters(workdir, PoisonedProvider())
+        assert read_statblocks(workdir).blocks == {}
+
+    def test_llm_resolved_names_reach_the_pass(self, tmp_path: Path):
+        # The widened population: an LLM pick gets a transcription request too,
+        # so the veto has evidence to judge it with.
         workdir = stage_workdir(
             tmp_path / "mod.forge", {"1": ["hobgoblin chieftain"]}, page_count=2, source_pages_by_area={"1": [1]}
         )
-        provider = ScriptedProvider([{"hobgoblin chieftain": {"template_id": "hobgoblin"}}])
-        monsters(workdir, provider)
+        provider = ScriptedProvider(
+            [
+                {"hobgoblin chieftain": {"template_id": "hobgoblin"}},
+                statblock_answer(hit_dice="1+1", source_pages=[1]),
+            ]
+        )
+        result = monsters(workdir, provider)
+        assert provider.requests[1].tag == "statblock.hobgoblin-chieftain"
+        assert list(read_statblocks(workdir).blocks) == ["hobgoblin chieftain"]
+        # Printed HD 1+1 against hobgoblin's HD 1+1: same count, the pick survives.
+        assert result.resolutions["hobgoblin chieftain"].template_id == "hobgoblin"
+
+
+def catalog_template(template_id: str):
+    return next(template for template in CATALOG.monsters if template.id == template_id)
+
+
+def raw_block(**overrides: object) -> RawStatBlock:
+    base: dict[str, object] = {"ac": "6", "hit_dice": "1"}
+    return RawStatBlock.model_validate(base | overrides)
+
+
+class TestPrintedHdProfile:
+    @pytest.mark.parametrize(
+        ("hit_dice", "profile"),
+        [
+            ("3+1", (3, 1)),
+            ("1-1", (1, -1)),
+            ("2d8", (2, 0)),
+            ("3*", (3, 0)),
+            ("½", (1, 0)),  # the catalog's own ½-HD modeling: count 1
+            ("1/2", (1, 0)),
+            ("¼", (0, 0)),  # smaller fractions: count 0
+            ("1/4", (0, 0)),
+            ("1/8", (0, 0)),
+        ],
+    )
+    def test_hd_line_forms(self, hit_dice: str, profile: tuple[int, int]):
+        assert printed_hd_profile(raw_block(hit_dice=hit_dice)) == profile
+
+    def test_class_level_is_count(self):
+        assert printed_hd_profile(raw_block(hit_dice=None, class_level="F 3")) == (3, 0)
+
+    def test_printed_hd_line_takes_precedence_over_class_level(self):
+        # Mirrors map_stat_block's own order.
+        assert printed_hd_profile(raw_block(hit_dice="1", class_level="F 3")) == (1, 0)
+
+    def test_neither_form_parses(self):
+        assert printed_hd_profile(raw_block(hit_dice="a few", class_level=None)) is None
+
+
+class TestStatBlockVeto:
+    def test_chieftain_delta_one_vetoes(self):
+        # The measured miss family: a bespoke leader one HD above its base monster.
+        vetoed = stat_block_veto("orc chief", raw_block(hit_dice="2"), catalog_template("orc"))
+        assert vetoed is not None
+        assert vetoed.template_id is None and vetoed.method == "unresolved"
+        assert vetoed.vetoed_template_id == "orc"
+        assert vetoed.veto_detail == "orc chief → orc, printed HD 2 vs 1"
+
+    def test_same_count_survives(self):
+        # The fire_beetle-style truth-confirmed pick the tolerance protects.
+        survived = stat_block_veto(
+            "giant fire beetle",
+            raw_block(ac="4", hit_dice="1+2"),
+            catalog_template("fire_beetle"),
+        )
+        assert survived is None
+
+    def test_modifier_only_difference_survives_the_veto(self):
+        # Counts equal, modifiers differ: assembly's resolution_suspect, never a veto.
+        survived = stat_block_veto("veteran", raw_block(ac="2", hit_dice="2+1"), catalog_template("veteran_2"))
+        assert survived is None
+
+    def test_unusable_block_is_untouched(self):
+        # No AC: not usable — no evidence, no veto.
+        assert stat_block_veto("orc chief", raw_block(ac=None, hit_dice="5"), catalog_template("orc")) is None
+
+    def test_absent_marker_is_untouched(self):
+        assert stat_block_veto("orc chief", None, catalog_template("orc")) is None
+
+    def test_unparseable_printed_hd_is_untouched(self):
+        block = raw_block(hit_dice="a few", class_level=None)
+        assert stat_block_veto("orc chief", block, catalog_template("orc")) is None
+
+    def test_half_hd_print_against_a_half_hd_template_agrees(self):
+        # kobold is the catalog's ½ HD shape (count 1, die 4): never a Δ1 false veto.
+        assert stat_block_veto("kobold guard", raw_block(hit_dice="½"), catalog_template("kobold")) is None
+
+    def test_smaller_fraction_against_a_count_zero_template_agrees(self):
+        assert stat_block_veto("bats", raw_block(hit_dice="¼"), catalog_template("normal_bat")) is None
+
+    def test_class_level_counts_as_hd(self):
+        # Level 3 against a 2-HD template: Δ1 vetoes; against a 3-HD template it survives.
+        block = raw_block(hit_dice=None, class_level="F 3")
+        vetoed = stat_block_veto("bandit leader", block, catalog_template("veteran_2"))
+        assert vetoed is not None and vetoed.vetoed_template_id == "veteran_2"
+        assert stat_block_veto("bandit leader", block, catalog_template("crab_giant")) is None
+
+    def test_the_preregistered_offspring_case_vetoes(self):
+        # JN2's giant crab offspring: printed HD 1 vs crab_giant's 3 — the
+        # knowingly-spent truth disagreement (issue #30).
+        vetoed = stat_block_veto("giant crab offspring", raw_block(hit_dice="1"), catalog_template("crab_giant"))
+        assert vetoed is not None
+        assert vetoed.veto_detail == "giant crab offspring → crab_giant, printed HD 1 vs 3"
+
+
+class TestVetoInTheStage:
+    def test_contradicted_llm_pick_flips_to_unresolved_in_the_cache(self, tmp_path: Path):
+        workdir = stage_workdir(
+            tmp_path / "mod.forge", {"1": ["orc chief"]}, page_count=2, source_pages_by_area={"1": [1]}
+        )
+        provider = ScriptedProvider(
+            [
+                {"orc chief": {"template_id": "orc"}},
+                statblock_answer(ac="6", ac_notation="descending", hit_dice="2", source_pages=[1]),
+            ]
+        )
+        result = monsters(workdir, provider)
+        entry = result.resolutions["orc chief"]
+        assert entry.template_id is None and entry.method == "unresolved"
+        assert entry.vetoed_template_id == "orc"
+        assert entry.veto_detail == "orc chief → orc, printed HD 2 vs 1"
+        cached = MonsterResolutions.model_validate_json(workdir.monsters_json.read_text(encoding="utf-8"))
+        assert cached == result  # the cache is the record
+        # The block stays cached for assembly's emission path.
+        assert read_statblocks(workdir).blocks["orc chief"] is not None
+
+    def test_off_runs_no_pass_and_no_veto(self, tmp_path: Path):
+        workdir = stage_workdir(
+            tmp_path / "mod.forge",
+            {"1": ["orc chief"]},
+            page_count=2,
+            settings=ConversionSettings(custom_monsters="off"),
+            source_pages_by_area={"1": [1]},
+        )
+        provider = ScriptedProvider([{"orc chief": {"template_id": "orc"}}])
+        result = monsters(workdir, provider)
         assert len(provider.requests) == 1
-        assert read_statblocks(workdir).blocks == {}
+        assert result.resolutions["orc chief"].template_id == "orc"
+        assert result.resolutions["orc chief"].vetoed_template_id is None
+
+    def test_veto_path_replays_through_recorded_fixtures(self, tmp_path: Path):
+        # Record the exchanges as real fixture files, then replay the stage
+        # against them in an identical fresh workdir — the fixture round-trip.
+        from osrforge.providers.fixtures import FixtureProvider, RecordingProvider
+
+        fixtures = tmp_path / "fixtures"
+        answers = [
+            {"orc chief": {"template_id": "orc"}},
+            statblock_answer(ac="6", ac_notation="descending", hit_dice="2", source_pages=[1]),
+        ]
+        recording_workdir = stage_workdir(
+            tmp_path / "record.forge", {"1": ["orc chief"]}, page_count=2, source_pages_by_area={"1": [1]}
+        )
+        recorded = monsters(recording_workdir, RecordingProvider(ScriptedProvider(answers), fixtures))
+        replay_workdir = stage_workdir(
+            tmp_path / "replay.forge", {"1": ["orc chief"]}, page_count=2, source_pages_by_area={"1": [1]}
+        )
+        replayed = monsters(replay_workdir, FixtureProvider(fixtures))
+        assert replayed == recorded
+        assert replayed.resolutions["orc chief"].vetoed_template_id == "orc"

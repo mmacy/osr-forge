@@ -198,7 +198,9 @@ def test_failure_mid_chain_then_rerun_completes(tmp_path: Path, monkeypatch: pyt
 
     root = tmp_path / "mod.forge"
     with pytest.raises(ProviderError):
-        convert(MINIMOD / "minimod.pdf", root, FailAfter(FixtureProvider(MINIMOD / "fixtures"), passthrough=1))
+        # Two passthroughs: the survey's two calls (survey + census) succeed,
+        # the content stage fails.
+        convert(MINIMOD / "minimod.pdf", root, FailAfter(FixtureProvider(MINIMOD / "fixtures"), passthrough=2))
     workdir = Workdir(root)
     assert workdir.read_run().stages[Stage.CONTENT].status == "failed"
     assert workdir.survey_json.is_file()  # upstream intact

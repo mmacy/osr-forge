@@ -29,7 +29,8 @@
       ],
       "confidence": 0.55,
       "flags": [
-        "geometry_synthesized"
+        "geometry_synthesized",
+        "low_confidence:0.55 self-assessed"
       ],
       "overridden": []
     },
@@ -82,11 +83,12 @@
   "monsters": {
     "resolved": 5,
     "unresolved": [],
-    "custom": []
+    "custom": [],
+    "vetoed": []
   },
   "usage": {
-    "input_tokens": 9830,
-    "output_tokens": 1170
+    "input_tokens": 15236,
+    "output_tokens": 1213
   },
   "flags": [],
   "findings": []

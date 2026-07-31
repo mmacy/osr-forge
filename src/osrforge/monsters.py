@@ -12,12 +12,21 @@ previous one misses: normalized exact match over derived match forms, the
 curated alias table, stdlib fuzzy matching, and one LLM pass over the
 remainder. A fully deterministic resolution makes no model call.
 
-The [stat-block pass][stat-block-pass] runs after the tiers, over exactly the names
-still unresolved, gated by the `custom_monsters` knob: one transcription
-request per name over its planned page set, cached raw in
-`stages/statblocks.json` for assembly's deterministic template mapping. The
-pass transcribes — every rules judgment lives in assembly, where it is
-testable and correctable.
+The [stat-block pass][stat-block-pass] runs after the tiers, over the names
+still unresolved plus the LLM- and fuzzy-resolved ones, gated by the
+`custom_monsters` knob: one transcription request per name over its planned
+page set, cached raw in `stages/statblocks.json` for assembly's deterministic
+template mapping. The pass transcribes — every rules judgment lives in
+assembly, where it is testable and correctable.
+
+The [stat-block veto][osrforge.monsters.stat_block_veto] then runs over the
+LLM- and fuzzy-resolved names: a printed block whose Hit Dice *count* differs
+from the picked template's by one or more flips the pick to `unresolved` —
+the vetoed name flows into the existing custom-emission path, and the
+discarded pick rides the cache on `vetoed_template_id`/`veto_detail`. The
+veto changes the cache, not just the draft, so every downstream consumer
+agrees with the record. Near-miss judgment (`resolution_suspect`) is
+assembly's job — the comparator caches facts; assembly judges survivors.
 """
 
 import re
@@ -41,6 +50,7 @@ from osrforge.contracts.stages import (
 )
 from osrforge.pages import page_request_parts
 from osrforge.providers.base import ImagePart, ModelProvider, ModelRequest, TextPart
+from osrforge.statblocks import parse_ac, parse_class_level, parse_hd_text
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
 
 __all__ = [
@@ -57,6 +67,8 @@ __all__ = [
     "monsters_schema",
     "normalize_monster_name",
     "parse_statblock_response",
+    "printed_hd_profile",
+    "stat_block_veto",
     "statblock_page_plan",
     "statblock_schema",
     "statblock_tag",
@@ -522,19 +534,96 @@ def parse_statblock_response(data: object) -> RawStatBlock | None:
     )
 
 
+_HALF_HD = re.compile(r"½|\b1\s*/\s*2\b")
+
+
+def printed_hd_profile(block: RawStatBlock) -> tuple[int, int] | None:
+    """Return the printed block's structural HD `(count, modifier)`, or None when neither form parses.
+
+    The veto's (and assembly's suspect judgment's) one reading of a printed
+    block's Hit Dice, pinned: a printed HD line takes precedence over a
+    class-level line when both print (mirroring
+    [`map_stat_block`][osrforge.assemble.map_stat_block]'s own order); a
+    class-level block's level *is* its count (assembly's mapping), modifier 0;
+    a fractional printed parse normalizes to osrlib's own modeling — `½` →
+    count 1 (the catalog's die-4 shape), smaller fractions (`¼`, `⅛`) → count
+    0 — so a module printing `½` against a ½-HD template is agreement, never
+    a Δ1 false veto.
+
+    Args:
+        block: The cached raw block.
+
+    Returns:
+        `(count, modifier)`, or `None` when neither an HD line nor a
+        class-level notation parses.
+    """
+    parsed = parse_hd_text(block.hit_dice)
+    if parsed is not None:
+        if parsed.fractional:
+            assert block.hit_dice is not None
+            return (1, 0) if _HALF_HD.search(block.hit_dice) else (0, 0)
+        return parsed.count, parsed.modifier
+    class_parsed = parse_class_level(block.class_level)
+    if class_parsed is None:
+        return None
+    return class_parsed[1], 0
+
+
+def stat_block_veto(name: str, block: RawStatBlock | None, template: MonsterTemplate) -> MonsterResolution | None:
+    """Judge one LLM- or fuzzy-resolved pick against its printed block; return the vetoed entry, or None.
+
+    The veto fires exactly when (a) the printed block is usable — an AC plus
+    an HD line or class-level notation, the same structural gate as
+    [`usable_stat_block`][osrforge.assemble.usable_stat_block], composed here
+    from the shared parsers because assembly sits above this stage in the
+    import graph — (b) both the printed HD and the template HD parse
+    structurally ([`printed_hd_profile`][osrforge.monsters.printed_hd_profile]
+    against `MonsterHitDice.count`), and (c) the HD *count* differs by ≥ 1.
+    AC never vetoes — single-value AC direction rests on a defaulted
+    assumption (`complement_derived`), and a false veto spends resolution
+    accuracy the corpus shows we don't have to spend; AC only flags, at
+    assembly. The vetoed entry preserves the discarded pick on
+    `vetoed_template_id` with the both-readings `veto_detail`.
+
+    Args:
+        name: The normalized extracted name.
+        block: The name's cached raw block, or the absent marker.
+        template: The picked catalog template.
+
+    Returns:
+        The `unresolved` replacement carrying the veto record, or `None` when
+        the pick survives.
+    """
+    if block is None or parse_ac(block) is None:
+        return None
+    profile = printed_hd_profile(block)
+    if profile is None:
+        return None
+    printed_count, _ = profile
+    if abs(printed_count - template.hit_dice.count) < 1:
+        return None
+    detail = f"{name} → {template.id}, printed HD {printed_count} vs {template.hit_dice.count}"
+    return MonsterResolution(template_id=None, method="unresolved", vetoed_template_id=template.id, veto_detail=detail)
+
+
 def monsters(workdir: Workdir, provider: ModelProvider) -> MonsterResolutions:
     """Run stage 3: resolve every keyed encounter name; write `stages/monsters.json` and `stages/statblocks.json`.
 
     Tiers 1-3 run first; the provider is called only if names remain — a fully
     deterministic resolution makes no model call. An empty name population
     writes an empty cache and completes. The stat-block pass then runs over
-    exactly the names still unresolved (under `custom_monsters: emit`): one
-    transcription request per name over its planned page set, with a name
-    whose plan is empty (no encounter pages, no text hits) cached as an
-    explicit absent marker without a model call. `stages/statblocks.json` is
-    rewritten on every run — the knob echo plus an entry per unresolved name;
-    under `off`, the echo and an empty `blocks`. Both caches are single atomic
-    artifacts; no pre-clearing is needed.
+    the union of unresolved, LLM-resolved, and fuzzy-resolved names (under
+    `custom_monsters: emit` — `off` is the documented opt-out of the entire
+    custom path, and no veto fires under it): one transcription request per
+    name over its planned page set, with a name whose plan is empty (no
+    encounter pages, no text hits) cached as an explicit absent marker without
+    a model call. After the pass, the deterministic
+    [`stat_block_veto`][osrforge.monsters.stat_block_veto] runs per LLM- and
+    fuzzy-resolved name, flipping contradicted picks to `unresolved` before
+    the cache writes — the cache is the record. `stages/statblocks.json` is
+    rewritten on every run — the knob echo plus an entry per pass-population
+    name; under `off`, the echo and an empty `blocks`. Both caches are single
+    atomic artifacts; no pre-clearing is needed.
 
     Args:
         workdir: A workdir whose content stage is `completed`.
@@ -584,13 +673,17 @@ def monsters(workdir: Workdir, provider: ModelProvider) -> MonsterResolutions:
                     resolutions[name] = MonsterResolution(template_id=template_id, method="llm")
         blocks: dict[str, RawStatBlock | None] = {}
         if run.settings.custom_monsters == "emit":
-            unresolved = sorted(name for name, entry in resolutions.items() if entry.template_id is None)
-            if unresolved:
+            population = sorted(
+                name
+                for name, entry in resolutions.items()
+                if entry.template_id is None or entry.method in ("llm", "fuzzy")
+            )
+            if population:
                 page_texts = {
                     number: workdir.page_txt(number).read_text(encoding="utf-8")
                     for number in range(1, run.page_count + 1)
                 }
-                for name in unresolved:
+                for name in population:
                     pages = statblock_page_plan(name, levels, page_texts)
                     if not pages:
                         blocks[name] = None
@@ -599,6 +692,17 @@ def monsters(workdir: Workdir, provider: ModelProvider) -> MonsterResolutions:
                     tracker.add_usage(response.usage)
                     tracker.set_model(type(provider).__name__, response.model_id)
                     blocks[name] = parse_statblock_response(response.data)
+            # The veto: judge every non-exact pick against its printed block,
+            # flipping contradicted picks before the cache writes — the cache
+            # is the record every downstream consumer reads.
+            templates_by_id = {template.id: template for template in catalog.monsters}
+            for name in sorted(resolutions):
+                entry = resolutions[name]
+                if entry.method not in ("llm", "fuzzy") or entry.template_id is None:
+                    continue
+                vetoed = stat_block_veto(name, blocks.get(name), templates_by_id[entry.template_id])
+                if vetoed is not None:
+                    resolutions[name] = vetoed
         statblocks = StatBlocks(custom_monsters=run.settings.custom_monsters, blocks=blocks)
         cache_model = MonsterResolutions(resolutions=resolutions)
         workdir.stages_dir.mkdir(parents=True, exist_ok=True)

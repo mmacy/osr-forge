@@ -42,7 +42,13 @@ from osrforge.providers.base import ModelProvider
 from osrforge.providers.fixtures import RecordingProvider
 from osrforge.providers.foundry import FoundryProvider, FoundrySettings
 from osrforge.settings import ConversionSettings
-from osrforge.survey import build_survey_request, filter_index_to_pages, normalize_survey, survey
+from osrforge.survey import (
+    build_census_request,
+    build_survey_request,
+    filter_index_to_pages,
+    normalize_survey,
+    survey,
+)
 from osrforge.workdir import Workdir, write_json_artifact
 
 
@@ -139,6 +145,31 @@ def cmd_excerpt(args: argparse.Namespace) -> None:
     print(f"content usage: in={batch_response.usage.input_tokens} out={batch_response.usage.output_tokens}")
     data = cast(dict[str, Any], batch_response.data)
     print(f"content areas returned: {[entry['key'] for entry in data['areas']]}")
+
+
+def cmd_census(args: argparse.Namespace) -> None:
+    # The targeted census-recording leg: build the census request over a
+    # committed pages/ directory and record exactly that one fixture. A full
+    # live re-run would re-roll the survey's own response at its existing tag
+    # and cascade into an unnecessary golden re-bless — this leg exists so
+    # nobody reaches for the session-rerun hammer.
+    asset_workdir = Workdir(args.module_dir)
+    pages = sorted(int(path.stem) for path in asset_workdir.pages_dir.glob("*.png"))
+    if not pages:
+        sys.exit(f"no committed pages in {asset_workdir.pages_dir}")
+    if len(pages) > ConversionSettings().survey_max_pages:
+        # The committed sets are all single-window; a chunked census records
+        # through a full session, out of this leg's scope by design.
+        sys.exit(f"{len(pages)} committed pages exceed the single-window size; this leg records one fixture only")
+    provider = make_provider(args.record_fixtures)
+    print(f"census over committed pages {pages}")
+    response = provider.generate(build_census_request(page_request_parts(asset_workdir, pages)))
+    print(f"census usage: in={response.usage.input_tokens} out={response.usage.output_tokens}")
+    data = cast(dict[str, Any], response.data)
+    for dungeon in cast(list[dict[str, Any]], data["dungeons"]):
+        levels = cast(list[dict[str, Any]], dungeon["levels"])
+        ranges = ", ".join(f"L{level['number']} {level['first_key']}-{level['last_key']}" for level in levels)
+        print(f"  {dungeon['name']}: {ranges}")
 
 
 def cmd_monsters(args: argparse.Namespace) -> None:
@@ -320,6 +351,19 @@ def main() -> None:
         help="the replay fixture directory (e.g. tests/assets/<module>/fixtures-extract/replay)",
     )
 
+    census = subcommands.add_parser(
+        "census", help="record exactly the census fixture over a committed pages/ directory"
+    )
+    census.add_argument(
+        "--module-dir", type=Path, required=True, help="the fenced asset directory (with its pages/ subset)"
+    )
+    census.add_argument(
+        "--record-fixtures",
+        type=Path,
+        required=True,
+        help="the fixture directory the census fixture lands in (e.g. tests/assets/minimod/fixtures)",
+    )
+
     monsters_parser = subcommands.add_parser(
         "monsters", help="resolve one stage directory's encounter names, recording the LLM pass"
     )
@@ -363,7 +407,13 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    {"full": cmd_full, "excerpt": cmd_excerpt, "monsters": cmd_monsters, "goldens": cmd_goldens}[args.command](args)
+    {
+        "full": cmd_full,
+        "excerpt": cmd_excerpt,
+        "census": cmd_census,
+        "monsters": cmd_monsters,
+        "goldens": cmd_goldens,
+    }[args.command](args)
 
 
 if __name__ == "__main__":
