@@ -569,9 +569,7 @@ def printed_hd_profile(block: RawStatBlock) -> tuple[int, int] | None:
     return class_parsed[1], 0
 
 
-def stat_block_veto(
-    name: str, resolution: MonsterResolution, block: RawStatBlock | None, template: MonsterTemplate
-) -> MonsterResolution | None:
+def stat_block_veto(name: str, block: RawStatBlock | None, template: MonsterTemplate) -> MonsterResolution | None:
     """Judge one LLM- or fuzzy-resolved pick against its printed block; return the vetoed entry, or None.
 
     The veto fires exactly when (a) the printed block is usable — an AC plus
@@ -589,7 +587,6 @@ def stat_block_veto(
 
     Args:
         name: The normalized extracted name.
-        resolution: The name's cached resolution (`method` `llm` or `fuzzy`).
         block: The name's cached raw block, or the absent marker.
         template: The picked catalog template.
 
@@ -703,7 +700,7 @@ def monsters(workdir: Workdir, provider: ModelProvider) -> MonsterResolutions:
                 entry = resolutions[name]
                 if entry.method not in ("llm", "fuzzy") or entry.template_id is None:
                     continue
-                vetoed = stat_block_veto(name, entry, blocks.get(name), templates_by_id[entry.template_id])
+                vetoed = stat_block_veto(name, blocks.get(name), templates_by_id[entry.template_id])
                 if vetoed is not None:
                     resolutions[name] = vetoed
         statblocks = StatBlocks(custom_monsters=run.settings.custom_monsters, blocks=blocks)

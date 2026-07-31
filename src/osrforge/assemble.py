@@ -324,7 +324,10 @@ def usable_stat_block(block: RawStatBlock | None) -> bool:
     A block failing this refuses emission — there is nothing to derive combat
     math from, and emit-with-invented-combat-math would be invention. Shared
     verbatim with the eval scorer's custom-assertion match signal, so the
-    metric can never score an emission assembly would refuse.
+    metric can never score an emission assembly would refuse. The monsters
+    stage's [`stat_block_veto`][osrforge.monsters.stat_block_veto] composes
+    the identical gate from the shared parsers (it cannot import this module),
+    so an edit here must visit the veto too.
 
     Args:
         block: A cached raw block, or the absent marker.

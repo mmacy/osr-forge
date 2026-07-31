@@ -575,11 +575,8 @@ def test_single_request_path_is_digest_identical_to_the_committed_minimod_fixtur
 
 def test_census_request_is_digest_identical_to_the_committed_minimod_fixture(tmp_path: Path):
     """The census counterpart of the survey digest-identity gate."""
-    from test_minimod_pipeline import MINIMOD, PAGE_COUNT, census_fixture_pending, minimod_workdir
-
-    if census_fixture_pending():
-        pytest.skip("census fixture pending recording")
     from osrforge.pages import page_request_parts
+    from test_minimod_pipeline import MINIMOD, PAGE_COUNT, minimod_workdir
 
     workdir = minimod_workdir(tmp_path / "mod.forge")
     request = build_census_request(page_request_parts(workdir, range(1, PAGE_COUNT + 1)))

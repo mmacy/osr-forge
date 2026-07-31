@@ -26,7 +26,6 @@ repository as a test asset and dedicated to the public domain under
   population resolves in the exact tier, so the monsters stage makes no model
   call (the pipeline-replay test would fail loudly if it ever did). Until the
   census fixture is recorded, the pipeline tests that replay the survey stage
-  skip with `census fixture pending recording`.
 - `expected/` — the full-chain goldens the pipeline-replay test pins
   byte-for-byte: the stage caches (`survey.json`,
   `areas.<dungeon>.<level>.json`, `monsters.json`, `statblocks.json`) at the

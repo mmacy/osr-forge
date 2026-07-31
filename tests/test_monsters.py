@@ -11,7 +11,6 @@ from conftest import ScriptedProvider, fabricate_workdir
 from osrforge.contracts.run import Stage, StageStatus
 from osrforge.contracts.stages import (
     LevelContent,
-    MonsterResolution,
     MonsterResolutions,
     RawStatBlock,
     StatBlocks,
@@ -630,12 +629,9 @@ class TestPrintedHdProfile:
 
 
 class TestStatBlockVeto:
-    def llm(self, template_id: str) -> MonsterResolution:
-        return MonsterResolution(template_id=template_id, method="llm")
-
     def test_chieftain_delta_one_vetoes(self):
         # The measured miss family: a bespoke leader one HD above its base monster.
-        vetoed = stat_block_veto("orc chief", self.llm("orc"), raw_block(hit_dice="2"), catalog_template("orc"))
+        vetoed = stat_block_veto("orc chief", raw_block(hit_dice="2"), catalog_template("orc"))
         assert vetoed is not None
         assert vetoed.template_id is None and vetoed.method == "unresolved"
         assert vetoed.vetoed_template_id == "orc"
@@ -645,7 +641,6 @@ class TestStatBlockVeto:
         # The fire_beetle-style truth-confirmed pick the tolerance protects.
         survived = stat_block_veto(
             "giant fire beetle",
-            self.llm("fire_beetle"),
             raw_block(ac="4", hit_dice="1+2"),
             catalog_template("fire_beetle"),
         )
@@ -653,51 +648,38 @@ class TestStatBlockVeto:
 
     def test_modifier_only_difference_survives_the_veto(self):
         # Counts equal, modifiers differ: assembly's resolution_suspect, never a veto.
-        survived = stat_block_veto(
-            "veteran", self.llm("veteran_2"), raw_block(ac="2", hit_dice="2+1"), catalog_template("veteran_2")
-        )
+        survived = stat_block_veto("veteran", raw_block(ac="2", hit_dice="2+1"), catalog_template("veteran_2"))
         assert survived is None
 
     def test_unusable_block_is_untouched(self):
         # No AC: not usable — no evidence, no veto.
-        assert (
-            stat_block_veto("orc chief", self.llm("orc"), raw_block(ac=None, hit_dice="5"), catalog_template("orc"))
-            is None
-        )
+        assert stat_block_veto("orc chief", raw_block(ac=None, hit_dice="5"), catalog_template("orc")) is None
 
     def test_absent_marker_is_untouched(self):
-        assert stat_block_veto("orc chief", self.llm("orc"), None, catalog_template("orc")) is None
+        assert stat_block_veto("orc chief", None, catalog_template("orc")) is None
 
     def test_unparseable_printed_hd_is_untouched(self):
         block = raw_block(hit_dice="a few", class_level=None)
-        assert stat_block_veto("orc chief", self.llm("orc"), block, catalog_template("orc")) is None
+        assert stat_block_veto("orc chief", block, catalog_template("orc")) is None
 
     def test_half_hd_print_against_a_half_hd_template_agrees(self):
         # kobold is the catalog's ½ HD shape (count 1, die 4): never a Δ1 false veto.
-        assert (
-            stat_block_veto("kobold guard", self.llm("kobold"), raw_block(hit_dice="½"), catalog_template("kobold"))
-            is None
-        )
+        assert stat_block_veto("kobold guard", raw_block(hit_dice="½"), catalog_template("kobold")) is None
 
     def test_smaller_fraction_against_a_count_zero_template_agrees(self):
-        assert (
-            stat_block_veto("bats", self.llm("normal_bat"), raw_block(hit_dice="¼"), catalog_template("normal_bat"))
-            is None
-        )
+        assert stat_block_veto("bats", raw_block(hit_dice="¼"), catalog_template("normal_bat")) is None
 
     def test_class_level_counts_as_hd(self):
         # Level 3 against a 2-HD template: Δ1 vetoes; against a 3-HD template it survives.
         block = raw_block(hit_dice=None, class_level="F 3")
-        vetoed = stat_block_veto("bandit leader", self.llm("veteran_2"), block, catalog_template("veteran_2"))
+        vetoed = stat_block_veto("bandit leader", block, catalog_template("veteran_2"))
         assert vetoed is not None and vetoed.vetoed_template_id == "veteran_2"
-        assert stat_block_veto("bandit leader", self.llm("crab_giant"), block, catalog_template("crab_giant")) is None
+        assert stat_block_veto("bandit leader", block, catalog_template("crab_giant")) is None
 
     def test_the_preregistered_offspring_case_vetoes(self):
         # JN2's giant crab offspring: printed HD 1 vs crab_giant's 3 — the
         # knowingly-spent truth disagreement (issue #30).
-        vetoed = stat_block_veto(
-            "giant crab offspring", self.llm("crab_giant"), raw_block(hit_dice="1"), catalog_template("crab_giant")
-        )
+        vetoed = stat_block_veto("giant crab offspring", raw_block(hit_dice="1"), catalog_template("crab_giant"))
         assert vetoed is not None
         assert vetoed.veto_detail == "giant crab offspring → crab_giant, printed HD 1 vs 3"
 

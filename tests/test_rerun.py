@@ -22,7 +22,7 @@ from osrforge.providers.fixtures import FixtureProvider
 from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir
 from test_convert import FailAfter
-from test_minimod_pipeline import MINIMOD, census_recorded, golden_files, run_pipeline
+from test_minimod_pipeline import MINIMOD, golden_files, run_pipeline
 from test_overrides_apply import synthetic_workdir
 
 
@@ -36,7 +36,6 @@ def produced_artifacts(root: Path) -> dict[str, bytes]:
 
 
 @pytest.mark.parametrize("stage", [Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS, Stage.ASSEMBLE])
-@census_recorded
 def test_rerun_resumes_each_stage_through_assemble_to_the_goldens(tmp_path: Path, stage: Stage):
     root = tmp_path / "mod.forge"
     run_pipeline(root)
@@ -51,7 +50,6 @@ def test_rerun_resumes_each_stage_through_assemble_to_the_goldens(tmp_path: Path
     assert produced_artifacts(root) == golden_files()
 
 
-@census_recorded
 def test_rerun_assemble_needs_no_provider_and_is_the_correction_loop_assemble(tmp_path: Path):
     root = tmp_path / "mod.forge"
     run_pipeline(root)
@@ -126,7 +124,6 @@ def test_rerun_assemble_with_set_flips_the_unresolved_fallback(tmp_path: Path):
     assert workdir.read_run().settings.unresolved_fallback == "omit"
 
 
-@census_recorded
 def test_drift_guard_rejects_upstream_knobs_and_allows_downstream(tmp_path: Path):
     root = tmp_path / "mod.forge"
     run_pipeline(root)
@@ -147,7 +144,6 @@ def test_knob_stage_table_covers_exactly_the_settings_fields():
     assert sorted(KNOB_STAGES) == sorted(ConversionSettings.model_fields)
 
 
-@census_recorded
 def test_unknown_knob_is_a_validation_error(tmp_path: Path):
     root = tmp_path / "mod.forge"
     run_pipeline(root)
@@ -155,7 +151,6 @@ def test_unknown_knob_is_a_validation_error(tmp_path: Path):
         rerun(root, Stage.ASSEMBLE, settings_updates={"no_such_knob": 1})
 
 
-@census_recorded
 def test_rerun_requires_a_provider_exactly_when_the_chain_has_model_stages(tmp_path: Path):
     root = tmp_path / "mod.forge"
     run_pipeline(root)
@@ -165,7 +160,6 @@ def test_rerun_requires_a_provider_exactly_when_the_chain_has_model_stages(tmp_p
         rerun(root, Stage.MONSTERS)
 
 
-@census_recorded
 def test_rerun_rejects_the_geometry_stage(tmp_path: Path):
     root = tmp_path / "mod.forge"
     run_pipeline(root)
@@ -193,7 +187,6 @@ def test_rerun_precondition_failures_are_the_stage_functions_own(tmp_path: Path)
         rerun(workdir.root, Stage.ASSEMBLE)
 
 
-@census_recorded
 def test_failure_mid_chain_then_rerun_completes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from importlib import import_module
 

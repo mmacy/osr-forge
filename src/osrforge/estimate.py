@@ -160,16 +160,16 @@ def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: Conve
     for first_page, last_page in windows:
         window_pages = last_page - first_page + 1
         window_page_tokens = sum(page_text_tokens[first_page - 1 : last_page]) + IMAGE_TOKENS_PER_PAGE * window_pages
-        for overhead, window_output in (
-            (_SURVEY_OVERHEAD_TOKENS, _SURVEY_OUTPUT_TOKENS_PER_PAGE * window_pages),
-            (_CENSUS_OVERHEAD_TOKENS, _CENSUS_OUTPUT_TOKENS_PER_WINDOW),
+        for leg, overhead, window_output in (
+            ("survey", _SURVEY_OVERHEAD_TOKENS, _SURVEY_OUTPUT_TOKENS_PER_PAGE * window_pages),
+            ("census", _CENSUS_OVERHEAD_TOKENS, _CENSUS_OUTPUT_TOKENS_PER_WINDOW),
         ):
             window_input = window_page_tokens + overhead
             window_crosses_cliff = window_input > LARGE_REQUEST_INPUT_TOKENS
             window_input_rate = LARGE_INPUT_USD_PER_TOKEN if window_crosses_cliff else INPUT_USD_PER_TOKEN
             window_output_rate = LARGE_OUTPUT_USD_PER_TOKEN if window_crosses_cliff else OUTPUT_USD_PER_TOKEN
             windowed_usd += window_input * window_input_rate + window_output * window_output_rate
-            if overhead is _SURVEY_OVERHEAD_TOKENS:
+            if leg == "survey":
                 survey_input += window_input
                 survey_output += window_output
             else:
