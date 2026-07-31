@@ -60,7 +60,7 @@ def test_preview_command_rewrites_previews_only(tmp_path: Path):
     before = pure_artifacts(workdir.root)
     run_json_before = workdir.run_json.read_bytes()
     written = render_previews(workdir.root)
-    assert [path.name for path in written] == ["lair.1.svg"]
+    assert [path.name for path in written] == ["lair.1.svg", "index.html"]
     assert pure_artifacts(workdir.root) == before  # identical bytes, nothing else touched
     assert workdir.run_json.read_bytes() == run_json_before
 

@@ -21,7 +21,7 @@ per-module working directory:
 | `adventure.json` | The product: a stamped osrlib document. Load with `check_document` + `Adventure.model_validate`. |
 | `report.json` | The extraction report: per-area confidence, source pages, flags, monster-resolution summary, lint findings. Drives review UIs. |
 | `overrides.yaml` | The human correction channel. Every entry carries a `reason`; applied during assembly; version-controllable. |
-| `previews/*.svg` | One rendered grid map per dungeon level, for eyeballing geometry against the printed map. |
+| `previews/` | One rendered grid map per dungeon level (with a coordinate ruler), plus an `index.html` pairing each map with the module's own map-page renders. |
 
 osr-forge is front-end-agnostic by contract, not by implementation: it is
 Python (it must import osrlib to validate natively), but consumers only need

@@ -38,6 +38,7 @@ def make_index(
     level_number: int = 1,
     description: str = "",
     services: list[str] | None = None,
+    map_pages: list[int] | None = None,
 ) -> SurveyIndex:
     return SurveyIndex.model_validate(
         {
@@ -53,7 +54,7 @@ def make_index(
                     "levels": [
                         {
                             "number": level_number,
-                            "map_pages": [],
+                            "map_pages": map_pages or [],
                             "areas": [
                                 {
                                     "key": key,
@@ -610,6 +611,19 @@ class TestAssembleStage:
         assert Adventure.model_validate(payload) == result.adventure
         assert workdir.report_json.is_file()
         assert workdir.preview_svg("lair", 1).is_file()
+        assert workdir.previews_index.is_file()
+
+    def test_previews_index_pairs_each_level_with_its_map_pages(self, tmp_path: Path):
+        workdir = assembled_workdir(tmp_path / "mod.forge")
+        write_json_artifact(workdir.survey_json, make_index(["1"], title="", town_name="", map_pages=[2]))
+        assemble(workdir.root)
+        page = workdir.previews_index.read_text(encoding="utf-8")
+        # The index carries the built title (the survey's is empty here), the
+        # dungeon's printed name, and hrefs relative to previews/.
+        assert "Untitled module — previews" in page
+        assert "The Lair — level 1" in page
+        assert '<img src="lair.1.svg" alt="Synthesized map">' in page
+        assert '<img src="../pages/0002.png" alt="Page 2">' in page
 
     def test_requires_completed_monsters(self, tmp_path: Path):
         workdir = assembled_workdir(tmp_path / "mod.forge")

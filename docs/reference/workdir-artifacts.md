@@ -18,7 +18,8 @@ my-module.forge/
 │   └── statblocks.json   # raw printed stat blocks for unresolved names
 ├── overrides.yaml        # the human correction channel
 ├── previews/
-│   └── <dungeon>.<level>.svg
+│   ├── <dungeon>.<level>.svg
+│   └── index.html        # each map beside its module map-page renders
 ├── report.json           # the extraction report
 └── adventure.json        # the stamped osrlib document
 ```
@@ -86,10 +87,13 @@ carry `name`, `description`, and cells. Duplicate YAML keys are rejected at
 load. The schema is
 [`Overrides`][osrforge.contracts.overrides.Overrides].
 
-## `previews/*.svg`
+## `previews/`
 
 One rendered grid map per dungeon level — synthesized geometry, drawn for
-eyeballing against the printed map. Regenerate alone with `osrforge preview`.
+eyeballing against the printed map, framed by a coordinate ruler printing the
+0-based cell coordinates geometry overrides use — plus `index.html`, which
+pairs each level's map with the module's own map-page renders (the survey's
+`map_pages`, served from `pages/`). Regenerate alone with `osrforge preview`.
 
 ## Contract stability
 

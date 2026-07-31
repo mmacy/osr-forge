@@ -9,12 +9,15 @@ import yaml
 from osrforge import cli
 from osrforge.contracts.overrides import Overrides, load_overrides
 from osrforge.contracts.report import (
+    AreaReport,
+    CustomMonsterRecord,
     ExtractionReport,
     LintCheck,
     LintFinding,
     ModuleInfo,
     MonsterSummary,
     ValidationResult,
+    VetoedResolution,
 )
 from osrforge.contracts.run import RunMeta, Stage, StageStatus, TokenUsage
 from osrforge.errors import OsrForgeError
@@ -30,11 +33,12 @@ class TestParsing:
         assert args.provider == "foundry"
         assert args.set is None
 
-    def test_assemble_check_and_preview_default_to_discovery(self):
+    def test_assemble_check_report_and_preview_default_to_discovery(self):
         # None means the handler discovers the workdir; an explicit flag bypasses discovery.
         assert cli.build_parser().parse_args(["assemble"]).workdir is None
         assert cli.build_parser().parse_args(["preview"]).workdir is None
         assert cli.build_parser().parse_args(["check"]).workdir is None
+        assert cli.build_parser().parse_args(["report"]).workdir is None
 
     def test_unknown_provider_rejected(self, capsys: pytest.CaptureFixture[str]):
         with pytest.raises(SystemExit) as excinfo:
@@ -221,6 +225,100 @@ class TestCheckExitCodes:
         out = capsys.readouterr().out
         assert "validation: passed" in out
         assert "warning secret_only_access lair/1 synthetic finding" in out
+
+
+def full_report() -> ExtractionReport:
+    return ExtractionReport(
+        module=ModuleInfo(title="The Bone Barrow", pages=48),
+        validation=ValidationResult(passed=True),
+        areas=(
+            AreaReport(id="barrow/1/1", confidence=0.9, flags=("geometry_synthesized",)),
+            AreaReport(id="barrow/1/2", confidence=0.8, flags=("geometry_synthesized", "monster_unresolved:pale wyrm")),
+        ),
+        monsters=MonsterSummary(
+            resolved=5,
+            unresolved=("pale wyrm",),
+            custom=(CustomMonsterRecord(id="barrow-tentacle-worm", name="tentacle worm"),),
+            vetoed=(
+                VetoedResolution(
+                    name="orc chief", vetoed_template_id="orc", detail="orc chief → orc, printed HD 2 vs 1"
+                ),
+            ),
+        ),
+        usage=TokenUsage(),
+        flags=("survey_disputed:census names 'crypt'; survey does not",),
+        findings=(finding("warning"), finding("error")),
+    )
+
+
+class TestReportCommand:
+    def test_report_prints_the_summary(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+        root = tmp_path / "mod.forge"
+        root.mkdir()
+        write_json_artifact(Workdir(root).report_json, full_report())
+        cli.main(["report", "--workdir", str(root)])
+        out = capsys.readouterr().out
+        assert "The Bone Barrow — 48 pages, osrforge " in out
+        assert "validation: passed" in out
+        assert "flags: 4" in out
+        # Grouped by kind: a detail-less kind is one comma-joined line of
+        # locations in draft order; a kind carrying details lists one
+        # location per line, module-scope entries at location `module`.
+        assert "  geometry_synthesized (2): barrow/1/1, barrow/1/2" in out
+        assert "  monster_unresolved (1):\n    barrow/1/2 (pale wyrm)" in out
+        assert "  survey_disputed (1):\n    module (census names 'crypt'; survey does not)" in out
+        assert "monsters: 5 resolved, 1 unresolved, 1 custom, 1 vetoed" in out
+        assert "  unresolved: pale wyrm" in out
+        assert "  custom: barrow-tentacle-worm (tentacle worm)" in out
+        assert "  vetoed: orc chief → orc, printed HD 2 vs 1" in out
+        # Findings by severity: errors before warnings, whatever the report order.
+        assert "findings: 1 errors, 1 warnings" in out
+        assert out.index("error edge_invalid") < out.index("warning secret_only_access")
+
+    def test_a_long_detail_less_group_wraps_instead_of_one_giant_line(self):
+        # A real module synthesizes geometry for every area — 100+ addresses.
+        report = ExtractionReport(
+            module=ModuleInfo(title="T", pages=1),
+            validation=ValidationResult(passed=True),
+            areas=tuple(
+                AreaReport(id=f"barrow/1/{n}", confidence=0.9, flags=("geometry_synthesized",)) for n in range(1, 41)
+            ),
+            monsters=MonsterSummary(resolved=0),
+            usage=TokenUsage(),
+        )
+        out = cli.format_report(report)
+        group_lines = [line for line in out.splitlines() if "barrow/1/" in line]
+        assert group_lines[0].startswith("  geometry_synthesized (40): barrow/1/1,")
+        assert len(group_lines) > 1
+        assert all(line.startswith("    ") for line in group_lines[1:])
+        assert all(len(line) <= 100 for line in group_lines)
+        # Wrapping loses nothing: every address is still present.
+        assert all(f"barrow/1/{n}" in out for n in range(1, 41))
+
+    def test_report_exits_zero_even_when_validation_failed(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]):
+        # Presentation only: `check` owns the gating exit code.
+        root = tmp_path / "mod.forge"
+        write_report(root, passed=False)
+        cli.main(["report", "--workdir", str(root)])
+        out = capsys.readouterr().out
+        assert "validation: failed (1 errors)" in out
+        assert "  dangling id" in out
+        assert "findings: none recorded (osrforge check records them)" in out
+
+    def test_report_without_a_report_is_a_loud_error(self, tmp_path: Path):
+        root = tmp_path / "mod.forge"
+        root.mkdir()
+        with pytest.raises(SystemExit) as excinfo:
+            cli.main(["report", "--workdir", str(root)])
+        message = str(excinfo.value)
+        assert "no report.json" in message
+        assert "run osrforge assemble first" in message
+
+    def test_report_shares_discovery(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys):
+        write_report(tmp_path / "mod.forge", passed=True)
+        monkeypatch.chdir(tmp_path)
+        cli.main(["report"])
+        assert "validation: passed" in capsys.readouterr().out
 
 
 class TestRerunCommand:

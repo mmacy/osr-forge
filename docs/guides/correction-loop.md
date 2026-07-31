@@ -7,10 +7,14 @@ and costs nothing.
 
 ## The loop
 
-1. **Read the report and the previews.** `report.json` carries per-area
-   [flags](../reference/vocabulary.md), the monster-resolution summary, and —
-   after `check` — the playability findings. The `previews/*.svg` maps are for
-   eyeballing synthesized geometry against the printed map.
+1. **Read the report and the previews.** `osrforge report` summarizes
+   `report.json` without opening JSON by hand: the per-area
+   [flags](../reference/vocabulary.md) grouped by kind, the
+   monster-resolution summary, and — after `check` — the playability
+   findings. For geometry, open `previews/index.html`: it pairs each level's
+   synthesized map with the module's own map-page renders, and the SVGs'
+   coordinate ruler prints the exact cell coordinates a geometry override
+   uses.
 2. **Edit `overrides.yaml`.** Monster remaps and stat-block patches, per-area
    field replacement, area adds and removes, geometry (cells, edges, entrance,
    transitions), and town/module metadata. Every entry carries a `reason` —
@@ -58,6 +62,9 @@ town:
   name: Riverton
   reason: The module names the base town on p. 3.
 ```
+
+Geometry cells and edge keys are the 0-based `x, y` coordinates the preview
+SVGs' ruler prints — read them off the map, no counting.
 
 When extraction already placed the door — the content pass reads stated
 mechanisms, so a "stuck door in the north wall" usually synthesizes on its

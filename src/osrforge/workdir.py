@@ -112,6 +112,11 @@ class Workdir:
         return self.root / "previews"
 
     @property
+    def previews_index(self) -> Path:
+        """The previews index page: each level's SVG beside its surveyed map pages."""
+        return self.previews_dir / "index.html"
+
+    @property
     def report_json(self) -> Path:
         """The extraction report."""
         return self.root / "report.json"

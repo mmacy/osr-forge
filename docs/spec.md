@@ -29,7 +29,7 @@ Everything a consumer touches is one of four artifacts, produced into a per-modu
 | `adventure.json` | Stamped osrlib document (`kind: "adventure"` via `osrlib.versioning.stamp_document`; payload is `Adventure.model_dump(mode="json")`) | The product. Load with `check_document` + `Adventure.model_validate`. |
 | `report.json` | JSON | Extraction report: per-area confidence, source pages, flags (synthesized geometry, unresolved monsters, ambiguities), monster-resolution summary, token usage. Drives review UIs. |
 | `overrides.yaml` | YAML | The human correction channel. Every entry carries a `reason`. Applied during assembly; version-controllable. |
-| `previews/*.svg` | SVG | One rendered grid map per dungeon level, for eyeballing geometry against the printed map. |
+| `previews/` | SVG + HTML | One rendered grid map per dungeon level (with a coordinate ruler), plus `index.html` pairing each map with the module's own map-page renders, for eyeballing geometry against the printed map. |
 
 The core guarantee: **assembly is pure.** `adventure.json`, `report.json`, and the previews are a deterministic function of the cached stage outputs plus `overrides.yaml`. LLM calls happen only in the extraction stages, whose raw outputs are cached on disk; correcting a draft never re-rolls the model, and re-running assembly after an overrides edit is instant and reproducible. (This mirrors osrlib's own `srd_compile` overrides pattern: corrections live beside the pipeline with reasons, never inside generated output.)
 
@@ -62,7 +62,8 @@ my-module.forge/
 │   └── statblocks.json
 ├── overrides.yaml
 ├── previews/
-│   └── <dungeon>.<level>.svg
+│   ├── <dungeon>.<level>.svg
+│   └── index.html
 ├── report.json
 └── adventure.json
 ```

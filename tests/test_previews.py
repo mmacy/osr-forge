@@ -1,11 +1,11 @@
-"""The SVG renderer: byte stability, the full edge model, and no timestamp-shaped content."""
+"""The SVG renderer and previews index: byte stability, the full edge model, and no timestamp-shaped content."""
 
 import re
 
 from osrlib.crawl.dungeon import AreaSpec, DoorSpec, Edge, EdgeKind, LevelSpec, TransitionSpec, edge_key
 from osrlib.crawl.dungeon import Direction as GridDirection
 
-from osrforge.previews import render_level_svg
+from osrforge.previews import PreviewIndexLevel, render_level_svg, render_previews_index
 
 ISO_TIMESTAMP = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}")
 
@@ -76,3 +76,45 @@ def test_dead_cells_get_no_fill():
 
 def test_no_timestamp_shaped_content():
     assert not ISO_TIMESTAMP.search(render_level_svg("lair", make_level()))
+
+
+def test_ruler_labels_every_row_and_column():
+    # The ruler prints the exact 0-based coordinates a geometry override's
+    # `cells` and edge keys use: one column label per x, one row label per y.
+    svg = render_level_svg("lair", make_level())
+    ruler_labels = re.findall(r'fill="#888888">(\d+)</text>', svg)
+    assert ruler_labels == ["0", "1", "2", "3", "0", "1", "2"]
+
+
+def make_index_levels() -> tuple[PreviewIndexLevel, ...]:
+    return (
+        PreviewIndexLevel(
+            heading="The Bone Barrow — level 1",
+            svg_href="bone-barrow.1.svg",
+            map_pages=((4, "../pages/0004.png"), (12, "../pages/0012.png")),
+        ),
+        PreviewIndexLevel(heading="The Bone Barrow — level 2", svg_href="bone-barrow.2.svg", map_pages=()),
+    )
+
+
+def test_index_is_byte_stable_and_pairs_each_level():
+    first = render_previews_index("The Example Barrow", make_index_levels())
+    assert first == render_previews_index("The Example Barrow", make_index_levels())
+    assert first.startswith("<!DOCTYPE html>")
+    assert first.endswith("</html>\n")
+    assert "The Example Barrow — previews" in first
+    assert '<img src="bone-barrow.1.svg" alt="Synthesized map">' in first
+    assert '<img src="../pages/0004.png" alt="Page 4">' in first
+    assert '<img src="../pages/0012.png" alt="Page 12">' in first
+    # The mapless level still gets its SVG, plus an honest note.
+    assert '<img src="bone-barrow.2.svg" alt="Synthesized map">' in first
+    assert "The survey recorded no map pages for this level." in first
+    assert not ISO_TIMESTAMP.search(first)
+
+
+def test_index_escapes_module_text():
+    level = PreviewIndexLevel(heading="Caves of the <Unknown> & Co", svg_href="caves.1.svg", map_pages=())
+    page = render_previews_index("Tomb <of> the & Serpent", (level,))
+    assert "Tomb &lt;of&gt; the &amp; Serpent — previews" in page
+    assert "Caves of the &lt;Unknown&gt; &amp; Co" in page
+    assert "<Unknown>" not in page
