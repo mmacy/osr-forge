@@ -202,6 +202,14 @@ uv run tools/eval/run_eval.py convert my-module ~/modules/my-module.pdf --corpus
 uv run tools/eval/run_eval.py score my-module --corpus ~/my-corpus --workdir /tmp/my.forge --update-scoreboard
 uv run tools/eval/run_eval.py publish my-module --corpus ~/my-corpus
 uv run tools/eval/run_eval.py report --byom
+
+# Offline scoreboard regeneration after a scorer or truth-schema change —
+# run blocks carried verbatim, metrics re-scored from the retained workdirs;
+# name every stale entry (each with its workdir) so the board saves once:
+uv run tools/eval/run_eval.py rescore \
+  --module jn1-chaotic-caves --workdir ~/osr-forge-measurement/phase7/sweep1-jn1-chaotic-caves.forge \
+  --module jn2-monkey-isle --workdir ~/osr-forge-measurement/phase7/sweep1-jn2-monkey-isle.forge \
+  --module minimod --workdir ~/osr-forge-measurement/phase7/sweep1-minimod.forge
 ```
 
 `convert` runs the package pipeline with `FoundryProvider` — recording off:
@@ -273,7 +281,9 @@ the same PR — the same edits that strand fixtures re-measure quality: one
 workflow, two obligations (the fixture re-record rule lives in
 `tools/extract/README.md`). A PR that changes the *scorer's* matching or
 metric semantics carries the offline counterpart: re-score the standing
-sweep pair from its retained workdirs, refresh the band, and record the
-re-scored pair in the phase amendment — no live spend, same discipline. A
+sweep pair from its retained workdirs (`run_eval.py rescore` for the entries
+the board holds, plain `score` for the second half of the pair), refresh the
+band, and record the re-scored pair in the phase amendment — no live spend,
+same discipline. A
 metric dropping by more than the band requires an explicit justification in
 the PR description; silence is a blocked merge.

@@ -146,6 +146,12 @@ sweep and commits the updated scoreboard in the same PR. A metric dropping by
 more than the band requires an explicit justification in the PR description;
 silence is a blocked merge.
 
+A PR that changes the scorer's semantics instead carries the offline
+counterpart: `run_eval.py rescore` regenerates the standing entries from
+their retained workdirs against current truth — run blocks carried verbatim,
+metrics re-scored, no live spend — and the refreshed pair records in the
+phase amendment.
+
 The full corpus rules, authoring conventions, and per-module license records
 live in
 [`tools/eval/README.md`](https://github.com/mmacy/osr-forge/blob/main/tools/eval/README.md).
