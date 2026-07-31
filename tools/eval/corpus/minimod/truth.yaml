@@ -22,9 +22,19 @@ dungeons:
             treasure:
               present: false
           - key: "3"
+            # Asserted-empty: the cider press entry (page 3) lists no
+            # creatures — only the ruined press and the hidden cache.
+            encounters: []
             # "A corridor continues north to area 3" is stated from area 2;
             # the cider press room has no other stated way in or out.
             connections: ["2"]
+            # The 2-3 link is printed as a corridor, and the map draws plain
+            # corridor links with no door glyphs — no door facts on this
+            # area's asserted connections. (The module's one printed door,
+            # the stuck door between 4 and 5, rides a connection pair
+            # neither endpoint asserts, so it stays outside the doors
+            # universe by the assert-connections-first rule.)
+            doors: {}
             treasure:
               present: true
           - key: "4"
@@ -48,3 +58,15 @@ dungeons:
                 count: 3
             treasure:
               present: true
+    # Single printed level ("The cellar, level 1" heads both key pages), so
+    # the complete vertical-link set is empty. Judgment call: area 1's broken
+    # steps descend from the surface (that is the entrance, not an
+    # inter-level link), and area 6's ladder drops into a pit-room the key
+    # itself places on level 1 — neither is a transition.
+    transitions: []
+    # The module's one stated way in: the collapsed stair of area 1 ("broken
+    # steps descend from the surface", page 3 — page 2's "cellar mouth").
+    # No co-equal alternative entrance is presented.
+    entrance:
+      level: 1
+      key: "1"

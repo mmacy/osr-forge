@@ -110,4 +110,4 @@ Spec impacts, applied with the implementation PR:
 
 ## Amendments
 
-(Recorded during implementation.)
+- **AA1's truth pass is unauthorable, not skipped (2026-07-31).** The plan included AA1 in the truth passes to keep its truth current against the schema. Implementation found the private corpus's `SOURCES.md` carries no source path for AA1 — the owner's withdrawal removed it — so no printed pages exist to author from, and truth authored without the printed page is not truth. The new families are assertion-aware optional keys, so AA1's existing truth file remains schema-valid with them unasserted — honest partial truth, not dangling migration debt. Its file is untouched; the follow-up issue notes it; nothing converts, scores, or publishes (the standing withdrawal).
