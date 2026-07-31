@@ -20,7 +20,7 @@ from osrforge.providers.base import ModelRequest, ModelResponse
 from osrforge.providers.fixtures import FixtureProvider
 from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir
-from test_minimod_pipeline import golden_files
+from test_minimod_pipeline import census_recorded, golden_files
 
 # The package façade re-exports the `convert` *function* as an attribute of
 # `osrforge`, shadowing the module attribute — resolve the module itself.
@@ -66,6 +66,7 @@ class FailAfter:
         return self.inner.generate(request)
 
 
+@census_recorded
 def test_full_chain_events_and_result(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(convert_module, "preprocess", fabricated_preprocess)
     events: list[StageEvent] = []
@@ -101,10 +102,13 @@ def test_full_chain_events_and_result(tmp_path: Path, monkeypatch: pytest.Monkey
     assert produced == golden_files()
 
 
+@census_recorded
 def test_stage_failure_emits_failed_and_keeps_upstream(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(convert_module, "preprocess", fabricated_preprocess)
     events: list[StageEvent] = []
-    provider = FailAfter(FixtureProvider(MINIMOD / "fixtures"), passthrough=1)  # survey succeeds, content fails
+    # The survey is a two-call stage (survey + census), so two passthroughs
+    # let it complete and the content stage fail.
+    provider = FailAfter(FixtureProvider(MINIMOD / "fixtures"), passthrough=2)
     with pytest.raises(ProviderError):
         convert(
             MINIMOD / "minimod.pdf",

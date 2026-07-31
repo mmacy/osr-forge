@@ -42,6 +42,23 @@ cp minimod.forge/previews/* tests/assets/minimod/expected/previews/
 rm -rf minimod.forge
 ```
 
+## The minimod census session (targeted, replay-grade)
+
+Records exactly the one census fixture the survey stage's self-check replays
+against: the census request builds over the committed `pages/` renders, so
+the fixture is replay-grade by construction. This is deliberately *not* a
+full session re-run — a live `full` run would re-roll the survey's own
+response at its existing tag and cascade into an unnecessary golden
+re-bless. After recording, re-bless the minimod goldens through the
+pipeline-replay chain (the census disputes land in `survey.json` and the
+report follows):
+
+```sh
+uv run tools/extract/run_extraction.py census \
+    --module-dir tests/assets/minimod \
+    --record-fixtures tests/assets/minimod/fixtures
+```
+
 ## The chaotic-caves excerpt session (replay-grade)
 
 Records the real phase 1 survey prompt and the first content batch over the

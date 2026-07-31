@@ -13,6 +13,14 @@ size, each request carrying a window-naming preamble, and the windows' raw
 answers merge deterministically ([`merge_survey_answers`][osrforge.survey.merge_survey_answers])
 before one `normalize_survey` pass.
 
+The census is the survey checking itself: a second, reduced request over the
+same page windows (a distinct short system prompt, a strict projection of the
+survey schema — sites, levels, and printed key ranges only), merged by its
+own census-shaped merge and compared deterministically against the normalized
+index ([`census_disputes`][osrforge.survey.census_disputes]). Disagreements
+land on the cache; assembly turns them into module-scope `survey_disputed`
+flags. A mode-flipped survey thereby flags itself in the run it happens in.
+
 Every system-prompt rule is pinned against an observed extraction failure in
 recorded runs; a prompt edit strands the recorded fixtures and re-runs the
 eval sweep — see [the re-record rule][the-re-record-rule] before changing one.
@@ -40,12 +48,18 @@ from osrforge.providers.base import ImagePart, ModelProvider, ModelRequest, Text
 from osrforge.workdir import Workdir, track_stage, write_json_artifact
 
 __all__ = [
+    "CENSUS_SCHEMA",
+    "CENSUS_SYSTEM",
     "SURVEY_SCHEMA",
     "SURVEY_SYSTEM",
+    "build_census_request",
+    "build_chunked_census_request",
     "build_chunked_survey_request",
     "build_survey_request",
     "canonical_slug",
+    "census_disputes",
     "filter_index_to_pages",
+    "merge_census_answers",
     "merge_survey_answers",
     "normalize_survey",
     "survey",
@@ -551,6 +565,260 @@ def filter_index_to_pages(index: SurveyIndex, page_numbers: Iterable[int]) -> Su
     return index.model_copy(update={"dungeons": dungeons})
 
 
+CENSUS_SYSTEM = """\
+You take a census of a tabletop adventure module's keyed adventuring sites. The user message interleaves \
+every page's extracted text (each headed by a [page N] marker) with that page's image. Answer only what the \
+census schema asks: the dungeons, their levels, and each level's first and last printed area keys.
+
+Rules:
+- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. A dungeon exists only where the \
+module prints a keyed area list for it. The town or home base and its buildings are never dungeons.
+- One dungeon per independently keyed site: separate lairs or sites with their own maps and entrances are \
+separate dungeons, even when they are drawn together on one regional map or share a running area-number \
+sequence; maps connected internally by stairs or shafts are levels of one dungeon.
+- Each level's "first_key" and "last_key" are the first and last printed area keys in that level's keyed \
+list, exactly as printed (like "1" or "4a"). A level's key range comes from its printed key list, never \
+from the map alone.
+"""
+
+CENSUS_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "properties": {
+        "dungeons": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "levels": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "number": {"type": "integer"},
+                                "first_key": {"type": "string"},
+                                "last_key": {"type": "string"},
+                            },
+                            "required": ["number", "first_key", "last_key"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "required": ["name", "levels"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["dungeons"],
+    "additionalProperties": False,
+}
+"""The census schema: a strict projection of the survey's — dungeons, levels, and printed key ranges only.
+
+No per-area records, no town, no monster names — the census is the survey
+checking itself, and the ranges are collected to be used: forcing the model to
+commit to specifics is itself part of the census's grounding.
+"""
+
+
+def build_census_request(parts: Sequence[TextPart | ImagePart]) -> ModelRequest:
+    """Build the census request over already-built page parts.
+
+    Public and pure like [`build_survey_request`][osrforge.survey.build_survey_request],
+    so the extraction runner's targeted census-recording leg and fixture tests
+    build fingerprint-identical requests without duplicating prompt code.
+
+    Args:
+        parts: The interleaved page parts, from
+            [`page_request_parts`][osrforge.pages.page_request_parts].
+
+    Returns:
+        The request, tagged `census`.
+    """
+    return ModelRequest(tag="census", system=CENSUS_SYSTEM, parts=tuple(parts), schema=CENSUS_SCHEMA)
+
+
+def build_chunked_census_request(
+    parts: Sequence[TextPart | ImagePart], first_page: int, last_page: int, page_count: int
+) -> ModelRequest:
+    """Build one chunked-census window's request: the census prompt plus a window-naming preamble.
+
+    Mirrors [`build_chunked_survey_request`][osrforge.survey.build_chunked_survey_request]:
+    the single-request path goes through
+    [`build_census_request`][osrforge.survey.build_census_request] untouched,
+    keeping its recorded fixture valid.
+
+    Args:
+        parts: The window's interleaved page parts.
+        first_page: The window's first page (1-based, absolute).
+        last_page: The window's last page (1-based, absolute).
+        page_count: The whole source's page count.
+
+    Returns:
+        The request, tagged `census`.
+    """
+    preamble = (
+        f"\nThis request carries pages {first_page}-{last_page} of a {page_count}-page module; the other pages "
+        "arrive in separate requests. Take the census only of what these pages show — report the dungeons, "
+        "levels, and printed key ranges these pages describe, and leave out anything they don't.\n"
+    )
+    return ModelRequest(tag="census", system=CENSUS_SYSTEM + preamble, parts=tuple(parts), schema=CENSUS_SCHEMA)
+
+
+def _merge_census_levels(accumulated: list[dict[str, Any]], incoming: Sequence[dict[str, Any]]) -> None:
+    """Join one window's census levels into an accumulated dungeon, occurrence-indexed on `number`."""
+    occurrences: dict[int, list[dict[str, Any]]] = {}
+    for level in accumulated:
+        occurrences.setdefault(cast(int, level["number"]), []).append(level)
+    seen: dict[int, int] = {}
+    for level in incoming:
+        number = cast(int, level["number"])
+        position = seen.get(number, 0)
+        seen[number] = position + 1
+        candidates = occurrences.get(number, [])
+        if position < len(candidates):
+            # First occurrence wins every scalar field — the census shape has
+            # nothing to union.
+            continue
+        accumulated.append(copy.deepcopy(level))
+
+
+def merge_census_answers(answers: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Merge chunked-census windows' schema-valid raw answers into one, under the survey merge's discipline.
+
+    The census needs its own small merge —
+    [`merge_survey_answers`][osrforge.survey.merge_survey_answers] hard-requires
+    hooks/town/monster-name fields the census schema deliberately lacks — but
+    the join rules are the survey merge's, restated over the census shape:
+    entries from the same window never join each other; across windows,
+    dungeons join occurrence-indexed on `canonical_slug(name)` (an empty slug
+    never joins) and levels join occurrence-indexed on `number` within a
+    joined dungeon; on a join, the first occurrence wins every scalar field.
+
+    Args:
+        answers: The windows' raw answers in window order, each already
+            validated against [`CENSUS_SCHEMA`][osrforge.survey.CENSUS_SCHEMA].
+            The inputs are not mutated.
+
+    Returns:
+        One merged raw answer, shaped exactly like a single window's.
+    """
+    dungeons: list[dict[str, Any]] = []
+    for answer in answers:
+        occurrences: dict[str, list[dict[str, Any]]] = {}
+        for dungeon in dungeons:
+            slug = canonical_slug(cast(str, dungeon["name"]))
+            if slug:
+                occurrences.setdefault(slug, []).append(dungeon)
+        seen: dict[str, int] = {}
+        for dungeon in cast(list[dict[str, Any]], answer["dungeons"]):
+            slug = canonical_slug(cast(str, dungeon["name"]))
+            if slug:
+                position = seen.get(slug, 0)
+                seen[slug] = position + 1
+                candidates = occurrences.get(slug, [])
+                if position < len(candidates):
+                    target = candidates[position]
+                    _merge_census_levels(
+                        cast(list[dict[str, Any]], target["levels"]), cast(list[dict[str, Any]], dungeon["levels"])
+                    )
+                    continue
+            dungeons.append(copy.deepcopy(dungeon))
+    return {"dungeons": dungeons}
+
+
+def _survey_area_form(area: SurveyArea) -> str:
+    """An area's printed-key slug: the census-comparable form.
+
+    `source_label` preserves the model's spelling wherever the canonical key
+    differs (a reserve-then-bump suffix, a slugged label), so slugging it
+    recovers the printed form a census answer can actually reproduce; when the
+    label is absent the canonical key *is* the printed form.
+    """
+    return canonical_slug(area.source_label) if area.source_label is not None else area.key
+
+
+def census_disputes(index: SurveyIndex, census: dict[str, Any]) -> tuple[str, ...]:
+    """Compare the census answer against the normalized survey index — pure, deterministic.
+
+    Both sides compare on `canonical_slug` of the dungeon *name as answered*
+    (never the normalized `SurveyIndex.id`, whose uniquing suffixes and
+    fallbacks a census answer can't reproduce), as **multisets** so
+    duplicate-named sites don't silently collapse; empty slugs carry no
+    evidence of identity and stay out of the comparison. Three disagreement
+    shapes, pinned: a site in one answer and not the other (a count mismatch
+    on a shared slug is the same shape, with both counts named); level counts
+    differing for a matched site (sites pair occurrence-indexed in listed
+    order); and a matched level — census and survey level numbers equal —
+    whose census key range disagrees with the survey's keyed-area extremes
+    (first and last in the survey's listed area order, compared on
+    printed-key slugs; a survey level with no areas has no extremes and takes
+    no range check).
+
+    Args:
+        index: The normalized survey index.
+        census: The (merged) raw census answer, already validated against
+            [`CENSUS_SCHEMA`][osrforge.survey.CENSUS_SCHEMA].
+
+    Returns:
+        The disagreements as stable human-readable entries, survey-side order
+        first, census-only sites after, in listed order.
+    """
+    survey_by_slug: dict[str, list[SurveyDungeon]] = {}
+    survey_order: list[str] = []
+    for dungeon in index.dungeons:
+        slug = canonical_slug(dungeon.name)
+        if not slug:
+            continue
+        if slug not in survey_by_slug:
+            survey_order.append(slug)
+        survey_by_slug.setdefault(slug, []).append(dungeon)
+    census_by_slug: dict[str, list[dict[str, Any]]] = {}
+    census_order: list[str] = []
+    for entry in cast(list[dict[str, Any]], census["dungeons"]):
+        slug = canonical_slug(cast(str, entry["name"]))
+        if not slug:
+            continue
+        if slug not in census_by_slug:
+            census_order.append(slug)
+        census_by_slug.setdefault(slug, []).append(entry)
+
+    disputes: list[str] = []
+    for slug in survey_order:
+        surveyed = survey_by_slug[slug]
+        answered = census_by_slug.get(slug, [])
+        if not answered:
+            disputes.append(f"survey names '{slug}'; census does not")
+            continue
+        if len(answered) != len(surveyed):
+            disputes.append(f"census names '{slug}' {len(answered)} times; survey names it {len(surveyed)} times")
+        for survey_dungeon, census_dungeon in zip(surveyed, answered, strict=False):
+            census_levels = cast(list[dict[str, Any]], census_dungeon["levels"])
+            if len(census_levels) != len(survey_dungeon.levels):
+                disputes.append(
+                    f"census counts {len(census_levels)} levels for '{slug}'; "
+                    f"survey counts {len(survey_dungeon.levels)}"
+                )
+            survey_levels = {level.number: level for level in survey_dungeon.levels}
+            for census_level in census_levels:
+                level = survey_levels.get(cast(int, census_level["number"]))
+                if level is None or not level.areas:
+                    continue
+                census_first = canonical_slug(cast(str, census_level["first_key"]))
+                census_last = canonical_slug(cast(str, census_level["last_key"]))
+                survey_first = _survey_area_form(level.areas[0])
+                survey_last = _survey_area_form(level.areas[-1])
+                if (census_first, census_last) != (survey_first, survey_last):
+                    disputes.append(
+                        f"census keys '{slug}' level {level.number} as '{census_first}'-'{census_last}'; "
+                        f"survey spans '{survey_first}'-'{survey_last}'"
+                    )
+    for slug in census_order:
+        if slug not in survey_by_slug:
+            disputes.append(f"census names '{slug}'; survey does not")
+    return tuple(disputes)
+
+
 def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
     """Run stage 1: survey the module and write `stages/survey.json`.
 
@@ -563,6 +831,16 @@ def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
     [`merge_survey_answers`][osrforge.survey.merge_survey_answers] before the
     one `normalize_survey` pass. Page markers stay absolute in both modes, so
     downstream stages see the same page-number space either way.
+
+    After normalization the census runs — the survey checking itself: the same
+    page windows through the reduced
+    [`build_census_request`][osrforge.survey.build_census_request] builders,
+    merged by [`merge_census_answers`][osrforge.survey.merge_census_answers],
+    compared by [`census_disputes`][osrforge.survey.census_disputes], with the
+    disagreements landing on the cache's `census_disputes` before the write.
+    Census usage folds into this stage's usage block (no new stage — `rerun
+    survey` re-runs both). Flag-only in v1: a re-roll policy is deferred until
+    a measured recurrence.
 
     Stale `stages/areas.*.json` caches and `stages/monsters.json` are deleted
     only on success — a re-run survey can change canonical ids and the
@@ -603,6 +881,19 @@ def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
             answers.append(cast(dict[str, Any], response.data))
         raw = answers[0] if len(windows) == 1 else merge_survey_answers(answers)
         index = normalize_survey(raw, run.page_count)
+        census_answers: list[dict[str, Any]] = []
+        for first_page, last_page in windows:
+            parts = page_request_parts(workdir, range(first_page, last_page + 1))
+            if len(windows) == 1:
+                census_request = build_census_request(parts)
+            else:
+                census_request = build_chunked_census_request(parts, first_page, last_page, run.page_count)
+            census_response = provider.generate(census_request)
+            tracker.add_usage(census_response.usage)
+            tracker.set_model(type(provider).__name__, census_response.model_id)
+            census_answers.append(cast(dict[str, Any], census_response.data))
+        census = census_answers[0] if len(windows) == 1 else merge_census_answers(census_answers)
+        index = index.model_copy(update={"census_disputes": census_disputes(index, census)})
         workdir.stages_dir.mkdir(parents=True, exist_ok=True)
         for stale in workdir.area_caches():
             stale.unlink()
