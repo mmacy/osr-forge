@@ -70,7 +70,7 @@ In scope:
 - **Deterministic reconciliation.** Geometry synthesis consumes prose connections and map proposals together under a pinned precedence policy: agreement strengthens (and rescues the doors currently dropped on cycle-closing routes — the map gives them a wall to land on); a map-only or prose-only edge, and any door/kind disagreement, synthesizes under a pinned default and carries a flag naming both readings. The entrance gets the same treatment: today's entrance is a placement heuristic, a map-proposed entrance that disagrees with it synthesizes under a pinned default and carries a flag, and phase 9's entrance assertion is what scores the outcome. No proposal is adopted silently.
 - **Consumer surface.** The disagreement flags ride the existing report contract into osr-editor's review queue; the preview upgrades that make map-vs-preview comparison humane (coordinate grid, side-by-side index) ship earlier in workstream A and are assumed here.
 
-Milestone: every map/prose disagreement in the committed corpus is a visible report item, and the phase 9 door/transition/connection metrics — especially JN1's edge precision — are re-measured with the sweep; the PR carries the reading of whether reconciliation moved them beyond the bands.
+Milestone: every map/prose disagreement in the committed corpus is a visible report item, and the phase 9 door, transition, entrance, and connection metrics — especially JN1's edge precision — are re-measured with the sweep; the PR carries the reading of whether reconciliation moved them beyond the bands.
 
 ## Phase 12 — map-grounded shape, contingent
 
@@ -78,7 +78,7 @@ Room footprints from the map: the map-reading stage's schema grows footprint pro
 
 This phase is explicitly contingent: phase 11's sweep is the go/no-go evidence, and the reading — go or no-go, with the metric movements it rests on — is recorded in this document as an amendment before any phase 12 plan is written. If reconciliation did not move the structure metrics beyond their bands, the premise (the model can read these maps well enough to trust with shape) is re-examined in that same amendment.
 
-Milestone: phase 9's structure metrics hold or rise with footprints in play, and the phase amendment records a structural-counts comparison of synthesized footprints against printed dimensions where truth asserts them. The aim behind the numbers — geometry overrides become the exception rather than the routine — is the arc's bet, judged by those counts, not a separately instrumented claim.
+Milestone: phase 9's structure metrics hold or rise with footprints in play, and the phase amendment records a structural-counts comparison of synthesized footprints against the modules' printed dimension statements — the phase 6 convention for what the metrics don't reach, recorded in the amendment rather than asserted in truth files, so phases 10–12 keep adding no truth keys. The aim behind the numbers — geometry overrides become the exception rather than the routine — is the arc's bet, judged by those counts, not a separately instrumented claim.
 
 ## Companion workstream A — correction-loop usability
 
