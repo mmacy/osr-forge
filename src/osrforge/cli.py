@@ -3,9 +3,11 @@
 House-scale argparse. Runtime failures ([`OsrForgeError`][osrforge.errors.OsrForgeError],
 pydantic validation errors from malformed workdirs or bad `--set` values, and
 YAML syntax errors from a hand-edited `overrides.yaml`) render as a one-line
-message and exit code 1; tracebacks are for bugs. `check` exits 1 exactly when
-validation failed or any error-severity finding exists — warnings don't break
-the `assemble && check` loop.
+message and exit code 1; a `convert`/`rerun` failure whose workdir records a
+failed stage appends the exact `osrforge rerun` command that resumes it.
+Tracebacks are for bugs. `check` exits 1 exactly when validation failed or any
+error-severity finding exists — warnings don't break the `assemble && check`
+loop.
 """
 
 import argparse
@@ -124,8 +126,70 @@ def _print_validation(report_validation_passed: bool, error_count: int) -> None:
     print(f"validation: {outcome}")
 
 
+def _resolve_workdir(explicit: Path | None) -> Path:
+    """Resolve the workdir: the explicit `--workdir` value, or discovery from the working directory.
+
+    Discovery order: the working directory itself when it is a workdir
+    (it contains `run.json` — the old `--workdir .` default, kept), else the
+    unique `*.forge` directory within it. Ambiguity and absence are loud errors
+    naming what was found.
+
+    Args:
+        explicit: The `--workdir` flag's value, or None to discover. An
+            explicit flag bypasses discovery entirely.
+
+    Returns:
+        The workdir to use.
+
+    Raises:
+        OsrForgeError: If discovery finds multiple `*.forge` directories, or
+            none while the working directory is not itself a workdir.
+    """
+    if explicit is not None:
+        return explicit
+    if Path("run.json").is_file():
+        return Path(".")
+    candidates = sorted(path for path in Path(".").glob("*.forge") if path.is_dir())
+    if len(candidates) == 1:
+        return candidates[0]
+    here = Path.cwd()
+    if candidates:
+        found = ", ".join(path.name for path in candidates)
+        raise OsrForgeError(f"multiple workdirs in {here}: {found} — pass --workdir")
+    raise OsrForgeError(f"{here} is not a workdir (no run.json) and contains no *.forge directory — pass --workdir")
+
+
+def _resume_hint(args: argparse.Namespace) -> str | None:
+    """Return the exact command that resumes a failed conversion chain, or None.
+
+    Only the chain commands (`convert`, `rerun`) record their resolved workdir
+    on the namespace; the hint fires exactly when that workdir's `run.json`
+    exists, parses, and records a failed stage. Geometry fails inside assembly
+    and has no independent run, so its resume command is `rerun assemble`.
+
+    Args:
+        args: The parsed namespace, after the command handler raised.
+
+    Returns:
+        The `resume with: …` line, or None when no hint applies.
+    """
+    workdir = getattr(args, "resolved_workdir", None)
+    if workdir is None:
+        return None
+    try:
+        run = Workdir(workdir).read_run()
+    except OSError, ValidationError:
+        return None
+    failed = {stage for stage, status in run.stages.items() if status.status == "failed"}
+    if not failed:
+        return None
+    resume = next((stage for stage in RUNNABLE_STAGES if stage in failed), Stage.ASSEMBLE)
+    return f"resume with: osrforge rerun {resume.value} --workdir {workdir}"
+
+
 def _cmd_convert(args: argparse.Namespace) -> None:
     workdir: Path = args.workdir if args.workdir is not None else Path(f"./{args.pdf.stem}.forge")
+    args.resolved_workdir = workdir
     provider = _build_provider(args.provider)
     settings = ConversionSettings.model_validate(parse_set_values(args.set))
     result = convert(args.pdf, workdir, provider, settings, on_progress=_print_event)
@@ -142,10 +206,12 @@ def _cmd_convert(args: argparse.Namespace) -> None:
 
 
 def _cmd_rerun(args: argparse.Namespace) -> None:
+    workdir = _resolve_workdir(args.workdir)
+    args.resolved_workdir = workdir
     stage = Stage(args.stage)
     provider = _build_provider(args.provider) if stage is not Stage.ASSEMBLE else None
     result = rerun(
-        args.workdir,
+        workdir,
         stage,
         provider=provider,
         settings_updates=parse_set_values(args.set) or None,
@@ -153,19 +219,21 @@ def _cmd_rerun(args: argparse.Namespace) -> None:
     )
     validation = result.report.validation
     _print_validation(validation.passed, len(validation.errors))
-    print(f"wrote {args.workdir / 'adventure.json'}")
+    print(f"wrote {workdir / 'adventure.json'}")
 
 
 def _cmd_assemble(args: argparse.Namespace) -> None:
-    result = assemble(args.workdir)
+    workdir = _resolve_workdir(args.workdir)
+    result = assemble(workdir)
     validation = result.report.validation
     _print_validation(validation.passed, len(validation.errors))
-    print(f"wrote {args.workdir / 'adventure.json'}")
+    print(f"wrote {workdir / 'adventure.json'}")
 
 
 def _cmd_check(args: argparse.Namespace) -> None:
-    findings = check(args.workdir)
-    report = ExtractionReport.model_validate_json(Workdir(args.workdir).report_json.read_text(encoding="utf-8"))
+    workdir = _resolve_workdir(args.workdir)
+    findings = check(workdir)
+    report = ExtractionReport.model_validate_json(Workdir(workdir).report_json.read_text(encoding="utf-8"))
     _print_validation(report.validation.passed, len(report.validation.errors))
     for finding in findings:
         print(f"{finding.severity} {finding.id.value} {finding.location} {finding.message}")
@@ -174,7 +242,8 @@ def _cmd_check(args: argparse.Namespace) -> None:
 
 
 def _cmd_preview(args: argparse.Namespace) -> None:
-    written = render_previews(args.workdir)
+    workdir = _resolve_workdir(args.workdir)
+    written = render_previews(workdir)
     for path in written:
         print(f"wrote {path}")
 
@@ -193,13 +262,14 @@ def _cmd_estimate(args: argparse.Namespace) -> None:
     print(f"estimated cost: ${result.usd:.2f}")
 
 
-def _add_workdir_option(parser: argparse.ArgumentParser, default: Path | None) -> None:
+def _add_workdir_option(parser: argparse.ArgumentParser, discover: bool) -> None:
     help_text = (
-        "the workdir (default: ./<pdf-stem>.forge)"
-        if default is None
-        else "the workdir (default: the current directory)"
+        "the workdir (default: discovered — the working directory if it is a workdir, "
+        "else the unique *.forge directory in it)"
+        if discover
+        else "the workdir (default: ./<pdf-stem>.forge)"
     )
-    parser.add_argument("--workdir", type=Path, default=default, help=help_text)
+    parser.add_argument("--workdir", type=Path, default=None, help=help_text)
 
 
 def _add_set_option(parser: argparse.ArgumentParser) -> None:
@@ -223,7 +293,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     convert_parser = subcommands.add_parser("convert", help="convert a module PDF into a draft adventure")
     convert_parser.add_argument("pdf", type=Path, help="the module PDF")
-    _add_workdir_option(convert_parser, default=None)
+    _add_workdir_option(convert_parser, discover=False)
     convert_parser.add_argument("--provider", choices=["foundry"], default="foundry", help="the model provider")
     _add_set_option(convert_parser)
     convert_parser.set_defaults(handler=_cmd_convert)
@@ -234,26 +304,26 @@ def build_parser() -> argparse.ArgumentParser:
     rerun_parser.add_argument(
         "stage", choices=[stage.value for stage in RUNNABLE_STAGES], help="the stage to resume from"
     )
-    _add_workdir_option(rerun_parser, default=Path("."))
+    _add_workdir_option(rerun_parser, discover=True)
     rerun_parser.add_argument("--provider", choices=["foundry"], default="foundry", help="the model provider")
     _add_set_option(rerun_parser)
     rerun_parser.set_defaults(handler=_cmd_rerun)
 
     assemble_parser = subcommands.add_parser("assemble", help="stage caches + overrides → artifacts, pure")
-    _add_workdir_option(assemble_parser, default=Path("."))
+    _add_workdir_option(assemble_parser, discover=True)
     assemble_parser.set_defaults(handler=_cmd_assemble)
 
     check_parser = subcommands.add_parser("check", help="validate_adventure + the playability lint")
-    _add_workdir_option(check_parser, default=Path("."))
+    _add_workdir_option(check_parser, discover=True)
     check_parser.set_defaults(handler=_cmd_check)
 
     preview_parser = subcommands.add_parser("preview", help="regenerate the SVG maps only")
-    _add_workdir_option(preview_parser, default=Path("."))
+    _add_workdir_option(preview_parser, discover=True)
     preview_parser.set_defaults(handler=_cmd_preview)
 
     estimate_parser = subcommands.add_parser("estimate", help="preprocess only; rough token/cost estimate")
     estimate_parser.add_argument("pdf", type=Path, help="the module PDF")
-    _add_workdir_option(estimate_parser, default=None)
+    _add_workdir_option(estimate_parser, discover=False)
     estimate_parser.set_defaults(handler=_cmd_estimate)
     return parser
 
@@ -268,7 +338,9 @@ def main(argv: list[str] | None = None) -> None:
     try:
         args.handler(args)
     except (OsrForgeError, ValidationError, ValueError, FileNotFoundError, yaml.YAMLError) as error:
-        sys.exit(f"osrforge: {error}")
+        message = f"osrforge: {error}"
+        hint = _resume_hint(args)
+        sys.exit(message if hint is None else f"{message}\n{hint}")
 
 
 if __name__ == "__main__":

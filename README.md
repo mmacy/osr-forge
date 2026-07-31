@@ -15,13 +15,15 @@ The package runs the whole pipeline — preprocessing, the survey (chunked past 
 The library entry points are `convert()`, `assemble()`, `check()`, and `estimate()`; the `osrforge` console script wraps them:
 
 ```sh
-osrforge estimate my-module.pdf           # preprocess only; rough token/cost estimate
-osrforge convert my-module.pdf            # full pipeline into ./my-module.forge
-osrforge assemble --workdir my-module.forge   # stage caches + overrides → artifacts, pure
-osrforge check --workdir my-module.forge      # validate_adventure + the playability lint
-osrforge preview --workdir my-module.forge    # regenerate the SVG maps only
-osrforge rerun assemble --workdir my-module.forge   # resume any stage through assemble
+osrforge estimate my-module.pdf   # preprocess only; rough token/cost estimate
+osrforge convert my-module.pdf    # full pipeline into ./my-module.forge
+osrforge assemble                 # stage caches + overrides → artifacts, pure
+osrforge check                    # validate_adventure + the playability lint
+osrforge preview                  # regenerate the SVG maps only
+osrforge rerun assemble           # resume any stage through assemble
 ```
+
+The workdir-taking commands discover a missing `--workdir` on their own: the working directory when it is itself a workdir, else the unique `*.forge` directory within it (here, `./my-module.forge`) — several or none is a loud error, and an explicit `--workdir` always wins.
 
 Recording sessions and live verification runs are driven via `tools/extract/run_extraction.py` (see [tools/extract/README.md](tools/extract/README.md)); the on-demand eval harness — corpus, scorer, and scoreboard — lives in `tools/eval/` (see [tools/eval/README.md](tools/eval/README.md)). The harness also measures your own retail modules: a private corpus directory side-loads with `--corpus DIR` (integrity via a local hash sidecar, truth authored per [tools/eval/AUTHORING.md](tools/eval/AUTHORING.md)), and an explicit `publish` step copies aggregate-only scores — never module text — onto the committed BYOM scoreboard.
 

@@ -16,8 +16,9 @@ from osrforge.contracts.report import (
     MonsterSummary,
     ValidationResult,
 )
-from osrforge.contracts.run import Stage, TokenUsage
+from osrforge.contracts.run import RunMeta, Stage, StageStatus, TokenUsage
 from osrforge.errors import OsrForgeError
+from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir, write_json_artifact
 
 
@@ -29,10 +30,11 @@ class TestParsing:
         assert args.provider == "foundry"
         assert args.set is None
 
-    def test_assemble_check_and_preview_default_to_the_current_directory(self):
-        assert cli.build_parser().parse_args(["assemble"]).workdir == Path(".")
-        assert cli.build_parser().parse_args(["preview"]).workdir == Path(".")
-        assert cli.build_parser().parse_args(["check"]).workdir == Path(".")
+    def test_assemble_check_and_preview_default_to_discovery(self):
+        # None means the handler discovers the workdir; an explicit flag bypasses discovery.
+        assert cli.build_parser().parse_args(["assemble"]).workdir is None
+        assert cli.build_parser().parse_args(["preview"]).workdir is None
+        assert cli.build_parser().parse_args(["check"]).workdir is None
 
     def test_unknown_provider_rejected(self, capsys: pytest.CaptureFixture[str]):
         with pytest.raises(SystemExit) as excinfo:
@@ -47,7 +49,7 @@ class TestParsing:
     def test_rerun_stage_choices_are_the_runnable_stages(self, capsys: pytest.CaptureFixture[str]):
         args = cli.build_parser().parse_args(["rerun", "assemble"])
         assert args.stage == "assemble"
-        assert args.workdir == Path(".")
+        assert args.workdir is None
         with pytest.raises(SystemExit):
             cli.build_parser().parse_args(["rerun", "geometry"])
         assert "invalid choice" in capsys.readouterr().err
@@ -117,7 +119,7 @@ class TestErrorMapping:
     def test_misuse_valueerror_exits_one_line(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(cli, "render_previews", lambda workdir: (_ for _ in ()).throw(ValueError("no cache")))
         with pytest.raises(SystemExit) as excinfo:
-            cli.main(["preview"])
+            cli.main(["preview", "--workdir", "mod.forge"])
         assert str(excinfo.value) == "osrforge: no cache"
 
     def test_broken_overrides_yaml_exits_one_line(self, monkeypatch: pytest.MonkeyPatch):
@@ -125,7 +127,7 @@ class TestErrorMapping:
             cli, "assemble", lambda workdir: (_ for _ in ()).throw(yaml.YAMLError("bad syntax on line 3"))
         )
         with pytest.raises(SystemExit) as excinfo:
-            cli.main(["assemble"])
+            cli.main(["assemble", "--workdir", "mod.forge"])
         assert str(excinfo.value) == "osrforge: bad syntax on line 3"
 
 
@@ -249,6 +251,159 @@ class TestRerunCommand:
         cli.main(["rerun", "survey", "--workdir", str(tmp_path)])
         assert seen["stage"] is Stage.SURVEY
         assert seen["provider"] is sentinel
+
+
+class TestWorkdirDiscovery:
+    def stub_preview(self, monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
+        seen: dict[str, object] = {}
+        monkeypatch.setattr(cli, "render_previews", lambda workdir: seen.update(workdir=workdir) or [])
+        return seen
+
+    def test_explicit_workdir_bypasses_discovery(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        # Two *.forge directories would be ambiguous; the explicit flag never looks.
+        (tmp_path / "a.forge").mkdir()
+        (tmp_path / "b.forge").mkdir()
+        monkeypatch.chdir(tmp_path)
+        seen = self.stub_preview(monkeypatch)
+        cli.main(["preview", "--workdir", "b.forge"])
+        assert seen["workdir"] == Path("b.forge")
+
+    def test_the_working_directory_wins_when_it_is_a_workdir(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        (tmp_path / "run.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "other.forge").mkdir()  # run.json outranks any *.forge sibling
+        monkeypatch.chdir(tmp_path)
+        seen = self.stub_preview(monkeypatch)
+        cli.main(["preview"])
+        assert seen["workdir"] == Path(".")
+
+    def test_the_unique_forge_directory_is_discovered(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        (tmp_path / "mod.forge").mkdir()
+        monkeypatch.chdir(tmp_path)
+        seen = self.stub_preview(monkeypatch)
+        cli.main(["preview"])
+        assert seen["workdir"] == Path("mod.forge")
+
+    def test_a_forge_file_is_not_a_workdir(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        (tmp_path / "notes.forge").write_text("not a directory", encoding="utf-8")
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(SystemExit) as excinfo:
+            cli.main(["preview"])
+        assert "contains no *.forge directory" in str(excinfo.value)
+
+    def test_multiple_forge_directories_are_a_loud_error(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        (tmp_path / "a.forge").mkdir()
+        (tmp_path / "b.forge").mkdir()
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(SystemExit) as excinfo:
+            cli.main(["preview"])
+        message = str(excinfo.value)
+        assert "multiple workdirs" in message
+        assert "a.forge, b.forge" in message
+        assert "pass --workdir" in message
+
+    def test_absence_is_a_loud_error(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(SystemExit) as excinfo:
+            cli.main(["preview"])
+        message = str(excinfo.value)
+        assert "not a workdir (no run.json)" in message
+        assert "contains no *.forge directory" in message
+        assert "pass --workdir" in message
+
+    def test_assemble_and_rerun_share_discovery(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        (tmp_path / "mod.forge").mkdir()
+        monkeypatch.chdir(tmp_path)
+        seen: dict[str, object] = {}
+        monkeypatch.setattr(cli, "assemble", lambda workdir: seen.update(assemble=workdir) or fake_result())
+
+        def fake_rerun(workdir, stage, provider=None, settings_updates=None, on_progress=None):
+            seen["rerun"] = workdir
+            return fake_result()
+
+        monkeypatch.setattr(cli, "rerun", fake_rerun)
+        cli.main(["assemble"])
+        cli.main(["rerun", "assemble"])
+        assert seen["assemble"] == Path("mod.forge")
+        assert seen["rerun"] == Path("mod.forge")
+
+    def test_check_shares_discovery(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        write_report(tmp_path / "mod.forge", passed=True)
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(cli, "check", lambda workdir: ())
+        cli.main(["check"])  # exit 0: discovery found mod.forge and its passing report
+
+
+def write_failed_run(root: Path, failed: Stage) -> None:
+    stages = {stage: StageStatus() for stage in Stage}
+    stages[failed] = StageStatus(status="failed", error="boom")
+    run = RunMeta(source_sha256="00" * 32, source_bytes=1, page_count=1, settings=ConversionSettings(), stages=stages)
+    root.mkdir(parents=True, exist_ok=True)
+    Workdir(root).write_run(run)
+
+
+class TestResumeHint:
+    def test_convert_failure_prints_the_resume_command(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        workdir = tmp_path / "mod.forge"
+
+        def fake_convert(pdf_path, wd, provider, settings=None, on_progress=None):
+            write_failed_run(workdir, Stage.SURVEY)
+            raise OsrForgeError("survey exploded")
+
+        monkeypatch.setattr(cli, "_build_provider", lambda name: object())
+        monkeypatch.setattr(cli, "convert", fake_convert)
+        with pytest.raises(SystemExit) as excinfo:
+            cli.main(["convert", str(tmp_path / "mod.pdf"), "--workdir", str(workdir)])
+        assert str(excinfo.value) == (
+            f"osrforge: survey exploded\nresume with: osrforge rerun survey --workdir {workdir}"
+        )
+
+    def test_rerun_failure_prints_the_resume_command(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        workdir = tmp_path / "mod.forge"
+
+        def fake_rerun(wd, stage, provider=None, settings_updates=None, on_progress=None):
+            write_failed_run(workdir, Stage.MONSTERS)
+            raise OsrForgeError("monsters exploded")
+
+        monkeypatch.setattr(cli, "_build_provider", lambda name: object())
+        monkeypatch.setattr(cli, "rerun", fake_rerun)
+        with pytest.raises(SystemExit) as excinfo:
+            cli.main(["rerun", "monsters", "--workdir", str(workdir)])
+        assert str(excinfo.value) == (
+            f"osrforge: monsters exploded\nresume with: osrforge rerun monsters --workdir {workdir}"
+        )
+
+    def test_a_geometry_failure_resumes_at_assemble(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        # Geometry has no independent run — it fails inside assembly, and the
+        # resume command is the one the user can actually type.
+        workdir = tmp_path / "mod.forge"
+
+        def fake_rerun(wd, stage, provider=None, settings_updates=None, on_progress=None):
+            write_failed_run(workdir, Stage.GEOMETRY)
+            raise OsrForgeError("geometry exploded")
+
+        monkeypatch.setattr(cli, "rerun", fake_rerun)
+        with pytest.raises(SystemExit) as excinfo:
+            cli.main(["rerun", "assemble", "--workdir", str(workdir)])
+        assert str(excinfo.value).endswith(f"resume with: osrforge rerun assemble --workdir {workdir}")
+
+    def test_no_hint_without_a_failed_stage(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        # A failure before any stage records `failed` (here: a missing run.json)
+        # keeps the one-line contract.
+        monkeypatch.setattr(cli, "_build_provider", lambda name: object())
+        monkeypatch.setattr(cli, "convert", lambda *args, **kwargs: (_ for _ in ()).throw(OsrForgeError("early")))
+        with pytest.raises(SystemExit) as excinfo:
+            cli.main(["convert", str(tmp_path / "mod.pdf"), "--workdir", str(tmp_path / "mod.forge")])
+        assert str(excinfo.value) == "osrforge: early"
+
+    def test_the_pure_commands_never_hint(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+        # `assemble` failing over a workdir with a failed stage stays one line —
+        # the hint belongs to the chain commands.
+        workdir = tmp_path / "mod.forge"
+        write_failed_run(workdir, Stage.MONSTERS)
+        monkeypatch.setattr(cli, "assemble", lambda wd: (_ for _ in ()).throw(OsrForgeError("no cache")))
+        with pytest.raises(SystemExit) as excinfo:
+            cli.main(["assemble", "--workdir", str(workdir)])
+        assert str(excinfo.value) == "osrforge: no cache"
 
 
 class TestEstimateCommand:
