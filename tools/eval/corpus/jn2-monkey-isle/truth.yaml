@@ -17,21 +17,54 @@ dungeons:
                 template: veteran_1
                 count: 16
             connections: ["2"]
+            # The 40'-wide entranceway and its long stairway down to 2 are
+            # open — no door in the text (page 18) or on the map (page 37).
+            doors: {}
             treasure:
               present: true
           - key: "2"
+            # Asserted-empty: the inner chambers (page 18) print statues,
+            # dust trails, and the sub-lettered features a-e — no creatures.
+            encounters: []
             treasure:
               present: false
           - key: "3"
+            # Asserted-empty: the trap corridor (page 19) prints a spear
+            # trap, no creatures.
+            encounters: []
             connections: ["2", "4", "5"]
+            # 2-3 is the secret door "e" in 2's south wall, opened at a push
+            # (page 19); 3-4 is the maintenance corridor's secret door,
+            # "opens at a push from either side" (page 19); the corridor
+            # into 5 is open — the map (page 37) draws S glyphs on the first
+            # two and nothing at 5.
+            doors:
+              "2":
+                kind: secret_door
+                locked: false
+              "4":
+                kind: secret_door
+                locked: false
             treasure:
               present: false
           - key: "4"
+            # Asserted-empty: the maintenance room (page 19) lists no
+            # creatures.
+            encounters: []
             connections: ["3"]
+            doors:
+              "3":
+                kind: secret_door
+                locked: false
             treasure:
               present: false
           - key: "5"
+            # Asserted-empty: armory and storage, "only some random garbage"
+            # (page 19).
+            encounters: []
             connections: ["3"]
+            # The corridor from 3 enters 5 with no door glyph (map, page 37).
+            doors: {}
             treasure:
               present: false
           - key: "6"
@@ -42,27 +75,80 @@ dungeons:
             treasure:
               present: true
           - key: "7"
+            # Asserted-empty judgment call: the shared "6. TO 8. APARTMENTS"
+            # entry (page 19) places its ten fighters in the hallway, which
+            # this truth records on area 6; room 7 itself is "mostly barren."
+            encounters: []
             treasure:
               present: false
           - key: "8"
+            # Asserted-empty judgment call: room 8 holds five bound captives
+            # from Yondara (page 19) — no stat block, non-combatants — the
+            # same treatment as 14's bound sacrifice victims, so no
+            # encounter.
+            encounters: []
             treasure:
               present: false
           - key: "9"
+            # Asserted-empty: the office (page 19) is "empty of anything but
+            # some old, rotten straw mats."
+            encounters: []
             treasure:
               present: false
           - key: "10"
+            # Asserted-empty: the living quarters (page 19) list no
+            # creatures.
+            encounters: []
             connections: ["9"]
+            # 9 "opens into his/her quarters" (page 19) and the map
+            # (page 37) draws a door glyph on the 9-10 wall; no lock stated.
+            doors:
+              "9":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "11"
+            # Asserted-empty judgment call: three common pigs, feet tied,
+            # are printed here (page 19) — livestock with no stat block, not
+            # recorded as an encounter.
+            encounters: []
             treasure:
               present: false
           - key: "12"
+            # Asserted-empty judgment call: "ordinary rats" skitter out of
+            # the rubbish (page 19) — ambient vermin with no stat block, not
+            # recorded as an encounter.
+            encounters: []
             connections: ["2", "13"]
+            # Judgment call: 12 is a dead-end room off the unkeyed corridor
+            # behind 2's northeast door "c" (the passage convention chains
+            # 2-12-13, map page 37), so 12's single "strong, thick, and
+            # locked" door (page 19) gates both asserted edges; door "c"
+            # (thick wood, the north pair partially open, page 19) also lies
+            # on the 2-12 edge and is likewise a plain door, so kind is
+            # unambiguous and locked rides 12's own door.
+            doors:
+              "2":
+                kind: door
+                locked: true
+              "13":
+                kind: door
+                locked: true
             treasure:
               present: true
           - key: "13"
+            # Asserted-empty: the intersection (page 20) prints sounds and
+            # footprints, no creatures.
+            encounters: []
             connections: ["12", "14", "18"]
+            # 12's locked door gates the 12-13 edge — see 12; the corridor
+            # north into 14 and the collapsed hallway west toward 18 are
+            # open (map, page 37).
+            doors:
+              "12":
+                kind: door
+                locked: true
             treasure:
               present: false
           - key: "14"
@@ -80,10 +166,18 @@ dungeons:
                 template: octopus_giant
                 count: 1
             connections: ["13"]
+            # The ceremony room's entrance from the 13 corridor has no door
+            # glyph (map, page 37).
+            doors: {}
             treasure:
               present: true
           - key: "15"
+            # Asserted-empty: scenic outlook (page 20), no creatures.
+            encounters: []
             connections: ["16"]
+            # The outlook-wing corridors run without door glyphs (map,
+            # page 37).
+            doors: {}
             treasure:
               present: false
           - key: "16"
@@ -92,26 +186,65 @@ dungeons:
                 custom: true
                 count: 8
             connections: ["15", "17"]
+            doors: {}
             treasure:
               present: true
           - key: "17"
+            # Asserted-empty: scenic outlook "per #15" (page 20), no
+            # creatures.
+            encounters: []
             connections: ["16", "18"]
+            doors: {}
             treasure:
               present: false
           - key: "18"
+            # Asserted-empty: the library/ceremony room (pages 20-21) prints
+            # scrolls, the hidden tome, and its gas trap — no creatures.
+            encounters: []
             connections: ["17", "13"]
+            doors: {}
             treasure:
               present: true
+    # Single printed level: the entrance stairway's 50' drop from 1 down to
+    # 2 (page 18) is inside the one mapped level, not an inter-level link.
+    transitions: []
+    # Area 1 is the module's labeled way in: "1. ENTRANCE" (page 18).
+    entrance:
+      level: 1
+      key: "1"
   - name: Reed Marsh Temple
     levels:
       - number: 1
         areas:
           - key: "1"
+            # Asserted-empty: the entrance steps (page 21) list no
+            # creatures.
+            encounters: []
             connections: ["2"]
+            # The main hall's south double doors, brass-faced, "never locked
+            # and will open easily" (pages 21-22).
+            doors:
+              "2":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "2"
+            # Asserted-empty: the main hall (pages 21-22) prints braziers
+            # and pillars — the skittering comes from 3, no creatures here.
+            encounters: []
             connections: ["1", "3", "4", "5"]
+            # The north and south walls each carry a set of never-locked
+            # double doors (pages 21-22): south to the entrance at 1, north
+            # to the causeway at 5. The side openings into 3 and 4 have no
+            # door glyphs (map, page 38).
+            doors:
+              "1":
+                kind: door
+                locked: false
+              "5":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "3"
@@ -120,14 +253,27 @@ dungeons:
                 custom: true
                 count: 8
             connections: ["2"]
+            doors: {}
             treasure:
               present: false
           - key: "4"
+            # Asserted-empty: "4. EMPTY ROOM" (page 22).
+            encounters: []
             connections: ["2"]
+            doors: {}
             treasure:
               present: false
           - key: "5"
+            # Asserted-empty: the causeway (page 22) lists no creatures.
+            encounters: []
             connections: ["2", "6", "7"]
+            # North doors of 2 as above; the bog at 6 flanks the causeway
+            # openly and the steps up to the sanctuary platform at 7 carry
+            # no door glyph (map, page 38).
+            doors:
+              "2":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "6"
@@ -135,10 +281,22 @@ dungeons:
               - name: skeleton
                 template: skeleton
             connections: ["5"]
+            doors: {}
             treasure:
               present: false
           - key: "7"
+            # Asserted-empty: the sanctuary platform (page 22) lists no
+            # creatures.
+            encounters: []
             connections: ["5", "8"]
+            # The massive solid-bronze double doors into the inner temple,
+            # bolted from the gear room: "The doors are currently locked"
+            # (pages 22-23); the map (page 38) sets the glyph on the 7-8
+            # wall.
+            doors:
+              "8":
+                kind: door
+                locked: true
             treasure:
               present: false
           - key: "8"
@@ -147,16 +305,36 @@ dungeons:
                 custom: true
                 count: 5
             connections: ["7"]
+            doors:
+              "7":
+                kind: door
+                locked: true
             treasure:
               present: true
       - number: 2
         areas:
           - key: "9"
+            # Asserted-empty: "Nothing here" (page 23).
+            encounters: []
             connections: ["10", "11"]
+            # "This door opens into an empty room" (10's entry, page 23; the
+            # glyph is on the 9-10 wall, map page 38); the 9-11 opening is
+            # doorless.
+            doors:
+              "10":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "10"
+            # Asserted-empty: the watch room (page 23) prints collapsing
+            # bamboo furniture, no creatures.
+            encounters: []
             connections: ["9"]
+            doors:
+              "9":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "11"
@@ -165,20 +343,69 @@ dungeons:
                 template: giant_bat
                 count: 12
             connections: ["9", "12", "13"]
+            # Judgment call: 12's heavy bronze double doors are "jammed shut
+            # from the outside by spikes" — stuck, not locked; the hoops are
+            # "perfect for a heavy padlock, but none can be found"
+            # (page 23), so locked is false. The 11-9 and 11-13 openings are
+            # doorless (map, page 38).
+            doors:
+              "12":
+                kind: door
+                locked: false
             treasure:
               present: true
           - key: "12"
+            # Asserted-empty: the gear room (page 23) lists no creatures.
+            encounters: []
             connections: ["11"]
+            doors:
+              "11":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "13"
+            # Asserted-empty: the stairwell (page 23) lists no creatures.
+            encounters: []
             connections: ["11", "14"]
+            # The map (page 38) draws a door glyph on the 13-14 wall; no
+            # lock stated (page 23). The 13-11 opening is doorless.
+            doors:
+              "14":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "14"
+            # Asserted-empty: the watch post (page 23) prints collapsing
+            # bamboo furniture, no creatures.
+            encounters: []
             connections: ["13"]
+            doors:
+              "13":
+                kind: door
+                locked: false
             treasure:
               present: false
+    # The two printed inter-level stairways: 3's southwest steps "go up to
+    # the second floor room #9" (page 22; returned by 9, "The stairs go down
+    # to room #3", page 23), and 4's northeast steps go up to 13 (page 22;
+    # returned by 13, "The stairs go down to room #4", page 23).
+    transitions:
+      - from_level: 1
+        from_key: "3"
+        to_level: 2
+        to_key: "9"
+        kind: stairs
+      - from_level: 1
+        from_key: "4"
+        to_level: 2
+        to_key: "13"
+        kind: stairs
+    # Area 1 is the module's labeled way in: "1. ENTRANCE" (page 21).
+    entrance:
+      level: 1
+      key: "1"
   - name: Lake Side Temple
     levels:
       - number: 1
@@ -189,6 +416,9 @@ dungeons:
                 template: rock_python
                 count: 3
             connections: ["2"]
+            # Open passage and steps up 30' to the garden (page 23), no
+            # door.
+            doors: {}
             treasure:
               present: false
           - key: "2"
@@ -197,18 +427,58 @@ dungeons:
                 template: scorpion_giant
                 count: 4
             connections: ["1", "3", "5"]
+            # The thin bronze door into 3 is "latched but not locked"
+            # (page 24); the stairways down to 1 and to the main hall at 5
+            # are open (map, page 39).
+            doors:
+              "3":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "3"
+            # Asserted-empty: rotten furniture and worthless scrolls
+            # (page 24), no creatures.
+            encounters: []
             connections: ["2", "4"]
+            # The secret door in the south wall "swings in or out at a push"
+            # (page 24).
+            doors:
+              "2":
+                kind: door
+                locked: false
+              "4":
+                kind: secret_door
+                locked: false
             treasure:
               present: false
           - key: "4"
+            # Asserted-empty: the secret library (page 24) prints spear
+            # traps and shelves, no creatures.
+            encounters: []
             connections: ["3"]
+            doors:
+              "3":
+                kind: secret_door
+                locked: false
             treasure:
               present: false
           - key: "5"
+            # Asserted-empty: the main hall (page 24) prints pressure plates
+            # and false walls — the guardians are in 6.
+            encounters: []
             connections: ["2", "6", "8"]
+            # The east double doors have racks for bars but "are not
+            # currently barred" (page 24); the main south entrance from 2
+            # "is open year round (there are no doors)" (page 24). Judgment
+            # call on 6: the three rising false walls are marked "F" on the
+            # map (page 39) — a glyph distinct from its door and secret-door
+            # symbols — and the text calls them false walls, so the 5-6 edge
+            # is treated as no-door.
+            doors:
+              "8":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "6"
@@ -220,9 +490,14 @@ dungeons:
                 template: zombie
                 count: 6
             connections: ["5"]
+            # See 5's judgment call: the false walls are not presented as
+            # doors.
+            doors: {}
             treasure:
               present: true
           - key: "7"
+            # Asserted-empty: the break room (page 24) lists no creatures.
+            encounters: []
             treasure:
               present: false
           - key: "8"
@@ -233,7 +508,16 @@ dungeons:
             treasure:
               present: true
           - key: "9"
+            # Asserted-empty: the master's quarters are "empty except for
+            # some rotting wooden furniture" (page 25).
+            encounters: []
             connections: ["8"]
+            # The map (page 39) draws door glyphs at the corridor branch and
+            # at the quarters' entry; no lock stated (page 25).
+            doors:
+              "8":
+                kind: door
+                locked: false
             treasure:
               present: false
           - key: "10"
@@ -251,16 +535,35 @@ dungeons:
                 template: pit_viper
                 count: 3
             connections: ["8"]
+            # "The secret door in the north end of this room opens"
+            # (page 25); the map (page 39) marks it S.
+            doors:
+              "8":
+                kind: secret_door
+                locked: false
             treasure:
               present: true
           - key: "11"
+            # Asserted-empty judgment call: the eroded gallery is "full of
+            # crickets and chirping insects" (page 25) — ambient, no stat
+            # block, not recorded as an encounter.
+            encounters: []
             treasure:
               present: false
           - key: "12"
+            # Asserted-empty: the stepped hallway (page 25) lists no
+            # creatures.
+            encounters: []
             treasure:
               present: false
           - key: "13"
+            # Asserted-empty: the gallery (page 25) lists no creatures.
+            encounters: []
             connections: ["12", "14"]
+            # Open arches on both edges: the hallway at 12 joins the gallery
+            # openly and "an open arch on the west end" leads down toward 14
+            # (page 25; map, page 39).
+            doors: {}
             treasure:
               present: false
           - key: "14"
@@ -272,8 +575,21 @@ dungeons:
                 template: crab_giant
                 count: 8
             connections: ["13"]
+            doors: {}
             treasure:
               present: true
+    # Single printed level: the 30' stairways between the entrance, the
+    # garden, and the halls (pages 23-24) are elevation inside the one
+    # mapped level — the map's side view (page 39) draws height, not a
+    # second keyed level.
+    transitions: []
+    # "1. LAND SIDE ENTRANCE" (page 23) is the module's labeled way in.
+    # Judgment call: the small boat docks at 14 are printed as an
+    # "exit/entrance" (page 25) and the cliff top offers a way down into 2
+    # (page 23), but the module presents the land-side entrance first.
+    entrance:
+      level: 1
+      key: "1"
   - name: Temple Complex with Simians
     levels:
       - number: 1
@@ -291,6 +607,11 @@ dungeons:
                 template: rock_baboon
                 count: 6
             connections: ["1"]
+            # No door glyph appears in this map's legend or on any asserted
+            # edge (page 40), and the key states no doors anywhere in the
+            # complex — every asserted edge here is an open passage, stair,
+            # or cave opening.
+            doors: {}
             treasure:
               present: false
           - key: "3"
@@ -322,10 +643,15 @@ dungeons:
                 custom: true
                 count: 3
             connections: ["4"]
+            doors: {}
             treasure:
               present: true
           - key: "6"
+            # Asserted-empty: "a continuation of entry #4" (page 27) — the
+            # bola spiders are keyed to 4a, no creatures here.
+            encounters: []
             connections: ["4", "7"]
+            doors: {}
             treasure:
               present: false
           - key: "7"
@@ -334,10 +660,14 @@ dungeons:
                 template: rock_baboon
                 count: 7
             connections: ["6", "8"]
+            doors: {}
             treasure:
               present: true
           - key: "8"
+            # Asserted-empty: the northeast hall is "empty" (page 27).
+            encounters: []
             connections: ["7", "9"]
+            doors: {}
             treasure:
               present: false
           - key: "9"
@@ -355,8 +685,17 @@ dungeons:
                 template: rock_baboon
                 count: 2
             connections: ["8"]
+            doors: {}
             treasure:
               present: true
+    # Single printed level: the crevice at 4 climbs 100' to the surface
+    # (page 27) and 8's steps rise 10' into 9 (page 27) — all inside the one
+    # mapped level.
+    transitions: []
+    # Area 1 is the module's labeled way in: "1. ENTRANCE" (page 26).
+    entrance:
+      level: 1
+      key: "1"
   - name: Underwater Exploration
     levels:
       - number: 1
@@ -404,7 +743,12 @@ dungeons:
             treasure:
               present: false
           - key: "7"
+            # Asserted-empty: the tunnel with the fresh-water shower
+            # (page 29) lists no creatures.
+            encounters: []
             connections: ["6", "8"]
+            # Natural tunnel on both edges, no door glyphs (map, page 41).
+            doors: {}
             treasure:
               present: false
           - key: "8"
@@ -413,6 +757,15 @@ dungeons:
                 custom: true
                 count: 1
             connections: ["7", "9", "10"]
+            # The hinged wall sections "between this room and #9" are the
+            # module's own quoted "secret doors" (page 29), pushed open to
+            # the east, no lock; the mucky hallway at 10 has its printed
+            # door at the east end only (page 29), so the 8-10 edge is
+            # doorless.
+            doors:
+              "9":
+                kind: secret_door
+                locked: false
             treasure:
               present: false
           - key: "9"
@@ -421,6 +774,10 @@ dungeons:
                 template: troglodyte
                 count: 6
             connections: ["8"]
+            doors:
+              "8":
+                kind: secret_door
+                locked: false
             treasure:
               present: false
           - key: "10"
@@ -431,6 +788,8 @@ dungeons:
             treasure:
               present: false
           - key: "11"
+            # Asserted-empty: the empty crystal room (page 30).
+            encounters: []
             treasure:
               present: false
           - key: "12"
@@ -461,13 +820,30 @@ dungeons:
             treasure:
               present: false
           - key: "15"
+            # Asserted-empty: the store room holds baskets of food
+            # (page 30).
+            encounters: []
             treasure:
               present: false
+    # Single printed level: 7's tunnel rises 30' as a slope within the one
+    # mapped level (page 29), not an inter-level link.
+    transitions: []
+    # Judgment call: the site introduction names 6 the way in ("slopes down
+    # around the entryway at #6", page 28) and 6's own entry calls it "This
+    # entrance" (page 29); the open-cove spots 1-5 lie outside any entrance,
+    # so the labeled entry at 6 is asserted rather than the first-listed
+    # key.
+    entrance:
+      level: 1
+      key: "6"
   - name: Dragon Harbor
     levels:
       - number: 1
         areas:
           - key: "1"
+            # Asserted-empty: the harbor island's fort (page 31) lists no
+            # creatures.
+            encounters: []
             treasure:
               present: false
           - key: "2"
@@ -498,18 +874,29 @@ dungeons:
             treasure:
               present: false
           - key: "5"
+            # Asserted-empty: the colosseum (page 31) prints a falling-rock
+            # hazard, no creatures.
+            encounters: []
             treasure:
               present: false
           - key: 6a
+            # Asserted-empty: the forts entry (page 32) lists no creatures.
+            encounters: []
             treasure:
               present: false
           - key: 6b
+            # Asserted-empty: the forts entry (page 32) lists no creatures.
+            encounters: []
             treasure:
               present: false
           - key: 6c
+            # Asserted-empty: the forts entry (page 32) lists no creatures.
+            encounters: []
             treasure:
               present: false
           - key: 6d
+            # Asserted-empty: the forts entry (page 32) lists no creatures.
+            encounters: []
             treasure:
               present: false
           - key: "7"
@@ -519,9 +906,15 @@ dungeons:
             treasure:
               present: false
           - key: 8a
+            # Asserted-empty: the apartments entry (page 32) lists no
+            # creatures.
+            encounters: []
             treasure:
               present: false
           - key: 8b
+            # Asserted-empty: the apartments entry (page 32) lists no
+            # creatures.
+            encounters: []
             treasure:
               present: false
           - key: "9"
@@ -539,8 +932,25 @@ dungeons:
             treasure:
               present: true
           - key: "11"
+            # Asserted-empty: the farm land (page 32) lists no creatures.
+            encounters: []
             treasure:
               present: false
           - key: "12"
+            # Asserted-empty judgment call: an "insect-riddled swamp"
+            # (page 32) — ambient insects only, no stat block, not recorded
+            # as an encounter.
+            encounters: []
             treasure:
               present: false
+    # Single printed level: the 15' stair between 10a and 10b is inside the
+    # main temple (page 32), not an inter-level link.
+    transitions: []
+    # Judgment call: no key is labeled as an entrance. The ruined harbor
+    # city is entered from the sea, and the first-presented key 1 — the
+    # harbor island whose causeways, pierced by ship channels, span the
+    # harbor mouth (page 31) — is asserted; the docks at 2 are the landing
+    # and arguably co-equal.
+    entrance:
+      level: 1
+      key: "1"
