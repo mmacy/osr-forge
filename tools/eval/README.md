@@ -45,7 +45,15 @@ relied on for the module's text; JN2, the pinned fallback, passed (sole
 copyright holder, same verified pattern as JN1). All v1 members share BFRPG
 layout conventions — a standing limitation; corpus diversity is future,
 additive growth. Growing the corpus is additive: a new module is a manifest, a
-truth file, and a sweep — no code.
+truth file, and a sweep — no code. The phase 9 candidate search for a
+non-BFRPG member came up empty under the same verification bar: the Agarwood
+pamphlets (Paleskin Princess, Varanus Lair) declare CC BY 4.0 on their
+itch.io pages but print no license statement in the PDF itself, and Tomb of
+the Serpent Kings is CC BY-NC-SA (NC cannot be cleanly relied on for
+committed text) — the full candidate record is in the phase 9 plan's
+amendments. The recorded next avenue: One Page Dungeon Contest winners,
+whose submission rules print the CC BY-SA 4.0 grant on the page by
+construction.
 
 Fetching stays manual: manifests carry source URLs, but URLs rot, the sha256
 check is the integrity gate, and the harness takes no HTTP dependency.
