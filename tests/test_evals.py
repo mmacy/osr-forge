@@ -40,7 +40,7 @@ from osrforge.evals import (
     load_scoreboard,
     load_truth,
     publish_module,
-    rescore_module,
+    rescore_modules,
     save_byom_scoreboard,
     save_scoreboard,
     score_workdir,
@@ -2686,10 +2686,10 @@ STALE_RUN_BLOCK = {
 }
 
 
-def stale_entry() -> dict[str, object]:
+def stale_entry(input_tokens: int = 307478) -> dict[str, object]:
     """A pre-extension scoreboard entry: a metrics shape the current models refuse."""
     return {
-        "run": dict(STALE_RUN_BLOCK),
+        "run": {**STALE_RUN_BLOCK, "input_tokens": input_tokens},
         "truth_sha256": "00" * 32,
         "settings_overrides": ["render_dpi=300"],
         "metrics": {"note": "the pre-phase-9 four-family shape"},
@@ -2697,65 +2697,97 @@ def stale_entry() -> dict[str, object]:
 
 
 class TestRescore:
-    """The offline regeneration mechanism: same run, re-scored — raw read in, validated board out."""
+    """The offline regeneration mechanism: same runs, re-scored — raw read in, one validated save out."""
 
-    def _corpus(self, tmp_path: Path, entries: dict[str, object]) -> tuple[Path, Path, Path]:
-        """A corpus with one member, its truth, a raw board, and a matching workdir."""
+    def _corpus(self, tmp_path: Path, entries: dict[str, dict[str, object]]) -> tuple[Path, Path]:
+        """A corpus with one member directory (plus truth) per raw board entry."""
         corpus = tmp_path / "corpus"
-        member = corpus / "mod"
-        member.mkdir(parents=True)
-        truth_path = member / "truth.yaml"
-        truth_path.write_text(PERFECT_TRUTH_YAML, encoding="utf-8")
+        corpus.mkdir(parents=True)
+        for module_id in entries:
+            member = corpus / module_id
+            member.mkdir()
+            (member / "truth.yaml").write_text(PERFECT_TRUTH_YAML, encoding="utf-8")
         board_path = corpus / "scoreboard.json"
         board_path.write_text(json.dumps({"schema_version": 1, "modules": entries}, indent=2) + "\n", encoding="utf-8")
-        return board_path, truth_path, perfect_workdir(tmp_path)
+        return corpus, board_path
+
+    def _target(self, tmp_path: Path, corpus: Path, module_id: str) -> tuple[str, Path, Path]:
+        """One rescore target: the module id, a matching fabricated workdir, and its truth path."""
+        return (module_id, perfect_workdir(tmp_path / module_id), corpus / module_id / "truth.yaml")
 
     def test_run_block_carried_verbatim_and_truth_sha_repinned(self, tmp_path: Path):
-        board_path, truth_path, workdir = self._corpus(tmp_path, {"mod": stale_entry()})
-        metrics = rescore_module(board_path, "mod", workdir, truth_path)
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
+        target = self._target(tmp_path, corpus, "mod")
+        results = rescore_modules(board_path, [target])
         board = load_scoreboard(board_path)
         entry = board.modules["mod"]
         # The entry stays a record of the run: the run's own date, tokens,
         # cost, model id, and package version — never today's.
         assert entry.run == RunInfo.model_validate(STALE_RUN_BLOCK)
         assert entry.settings_overrides == ("render_dpi=300",)
-        assert entry.truth_sha256 == hashlib.sha256(truth_path.read_bytes()).hexdigest()
+        assert entry.truth_sha256 == hashlib.sha256(target[2].read_bytes()).hexdigest()
         assert entry.truth_sha256 != "00" * 32
-        assert entry.metrics == metrics
-        assert metrics == score_workdir(workdir, PERFECT_TRUTH)
+        assert entry.metrics == results["mod"]
+        assert results["mod"] == score_workdir(target[1], PERFECT_TRUTH)
 
     def test_a_stale_board_reads_raw(self, tmp_path: Path):
-        board_path, truth_path, workdir = self._corpus(tmp_path, {"mod": stale_entry()})
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
         # The stale shape is exactly what the extended models refuse — the
         # raw-JSON read is what makes regeneration possible at all.
         with pytest.raises(ValidationError):
             load_scoreboard(board_path)
-        rescore_module(board_path, "mod", workdir, truth_path)
+        rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
         assert load_scoreboard(board_path).modules["mod"].run.date == "2026-07-17"
 
-    def test_the_whole_rebuilt_board_validates_before_saving(self, tmp_path: Path):
-        board_path, truth_path, workdir = self._corpus(tmp_path, {"mod": stale_entry(), "other": stale_entry()})
+    def test_a_whole_stale_board_migrates_in_one_save(self, tmp_path: Path):
+        # The committed-board migration shape: every entry predates the model
+        # extension, so the board can only become valid whole — all three
+        # rebuild in one invocation and the board saves once.
+        entries = {"mod-a": stale_entry(1), "mod-b": stale_entry(2), "mod-c": stale_entry(3)}
+        corpus, board_path = self._corpus(tmp_path, entries)
+        targets = [self._target(tmp_path, corpus, module_id) for module_id in ("mod-a", "mod-b", "mod-c")]
+        results = rescore_modules(board_path, targets)
+        board = load_scoreboard(board_path)
+        assert list(results) == ["mod-a", "mod-b", "mod-c"]
+        assert set(board.modules) == {"mod-a", "mod-b", "mod-c"}
+        for module_id, tokens in (("mod-a", 1), ("mod-b", 2), ("mod-c", 3)):
+            # Each entry carried its own run block, not a neighbor's.
+            assert board.modules[module_id].run.input_tokens == tokens
+            assert board.modules[module_id].metrics == results[module_id]
+
+    def test_a_leftover_stale_entry_refuses_the_save_by_name(self, tmp_path: Path):
+        corpus, board_path = self._corpus(
+            tmp_path, {"mod": stale_entry(), "other": stale_entry(), "third": stale_entry()}
+        )
         before = board_path.read_bytes()
-        # "other" stays stale in the rebuilt board: whole-board validation
-        # refuses the save, and the file is untouched.
-        with pytest.raises(ValidationError):
-            rescore_module(board_path, "mod", workdir, truth_path)
+        # "other" and "third" stay stale in the rebuilt board: the loud
+        # refusal names them, and the file is untouched — the whole-board
+        # pin working, not an obstacle.
+        with pytest.raises(ValueError, match="stale entries: other, third"):
+            rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
         assert board_path.read_bytes() == before
 
     def test_refuses_a_module_with_no_existing_entry(self, tmp_path: Path):
-        board_path, truth_path, workdir = self._corpus(tmp_path, {"other": stale_entry()})
+        corpus, board_path = self._corpus(tmp_path, {"other": stale_entry()})
+        (corpus / "mod").mkdir()
         with pytest.raises(ValueError, match="no existing entry"):
-            rescore_module(board_path, "mod", workdir, truth_path)
+            rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
+
+    def test_refuses_a_repeated_module_id(self, tmp_path: Path):
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
+        target = self._target(tmp_path, corpus, "mod")
+        with pytest.raises(ValueError, match="name each entry once"):
+            rescore_modules(board_path, [target, target])
 
     def test_refuses_a_missing_board(self, tmp_path: Path):
-        board_path, truth_path, workdir = self._corpus(tmp_path, {"mod": stale_entry()})
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
         board_path.unlink()
         with pytest.raises(ValueError, match="no scoreboard"):
-            rescore_module(board_path, "mod", workdir, truth_path)
+            rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
 
     def test_saved_board_keeps_the_pinned_byte_format(self, tmp_path: Path):
-        board_path, truth_path, workdir = self._corpus(tmp_path, {"mod": stale_entry()})
-        rescore_module(board_path, "mod", workdir, truth_path)
+        corpus, board_path = self._corpus(tmp_path, {"mod": stale_entry()})
+        rescore_modules(board_path, [self._target(tmp_path, corpus, "mod")])
         first = board_path.read_bytes()
         save_scoreboard(board_path, load_scoreboard(board_path))
         assert board_path.read_bytes() == first

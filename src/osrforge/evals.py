@@ -17,14 +17,14 @@ and are authored from the printed module under the independence discipline
 
 import hashlib
 import json
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any, Literal, cast
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from osrforge.assemble import parse_treasure, usable_stat_block
 from osrforge.contracts.stages import (
@@ -75,7 +75,7 @@ __all__ = [
     "load_scoreboard",
     "load_truth",
     "publish_module",
-    "rescore_module",
+    "rescore_modules",
     "save_byom_scoreboard",
     "save_scoreboard",
     "score_workdir",
@@ -1027,58 +1027,94 @@ def publish_module(
     )
 
 
-def rescore_module(board_path: Path, module_id: str, workdir_path: Path, truth_path: Path) -> ModuleMetrics:
-    """Re-score one existing scoreboard entry's workdir against the current truth, in place.
+def _stale_module_ids(modules: dict[str, Any]) -> list[str]:
+    """The raw board entries the extended models refuse, sorted — the loud half of the rescore refusal."""
+    stale: list[str] = []
+    for module_id, entry in modules.items():
+        try:
+            ModuleScore.model_validate(entry)
+        except ValidationError:
+            stale.append(module_id)
+    return sorted(stale)
 
-    The offline-regeneration mechanism: same run, re-scored. The stale board
+
+def rescore_modules(board_path: Path, targets: Sequence[tuple[str, Path, Path]]) -> dict[str, ModuleMetrics]:
+    """Re-score existing scoreboard entries' workdirs against current truth — one rebuilt board, one save.
+
+    The offline-regeneration mechanism: same runs, re-scored. The stale board
     is read as raw JSON — never through the models, whose required fields a
-    pre-extension entry cannot satisfy — and the rebuilt entry carries the
+    pre-extension entry cannot satisfy — and each rebuilt entry carries its
     raw run block verbatim (the run's own date, tokens, cost, model id,
     package version: the entry stays a record of the run) plus the carried
     `settings_overrides`, a freshly pinned `truth_sha256`, and the fresh
     metrics from [`score_workdir`][osrforge.evals.score_workdir]. The entire
-    rebuilt board then validates through the extended models before anything
-    is written, so a save never persists a board the current schema rejects.
+    rebuilt board then validates through the extended models before the
+    single save, so a save never persists a board the current schema rejects.
+
+    Taking the targets together is what makes a schema migration saveable at
+    all: a board whose every entry predates a model extension can only become
+    valid whole, so its entries rebuild in one invocation and the board saves
+    once. A leftover entry the extended models still refuse is a loud
+    refusal naming the stale ids — the whole-board pin working, not an
+    obstacle to route around. A single target stays valid whenever the rest
+    of the board is already current-shaped.
 
     Args:
         board_path: The corpus's `scoreboard.json`; must exist.
-        module_id: The corpus module id; must already hold an entry — a
-            module with no scored run has no run block to carry, and a new
-            run records itself through `score --update-scoreboard`.
-        workdir_path: The retained workdir whose stage caches are re-scored.
-        truth_path: The module's current `truth.yaml`.
+        targets: `(module id, workdir path, truth path)` per entry to
+            rebuild, each id named once. Every id must already hold an entry
+            — a module with no scored run has no run block to carry, and a
+            new run records itself through `score --update-scoreboard`.
 
     Returns:
-        The fresh metrics written into the entry.
+        Module id → the fresh metrics written into its entry, in target
+        order.
 
     Raises:
-        ValueError: If the board does not exist or holds no entry for the
-            module.
+        ValueError: If no targets are given, an id repeats, the board does
+            not exist, an id holds no entry, or the rebuilt board still
+            contains stale entries (named in the message) — nothing is
+            written.
         pydantic.ValidationError: If the rebuilt board fails the extended
-            models — nothing is written.
+            models for any other reason — nothing is written.
     """
+    if not targets:
+        raise ValueError("rescore needs at least one (module id, workdir, truth) target")
+    names = [module_id for module_id, _, _ in targets]
+    if len(set(names)) != len(names):
+        raise ValueError(f"a module id repeats across the rescore targets: {names} — name each entry once")
     if not board_path.is_file():
         raise ValueError(f"no scoreboard at {board_path} — rescore regenerates existing entries only")
     raw: dict[str, Any] = json.loads(board_path.read_text(encoding="utf-8"))
     raw_modules = raw.get("modules")
-    if not isinstance(raw_modules, dict) or module_id not in raw_modules:
+    existing = cast(dict[str, Any], raw_modules) if isinstance(raw_modules, dict) else {}
+    missing = sorted(module_id for module_id in names if module_id not in existing)
+    if missing:
         raise ValueError(
-            f"no existing entry for {module_id!r} in {board_path} — rescore regenerates scored entries; "
+            f"no existing entry for {', '.join(missing)} in {board_path} — rescore regenerates scored entries; "
             "a new run records itself through score --update-scoreboard"
         )
-    modules = cast(dict[str, Any], raw_modules)
-    truth = load_truth(truth_path)
-    metrics = score_workdir(workdir_path, truth)
-    entry: dict[str, Any] = modules[module_id]
-    modules[module_id] = {
-        "run": entry["run"],
-        "truth_sha256": hashlib.sha256(truth_path.read_bytes()).hexdigest(),
-        "settings_overrides": entry.get("settings_overrides", []),
-        "metrics": metrics.model_dump(mode="json"),
-    }
+    results: dict[str, ModuleMetrics] = {}
+    for module_id, workdir_path, truth_path in targets:
+        truth = load_truth(truth_path)
+        metrics = score_workdir(workdir_path, truth)
+        entry: dict[str, Any] = existing[module_id]
+        existing[module_id] = {
+            "run": entry["run"],
+            "truth_sha256": hashlib.sha256(truth_path.read_bytes()).hexdigest(),
+            "settings_overrides": entry.get("settings_overrides", []),
+            "metrics": metrics.model_dump(mode="json"),
+        }
+        results[module_id] = metrics
+    stale = _stale_module_ids(existing)
+    if stale:
+        raise ValueError(
+            f"the rebuilt board still holds stale entries: {', '.join(stale)} — name them in the same rescore "
+            "invocation (each with its retained workdir) so the board saves once, whole and valid"
+        )
     board = Scoreboard.model_validate(raw)
     save_scoreboard(board_path, board)
-    return metrics
+    return results
 
 
 def _ratio(numerator: int, denominator: int) -> float | None:

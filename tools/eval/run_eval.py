@@ -35,7 +35,7 @@ from osrforge.evals import (
     load_scoreboard,
     load_truth,
     publish_module,
-    rescore_module,
+    rescore_modules,
     save_byom_scoreboard,
     save_scoreboard,
     score_workdir,
@@ -195,16 +195,20 @@ def cmd_score(args: argparse.Namespace) -> None:
 
 
 def cmd_rescore(args: argparse.Namespace) -> None:
-    member = module_dir(args.corpus, args.module_id)
+    if len(args.modules) != len(args.workdirs):
+        sys.exit(
+            f"rescore pairs each --module with a --workdir by position: "
+            f"got {len(args.modules)} modules and {len(args.workdirs)} workdirs"
+        )
     board_path = scoreboard_path(args.corpus)
-    metrics = rescore_module(
-        board_path=board_path,
-        module_id=args.module_id,
-        workdir_path=args.workdir,
-        truth_path=member / "truth.yaml",
-    )
-    _print_metrics(args.module_id, metrics)
-    print(f"re-scored {args.module_id} in {board_path}: run block carried verbatim, truth_sha256 re-pinned")
+    targets: list[tuple[str, Path, Path]] = []
+    for module_id, workdir in zip(args.modules, args.workdirs, strict=True):
+        member = module_dir(args.corpus, module_id)
+        targets.append((module_id, workdir, member / "truth.yaml"))
+    results = rescore_modules(board_path, targets)
+    for module_id, metrics in results.items():
+        _print_metrics(module_id, metrics)
+    print(f"re-scored {', '.join(results)} in {board_path}: run blocks carried verbatim, truth_sha256 re-pinned")
 
 
 def cmd_report(args: argparse.Namespace) -> None:
@@ -300,10 +304,26 @@ def build_parser() -> argparse.ArgumentParser:
 
     rescore_parser = subcommands.add_parser(
         "rescore",
-        help="re-score an existing entry's retained workdir against current truth, run block carried (offline)",
+        help="re-score existing entries' retained workdirs against current truth in one save, "
+        "run blocks carried (offline)",
     )
-    rescore_parser.add_argument("module_id", help="the corpus module id; must already hold a scoreboard entry")
-    rescore_parser.add_argument("--workdir", type=Path, required=True, help="the retained converted workdir")
+    rescore_parser.add_argument(
+        "--module",
+        action="append",
+        dest="modules",
+        required=True,
+        metavar="MODULE_ID",
+        help="a corpus module id already holding a scoreboard entry (repeatable; pairs with --workdir by position)",
+    )
+    rescore_parser.add_argument(
+        "--workdir",
+        action="append",
+        dest="workdirs",
+        required=True,
+        type=Path,
+        metavar="DIR",
+        help="the retained converted workdir for the matching --module (repeatable)",
+    )
     _add_corpus_option(rescore_parser)
     rescore_parser.set_defaults(handler=cmd_rescore)
 
