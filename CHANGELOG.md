@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### The correction loop
+
+- The workdir-taking commands (`assemble`, `check`, `preview`, `rerun`) now
+  discover a missing `--workdir`: the working directory when it is itself a
+  workdir (contains `run.json`), else the unique `*.forge` directory within
+  it. Several `*.forge` directories, or none, is a loud error naming what was
+  found; an explicit `--workdir` bypasses discovery entirely.
+- A `convert` or `rerun` failure whose workdir records a failed stage now
+  appends the exact resume command to the error message:
+  `resume with: osrforge rerun <stage> --workdir <dir>`.
+
 ### Evals
 
 - The scorer now reports seven metric families: doors (presence recall and

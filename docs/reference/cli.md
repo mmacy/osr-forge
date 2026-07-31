@@ -14,13 +14,21 @@ osrforge estimate <module.pdf> [--workdir DIR]
 osrforge --version
 ```
 
+`assemble`, `check`, `preview`, and `rerun` discover a missing `--workdir`:
+the working directory itself when it is a workdir (it contains `run.json`),
+else the unique `*.forge` directory within it. Finding several `*.forge`
+directories, or none, is a loud error naming what was found — pass
+`--workdir`. An explicit `--workdir` always bypasses discovery. `convert` and
+`estimate` instead default to `./<pdf-stem>.forge` beside the PDF.
+
 ## convert
 
 Runs the full pipeline — `preprocess → survey → content → monsters →
 assemble` — into the workdir (default `./<pdf-stem>.forge`), printing each
 stage transition with its token usage. A stage failure stops there, keeps
-everything upstream, and `rerun` resumes. On first conversion it also writes a
-commented `overrides.yaml` template — the correction loop's on-ramp.
+everything upstream, and the error message carries the exact `osrforge rerun`
+command that resumes. On first conversion it also writes a commented
+`overrides.yaml` template — the correction loop's on-ramp.
 
 `--set KEY=VALUE` is the repeatable settings channel; values parse as YAML.
 See [settings and rerun](../guides/settings-and-rerun.md) for the knob table.
@@ -60,7 +68,8 @@ Preprocesses the PDF (the one step with no model call) and prices the
 conversion with pinned heuristics: per-stage token predictions and a USD
 figure, with each survey window priced at the doubled rate tier when its
 estimated input crosses the 272K-token cliff. The workdir it creates is warm
-for `convert`.
+for `rerun survey`, which continues from the rendered pages — a plain
+`convert` starts at preprocess by design and re-renders.
 
 ## Provider configuration
 

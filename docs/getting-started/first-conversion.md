@@ -21,7 +21,9 @@ estimated cost: $0.87
 
 The estimate is deliberately rough (±40% on input tokens against the measured
 calibration runs); the band, not the point value, is the contract. The workdir
-it creates is warm — `convert` reuses the rendered pages.
+it creates is warm for `osrforge rerun survey`, which continues from the
+rendered pages — a plain `convert` starts at preprocess by design and
+re-renders.
 
 ## 2. Convert
 
