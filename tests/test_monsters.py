@@ -554,12 +554,29 @@ class TestStatblockPass:
         assert cache.custom_monsters == "emit"
         assert cache.blocks == {}
 
-    def test_resolved_names_never_reach_the_pass(self, tmp_path: Path):
-        # The LLM tier resolves the name, so the pass has no population.
+    def test_exact_and_alias_names_never_reach_the_pass(self, tmp_path: Path):
+        # The pass population is unresolved plus the llm and fuzzy tiers;
+        # exact- and alias-resolved names stay out of it.
+        workdir = stage_workdir(
+            tmp_path / "mod.forge", {"1": ["goblin", "wolf"]}, page_count=2, source_pages_by_area={"1": [1]}
+        )
+        monsters(workdir, PoisonedProvider())
+        assert read_statblocks(workdir).blocks == {}
+
+    def test_llm_resolved_names_reach_the_pass(self, tmp_path: Path):
+        # The widened population: an LLM pick gets a transcription request too,
+        # so the veto has evidence to judge it with.
         workdir = stage_workdir(
             tmp_path / "mod.forge", {"1": ["hobgoblin chieftain"]}, page_count=2, source_pages_by_area={"1": [1]}
         )
-        provider = ScriptedProvider([{"hobgoblin chieftain": {"template_id": "hobgoblin"}}])
-        monsters(workdir, provider)
-        assert len(provider.requests) == 1
-        assert read_statblocks(workdir).blocks == {}
+        provider = ScriptedProvider(
+            [
+                {"hobgoblin chieftain": {"template_id": "hobgoblin"}},
+                statblock_answer(hit_dice="1+1", source_pages=[1]),
+            ]
+        )
+        result = monsters(workdir, provider)
+        assert provider.requests[1].tag == "statblock.hobgoblin-chieftain"
+        assert list(read_statblocks(workdir).blocks) == ["hobgoblin chieftain"]
+        # Printed HD 1+1 against hobgoblin's HD 1+1: same count, the pick survives.
+        assert result.resolutions["hobgoblin chieftain"].template_id == "hobgoblin"

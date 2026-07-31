@@ -236,6 +236,14 @@ class SurveyIndex(BaseModel):
     townsfolk included. The narrower resolution population is
     [`encounter_names`][osrforge.monsters.encounter_names]."""
 
+    census_disputes: tuple[str, ...] = ()
+    """Where the [survey census][osrforge.survey.census_disputes] disagreed
+    with the survey — one stable human-readable entry per disagreement
+    (`census names 'crypt-of-horrors'; survey does not`). Additive and
+    defaulted (the `TownInfo.services` precedent), so caches recorded before
+    the census existed still load; assembly turns each entry into a
+    module-scope `survey_disputed` flag."""
+
 
 class AreaEncounter(BaseModel):
     """One extracted encounter: a monster name plus what the module said about count.
@@ -390,10 +398,22 @@ class MonsterResolution(BaseModel):
     method: ResolutionMethod
     """Which tier produced the match (or `unresolved`)."""
 
+    vetoed_template_id: str | None = None
+    """The LLM- or fuzzy-tier pick the [stat-block veto][osrforge.monsters.stat_block_veto]
+    discarded — additive and defaulted, so caches recorded before the veto
+    existed still load. The cache invariant `template_id is None ⟺ method ==
+    "unresolved"` holds; the veto record rides beside it."""
+
+    veto_detail: str | None = None
+    """The human-readable both-readings record of the veto
+    (`orc chief → orc, printed HD 2 vs 1`)."""
+
     @model_validator(mode="after")
     def _template_iff_resolved(self) -> MonsterResolution:
         if (self.template_id is None) != (self.method == "unresolved"):
             raise ValueError("template_id must be set exactly when the method is not 'unresolved'")
+        if self.vetoed_template_id is not None and self.method != "unresolved":
+            raise ValueError("vetoed_template_id is legal only with method 'unresolved'")
         return self
 
 
@@ -512,9 +532,11 @@ class StatBlocks(BaseModel):
 
     blocks: dict[str, RawStatBlock | None] = {}
     """Normalized name → its raw block, keys sorted ascending. Under `emit`,
-    an entry for *every* name the resolution tiers left unresolved — a block,
-    or an explicit `null` absent marker (the pass ran and found nothing).
-    Under `off`, empty."""
+    an entry for *every* name in the stat-block population — the union of
+    unresolved, LLM-resolved, and fuzzy-resolved — a block, or an explicit `null` absent
+    marker (the pass ran and found nothing). Under `off`, empty. Caches
+    written before the population widened carry unresolved names only;
+    assembly treats a missing LLM/fuzzy entry as no evidence."""
 
     @field_validator("blocks")
     @classmethod

@@ -3,223 +3,333 @@
   "resolutions": {
     "bandit": {
       "template_id": "bandit",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "bandit cronies": {
       "template_id": "bandit",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "bandit leader": {
       "template_id": "bandit",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "bugbear chief": {
       "template_id": "bugbear",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "bugbears": {
       "template_id": "bugbear",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "dwarf fighter": {
       "template_id": "dwarf_monster",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "elven thief": {
       "template_id": null,
-      "method": "unresolved"
+      "method": "unresolved",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "female lizard men": {
       "template_id": "lizard_man",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "fighters": {
       "template_id": null,
-      "method": "unresolved"
+      "method": "unresolved",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "ghouls": {
       "template_id": "ghoul",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "giant black widow spider": {
       "template_id": "black_widow",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "giant cave locust": {
       "template_id": "cave_locust",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "giant centipedes": {
       "template_id": "centipede_giant",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "giant fire beetles": {
       "template_id": "fire_beetle",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "giant gecko lizard": {
       "template_id": null,
-      "method": "unresolved"
+      "method": "unresolved",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "giant rats": {
       "template_id": "giant_rat",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "giant shrews": {
       "template_id": "shrew_giant",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "giant weasel": {
       "template_id": "weasel_giant",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "gnoll": {
       "template_id": "gnoll",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "gnoll females": {
       "template_id": "gnoll",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "gnoll leader": {
       "template_id": "gnoll",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "goblin": {
       "template_id": "goblin",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "goblin king": {
       "template_id": "goblin",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "gray jelly": {
       "template_id": "grey_ooze",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "hobgoblin": {
       "template_id": "hobgoblin",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "hobgoblin chief": {
       "template_id": "hobgoblin",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "hobgoblins": {
       "template_id": "hobgoblin",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "human cleric 3": {
       "template_id": null,
-      "method": "unresolved"
+      "method": "unresolved",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "human fighter 1": {
       "template_id": null,
-      "method": "unresolved"
+      "method": "unresolved",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "human fighter 2": {
       "template_id": null,
-      "method": "unresolved"
+      "method": "unresolved",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "human magic-user 4": {
       "template_id": null,
-      "method": "unresolved"
+      "method": "unresolved",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "kobold": {
       "template_id": "kobold",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "kobold bodyguards": {
       "template_id": "kobold",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "kobold chief": {
       "template_id": "kobold",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "lizard man leader": {
       "template_id": "lizard_man",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "lizard men": {
       "template_id": "lizard_man",
-      "method": "alias"
+      "method": "alias",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "minotaur": {
       "template_id": "minotaur",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "mountain lion": {
       "template_id": "mountain_lion",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "ogre": {
       "template_id": "ogre",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "orc": {
       "template_id": "orc",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "orc chief": {
       "template_id": "orc",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "orc war leader": {
       "template_id": null,
-      "method": "unresolved"
+      "method": "unresolved",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "orc warden": {
       "template_id": "orc",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "owlbear": {
       "template_id": "owl_bear",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "python": {
       "template_id": "rock_python",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "sea snake": {
       "template_id": "sea_snake",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "skeletons": {
       "template_id": "skeleton",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "stirges": {
       "template_id": "stirge",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "tentacle worm": {
       "template_id": null,
-      "method": "unresolved"
+      "method": "unresolved",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "wight": {
       "template_id": "wight",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "wolf": {
       "template_id": "normal_wolf",
-      "method": "alias"
+      "method": "alias",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "yellow mold": {
       "template_id": "yellow_mould",
-      "method": "fuzzy"
+      "method": "fuzzy",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "young lizard men": {
       "template_id": "lizard_man",
-      "method": "llm"
+      "method": "llm",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "zombie": {
       "template_id": "zombie",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     },
     "zombies": {
       "template_id": "zombie",
-      "method": "exact"
+      "method": "exact",
+      "vetoed_template_id": null,
+      "veto_detail": null
     }
   }
 }
