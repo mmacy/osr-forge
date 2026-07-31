@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The stat-block veto: the stat-block pass now also covers LLM- and
+  fuzzy-resolved names, and a deterministic comparator flips any non-exact
+  pick whose printed Hit Dice count contradicts the picked template to
+  unresolved — the vetoed name emits the module's own creature, and the
+  discarded pick rides `monsters.json` (`vetoed_template_id`/`veto_detail`)
+  and the report's monsters summary (`vetoed`).
+- The survey census: a second, reduced request over the survey's page windows
+  (sites, levels, and printed key ranges only) compared deterministically
+  against the survey; disagreements land on the survey cache and surface as
+  module-scope `survey_disputed:<detail>` flags. Flag-only — no re-roll.
+- New report flags `resolution_suspect` (a surviving non-exact pick whose
+  printed block disagrees on a non-vetoing axis — HD modifier or AC, both
+  readings in the detail) and `low_confidence:<value> self-assessed` (an
+  area's cached confidence below the pinned 0.6 floor).
+- `estimate` prices the census and the widened stat-block pass; the CLI
+  table gains a census line.
+
 ### Evals
 
 - The scorer now reports seven metric families: doors (presence recall and

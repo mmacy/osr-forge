@@ -784,3 +784,22 @@ class TestCensusStage:
         with pytest.raises(ExtractionError):
             survey(workdir, provider)
         assert len(provider.requests) == 1
+
+
+def test_census_disputed_path_replays_through_recorded_fixtures(tmp_path: Path):
+    # Record the survey and census exchanges as real fixture files, then
+    # replay the stage against them in an identical fresh workdir — the
+    # census-disputed path through FixtureProvider.
+    from osrforge.providers.fixtures import FixtureProvider, RecordingProvider
+
+    fixtures = tmp_path / "fixtures"
+    census = raw_census([{"name": "Crypt of Horrors", "levels": [census_level(1, "1", "8")]}])
+    recording_workdir = fabricate_workdir(tmp_path / "record.forge", page_count=2)
+    recorded = survey(recording_workdir, RecordingProvider(ScriptedProvider([raw_survey(), census]), fixtures))
+    replay_workdir = fabricate_workdir(tmp_path / "replay.forge", page_count=2)
+    replayed = survey(replay_workdir, FixtureProvider(fixtures))
+    assert replayed == recorded
+    assert replayed.census_disputes == (
+        "survey names 'a-orc-lair'; census does not",
+        "census names 'crypt-of-horrors'; survey does not",
+    )

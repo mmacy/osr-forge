@@ -99,6 +99,17 @@ about what the printed page offers:
   entry on a name with no cached block forms the candidate block from its own
   fields; it needs at least an AC and an HD line (or class-level notation) —
   the same usability bar assembly holds extracted blocks to.
+- **A vetoed pick (`vetoed` in the monsters summary) → usually nothing.** The
+  stat-block veto already discarded an LLM or fuzzy pick whose printed Hit
+  Dice contradicted it, and the draft carries the module's own emitted
+  creature; the summary records the discarded pick and both readings. If the
+  veto was wrong — the module really did mean the catalog creature — a
+  `monsters:` remap to the vetoed id is the one-line restore.
+- **A `resolution_suspect` flag → judge it.** The pick survived the veto but
+  its printed block disagrees on a non-vetoing axis (an HD modifier, an AC —
+  the detail names both readings). Agree with the pick: do nothing. Agree
+  with the page: `monsters:` remap to the right catalog id, or a
+  `monster_templates:` entry to force the module's own creature.
 
 The same name under both kinds is rejected as contradictory ("use this
 catalog id" vs. "use this custom block"), and a `monster_templates:` entry

@@ -9,13 +9,21 @@ import pytest
 from osrlib.core.tables import MonsterEncounterEntry
 from osrlib.crawl.adventure import Adventure, TownSpec
 from osrlib.crawl.dungeon import AreaSpec, DungeonSpec, KeyedEncounter, KeyedMonster, LevelSpec
-from osrlib.data import load_encounter_tables
+from osrlib.data import load_encounter_tables, load_monsters
 from osrlib.versioning import check_document
 
 from conftest import fabricate_workdir
-from osrforge.assemble import _run_validation, assemble, build_draft, parse_treasure
+from osrforge.assemble import _run_validation, assemble, build_draft, parse_treasure, resolution_suspects
+from osrforge.contracts.report import VetoedResolution
 from osrforge.contracts.run import Stage, StageStatus, TokenUsage
-from osrforge.contracts.stages import LevelContent, MonsterResolution, MonsterResolutions, SurveyIndex
+from osrforge.contracts.stages import (
+    LevelContent,
+    MonsterResolution,
+    MonsterResolutions,
+    RawStatBlock,
+    StatBlocks,
+    SurveyIndex,
+)
 from osrforge.geometry import synthesize_geometry
 from osrforge.settings import ConversionSettings
 from osrforge.workdir import Workdir, write_json_artifact
@@ -657,3 +665,217 @@ class TestSchemaValidEmptyStrings:
     def test_area_with_only_an_unnamed_encounter_gets_no_encounter(self):
         result = draft([make_area("1", encounters=[encounter("  ", fixed=1)])])
         assert area_spec(result, "1").encounter is None
+
+
+# ---------------------------------------------------------------------------
+# Phase 10: the resolution_suspect judgment, the confidence floor, the census
+# flags, and the vetoed-pick report surface.
+# ---------------------------------------------------------------------------
+
+
+def suspect_block(**overrides: Any) -> RawStatBlock:
+    base: dict[str, Any] = {"ac": "6", "hit_dice": "1"}
+    return RawStatBlock.model_validate(base | overrides)
+
+
+def llm_resolutions(**names: str) -> MonsterResolutions:
+    return MonsterResolutions(
+        resolutions={
+            name.replace("_", " "): MonsterResolution(template_id=template_id, method="llm")
+            for name, template_id in names.items()
+        }
+    )
+
+
+TEMPLATES = {template.id: template for template in load_monsters().monsters}
+
+
+class TestResolutionSuspects:
+    def test_hd_modifier_only_difference(self):
+        suspects = resolution_suspects(
+            llm_resolutions(veteran="veteran_2"), {"veteran": suspect_block(ac="2", hit_dice="2+1")}, TEMPLATES
+        )
+        assert suspects == {"veteran": "veteran → veteran_2, printed HD 2+1 vs 2"}
+
+    def test_dual_printed_ac_mismatch(self):
+        suspects = resolution_suspects(
+            llm_resolutions(orc_war_leader="orc"),
+            {"orc war leader": suspect_block(ac="5 [14]", ac_notation="dual", hit_dice="1")},
+            TEMPLATES,
+        )
+        assert suspects == {"orc war leader": "orc war leader → orc, printed AC 5 [14] vs 6 [13]"}
+
+    def test_derived_complement_disagreement_names_the_assumption(self):
+        suspects = resolution_suspects(
+            llm_resolutions(orc_war_leader="orc"),
+            {"orc war leader": suspect_block(ac="14", ac_notation="ascending", hit_dice="1")},
+            TEMPLATES,
+        )
+        assert suspects == {"orc war leader": "orc war leader → orc, printed AC 14 read as 5 [14] vs 6 [13]"}
+
+    def test_agreeing_block_earns_no_badge(self):
+        suspects = resolution_suspects(
+            llm_resolutions(giant_fire_beetle="fire_beetle"),
+            {"giant fire beetle": suspect_block(ac="4", hit_dice="1+2")},
+            TEMPLATES,
+        )
+        assert suspects == {}
+
+    def test_no_usable_block_no_badge(self):
+        # Covers pre-widening caches too: an llm name with no entry at all.
+        suspects = resolution_suspects(
+            llm_resolutions(orc_war_leader="orc", bandit_leader="bandit"),
+            {"orc war leader": suspect_block(ac=None, hit_dice="2")},
+            TEMPLATES,
+        )
+        assert suspects == {}
+
+    def test_exact_and_custom_methods_are_not_judged(self):
+        resolutions = MonsterResolutions(
+            resolutions={"goblin": MonsterResolution(template_id="goblin", method="exact")}
+        )
+        assert resolution_suspects(resolutions, {"goblin": suspect_block(ac="5", hit_dice="3")}, TEMPLATES) == {}
+
+    def test_both_axes_join_into_one_detail(self):
+        suspects = resolution_suspects(
+            llm_resolutions(veteran="veteran_2"),
+            {"veteran": suspect_block(ac="5 [14]", ac_notation="dual", hit_dice="2+1")},
+            TEMPLATES,
+        )
+        assert suspects == {"veteran": "veteran → veteran_2, printed HD 2+1 vs 2; printed AC 5 [14] vs 2 [17]"}
+
+
+class TestSuspectFlagPlacement:
+    def test_each_area_carrying_the_name_gains_the_flag(self):
+        index = make_index(["1", "2", "3"])
+        levels = (
+            make_level(
+                [
+                    make_area("1", encounters=[encounter("Orc War Leader", fixed=1)]),
+                    make_area("2", encounters=[encounter("orc war leader", fixed=1)]),
+                    make_area("3"),
+                ]
+            ),
+        )
+        geometries = synthesize_geometry(index, levels)
+        resolutions = llm_resolutions(orc_war_leader="orc")
+        result = build_draft(
+            index,
+            levels,
+            resolutions,
+            geometries,
+            ConversionSettings(),
+            suspects={"orc war leader": "orc war leader → orc, printed AC 5 [14] vs 6 [13]"},
+        )
+        flagged = [
+            report.id
+            for report in result.area_reports
+            if any(flag.startswith("resolution_suspect:") for flag in report.flags)
+        ]
+        assert flagged == ["lair/1/1", "lair/1/2"]
+        report = next(entry for entry in result.area_reports if entry.id == "lair/1/1")
+        assert "resolution_suspect:orc war leader → orc, printed AC 5 [14] vs 6 [13]" in report.flags
+
+
+class TestConfidenceFloor:
+    def test_below_the_floor_flags_with_the_cached_value(self):
+        result = draft([make_area("1", confidence=0.55)])
+        (report,) = result.area_reports
+        assert "low_confidence:0.55 self-assessed" in report.flags
+
+    def test_the_floor_boundary_is_exclusive(self):
+        # Exactly 0.6 is not below the floor.
+        result = draft([make_area("1", confidence=0.6)])
+        (report,) = result.area_reports
+        assert not any("self-assessed" in flag for flag in report.flags)
+        result = draft([make_area("1", confidence=0.59)])
+        (report,) = result.area_reports
+        assert "low_confidence:0.59 self-assessed" in report.flags
+
+    def test_the_not_extracted_placeholder_gains_no_second_badge(self):
+        # The placeholder's 0.0 is synthesized, not a cached self-assessment.
+        result = draft([make_area("1")], survey_keys=["1", "2"])
+        missing = next(entry for entry in result.area_reports if entry.id == "lair/1/2")
+        assert "low_confidence:not extracted" in missing.flags
+        assert not any("self-assessed" in flag for flag in missing.flags)
+
+
+class TestSurveyDisputedFlags:
+    def test_census_disputes_land_as_module_flags(self):
+        index = make_index(["1"]).model_copy(
+            update={
+                "census_disputes": (
+                    "census names 'crypt-of-horrors'; survey does not",
+                    "census counts 2 levels for 'lair'; survey counts 1",
+                )
+            }
+        )
+        levels = (make_level([make_area("1")]),)
+        geometries = synthesize_geometry(index, levels)
+        result = build_draft(index, levels, MonsterResolutions(resolutions={}), geometries, ConversionSettings())
+        assert result.module_flags == (
+            "survey_disputed:census names 'crypt-of-horrors'; survey does not",
+            "survey_disputed:census counts 2 levels for 'lair'; survey counts 1",
+        )
+
+
+class TestVetoedInTheReport:
+    def workdir_with_vetoed_pick(self, root: Path) -> Workdir:
+        workdir = assembled_workdir(root)
+        write_json_artifact(
+            workdir.areas_json("lair", 1),
+            make_level([make_area("1", encounters=[encounter("orc chief", fixed=2)])]),
+        )
+        write_json_artifact(
+            workdir.monsters_json,
+            MonsterResolutions(
+                resolutions={
+                    "orc chief": MonsterResolution(
+                        template_id=None,
+                        method="unresolved",
+                        vetoed_template_id="orc",
+                        veto_detail="orc chief → orc, printed HD 2 vs 1",
+                    )
+                }
+            ),
+        )
+        write_json_artifact(
+            workdir.statblocks_json,
+            StatBlocks(
+                custom_monsters="emit",
+                blocks={"orc chief": suspect_block(ac="6", hit_dice="2", source_pages=(1,))},
+            ),
+        )
+        return workdir
+
+    def test_vetoed_pick_rides_the_report_and_emits_the_modules_own_creature(self, tmp_path: Path):
+        workdir = self.workdir_with_vetoed_pick(tmp_path / "mod.forge")
+        result = assemble(workdir.root)
+        assert result.report.monsters.vetoed == (
+            VetoedResolution(name="orc chief", vetoed_template_id="orc", detail="orc chief → orc, printed HD 2 vs 1"),
+        )
+        # The vetoed name flows into the existing custom-emission path: the
+        # draft carries the module's own creature, flagged monster_custom.
+        (custom,) = result.report.monsters.custom
+        assert custom.name == "orc chief"
+        (area,) = result.report.areas
+        assert "monster_custom:orc chief" in area.flags
+        assert result.report.monsters.unresolved == ()
+
+    def test_suspect_flag_lands_through_assemble(self, tmp_path: Path):
+        workdir = assembled_workdir(tmp_path / "mod.forge")
+        write_json_artifact(
+            workdir.areas_json("lair", 1),
+            make_level([make_area("1", encounters=[encounter("orc war leader", fixed=1)])]),
+        )
+        write_json_artifact(workdir.monsters_json, llm_resolutions(orc_war_leader="orc"))
+        write_json_artifact(
+            workdir.statblocks_json,
+            StatBlocks(
+                custom_monsters="emit",
+                blocks={"orc war leader": suspect_block(ac="5 [14]", ac_notation="dual", hit_dice="1")},
+            ),
+        )
+        result = assemble(workdir.root)
+        (area,) = result.report.areas
+        assert "resolution_suspect:orc war leader → orc, printed AC 5 [14] vs 6 [13]" in area.flags
