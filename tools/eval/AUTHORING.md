@@ -61,9 +61,10 @@ Distilled from the phase 4 authoring sessions:
 4. **Apply the conventions in `tools/eval/README.md` verbatim** — singular
    stat-block creature names, fixed counts only, the treasure `present`
    rules, dungeons per keyed adventuring site.
-5. **Assert `connections` and `treasure` only where the complete fact set is
-   pinned.** Partial truth is the designed norm, not a compromise (see
-   below).
+5. **Assert `connections`, `treasure`, `doors`, `transitions`, and
+   `entrance` only where the complete fact set is pinned** — and
+   `encounters: []` only where you verified the area holds none. Partial
+   truth is the designed norm, not a compromise (see below).
 6. **Run the validators** — load the truth through `osrforge.evals.load_truth`
    (unknown keys, duplicate slugs, and malformed codes fail loudly), and
    check template ids against the osrlib catalog.
@@ -74,22 +75,49 @@ Distilled from the phase 4 authoring sessions:
 
 A truth file must cover **every keyed area** of every in-scope dungeon (area
 keys are cheap and the recall metric needs the complete universe), but
-`connections` and `treasure` are assertion-aware: omitting them means "not
-asserted," and the scorer keeps those areas out of the respective
-denominators. A time-boxed truth file covering all area keys plus a verified
-sample of areas still yields exact area recall and honestly-denominated
-treasure agreement.
+`encounters`, `connections`, `doors`, `treasure`, `transitions`, and
+`entrance` are assertion-aware: omitting them means "not asserted," and the
+scorer keeps those areas — or, for the dungeon-scoped pair, those dungeons —
+out of the respective denominators. A time-boxed truth file covering all
+area keys plus a verified sample of areas still yields exact area recall and
+honestly-denominated agreement everywhere else.
+
+The phase 9 families follow the same rule, each with its own shape:
+
+- `doors` rides asserted `connections`: keyed by neighbor printed key and
+  complete over that area's asserted edges — an omitted neighbor is an
+  explicit no-door, and `{}` asserts none of the connections are doors.
+  `kind` is `door` / `secret_door` with `locked` asserted alongside; both
+  endpoints of an edge may assert and must agree, including omission. Stuck
+  state is deliberately unasserted — its denominator would be empty on this
+  corpus.
+- `transitions` is dungeon-scoped: a present list asserts the dungeon's
+  complete vertical-link set (`[]` is legal on a single-level dungeon).
+  Endpoints are (level, printed key) pairs with order free — matching is
+  undirected — and `kind` is `stairs` / `trapdoor` / `chute`, geometry's own
+  narrowing. The travel sense is not asserted.
+- `entrance` is per dungeon: the printed key holding the entrance the module
+  presents as the primary way in — its introduction's or map's labeled
+  entry. A module genuinely presenting co-equal multiple entrances: a BYOM
+  member omits the assertion with an inline comment (the assertion-aware
+  escape); a committed member — whose posture asserts entrance on every
+  dungeon, test-enforced — asserts the one the module presents first and
+  flags the judgment call inline, where the adversarial pass and the owner
+  sample both see it. A multi-valued form waits for a member that needs it.
 
 Assert only what you verified completely: a half-checked `connections` list
 or a skimmed treasure call is worse than an omission, because it puts a wrong
-fact in a denominator. One known asymmetry, pinned so nobody wonders:
-`encounters: []` and an omitted `encounters` are indistinguishable today
-(both mean "none listed") — that only matters to a hallucination-guard metric
-no phase has built, and the phase that builds one picks it up.
+fact in a denominator. The once-recorded encounters asymmetry is resolved:
+phase 9's asserted-empty convention makes an omitted `encounters` and
+`encounters: []` distinct assertions — omitted asserts nothing, `[]` asserts
+a verified-empty area — and the encounter-precision metric rides exactly
+that distinction, so write `[]` only where the verification actually ran.
 
-The committed corpus stays *fully* asserted — a repo test enforces it — so
-the gating scoreboard's meaning cannot silently thin out. Partial truth is
-for private (BYOM) corpora.
+The committed corpus stays *fully* asserted — encounters and treasure on
+every area, doors on every asserted-connections area, transitions and
+entrance on every dungeon; a repo test enforces it — so the gating
+scoreboard's meaning cannot silently thin out. Partial truth is for private
+(BYOM) corpora.
 
 ## The adversarial verification pass
 

@@ -181,6 +181,38 @@ The eval discipline that ground truth is authored from the printed module,
 never from pipeline output — the measuring instrument must be independent of
 the system under test. See [evals](../evals.md).
 
+## Asserted-empty { #asserted-empty }
+
+The truth convention that distinguishes `encounters: []` — an asserted,
+verified-empty area — from an omitted key, which asserts nothing. Only inside
+an asserted universe is an extracted name that matches nothing provably a
+hallucination, which is what the encounter-precision metric counts. See
+[evals](../evals.md).
+
+## Edge-fact seam { #edge-fact-seam }
+
+The single scorer function through which every extracted edge fact —
+connection presence, door kind, locked state — flows from the level caches
+into the connection and door families. Phase 11's map-derived geometry swaps
+the fact source behind this seam without touching the metric semantics. See
+[evals](../evals.md).
+
+## Dungeon-scoped matching { #dungeon-scoped-matching }
+
+The transition and entrance families' matching scope: extracted claims
+resolve through the dungeon's level pairings to truth `(level, key)`
+addresses, because levels are peers — a printed inter-level stair survives an
+extraction that collapsed the printed levels into one. See
+[evals](../evals.md).
+
+## Offline re-score { #offline-rescore }
+
+The `rescore` tooling: a scoreboard entry's metrics regenerated from its
+retained workdir against the current truth, with the run block carried
+verbatim — no live spend. The regression rule's counterpart for PRs that
+change the scorer's matching or metric semantics rather than extraction. See
+[evals](../evals.md).
+
 ## BYOM { #byom }
 
 Bring-your-own-module measurement: private eval corpora over locally owned,

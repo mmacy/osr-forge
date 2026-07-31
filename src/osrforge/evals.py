@@ -1506,9 +1506,9 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     and resolution can credit at most one of the two templates; a known
     conservative shape, recorded rather than special-cased.
 
-    The edge families ride the edge-fact seam
-    ([`_edge_facts`][osrforge.evals._edge_facts]): the connection F1 and the
-    door family consume one derivation of the caches' undirected edge facts.
+    The edge families ride the edge-fact seam (`_edge_facts`): the
+    connection F1 and the door family consume one derivation of the caches'
+    undirected edge facts.
     Transitions and the entrance score dungeon-scoped, after the level loop,
     over each aligned dungeon's recorded pairing claims.
 

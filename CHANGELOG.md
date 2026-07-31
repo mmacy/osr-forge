@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Evals
+
+- The scorer now reports seven metric families: doors (presence recall and
+  precision plus kind and locked accuracy), vertical transitions
+  (dungeon-scoped, matched undirected on endpoint pairs), entrance selection,
+  and encounter name precision join the original four, backed by
+  assertion-aware truth extensions (`doors`, `transitions`, `entrance`, and
+  the asserted-empty `encounters: []` convention).
+- New `rescore` subcommand on the eval harness: offline scoreboard
+  regeneration from retained workdirs — run blocks carried verbatim, metrics
+  re-scored against the current truth — for scorer-semantics changes that
+  must not re-roll the model.
+
 ## [0.1.0] - 2026-07-20
 
 The first release: the complete pipeline from module PDF to a draft osrlib
