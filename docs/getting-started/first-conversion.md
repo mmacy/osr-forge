@@ -58,7 +58,7 @@ Everything lands in `my-module.forge/` — the
 - `adventure.json` — the draft, loadable by osrlib and anything built on it.
 - `report.json` — what the pipeline was and wasn't sure about: per-area
   confidence, source pages, and [flags](../reference/vocabulary.md).
-  `osrforge report` summarizes it in one screen.
+  `osrforge report` summarizes it without opening JSON by hand.
 - `previews/` — one synthesized grid map per level, and an `index.html`
   pairing each map with the module's own map-page renders for eyeballing
   against the printed cartography.

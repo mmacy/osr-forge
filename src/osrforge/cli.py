@@ -12,6 +12,7 @@ loop.
 
 import argparse
 import sys
+import textwrap
 from pathlib import Path
 
 import yaml
@@ -137,7 +138,10 @@ def format_report(report: ExtractionReport) -> str:
     sections mirror the review loop's reading order: validation, flags grouped
     by kind with their locations (module-scope entries at location `module`),
     the monster-resolution summary with the unresolved names, and the
-    playability findings by severity.
+    playability findings by severity. A flag kind whose entries carry details
+    lists one location per line — a real module's `treasure_unparsed` group
+    is dozens of sentences, unreadable comma-joined; a detail-less kind is a
+    comma-joined address list, wrapped to terminal width.
 
     Args:
         report: The parsed report.
@@ -149,11 +153,11 @@ def format_report(report: ExtractionReport) -> str:
     lines.append(_validation_line(report.validation.passed, len(report.validation.errors)))
     lines.extend(f"  {error}" for error in report.validation.errors)
 
-    grouped: dict[Flag, list[str]] = {}
+    grouped: dict[Flag, list[tuple[str, str | None]]] = {}
 
     def group(flag_string: str, location: str) -> None:
         flag, detail = parse_flag(flag_string)
-        grouped.setdefault(flag, []).append(location if detail is None else f"{location} ({detail})")
+        grouped.setdefault(flag, []).append((location, detail))
 
     for area in report.areas:
         for flag_string in area.flags:
@@ -164,8 +168,24 @@ def format_report(report: ExtractionReport) -> str:
     lines.append(f"flags: {total}" if grouped else "flags: none")
     for flag in Flag:
         entries = grouped.get(flag)
-        if entries:
-            lines.append(f"  {flag.value}: {', '.join(entries)}")
+        if not entries:
+            continue
+        if any(detail is not None for _, detail in entries):
+            lines.append(f"  {flag.value} ({len(entries)}):")
+            lines.extend(
+                f"    {location}" if detail is None else f"    {location} ({detail})" for location, detail in entries
+            )
+        else:
+            lines.extend(
+                textwrap.wrap(
+                    ", ".join(location for location, _ in entries),
+                    width=100,
+                    initial_indent=f"  {flag.value} ({len(entries)}): ",
+                    subsequent_indent="    ",
+                    break_long_words=False,
+                    break_on_hyphens=False,
+                )
+            )
 
     summary = report.monsters
     lines.append(
@@ -400,7 +420,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_workdir_option(report_parser, discover=True)
     report_parser.set_defaults(handler=_cmd_report)
 
-    preview_parser = subcommands.add_parser("preview", help="regenerate the SVG maps only")
+    preview_parser = subcommands.add_parser("preview", help="regenerate previews/ (the SVG maps and index.html) only")
     _add_workdir_option(preview_parser, discover=True)
     preview_parser.set_defaults(handler=_cmd_preview)
 

@@ -261,11 +261,12 @@ class TestReportCommand:
         assert "The Bone Barrow — 48 pages, osrforge " in out
         assert "validation: passed" in out
         assert "flags: 4" in out
-        # Grouped by kind: locations in draft order, details in parentheses,
-        # module-scope entries at location `module`.
-        assert "  geometry_synthesized: barrow/1/1, barrow/1/2" in out
-        assert "  monster_unresolved: barrow/1/2 (pale wyrm)" in out
-        assert "  survey_disputed: module (census names 'crypt'; survey does not)" in out
+        # Grouped by kind: a detail-less kind is one comma-joined line of
+        # locations in draft order; a kind carrying details lists one
+        # location per line, module-scope entries at location `module`.
+        assert "  geometry_synthesized (2): barrow/1/1, barrow/1/2" in out
+        assert "  monster_unresolved (1):\n    barrow/1/2 (pale wyrm)" in out
+        assert "  survey_disputed (1):\n    module (census names 'crypt'; survey does not)" in out
         assert "monsters: 5 resolved, 1 unresolved, 1 custom, 1 vetoed" in out
         assert "  unresolved: pale wyrm" in out
         assert "  custom: barrow-tentacle-worm (tentacle worm)" in out
@@ -273,6 +274,26 @@ class TestReportCommand:
         # Findings by severity: errors before warnings, whatever the report order.
         assert "findings: 1 errors, 1 warnings" in out
         assert out.index("error edge_invalid") < out.index("warning secret_only_access")
+
+    def test_a_long_detail_less_group_wraps_instead_of_one_giant_line(self):
+        # A real module synthesizes geometry for every area — 100+ addresses.
+        report = ExtractionReport(
+            module=ModuleInfo(title="T", pages=1),
+            validation=ValidationResult(passed=True),
+            areas=tuple(
+                AreaReport(id=f"barrow/1/{n}", confidence=0.9, flags=("geometry_synthesized",)) for n in range(1, 41)
+            ),
+            monsters=MonsterSummary(resolved=0),
+            usage=TokenUsage(),
+        )
+        out = cli.format_report(report)
+        group_lines = [line for line in out.splitlines() if "barrow/1/" in line]
+        assert group_lines[0].startswith("  geometry_synthesized (40): barrow/1/1,")
+        assert len(group_lines) > 1
+        assert all(line.startswith("    ") for line in group_lines[1:])
+        assert all(len(line) <= 100 for line in group_lines)
+        # Wrapping loses nothing: every address is still present.
+        assert all(f"barrow/1/{n}" in out for n in range(1, 41))
 
     def test_report_exits_zero_even_when_validation_failed(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]):
         # Presentation only: `check` owns the gating exit code.

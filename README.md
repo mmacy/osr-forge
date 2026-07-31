@@ -19,7 +19,8 @@ osrforge estimate my-module.pdf   # preprocess only; rough token/cost estimate
 osrforge convert my-module.pdf    # full pipeline into ./my-module.forge
 osrforge assemble                 # stage caches + overrides → artifacts, pure
 osrforge check                    # validate_adventure + the playability lint
-osrforge preview                  # regenerate the SVG maps only
+osrforge report                   # summarize report.json — the review loop's first read
+osrforge preview                  # regenerate previews/ (SVG maps + index.html) only
 osrforge rerun assemble           # resume any stage through assemble
 ```
 
@@ -31,7 +32,7 @@ Recording sessions and live verification runs are driven via `tools/extract/run_
 
 Conversion produces a *draft* — every gap and guess called out in `report.json` — and corrections live in `overrides.yaml`, never in hand-edits to generated output (a fresh `convert` leaves a commented template there). The loop:
 
-1. Read `report.json` (flags, findings, the monsters summary) and eyeball `previews/*.svg` against the printed map.
+1. `osrforge report` (flags grouped by kind, findings, the monsters summary), then open `previews/index.html` — each level's synthesized map beside the module's own map-page renders, with a coordinate ruler printing the cell coordinates geometry overrides use.
 2. Edit `overrides.yaml`: monster remaps, per-area field replacement, area adds and removes, geometry (cells, edges, entrance, transitions), town/module metadata. Every entry carries a `reason`, and every entry must take effect — a typo'd address fails assembly loudly instead of silently doing nothing.
 3. `osrforge assemble && osrforge check` — re-assembly is pure and instant (no model calls), and `check` exits 0 once validation passes and no error-severity finding remains.
 4. Repeat until publishable.

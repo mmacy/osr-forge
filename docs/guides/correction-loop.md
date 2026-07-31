@@ -8,7 +8,7 @@ and costs nothing.
 ## The loop
 
 1. **Read the report and the previews.** `osrforge report` summarizes
-   `report.json` in one screen: the per-area
+   `report.json` without opening JSON by hand: the per-area
    [flags](../reference/vocabulary.md) grouped by kind, the
    monster-resolution summary, and — after `check` — the playability
    findings. For geometry, open `previews/index.html`: it pairs each level's
