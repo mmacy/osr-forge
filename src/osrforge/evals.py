@@ -20,6 +20,7 @@ import json
 from collections.abc import Collection
 from difflib import SequenceMatcher
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -54,10 +55,13 @@ __all__ = [
     "Scoreboard",
     "TreasureMetrics",
     "TruthArea",
+    "TruthDoor",
     "TruthDungeon",
     "TruthEncounter",
+    "TruthEntrance",
     "TruthLevel",
     "TruthProvenance",
+    "TruthTransition",
     "TruthTreasure",
     "corpus_means",
     "enforce_source_integrity",
@@ -127,25 +131,60 @@ class TruthTreasure(BaseModel):
         return value
 
 
+class TruthDoor(BaseModel):
+    """A door fact asserted on one of an area's connections.
+
+    `kind` mirrors the extraction contract's door vocabulary (`door` /
+    `secret_door`); `locked` is asserted alongside it. Stuck state is
+    deliberately not asserted — the corpus carries almost no printed signal
+    for it, so a stuck metric would run on an empty denominator.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: Literal["door", "secret_door"]
+    locked: bool = False
+
+
 class TruthArea(BaseModel):
     """One keyed area, identified by its printed key.
 
-    `connections` and `treasure` are assertion-aware: `None` (omitted) means
-    the fact was not asserted — the area's edges are out of the connection
-    metric's universe, or the area is outside both treasure denominators. A
-    present value asserts the complete fact set: the area's full same-level
-    connected printed-key list (possibly empty), or the area's treasure facts.
+    `encounters`, `connections`, `doors`, and `treasure` are assertion-aware:
+    `None` (omitted) means the fact was not asserted — the area is out of the
+    corresponding metric's universe. A present value asserts the complete
+    fact set: the area's full encounter list (possibly empty — the
+    asserted-empty convention the encounter-precision metric rides), its full
+    same-level connected printed-key list (possibly empty), the complete
+    door-fact set over its asserted connections, or its treasure facts.
     Assertion-awareness is what makes time-boxed partial truth honest: a truth
     file covering every area key plus a verified sample of areas still yields
-    exact area recall and honestly-denominated treasure agreement.
+    exact area recall and honestly-denominated agreement everywhere else.
+
+    `doors` is keyed by neighbor printed key; every key must appear in the
+    same area's `connections` (slug-matched), and asserting `doors` requires
+    asserting `connections` — a door fact on an unasserted edge set would
+    have no universe to score in.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     key: str
-    encounters: tuple[TruthEncounter, ...] = ()
+    encounters: tuple[TruthEncounter, ...] | None = None
     connections: tuple[str, ...] | None = None
+    doors: dict[str, TruthDoor] | None = None
     treasure: TruthTreasure | None = None
+
+    @model_validator(mode="after")
+    def _doors_ride_asserted_connections(self) -> TruthArea:
+        if self.doors is None:
+            return self
+        if self.connections is None:
+            raise ValueError(f"{self.key!r}: doors asserted without connections — assert the edge set first")
+        connection_slugs = {canonical_slug(neighbor) for neighbor in self.connections}
+        for neighbor in self.doors:
+            if canonical_slug(neighbor) not in connection_slugs:
+                raise ValueError(f"{self.key!r}: doors names {neighbor!r}, which is not among its connections")
+        return self
 
 
 class TruthLevel(BaseModel):
@@ -169,20 +208,108 @@ class TruthLevel(BaseModel):
             raise ValueError(f"truth area keys must be unique per level under canonical_slug: {slugs}")
         return self
 
+    @model_validator(mode="after")
+    def _door_assertions_agree(self) -> TruthLevel:
+        implications: dict[frozenset[str], tuple[str, TruthDoor | None]] = {}
+        asserting = [area for area in self.areas if area.doors is not None]
+        asserting_slugs = {canonical_slug(area.key) for area in asserting}
+        for area in asserting:
+            area_slug = canonical_slug(area.key)
+            for neighbor in area.connections or ():
+                neighbor_slug = canonical_slug(neighbor)
+                if neighbor_slug not in asserting_slugs:
+                    continue
+                pair = frozenset({area_slug, neighbor_slug})
+                door = next(
+                    (fact for key, fact in (area.doors or {}).items() if canonical_slug(key) == neighbor_slug),
+                    None,
+                )
+                if pair in implications:
+                    other_key, other_door = implications[pair]
+                    if other_door != door:
+                        raise ValueError(
+                            f"contradictory door assertions on the pair {area.key!r}/{other_key}: "
+                            f"{door!r} vs {other_door!r} — both endpoints assert doors and must agree, "
+                            "including omission (an omitted neighbor is an explicit no-door)"
+                        )
+                else:
+                    implications[pair] = (area.key, door)
+        return self
+
+
+class TruthTransition(BaseModel):
+    """One vertical link between two levels of a dungeon, asserted once.
+
+    Endpoint order is free — matching is undirected — and `kind` uses
+    geometry's own narrowing (`trapdoor` and `chute` as themselves,
+    everything else `stairs`). The travel sense is deliberately not asserted.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    from_level: int = Field(ge=1)
+    from_key: str
+    to_level: int = Field(ge=1)
+    to_key: str
+    kind: Literal["stairs", "trapdoor", "chute"]
+
+    @model_validator(mode="after")
+    def _levels_differ(self) -> TruthTransition:
+        if self.from_level == self.to_level:
+            raise ValueError(f"a transition links two levels; got {self.from_level} on both ends")
+        return self
+
+
+class TruthEntrance(BaseModel):
+    """The printed key of the area holding a dungeon's entrance."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    level: int = Field(ge=1)
+    key: str
+
 
 class TruthDungeon(BaseModel):
-    """One printed adventuring site."""
+    """One printed adventuring site.
+
+    `transitions` and `entrance` are assertion-aware, dungeon-scoped facts:
+    omitted asserts nothing; a present `transitions` asserts the dungeon's
+    complete vertical-link set (levels are peers, so an edge between them
+    belongs to the dungeon, not to either level), and a present `entrance`
+    asserts which printed area holds the way in.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str
     levels: tuple[TruthLevel, ...] = Field(min_length=1)
+    transitions: tuple[TruthTransition, ...] | None = None
+    entrance: TruthEntrance | None = None
 
     @model_validator(mode="after")
     def _level_numbers_unique(self) -> TruthDungeon:
         numbers = [level.number for level in self.levels]
         if len(set(numbers)) != len(numbers):
             raise ValueError(f"truth level numbers must be unique per dungeon: {numbers}")
+        return self
+
+    @model_validator(mode="after")
+    def _endpoints_exist(self) -> TruthDungeon:
+        by_number = {level.number: level for level in self.levels}
+
+        def check(level_number: int, key: str, label: str) -> None:
+            level = by_number.get(level_number)
+            if level is None:
+                raise ValueError(f"{label} names level {level_number}, which this dungeon does not have")
+            key_slug = canonical_slug(key)
+            if not any(canonical_slug(area.key) == key_slug for area in level.areas):
+                raise ValueError(f"{label} names key {key!r}, which level {level_number} does not have")
+
+        for transition in self.transitions or ():
+            check(transition.from_level, transition.from_key, f"transition in {self.name!r}")
+            check(transition.to_level, transition.to_key, f"transition in {self.name!r}")
+        if self.entrance is not None:
+            check(self.entrance.level, self.entrance.key, f"entrance of {self.name!r}")
         return self
 
 
