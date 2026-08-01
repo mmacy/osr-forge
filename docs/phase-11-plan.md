@@ -96,6 +96,17 @@ Constants with provenance: `_MAPREAD_LEVELS_PER_PAGE = 0.2` (measured on the pha
 
 1 (contracts + stage, prompts and schema frozen) → 2 (the merge, unit-tested pure) → 3 and 5 in either order (both consume 2; the offline hard check runs as soon as 5 lands, catching seam drift before anything else builds on it) → 4 (consumes 3's channels) → 6 anytime after 1 → 7 (fixtures record against the frozen prompts and schemas) → 8 last. One implementation PR after this plan merges; the fixture record and sweep land in it per the regression rule.
 
+## Amendments (implementation)
+
+Where the implementation found the plan silent, the pinned calls:
+
+- **A fourth unread reason, `no_keyed_areas`.** The plan's per-level behavior table didn't cover a surveyed level with zero keyed areas: there are no printed keys to propose between, so the stage makes no request and records `unread:no_keyed_areas` — the `no_map_pages` posture, same shape.
+- **Shared doorways collapse, deliberately.** Routed corridors traverse existing corridor cells (junctions are legal), so two or more doored routes can leave their stating room through the same wall edge; their doors collapse to the one physical doorway. Nothing drops and nothing flags — every connection is realized, and the doorway sits on the stating room's wall (the dense-hub unit test pins the shape: room 88's three stated doors all leave through one edge). The alternative — forcing distinct exits — would reject the junction legality the routing pass rests on.
+- **The missing-cache gate reads the cache whenever the file exists.** The plan enumerated `failed`/`running` (error), `pending`/absent entry, and absent cache; it didn't name the pending-entry-*with*-cache state, which no real workdir produces. Pinned as the statblocks posture verbatim: error on `failed`/`running`, otherwise read the cache when the file exists — the cache is the record.
+- **The report's usage total includes the mapread stage**, read with `.get` so a pre-phase-11 `run.json` (no mapread key) still assembles.
+- **The minimod mapread fixture records an honest `empty_reading`.** Minimod's map page draws unlabeled boxes — no printed keys — so the live model correctly proposed nothing ("propose nothing that cannot be read"), and the recorded fixture exercises the degenerate-read path end to end; the adoption, dispute, and dropped-proposal paths run through synthetic-cache pipeline tests instead. Regenerating minimod's map to print keys was rejected: it would strand every committed minimod fixture for a nicety.
+- **The offline hard check passed byte-for-byte (2026-07-31).** `rescore` over the sweep-1 workdirs left `tools/eval/corpus/scoreboard.json` byte-identical; plain `score` over the sweep-2 workdirs reproduced every value in the phase 10 amendment's table exactly. The rerouted seam and the shared entrance selection are drift-free on map-cache-less workdirs, and the pinned JN1 CI baseline is unmoved.
+
 ## Definition of done
 
 - The `mapread` stage is live behind `map_reading: read` by default, proposals cached raw, and every adoption, disagreement, and dropped proposal carries `map_disputed`; the entrance selection and edge merge live in `reconcile.py` and are consumed by both geometry and the scorer, with no re-implementation on either side.

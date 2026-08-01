@@ -6,7 +6,7 @@ rules that keep the pieces decoupled. Terms of art link into the
 
 ## The pipeline, module by module
 
-The chain is `preprocess → survey → content → monsters → assemble`, driven by
+The chain is `preprocess → survey → content → monsters → mapread → assemble`, driven by
 [`convert`][osrforge.convert.convert] and resumable per stage by
 [`rerun`][osrforge.convert.rerun]. Each extraction stage makes its model
 calls once and writes a [stage cache](../reference/glossary.md#stage-cache);
@@ -18,7 +18,8 @@ everything after the caches is deterministic.
 | `survey` | [`osrforge.survey`][] | page renders + text layers | `stages/survey.json` |
 | `content` | [`osrforge.content`][] | the survey cache, pages | `stages/areas.<dungeon>.<level>.json` |
 | `monsters` | [`osrforge.monsters`][] | the survey and content caches, pages | `stages/monsters.json`, `stages/statblocks.json` |
-| `geometry` | [`osrforge.geometry`][] | the survey and content caches | nothing — recomputed inside every assembly |
+| `mapread` | [`osrforge.mapread`][] | the survey cache, map pages | `stages/mapread.json` |
+| `geometry` | [`osrforge.geometry`][] | the survey and content caches, the map reading | nothing — recomputed inside every assembly |
 | `assemble` | [`osrforge.assemble`][] | every cache + `overrides.yaml` | `adventure.json`, `report.json`, `previews/*.svg` |
 
 Around the chain:
@@ -53,14 +54,17 @@ is documented in [the workdir and artifacts](../reference/workdir-artifacts.md).
   ([`osrforge.contracts.report`][]), and `overrides.yaml`
   ([`osrforge.contracts.overrides`][]) — is a frozen pydantic model there,
   never a shape defined inside a stage module.
-- **Extraction stages never import each other.** `survey`, `content`, and
-  `monsters` share data through the caches and shared code through
-  `contracts/`, [`osrforge.pages`][], and [`osrforge.workdir`][] only.
+- **Extraction stages never import each other.** `survey`, `content`,
+  `monsters`, and `mapread` share data through the caches and shared code
+  through `contracts/`, [`osrforge.pages`][], and [`osrforge.workdir`][]
+  only.
 - **Deterministic downstream code may reuse stage helpers.** `geometry` and
   `assemble` import pure functions from the stage modules (for example
   [`encounter_names`][osrforge.monsters.encounter_names], *the* resolution
   population rule) precisely so producer and consumer can never disagree
-  about a derivation.
+  about a derivation. [`osrforge.reconcile`][] is the same idea as a whole
+  module: the map-versus-prose merge and the entrance selection live there
+  once, consumed by both `geometry` and the eval scorer.
 - **Vendor SDKs stay in adapters.** Pipeline code sees only the
   [`ModelProvider`][osrforge.providers.base.ModelProvider] protocol; the
   Azure AI Foundry specifics live in
@@ -70,11 +74,13 @@ is documented in [the workdir and artifacts](../reference/workdir-artifacts.md).
 
 ## Where model spend happens — and where it can't
 
-Only `survey`, `content`, and `monsters` call the provider, and each guards
-its spend: the survey chunks only when the module exceeds one request's page
-budget, the content pass batches pages, and monster resolution runs its
-[deterministic tiers](../reference/glossary.md#resolution-tiers) first,
-calling the model only for names the tiers missed. `preprocess`, `geometry`,
+Only `survey`, `content`, `monsters`, and `mapread` call the provider, and
+each guards its spend: the survey chunks only when the module exceeds one
+request's page budget, the content pass batches pages, monster resolution
+runs its [deterministic tiers](../reference/glossary.md#resolution-tiers)
+first, calling the model only for names the tiers missed, and the map
+reading sends one small per-level request (skipped entirely for levels with
+no readable map pages, or under `map_reading: off`). `preprocess`, `geometry`,
 `assemble`, `check`, and `estimate` never touch a provider —
 [assembly purity](../reference/glossary.md#assembly-purity) is a structural
 property, not a convention.

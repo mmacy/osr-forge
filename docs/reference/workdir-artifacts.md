@@ -15,7 +15,8 @@ my-module.forge/
 │   ├── survey.json
 │   ├── areas.<dungeon>.<level>.json
 │   ├── monsters.json
-│   └── statblocks.json   # raw printed stat blocks for unresolved names
+│   ├── statblocks.json   # raw printed stat blocks for unresolved names
+│   └── mapread.json      # per-level map readings: proposed adjacencies, doors, entrance
 ├── overrides.yaml        # the human correction channel
 ├── previews/
 │   ├── <dungeon>.<level>.svg

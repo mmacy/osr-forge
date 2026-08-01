@@ -8,6 +8,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The map-reading stage (`mapread`, between `monsters` and `assemble`): one
+  request per surveyed level over its unblanked printed map pages, proposing
+  same-level adjacencies, doors on those pairs, and the map-labeled entrance
+  — cached as answered in `stages/mapread.json`, gated by the new
+  `map_reading` knob (`read`/`off`), and priced by `estimate`.
+- Deterministic reconciliation (`osrforge.reconcile`), shared by geometry
+  and the eval scorer: a stated prose fact survives any map conflict,
+  flagged; a prose absence fills from the map, flagged as adopted; agreement
+  is silent. The entrance selection is shared the same way — a resolvable
+  map-proposed entrance beats the positional heuristic.
+- The `map_disputed` report flag: every map/prose adoption and disagreement
+  (edge disputes on the survey-order-first endpoint, the entrance dispute on
+  the selected entrance area) and every dropped proposal (module scope, the
+  level address in the detail), each detail naming both readings.
+
 - The stat-block veto: the stat-block pass now also covers LLM- and
   fuzzy-resolved names, and a deterministic comparator flips any non-exact
   pick whose printed Hit Dice count contradicts the picked template to
@@ -24,6 +39,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   area's cached confidence below the pinned 0.6 floor).
 - `estimate` prices the census and the widened stat-block pass; the CLI
   table gains a census line.
+
+### Changed
+
+- Geometry now routes every resolved connection the placement tree left
+  unrealized — cycle-closing and re-anchored edges alike — so printed loops
+  play as loops and stated doors land on a real wall; a genuinely walled-in
+  doorless pair flags `connection_ambiguous:edge to <key> not routed`
+  instead of staying silent. This reshapes existing synthesized geometry
+  even with no map cache present (deliberately; previews and goldens moved).
+
 ### The correction loop
 
 - The workdir-taking commands (`assemble`, `check`, `preview`, `rerun`) now

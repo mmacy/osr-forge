@@ -189,13 +189,31 @@ an asserted universe is an extracted name that matches nothing provably a
 hallucination, which is what the encounter-precision metric counts. See
 [evals](../evals.md).
 
+## Map reading { #map-reading }
+
+The mapread stage's output for one level: the adjacency pairs, doors, and
+entrance the model proposed from the printed map pages alone — an
+independent second opinion on the prose, cached as answered in
+`stages/mapread.json`. A level whose map could not be read records itself
+`unread` with the reason, and an unread level asserts nothing downstream.
+
+## Reconciliation { #reconciliation }
+
+The deterministic merge of a level's prose edge facts with its
+[map reading](#map-reading), in [`osrforge.reconcile`][] — shared by
+geometry synthesis and the eval scorer so the two can never merge or pick
+differently. The precedence rule: a stated prose fact survives any map
+conflict, flagged; a prose absence fills from the map, flagged as adopted;
+agreement is silent. Every adoption, disagreement, and dropped proposal is
+a `map_disputed` flag.
+
 ## Edge-fact seam { #edge-fact-seam }
 
 The single scorer function through which every extracted edge fact —
 connection presence, door kind, locked state — flows from the level caches
-into the connection and door families. Phase 11's map-derived geometry swaps
-the fact source behind this seam without touching the metric semantics. See
-[evals](../evals.md).
+into the connection and door families. Phase 11 rerouted the seam through
+[reconciliation](#reconciliation), swapping the fact source without touching
+the metric semantics. See [evals](../evals.md).
 
 ## Dungeon-scoped matching { #dungeon-scoped-matching }
 
