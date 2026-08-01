@@ -1,6 +1,6 @@
 """The shared reconciliation: the merge's full precedence matrix and the entrance selection."""
 
-from osrforge.contracts.stages import MapEdgeProposal, MapLevelReading, SurveyDungeon
+from osrforge.contracts.stages import MapLevelReading, SurveyDungeon
 from osrforge.reconcile import ProseEdge, merge_level_edges, select_entrance
 
 KEYS = ["1", "2", "3", "4a"]
@@ -132,7 +132,9 @@ class TestMergePrecedenceMatrix:
         assert merged.adopted_doors == {pair("1", "4a"): "door"}
 
     def test_duplicate_proposals_dedup_with_the_more_specific_door_winning(self):
-        merged = merge_level_edges({}, reading([("2", "3", "none"), ("3", "2", "door"), ("2", "3", "secret_door")]), KEYS)
+        merged = merge_level_edges(
+            {}, reading([("2", "3", "none"), ("3", "2", "door"), ("2", "3", "secret_door")]), KEYS
+        )
         assert merged.map_only == (("2", "3", "secret_door"),)
         assert len(merged.disputes) == 1
 

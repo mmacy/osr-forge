@@ -235,9 +235,7 @@ def test_contract_rejects_a_reason_on_a_read_level():
             {"dungeon_id": "lair", "level_number": 1, "map_pages": [], "status": "read", "unread_reason": "x"}
         )
     with pytest.raises(ValueError, match="unread_reason"):
-        MapLevelReading.model_validate(
-            {"dungeon_id": "lair", "level_number": 1, "map_pages": [], "status": "unread"}
-        )
+        MapLevelReading.model_validate({"dungeon_id": "lair", "level_number": 1, "map_pages": [], "status": "unread"})
 
 
 # --------------------------------------------------------------- pipeline paths
@@ -386,7 +384,9 @@ def test_a_missing_run_json_entry_assembles_prose_only(tmp_path: Path):
     # The pre-phase-11 workdir shape: no mapread key in run.json at all.
     workdir = synthetic_map_workdir(tmp_path / "mod.forge", None, mapread_status="pending")
     run = workdir.read_run()
-    workdir.write_run(run.model_copy(update={"stages": {k: v for k, v in run.stages.items() if k is not Stage.MAPREAD}}))
+    workdir.write_run(
+        run.model_copy(update={"stages": {k: v for k, v in run.stages.items() if k is not Stage.MAPREAD}})
+    )
     result = assemble(workdir.root)
     assert result.report.validation.passed
 
