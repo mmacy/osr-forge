@@ -80,25 +80,19 @@ def mapread_tag(dungeon_id: str, level_number: int) -> str:
     return f"mapread.{dungeon_id}.{level_number}"
 
 
-def mapread_schema(keys: Sequence[str]) -> dict[str, object]:
-    """Build one level's map-reading JSON Schema: flat adjacencies plus a nullable entrance.
+def mapread_schema() -> dict[str, object]:
+    """Build the map-reading JSON Schema: flat adjacencies plus a nullable entrance.
 
     Flat and tolerate-and-flag (the `AreaConnection` posture): endpoints are
-    free strings — the prompt instructs printed keys, and unresolvable
-    answers drop at reconcile time with a flag, never a crash. The printed
-    keys ride the schema only through the prompt text; enum-locking the
-    endpoints would reject an answer the reconciler could still resolve by
-    slug.
-
-    Args:
-        keys: The level's printed keys, for documentation parity with the
-            other builders — deliberately unused in the schema body (see
-            above).
+    free strings — the printed keys ride the request only through the prompt
+    text, because enum-locking the endpoints would reject an answer the
+    reconciler could still resolve by slug, and unresolvable answers drop at
+    reconcile time with a flag, never a crash. Level-independent as a
+    result: one schema serves every request.
 
     Returns:
         The request schema.
     """
-    del keys  # documented above: the endpoints stay free strings
     return {
         "type": "object",
         "properties": {
@@ -164,7 +158,7 @@ def build_mapread_request(
         tag=mapread_tag(dungeon_id, level.number),
         system=MAPREAD_SYSTEM,
         parts=(TextPart(text=header), *parts),
-        schema=mapread_schema(printed),
+        schema=mapread_schema(),
     )
 
 

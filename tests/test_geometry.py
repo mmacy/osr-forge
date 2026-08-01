@@ -628,7 +628,15 @@ class TestDoors:
             ("96", "97", "east"),
         ]
         edges = [
-            _GraphEdge(a=a, b=b, owner=a, direction=Direction(direction), via="door", via_owner=a)
+            _GraphEdge(
+                a=a,
+                b=b,
+                owner=a,
+                direction=Direction(direction),
+                # (88, 97) states a secret door — the survivor probe below.
+                via="secret_door" if (a, b) == ("88", "97") else "door",
+                via_owner=a,
+            )
             for a, b, direction in mentions
         ]
         placement, _, unrouted = _place_level(keys, sizes, edges, anchor="77")
@@ -645,8 +653,11 @@ class TestDoors:
         # edge collapse to the one physical doorway — room 88's three stated
         # doors (to 89, 95, 97) all leave through 8,2:north here. Nothing
         # drops and nothing flags: every connection is realized and the
-        # doorway is on the stating room's wall.
+        # doorway is on the stating room's wall. The last edge in graph order
+        # pins the surviving DoorSpec: (88, 97)'s secret door wins the shared
+        # doorway, so exactly one secret door survives.
         assert len(doors) == 26
+        assert sum(1 for edge in doors.values() if edge.door is not None and edge.door.kind == "secret") == 1
 
 
 class TestLevelTargetedLinks:

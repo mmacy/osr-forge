@@ -32,7 +32,7 @@ from osrlib.crawl.dungeon import Direction as GridDirection
 from osrlib.crawl.dungeon import DoorSpec, Edge, EdgeKind, Position, TransitionSpec, edge_key, step
 
 from osrforge.contracts.stages import LevelContent, MapReading, SurveyDungeon, SurveyIndex
-from osrforge.reconcile import ProseEdge, merge_level_edges, select_entrance
+from osrforge.reconcile import ProseEdge, merge_level_edges, resolve_key, select_entrance
 from osrforge.survey import canonical_slug
 
 __all__ = [
@@ -266,16 +266,6 @@ class _LevelResolution:
     unknown_direction: list[tuple[str, str]]
 
 
-def _resolve_target(to_key: str, level_keys: Sequence[str]) -> str | None:
-    """Resolve a connection target on one level: exact canonical key, else slug match."""
-    if to_key in level_keys:
-        return to_key
-    slug = canonical_slug(to_key)
-    if slug and slug in level_keys:
-        return slug
-    return None
-
-
 def transition_via(via: str) -> str:
     """Narrow a mention's `via` to a transition family: trapdoors and chutes as themselves, else stairs.
 
@@ -353,7 +343,7 @@ def _resolve_dungeon_connections(
                         )
                     )
                     continue
-                target = _resolve_target(connection.to_key, level_keys[level.number])
+                target = resolve_key(connection.to_key, level_keys[level.number])
                 if target is None:
                     if connection.direction in ("up", "down"):
                         hit = _resolve_on_siblings(connection.to_key, dungeon, level.number, level_keys)
@@ -997,7 +987,10 @@ def _door_edges(
     end of the path it is. Routed corridors may share a stating room's exit
     (junctions are legal), so two doored routes leaving through one wall edge
     collapse to the one physical doorway — every connection stays realized;
-    the doorway serves both. (b) A walled-in pair no route could realize
+    the doorway serves both, and the last edge in graph order pins the
+    surviving `DoorSpec` (deterministic; the geometry `edges` override is
+    the remedy if the collapsed kinds genuinely differ). (b) A walled-in
+    pair no route could realize
     drops the door fact with `connection_ambiguous:door to <key> not placed`
     on the source area — the geometry `edges` override is the designed
     remedy, and the flag is what tells the human to reach for it.

@@ -14,6 +14,9 @@ from osrforge.contracts.stages import (
     AreaContent,
     AreaEncounter,
     LevelContent,
+    MapEdgeProposal,
+    MapLevelReading,
+    MapReading,
     MonsterResolution,
     MonsterResolutions,
     RawStatBlock,
@@ -2951,3 +2954,153 @@ def test_jn1_pinned_baseline_over_the_committed_caches(tmp_path: Path):
     assert metrics.entrances.asserted == 14
     assert metrics.entrances.matched == 13
     assert metrics.entrances.accuracy == 0.9286
+
+
+class TestMapReconciledScoring:
+    """The scorer's map-present path: the reconciled fact set entering the edge and entrance families.
+
+    The offline hard check only proves the no-map path drift-free; these pin
+    the merge's consumption — adopted doors, map-only pairs, the matched-slug
+    filter, and the map-proposed entrance — through `score_workdir` itself,
+    since the live sweep's go/no-go numbers flow through exactly this path.
+    """
+
+    MAP_TRUTH = truth_from_yaml(
+        """
+dungeons:
+  - name: lair
+    levels:
+      - number: 1
+        areas:
+          - key: "1"
+            connections: ["2", "3"]
+            doors:
+              "2": {kind: door}
+          - key: "2"
+            connections: ["1"]
+            doors:
+              "1": {kind: door}
+          - key: "3"
+            connections: ["1"]
+            doors: {}
+    entrance:
+      level: 1
+      key: "2"
+"""
+    )
+
+    def _workdir(self, tmp_path: Path, extra_keys: tuple[str, ...] = ()) -> Path:
+        # Prose states only 1→2, as a plain passage: the (1,3) edge, the
+        # (1,2) door, and the entrance are exactly what the map must supply.
+        keys = ("1", "2", "3", *extra_keys)
+        return fabricate_eval_workdir(
+            tmp_path / "mod.forge",
+            [
+                (
+                    "lair",
+                    [
+                        (
+                            1,
+                            [survey_area(key) for key in keys],
+                            [
+                                content_area("1", connections=(AreaConnection(to_key="2", direction="north"),)),
+                                *[content_area(key) for key in keys if key != "1"],
+                            ],
+                        )
+                    ],
+                )
+            ],
+        )
+
+    def _write_reading(
+        self,
+        root: Path,
+        proposals: tuple[MapEdgeProposal, ...],
+        entrance_key: str | None,
+    ) -> None:
+        write_json_artifact(
+            Workdir(root).mapread_json,
+            MapReading(
+                map_reading="read",
+                levels=(
+                    MapLevelReading(
+                        dungeon_id="lair",
+                        level_number=1,
+                        map_pages=(4,),
+                        status="read",
+                        proposals=proposals,
+                        entrance_key=entrance_key,
+                    ),
+                ),
+            ),
+        )
+
+    def test_adopted_door_map_only_edge_and_map_entrance_complete_the_families(self, tmp_path: Path):
+        root = self._workdir(tmp_path)
+        # The prose-only baseline first: half the edges, no doors, the
+        # positional entrance missing the printed way in.
+        baseline = score_workdir(root, self.MAP_TRUTH)
+        assert baseline.connections.recall == 0.5
+        assert baseline.doors.extracted_doors == 0
+        assert baseline.entrances.matched == 0
+        self._write_reading(
+            root,
+            (MapEdgeProposal(a="1", b="2", door="door"), MapEdgeProposal(a="1", b="3", door="none")),
+            entrance_key="2",
+        )
+        metrics = score_workdir(root, self.MAP_TRUTH)
+        # The map-only (1,3) pair joins the extracted set inside the
+        # asserted universe; the adopted (1,2) door enters the door family.
+        assert metrics.connections.extracted_edges == 2
+        assert metrics.connections.true_positives == 2
+        assert metrics.connections.f1 == 1.0
+        assert metrics.doors.extracted_doors == 1
+        assert metrics.doors.true_positives == 1
+        assert (metrics.doors.recall, metrics.doors.precision, metrics.doors.kind_accuracy) == (1.0, 1.0, 1.0)
+        # The map-proposed entrance beats the heuristic and matches truth.
+        assert metrics.entrances.matched == 1
+
+    def test_a_map_only_door_the_truth_denies_is_a_scoreable_false_positive(self, tmp_path: Path):
+        root = self._workdir(tmp_path)
+        self._write_reading(
+            root,
+            (MapEdgeProposal(a="1", b="2", door="door"), MapEdgeProposal(a="1", b="3", door="secret_door")),
+            entrance_key=None,
+        )
+        metrics = score_workdir(root, self.MAP_TRUTH)
+        # (1,3) carries a map door the truth's complete door set denies:
+        # recall holds at 1.0, precision drops to 1/2 — the union admitting
+        # map-only doors is measured, not masked.
+        assert metrics.doors.extracted_doors == 2
+        assert metrics.doors.true_positives == 1
+        assert (metrics.doors.recall, metrics.doors.precision) == (1.0, 0.5)
+
+    def test_unmatched_endpoints_stay_outside_the_universe(self, tmp_path: Path):
+        # "9" exists in the survey but not the truth: a map-only pair touching
+        # it resolves at reconcile time yet must not enter the extracted set.
+        root = self._workdir(tmp_path, extra_keys=("9",))
+        self._write_reading(root, (MapEdgeProposal(a="2", b="9", door="none"),), entrance_key=None)
+        metrics = score_workdir(root, self.MAP_TRUTH)
+        assert metrics.connections.extracted_edges == 1  # the prose (1,2) alone
+        assert metrics.doors.extracted_doors == 0
+
+    def test_an_unread_reading_scores_prose_only(self, tmp_path: Path):
+        root = self._workdir(tmp_path)
+        baseline = score_workdir(root, self.MAP_TRUTH)
+        write_json_artifact(
+            Workdir(root).mapread_json,
+            MapReading(
+                map_reading="read",
+                levels=(
+                    MapLevelReading(
+                        dungeon_id="lair",
+                        level_number=1,
+                        map_pages=(),
+                        status="unread",
+                        unread_reason="no_map_pages",
+                        entrance_key="2",
+                    ),
+                ),
+            ),
+        )
+        assert score_workdir(root, self.MAP_TRUTH) == baseline

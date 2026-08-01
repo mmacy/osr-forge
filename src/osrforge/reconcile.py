@@ -31,6 +31,7 @@ __all__ = [
     "MergedLevelEdges",
     "ProseEdge",
     "merge_level_edges",
+    "resolve_key",
     "select_entrance",
 ]
 
@@ -79,8 +80,21 @@ class MergedLevelEdges:
     dropped: tuple[str, ...]
 
 
-def _resolve_key(raw: str, level_keys: Sequence[str]) -> str | None:
-    """Resolve one proposal endpoint: exact canonical key, else slug match — geometry's `_resolve_target` rule."""
+def resolve_key(raw: str, level_keys: Sequence[str]) -> str | None:
+    """Resolve a stated key against one level's canonical keys: exact match, else slug match.
+
+    *The* endpoint-resolution rule, public for the shared-predicate reason:
+    geometry resolves prose connection targets and this module resolves map
+    proposal endpoints through the same function, so the two evidence
+    sources can never resolve one printed spelling differently.
+
+    Args:
+        raw: The key as stated (a prose `to_key` or a map proposal endpoint).
+        level_keys: The level's canonical keys.
+
+    Returns:
+        The resolved canonical key, or `None`.
+    """
     if raw in level_keys:
         return raw
     slug = canonical_slug(raw)
@@ -142,7 +156,7 @@ def merge_level_edges(
         endpoints: list[str] = []
         unresolved = False
         for raw in (proposal.a, proposal.b):
-            resolved = _resolve_key(raw, level_keys)
+            resolved = resolve_key(raw, level_keys)
             if resolved is None:
                 dropped.append(f"map names '{raw}'; the survey does not")
                 unresolved = True
@@ -258,7 +272,7 @@ def select_entrance(dungeon: SurveyDungeon, readings: Mapping[int, MapLevelReadi
         reading = readings.get(number)
         if reading is None or reading.status != "read" or reading.entrance_key is None:
             continue
-        resolved = _resolve_key(reading.entrance_key, keys_by_number[number])
+        resolved = resolve_key(reading.entrance_key, keys_by_number[number])
         if resolved is None:
             dropped.append((number, f"map names '{reading.entrance_key}'; the survey does not"))
             continue

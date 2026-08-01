@@ -102,7 +102,7 @@ def test_the_request_carries_the_printed_key_list_and_the_map_pages(tmp_path: Pa
     assert "- 1\n- 2" in getattr(header, "text", "")
     # One text+image part pair per sent page.
     assert len(request.parts) == 1 + 2
-    assert request.schema == mapread_schema(["1", "2"])
+    assert request.schema == mapread_schema()
 
 
 def test_the_cache_records_the_reading_and_the_run_records_usage(tmp_path: Path):

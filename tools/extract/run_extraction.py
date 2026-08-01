@@ -165,7 +165,10 @@ def cmd_mapread(args: argparse.Namespace) -> None:
     # replay builds, and both build from the same replayed survey answer over
     # the same committed page bytes. Deliberately no page-subset closure step:
     # the stage itself applies none, and a map page outside the committed set
-    # fails loudly in page_request_parts.
+    # fails loudly in page_request_parts. Scope, the census leg's precedent:
+    # the committed sets carry no blanked pages, so the leg sends map_pages
+    # unfiltered — a module needing blank_page_renders records through a full
+    # session, out of this leg's scope by design.
     asset_workdir = Workdir(args.module_dir)
     pages = sorted(int(path.stem) for path in asset_workdir.pages_dir.glob("*.png"))
     if not pages:
