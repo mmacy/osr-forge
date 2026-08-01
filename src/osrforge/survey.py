@@ -899,5 +899,9 @@ def survey(workdir: Workdir, provider: ModelProvider) -> SurveyIndex:
             stale.unlink()
         workdir.monsters_json.unlink(missing_ok=True)
         workdir.statblocks_json.unlink(missing_ok=True)
+        # The map-reading cache depends on the survey alone (its requests plan
+        # off map_pages and the keyed-area lists), so only a survey re-run
+        # orphans it — content and monsters never touch it.
+        workdir.mapread_json.unlink(missing_ok=True)
         write_json_artifact(workdir.survey_json, index)
     return index

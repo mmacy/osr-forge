@@ -98,6 +98,10 @@
                 "kind": "open",
                 "door": null
               },
+              "15,2:north": {
+                "kind": "open",
+                "door": null
+              },
               "9,3:north": {
                 "kind": "open",
                 "door": null
@@ -115,6 +119,10 @@
                 "door": null
               },
               "14,3:west": {
+                "kind": "open",
+                "door": null
+              },
+              "15,3:north": {
                 "kind": "open",
                 "door": null
               },
@@ -310,7 +318,15 @@
                 "kind": "open",
                 "door": null
               },
+              "5,12:west": {
+                "kind": "open",
+                "door": null
+              },
               "6,12:north": {
+                "kind": "open",
+                "door": null
+              },
+              "6,12:west": {
                 "kind": "open",
                 "door": null
               },
@@ -327,6 +343,10 @@
                 "door": null
               },
               "1,13:west": {
+                "kind": "open",
+                "door": null
+              },
+              "2,13:west": {
                 "kind": "open",
                 "door": null
               },
@@ -354,7 +374,15 @@
                 "kind": "open",
                 "door": null
               },
+              "2,14:north": {
+                "kind": "open",
+                "door": null
+              },
               "3,14:north": {
+                "kind": "open",
+                "door": null
+              },
+              "3,14:west": {
                 "kind": "open",
                 "door": null
               },
@@ -1821,6 +1849,10 @@
                 "kind": "open",
                 "door": null
               },
+              "2,1:west": {
+                "kind": "open",
+                "door": null
+              },
               "3,1:north": {
                 "kind": "open",
                 "door": null
@@ -1849,7 +1881,19 @@
                 "kind": "open",
                 "door": null
               },
+              "2,2:north": {
+                "kind": "open",
+                "door": null
+              },
               "3,2:north": {
+                "kind": "open",
+                "door": null
+              },
+              "3,2:west": {
+                "kind": "open",
+                "door": null
+              },
+              "4,2:north": {
                 "kind": "open",
                 "door": null
               },
@@ -1858,6 +1902,14 @@
                 "door": null
               },
               "5,2:west": {
+                "kind": "open",
+                "door": null
+              },
+              "6,2:north": {
+                "kind": "open",
+                "door": null
+              },
+              "6,2:west": {
                 "kind": "open",
                 "door": null
               },
@@ -1893,6 +1945,10 @@
                 "kind": "open",
                 "door": null
               },
+              "6,3:north": {
+                "kind": "open",
+                "door": null
+              },
               "6,3:west": {
                 "kind": "open",
                 "door": null
@@ -1914,6 +1970,10 @@
                 "door": null
               },
               "1,4:west": {
+                "kind": "open",
+                "door": null
+              },
+              "2,4:west": {
                 "kind": "open",
                 "door": null
               },
@@ -1957,6 +2017,18 @@
                 "kind": "open",
                 "door": null
               },
+              "2,5:north": {
+                "kind": "open",
+                "door": null
+              },
+              "3,5:north": {
+                "kind": "open",
+                "door": null
+              },
+              "3,5:west": {
+                "kind": "open",
+                "door": null
+              },
               "9,5:north": {
                 "kind": "open",
                 "door": null
@@ -1970,6 +2042,10 @@
                 "door": null
               },
               "2,6:west": {
+                "kind": "open",
+                "door": null
+              },
+              "3,6:north": {
                 "kind": "open",
                 "door": null
               },
@@ -3561,6 +3637,10 @@
                 "kind": "open",
                 "door": null
               },
+              "12,8:north": {
+                "kind": "open",
+                "door": null
+              },
               "9,9:north": {
                 "kind": "open",
                 "door": null
@@ -3570,6 +3650,10 @@
                 "door": null
               },
               "11,9:west": {
+                "kind": "open",
+                "door": null
+              },
+              "12,9:north": {
                 "kind": "open",
                 "door": null
               },
@@ -6525,7 +6609,19 @@
                 "kind": "open",
                 "door": null
               },
+              "2,1:west": {
+                "kind": "open",
+                "door": null
+              },
+              "3,1:west": {
+                "kind": "open",
+                "door": null
+              },
               "0,2:north": {
+                "kind": "open",
+                "door": null
+              },
+              "3,2:north": {
                 "kind": "open",
                 "door": null
               },
@@ -6538,6 +6634,10 @@
                 "door": null
               },
               "2,3:west": {
+                "kind": "open",
+                "door": null
+              },
+              "3,3:north": {
                 "kind": "open",
                 "door": null
               },
@@ -7036,6 +7136,10 @@
                 "kind": "open",
                 "door": null
               },
+              "6,1:west": {
+                "kind": "open",
+                "door": null
+              },
               "7,1:north": {
                 "kind": "open",
                 "door": null
@@ -7045,6 +7149,10 @@
                 "door": null
               },
               "9,1:north": {
+                "kind": "open",
+                "door": null
+              },
+              "9,1:west": {
                 "kind": "open",
                 "door": null
               },
@@ -7060,11 +7168,55 @@
                 "kind": "open",
                 "door": null
               },
+              "2,2:west": {
+                "kind": "open",
+                "door": null
+              },
+              "3,2:west": {
+                "kind": "open",
+                "door": null
+              },
+              "4,2:west": {
+                "kind": "open",
+                "door": null
+              },
+              "5,2:north": {
+                "kind": "open",
+                "door": null
+              },
+              "5,2:west": {
+                "kind": "open",
+                "door": null
+              },
+              "6,2:west": {
+                "kind": "open",
+                "door": null
+              },
+              "7,2:west": {
+                "kind": "open",
+                "door": null
+              },
+              "8,2:north": {
+                "kind": "open",
+                "door": null
+              },
+              "8,2:west": {
+                "kind": "open",
+                "door": null
+              },
               "0,3:north": {
                 "kind": "open",
                 "door": null
               },
+              "1,3:north": {
+                "kind": "open",
+                "door": null
+              },
               "1,3:west": {
+                "kind": "open",
+                "door": null
+              },
+              "2,3:north": {
                 "kind": "open",
                 "door": null
               },
@@ -7080,11 +7232,27 @@
                 "kind": "open",
                 "door": null
               },
+              "2,4:north": {
+                "kind": "open",
+                "door": null
+              },
               "0,5:north": {
                 "kind": "open",
                 "door": null
               },
+              "2,5:north": {
+                "kind": "open",
+                "door": null
+              },
+              "2,5:west": {
+                "kind": "open",
+                "door": null
+              },
               "0,6:north": {
+                "kind": "open",
+                "door": null
+              },
+              "1,6:north": {
                 "kind": "open",
                 "door": null
               },
@@ -7683,6 +7851,10 @@
                 "kind": "open",
                 "door": null
               },
+              "9,1:west": {
+                "kind": "open",
+                "door": null
+              },
               "10,1:north": {
                 "kind": "open",
                 "door": null
@@ -7711,6 +7883,10 @@
                 "kind": "open",
                 "door": null
               },
+              "8,2:north": {
+                "kind": "open",
+                "door": null
+              },
               "9,2:north": {
                 "kind": "open",
                 "door": null
@@ -7723,11 +7899,23 @@
                 "kind": "open",
                 "door": null
               },
+              "5,3:west": {
+                "kind": "open",
+                "door": null
+              },
               "6,3:north": {
                 "kind": "open",
                 "door": null
               },
+              "6,3:west": {
+                "kind": "open",
+                "door": null
+              },
               "7,3:west": {
+                "kind": "open",
+                "door": null
+              },
+              "8,3:north": {
                 "kind": "open",
                 "door": null
               },
@@ -7771,6 +7959,10 @@
                 "kind": "open",
                 "door": null
               },
+              "8,4:north": {
+                "kind": "open",
+                "door": null
+              },
               "9,4:north": {
                 "kind": "open",
                 "door": null
@@ -7784,6 +7976,14 @@
                 "door": null
               },
               "3,5:north": {
+                "kind": "open",
+                "door": null
+              },
+              "8,5:north": {
+                "kind": "open",
+                "door": null
+              },
+              "8,5:west": {
                 "kind": "open",
                 "door": null
               },
@@ -7812,6 +8012,10 @@
                 "door": null
               },
               "6,6:west": {
+                "kind": "open",
+                "door": null
+              },
+              "7,6:north": {
                 "kind": "open",
                 "door": null
               },
@@ -9255,6 +9459,10 @@
                 "kind": "open",
                 "door": null
               },
+              "9,2:west": {
+                "kind": "open",
+                "door": null
+              },
               "0,3:north": {
                 "kind": "open",
                 "door": null
@@ -9268,6 +9476,26 @@
                 "door": null
               },
               "4,3:west": {
+                "kind": "open",
+                "door": null
+              },
+              "5,3:west": {
+                "kind": "open",
+                "door": null
+              },
+              "6,3:west": {
+                "kind": "open",
+                "door": null
+              },
+              "7,3:west": {
+                "kind": "open",
+                "door": null
+              },
+              "8,3:north": {
+                "kind": "open",
+                "door": null
+              },
+              "8,3:west": {
                 "kind": "open",
                 "door": null
               },
@@ -12628,7 +12856,15 @@
                 "kind": "open",
                 "door": null
               },
+              "2,3:west": {
+                "kind": "open",
+                "door": null
+              },
               "3,3:north": {
+                "kind": "open",
+                "door": null
+              },
+              "3,3:west": {
                 "kind": "open",
                 "door": null
               },
@@ -14049,6 +14285,14 @@
                 "kind": "open",
                 "door": null
               },
+              "9,11:west": {
+                "kind": "open",
+                "door": null
+              },
+              "10,11:west": {
+                "kind": "open",
+                "door": null
+              },
               "11,11:north": {
                 "kind": "open",
                 "door": null
@@ -14081,6 +14325,10 @@
                 "kind": "open",
                 "door": null
               },
+              "8,12:north": {
+                "kind": "open",
+                "door": null
+              },
               "8,12:west": {
                 "kind": "open",
                 "door": null
@@ -14098,6 +14346,10 @@
                 "door": null
               },
               "10,12:west": {
+                "kind": "open",
+                "door": null
+              },
+              "11,12:north": {
                 "kind": "open",
                 "door": null
               },
@@ -14153,6 +14405,10 @@
                 "kind": "open",
                 "door": null
               },
+              "8,13:north": {
+                "kind": "open",
+                "door": null
+              },
               "9,13:north": {
                 "kind": "open",
                 "door": null
@@ -14166,6 +14422,10 @@
                 "door": null
               },
               "10,13:west": {
+                "kind": "open",
+                "door": null
+              },
+              "11,13:north": {
                 "kind": "open",
                 "door": null
               },
@@ -14186,6 +14446,10 @@
                 "door": null
               },
               "15,13:north": {
+                "kind": "open",
+                "door": null
+              },
+              "15,13:west": {
                 "kind": "open",
                 "door": null
               },
@@ -14221,6 +14485,18 @@
                 "kind": "open",
                 "door": null
               },
+              "13,14:north": {
+                "kind": "open",
+                "door": null
+              },
+              "14,14:north": {
+                "kind": "open",
+                "door": null
+              },
+              "14,14:west": {
+                "kind": "open",
+                "door": null
+              },
               "6,15:north": {
                 "kind": "open",
                 "door": null
@@ -14233,7 +14509,15 @@
                 "kind": "open",
                 "door": null
               },
+              "8,15:west": {
+                "kind": "open",
+                "door": null
+              },
               "9,15:north": {
+                "kind": "open",
+                "door": null
+              },
+              "9,15:west": {
                 "kind": "open",
                 "door": null
               },
@@ -14253,6 +14537,14 @@
                 "kind": "open",
                 "door": null
               },
+              "13,15:north": {
+                "kind": "open",
+                "door": null
+              },
+              "8,16:north": {
+                "kind": "open",
+                "door": null
+              },
               "9,16:north": {
                 "kind": "open",
                 "door": null
@@ -14265,7 +14557,39 @@
                 "kind": "open",
                 "door": null
               },
+              "11,16:north": {
+                "kind": "open",
+                "door": null
+              },
+              "11,16:west": {
+                "kind": "open",
+                "door": null
+              },
+              "12,16:west": {
+                "kind": "open",
+                "door": null
+              },
+              "13,16:north": {
+                "kind": "open",
+                "door": null
+              },
+              "13,16:west": {
+                "kind": "open",
+                "door": null
+              },
+              "8,17:north": {
+                "kind": "open",
+                "door": null
+              },
               "9,17:north": {
+                "kind": "open",
+                "door": null
+              },
+              "9,17:west": {
+                "kind": "open",
+                "door": null
+              },
+              "11,17:north": {
                 "kind": "open",
                 "door": null
               },
@@ -14274,6 +14598,14 @@
                 "door": null
               },
               "10,18:west": {
+                "kind": "open",
+                "door": null
+              },
+              "11,18:north": {
+                "kind": "open",
+                "door": null
+              },
+              "11,18:west": {
                 "kind": "open",
                 "door": null
               },

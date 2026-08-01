@@ -35,6 +35,7 @@ def test_stage_wire_values_pin_the_spec_names():
         "survey",
         "content",
         "monsters",
+        "mapread",
         "geometry",
         "assemble",
     ]

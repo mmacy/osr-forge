@@ -59,6 +59,26 @@ uv run tools/extract/run_extraction.py census \
     --record-fixtures tests/assets/minimod/fixtures
 ```
 
+## The minimod mapread session (targeted, replay-grade)
+
+Records the mapread fixtures the pipeline replay answers the map-reading
+stage with. Unlike the census's pages-only pattern, the mapread request
+needs the normalized survey index (keyed-area list, `source_label`s,
+`map_pages`), so the leg replays the committed survey fixture first (the
+excerpt session's pattern) and builds each level's request from it — the
+recorded fingerprint matches what the pipeline replay builds because both
+build from the same replayed survey answer over the same committed page
+bytes. The same no-session-rerun rationale as the census leg applies. After
+recording, re-bless the minimod goldens through the pipeline-replay chain
+(`stages/mapread.json` joins the goldens and the report's usage follows):
+
+```sh
+uv run tools/extract/run_extraction.py mapread \
+    --module-dir tests/assets/minimod \
+    --page-count 5 \
+    --record-fixtures tests/assets/minimod/fixtures
+```
+
 ## The chaotic-caves excerpt session (replay-grade)
 
 Records the real phase 1 survey prompt and the first content batch over the

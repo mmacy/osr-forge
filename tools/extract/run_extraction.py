@@ -1,4 +1,4 @@
-"""Live extraction runs: preprocess → survey → content → monsters → assemble with the real Foundry adapter.
+"""Live extraction runs: preprocess → survey → content → monsters → mapread → assemble with the real Foundry adapter.
 
 Manual, live-network, repo-only — never packaged, never in CI; see
 tools/extract/README.md for the recording sessions. Recording is opt-in via
@@ -26,6 +26,7 @@ from osrforge.contracts.stages import (
     SurveyIndex,
 )
 from osrforge.estimate import INPUT_USD_PER_TOKEN, OUTPUT_USD_PER_TOKEN
+from osrforge.mapread import build_mapread_request, mapread
 from osrforge.monsters import (
     build_monsters_request,
     build_statblock_request,
@@ -39,7 +40,7 @@ from osrforge.monsters import (
 from osrforge.pages import page_request_parts
 from osrforge.preprocess import preprocess
 from osrforge.providers.base import ModelProvider
-from osrforge.providers.fixtures import RecordingProvider
+from osrforge.providers.fixtures import FixtureProvider, RecordingProvider
 from osrforge.providers.foundry import FoundryProvider, FoundrySettings
 from osrforge.settings import ConversionSettings
 from osrforge.survey import (
@@ -101,6 +102,14 @@ def cmd_full(args: argparse.Namespace) -> None:
         )
     resolutions = monsters(workdir, provider)
     print_resolution_summary(resolutions)
+    reading = mapread(workdir, provider)
+    for level_reading in reading.levels:
+        outcome = (
+            f"{len(level_reading.proposals)} proposals, entrance {level_reading.entrance_key!r}"
+            if level_reading.status == "read"
+            else f"unread ({level_reading.unread_reason})"
+        )
+        print(f"mapread {level_reading.dungeon_id}/{level_reading.level_number}: {outcome}")
     result = assemble(args.workdir)
     validation = result.report.validation
     print(f"validation: {'passed' if validation.passed else 'FAILED'}")
@@ -145,6 +154,46 @@ def cmd_excerpt(args: argparse.Namespace) -> None:
     print(f"content usage: in={batch_response.usage.input_tokens} out={batch_response.usage.output_tokens}")
     data = cast(dict[str, Any], batch_response.data)
     print(f"content areas returned: {[entry['key'] for entry in data['areas']]}")
+
+
+def cmd_mapread(args: argparse.Namespace) -> None:
+    # The targeted mapread-recording leg: unlike the census's pages-only
+    # pattern, the mapread request needs the normalized survey index (keyed
+    # areas, source_labels, map_pages), so the leg replays the committed
+    # survey fixture first (the cmd_excerpt pattern) and builds each level's
+    # request from it — the recorded fingerprint must match what the pipeline
+    # replay builds, and both build from the same replayed survey answer over
+    # the same committed page bytes. Deliberately no page-subset closure step:
+    # the stage itself applies none, and a map page outside the committed set
+    # fails loudly in page_request_parts. Scope, the census leg's precedent:
+    # the committed sets carry no blanked pages, so the leg sends map_pages
+    # unfiltered — a module needing blank_page_renders records through a full
+    # session, out of this leg's scope by design.
+    asset_workdir = Workdir(args.module_dir)
+    pages = sorted(int(path.stem) for path in asset_workdir.pages_dir.glob("*.png"))
+    if not pages:
+        sys.exit(f"no committed pages in {asset_workdir.pages_dir}")
+    replay = FixtureProvider(args.module_dir / "fixtures")
+    survey_response = replay.generate(build_survey_request(page_request_parts(asset_workdir, pages)))
+    index = normalize_survey(cast(dict[str, Any], survey_response.data), args.page_count)
+    provider = make_provider(args.record_fixtures)
+    for dungeon in index.dungeons:
+        for level in dungeon.levels:
+            if not level.map_pages or not level.areas:
+                print(f"mapread {dungeon.id}/{level.number}: skipped (no map pages or no keyed areas)")
+                continue
+            request = build_mapread_request(
+                dungeon.id, dungeon.name, level, page_request_parts(asset_workdir, level.map_pages)
+            )
+            response = provider.generate(request)
+            data = cast(dict[str, Any], response.data)
+            adjacencies = cast(list[dict[str, Any]], data["adjacencies"])
+            print(
+                f"mapread {dungeon.id}/{level.number}: {len(adjacencies)} proposals, "
+                f"entrance {data['entrance']!r} (in={response.usage.input_tokens} out={response.usage.output_tokens})"
+            )
+            for entry in adjacencies:
+                print(f"  {entry['a']} — {entry['b']} ({entry['door']})")
 
 
 def cmd_census(args: argparse.Namespace) -> None:
@@ -282,7 +331,7 @@ def cmd_goldens(args: argparse.Namespace) -> None:
     if args.overrides is not None:
         shutil.copyfile(args.overrides, workdir.overrides_yaml)
     stages = {stage: StageStatus() for stage in Stage}
-    for stage in (Stage.PREPROCESS, Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS):
+    for stage in (Stage.PREPROCESS, Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS, Stage.MAPREAD):
         stages[stage] = StageStatus(
             status="completed",
             started_at=datetime(2026, 7, 9, 12, 0, 0, tzinfo=UTC),
@@ -351,6 +400,22 @@ def main() -> None:
         help="the replay fixture directory (e.g. tests/assets/<module>/fixtures-extract/replay)",
     )
 
+    mapread_leg = subcommands.add_parser(
+        "mapread", help="record the mapread fixtures by replaying the committed survey fixture first"
+    )
+    mapread_leg.add_argument(
+        "--module-dir", type=Path, required=True, help="the fenced asset directory (with pages/ and fixtures/)"
+    )
+    mapread_leg.add_argument(
+        "--page-count", type=int, required=True, help="the real module's page count, for normalization"
+    )
+    mapread_leg.add_argument(
+        "--record-fixtures",
+        type=Path,
+        required=True,
+        help="the fixture directory the mapread fixtures land in (e.g. tests/assets/minimod/fixtures)",
+    )
+
     census = subcommands.add_parser(
         "census", help="record exactly the census fixture over a committed pages/ directory"
     )
@@ -410,6 +475,7 @@ def main() -> None:
     {
         "full": cmd_full,
         "excerpt": cmd_excerpt,
+        "mapread": cmd_mapread,
         "census": cmd_census,
         "monsters": cmd_monsters,
         "goldens": cmd_goldens,

@@ -233,32 +233,33 @@ amendment records both runs side by side, and the regression band is the
 observed per-metric spread, floored at 0.02 absolute.
 
 The current noise band — the living table each sweep-pair updates, with
-history staying in the phase amendments (this table: the phase 10 double
-sweep of 2026-07-31, the first pair with the stat veto and the survey census
-live; the wide name-recall, transition-precision, and door bands are
-small-denominator arithmetic, and the four-sample view across the phase 7
-and phase 10 pairs shows content-extraction run variance genuinely wider
-than any two-sample band suggested — the counts-first guidance below is the
-regression reader's tool for both):
+history staying in the phase amendments (this table: the phase 11 double
+sweep of 2026-07-31, the first pair with the map-reading stage live — the
+map read is itself a run-to-run variable now, which is what drives the wide
+connection-F1 band (minimod's one-edge module scored 1.0 with a successful
+map read in run 1 and 0.6667 without one in run 2) and the entrance band
+(JN2's map-proposed entrance appeared in run 2 only); the transition-precision
+and door bands stay small-denominator arithmetic — the counts-first guidance
+below is the regression reader's tool for all of them):
 
 | metric | band |
 | --- | --- |
 | area recall | 0.02 |
 | area precision | 0.02 |
-| encounter name recall | 0.2 |
-| count accuracy | 0.0234 |
-| resolution accuracy | 0.02 |
+| encounter name recall | 0.0551 |
+| count accuracy | 0.022 |
+| resolution accuracy | 0.0661 |
 | custom accuracy | 0.02 |
-| connection F1 | 0.043 |
+| connection F1 | 0.3333 |
 | treasure presence | 0.02 |
-| door recall | 0.0953 |
-| door precision | 0.119 |
+| door recall | 0.1764 |
+| door precision | 0.0514 |
 | door kind accuracy | 0.02 |
-| door locked accuracy | 0.0909 |
+| door locked accuracy | 0.0714 |
 | transition recall | 0.02 |
-| transition precision | 0.75 |
+| transition precision | 0.8571 |
 | transition kind accuracy | 0.02 |
-| entrance accuracy | 0.02 |
+| entrance accuracy | 0.1667 |
 | encounter precision | 0.02 |
 
 The door and transition ratio bands are wide because their denominators are

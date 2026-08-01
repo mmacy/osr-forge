@@ -20,15 +20,20 @@ repository as a test asset and dedicated to the public domain under
   were recorded against (phase 1's recording session).
 - `fixtures/` — recorded `survey` and `content` fixtures from a real
   `preprocess → survey → content` run over `minimod.pdf`, plus the `census`
-  fixture recorded by the targeted census leg (`tools/extract/README.md`'s
-  minimod census session) over the same committed pages. There is no
+  and `mapread` fixtures recorded by the targeted legs
+  (`tools/extract/README.md`'s minimod census and mapread sessions) over the
+  same committed pages. The `mapread` fixture records an honest
+  `empty_reading`: minimod's map draws unlabeled boxes — no printed keys —
+  so the model correctly proposes nothing, and the pipeline replay exercises
+  the degenerate-read path. There is no
   `monsters` fixture and none is needed: minimod's whole encounter-name
   population resolves in the exact tier, so the monsters stage makes no model
   call (the pipeline-replay test would fail loudly if it ever did). Until the
   census fixture is recorded, the pipeline tests that replay the survey stage
 - `expected/` — the full-chain goldens the pipeline-replay test pins
   byte-for-byte: the stage caches (`survey.json`,
-  `areas.<dungeon>.<level>.json`, `monsters.json`, `statblocks.json`) at the
+  `areas.<dungeon>.<level>.json`, `monsters.json`, `statblocks.json`,
+  `mapread.json`) at the
   top level, plus `adventure.json`, `report.json`, and `previews/`. The re-bless rule: an
   osrlib or osr-forge version bump changes `adventure.json`'s stamped envelope
   and `report.json`'s `osrforge_version` — regenerate deliberately by

@@ -102,6 +102,11 @@ class Workdir:
         return self.stages_dir / "statblocks.json"
 
     @property
+    def mapread_json(self) -> Path:
+        """The map-reading stage's cache."""
+        return self.stages_dir / "mapread.json"
+
+    @property
     def overrides_yaml(self) -> Path:
         """The human correction file."""
         return self.root / "overrides.yaml"
@@ -167,11 +172,13 @@ class Workdir:
         """Return every content-stage cache file, sorted.
 
         Only the per-level `areas.*.json` caches — not `survey.json`,
-        `monsters.json`, or `statblocks.json`. The upstream stages' clearing
-        rule: `survey()` (on success) and `content()` (upfront) unlink these
-        *and* `monsters.json` *and* `statblocks.json` — a re-run of either can
-        change the encounter-name population, orphaning old resolutions and
-        stat blocks exactly as it orphans old area caches.
+        `monsters.json`, `statblocks.json`, or `mapread.json`. The upstream
+        stages' clearing rule: `survey()` (on success) and `content()`
+        (upfront) unlink these *and* `monsters.json` *and* `statblocks.json`
+        — a re-run of either can change the encounter-name population,
+        orphaning old resolutions and stat blocks exactly as it orphans old
+        area caches. `mapread.json` depends on the survey alone, so only
+        `survey()` clears it.
 
         Returns:
             The `stages/areas.*.json` paths, sorted by name.

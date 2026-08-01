@@ -30,6 +30,8 @@ from osrforge.assemble import parse_treasure, usable_stat_block
 from osrforge.contracts.stages import (
     AreaContent,
     LevelContent,
+    MapLevelReading,
+    MapReading,
     MonsterResolutions,
     StatBlocks,
     SurveyDungeon,
@@ -37,6 +39,7 @@ from osrforge.contracts.stages import (
 )
 from osrforge.geometry import transition_via
 from osrforge.monsters import normalize_monster_name
+from osrforge.reconcile import ProseEdge, merge_level_edges, select_entrance
 from osrforge.settings import ConversionSettings
 from osrforge.survey import canonical_slug
 from osrforge.versioning import SCHEMA_VERSION
@@ -666,8 +669,9 @@ class DoorMetrics(BaseModel):
     endpoint asserting `doors` — an asserting area's door set is complete, so
     an extracted door its truth omits is a false positive, and a door fact
     stated on neither directed mention is a miss. The extracted facts flow
-    through the edge-fact seam, so phase 11 can swap the fact source without
-    touching these semantics.
+    through the edge-fact seam merged with the map reading
+    ([`merge_level_edges`][osrforge.reconcile.merge_level_edges]) — the fact
+    source phase 11 swapped in without touching these semantics.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -742,12 +746,12 @@ class TransitionMetrics(BaseModel):
 
 
 class EntranceMetrics(BaseModel):
-    """The entrance family: does the pipeline's entrance heuristic pick the printed way in?
+    """The entrance family: does the pipeline's entrance selection pick the printed way in?
 
-    Scores geometry's pure positional selection (the first listed area of the
-    lowest-numbered non-empty level), reproduced here from the survey index
-    alone — the pre-change baseline phase 11's map-proposed entrance will be
-    measured against through the same seam.
+    Scores geometry's own selection through the shared
+    [`select_entrance`][osrforge.reconcile.select_entrance] — a resolvable
+    map proposal beating the positional heuristic — so the metric and
+    geometry can never pick differently.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -1305,22 +1309,29 @@ class _EdgeFact:
     side states a door via; `kind` resolves a conflict to `secret_door` (the
     more specific claim); `locked` if either side states it on a door via —
     door conditions on a non-door via contribute nothing (geometry's discard
-    posture).
+    posture). `stated_via` is the first stated (non-`passage`) mechanism in
+    mention order — the internal marker that makes the reconciliation's
+    absence test match geometry's (`via == "passage"` on every mention is
+    the only absence); the door-kind dedup above deliberately keeps its own
+    more-specific rule, the recorded asymmetry the shared merge does not
+    unify.
     """
 
     door: bool
     kind: Literal["door", "secret_door"] | None
     locked: bool
+    stated_via: str | None = None
 
 
 def _edge_facts(cache: LevelContent, matched: Collection[str]) -> dict[frozenset[str], _EdgeFact]:
-    """The edge-fact seam: one pairing's undirected edge facts, derived from the level cache.
+    """The edge-fact seam: one pairing's undirected *prose* edge facts, derived from the level cache.
 
-    Every edge fact — presence, door, kind, locked — flows through here, and
-    both the connection F1 and the door family consume the result: the F1
-    reads presence (every key), the door family the door facts. Phase 11
-    reroutes this function through its deterministic reconciliation without
-    touching either consumer's semantics.
+    Every prose edge fact — presence, door, kind, locked — flows through
+    here; `score_workdir` then merges the result with the pairing level's
+    map reading through [`merge_level_edges`][osrforge.reconcile.merge_level_edges]
+    (the phase 11 reroute this seam was pre-committed for), and both the
+    connection F1 and the door family consume the merged set: the F1 reads
+    presence (every key), the door family the door facts.
 
     Endpoints are matched slugs: a mention is an edge only when both its
     areas matched this pairing's truth areas — a level-shaped target
@@ -1333,7 +1344,7 @@ def _edge_facts(cache: LevelContent, matched: Collection[str]) -> dict[frozenset
             truth area).
 
     Returns:
-        Undirected endpoint pair → merged edge fact.
+        Undirected endpoint pair → merged prose edge fact.
     """
     facts: dict[frozenset[str], _EdgeFact] = {}
     for area in cache.areas:
@@ -1347,12 +1358,20 @@ def _edge_facts(cache: LevelContent, matched: Collection[str]) -> dict[frozenset
                 continue
             pair = frozenset({area.key, to_key})
             fact = facts.get(pair, _EdgeFact(door=False, kind=None, locked=False))
+            stated_via = (
+                fact.stated_via
+                if fact.stated_via is not None
+                else (connection.via if connection.via != "passage" else None)
+            )
             if connection.via in _DOOR_VIAS:
                 fact = _EdgeFact(
                     door=True,
                     kind="secret_door" if "secret_door" in (connection.via, fact.kind) else "door",
                     locked=fact.locked or connection.door_locked,
+                    stated_via=stated_via,
                 )
+            else:
+                fact = _EdgeFact(door=fact.door, kind=fact.kind, locked=fact.locked, stated_via=stated_via)
             facts[pair] = fact
     return facts
 
@@ -1481,11 +1500,14 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     """Score one converted workdir's stage caches against a module's truth.
 
     Reads `stages/survey.json` (area recall/precision, the entrance
-    heuristic), the `stages/areas.*.json` content caches (encounters,
+    selection), the `stages/areas.*.json` content caches (encounters,
     connections, doors, transitions, treasure), `stages/monsters.json`
-    (resolution accuracy), and `stages/statblocks.json` (custom-emission
+    (resolution accuracy), `stages/statblocks.json` (custom-emission
     accuracy — a missing file scores no matches, the honest state of a
-    workdir converted before the stat-block pass existed, never an error).
+    workdir converted before the stat-block pass existed, never an error),
+    and `stages/mapread.json` (the map readings the edge and entrance
+    families reconcile with — absent tolerated under the same posture: the
+    honest state of an older workdir, scored prose-only, never an error).
     Deterministic: scoring the same workdir twice yields byte-identical
     metrics.
 
@@ -1506,11 +1528,17 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     and resolution can credit at most one of the two templates; a known
     conservative shape, recorded rather than special-cased.
 
-    The edge families ride the edge-fact seam (`_edge_facts`): the
-    connection F1 and the door family consume one derivation of the caches'
-    undirected edge facts.
-    Transitions and the entrance score dungeon-scoped, after the level loop,
-    over each aligned dungeon's recorded pairing claims.
+    The edge families ride the edge-fact seam (`_edge_facts`) rerouted
+    through [`merge_level_edges`][osrforge.reconcile.merge_level_edges]: the
+    prose facts merge with the pairing level's map reading — endpoints
+    resolved exactly-then-slug, map-only pairs filtered to matched slugs —
+    and the merged set flows through the unchanged asserted-universe gates,
+    so map-only edges and map-adopted doors enter exactly where truth
+    asserts. Transitions and the entrance score dungeon-scoped, after the
+    level loop, over each aligned dungeon's recorded pairing claims — the
+    entrance through the shared
+    [`select_entrance`][osrforge.reconcile.select_entrance], so the metric
+    and geometry can never pick differently.
 
     Args:
         workdir_path: A workdir whose extraction stages have completed.
@@ -1544,6 +1572,10 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
     if workdir.statblocks_json.is_file():
         statblocks = StatBlocks.model_validate_json(workdir.statblocks_json.read_text(encoding="utf-8"))
         usable_names = frozenset(name for name, block in statblocks.blocks.items() if usable_stat_block(block))
+    readings: dict[tuple[str, int], MapLevelReading] = {}
+    if workdir.mapread_json.is_file():
+        map_reading = MapReading.model_validate_json(workdir.mapread_json.read_text(encoding="utf-8"))
+        readings = {(reading.dungeon_id, reading.level_number): reading for reading in map_reading.levels}
 
     matches = _align_dungeons(truth, index)
 
@@ -1694,7 +1726,36 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                         # Both-endpoint assertions agree by validator, so the
                         # overwrite on the reciprocal visit is a no-op.
                         truth_doors[(*level_id, frozenset({slug, neighbor}))] = door
-            for pair, fact in _edge_facts(cache, matched).items():
+            # The phase 11 reroute: the prose facts merge with the pairing
+            # level's map reading through the shared policy — an adopted
+            # door fills a prose absence in place, a map-only pair (both
+            # endpoints matched) joins the fact set — and the merged set
+            # flows through the unchanged asserted-universe gates below.
+            facts = _edge_facts(cache, matched)
+            survey_level_keys = [
+                area.key
+                for survey_level in extracted_dungeon.levels
+                if survey_level.number == extracted_number
+                for area in survey_level.areas
+            ]
+            merged = merge_level_edges(
+                {
+                    pair: ProseEdge(stated_via=fact.stated_via, door_kind=fact.kind if fact.door else None)
+                    for pair, fact in facts.items()
+                },
+                readings.get((extracted_dungeon.id, extracted_number)),
+                survey_level_keys,
+            )
+            for pair, adopted_kind in merged.adopted_doors.items():
+                fact = facts[pair]
+                facts[pair] = _EdgeFact(door=True, kind=adopted_kind, locked=False, stated_via=fact.stated_via)
+            for first, second, adopted_kind in merged.map_only:
+                if first not in matched or second not in matched:
+                    continue
+                facts[frozenset({first, second})] = _EdgeFact(
+                    door=adopted_kind is not None, kind=adopted_kind, locked=False
+                )
+            for pair, fact in facts.items():
                 if pair & asserted:
                     extracted_edges.add((*level_id, pair))
                 if fact.door and pair & doors_asserting:
@@ -1776,9 +1837,10 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
                     transition_kind_matched += 1
                 break
 
-    # The entrance: geometry's positional selection — the first listed area
-    # of the lowest-numbered non-empty level — reproduced from the survey
-    # index alone, per aligned dungeon whose truth asserts the way in.
+    # The entrance: the shared selection — geometry's own pick, a resolvable
+    # map proposal beating the positional heuristic — per aligned dungeon
+    # whose truth asserts the way in. Calling `select_entrance` here is the
+    # point: the metric and geometry can never pick differently.
     entrance_asserted = 0
     entrance_matched = 0
     for record in dungeon_records:
@@ -1786,15 +1848,20 @@ def score_workdir(workdir_path: Path, truth: ModuleTruth) -> ModuleMetrics:
         if entrance is None:
             continue
         entrance_asserted += 1
-        entrance_number = min((level.number for level in record.extracted_dungeon.levels if level.areas), default=None)
-        if entrance_number is None or record.level_matches.get(entrance.level) != entrance_number:
+        selection = select_entrance(
+            record.extracted_dungeon,
+            {
+                number: reading
+                for (dungeon_id, number), reading in readings.items()
+                if dungeon_id == record.extracted_dungeon.id
+            },
+        )
+        if selection.level_number is None or record.level_matches.get(entrance.level) != selection.level_number:
             continue
-        selected = next(level for level in record.extracted_dungeon.levels if level.number == entrance_number)
-        selected_key = selected.areas[0].key
-        if _truth_endpoint(record.truth_dungeon, entrance.level, entrance.key)[1] != selected_key:
+        if _truth_endpoint(record.truth_dungeon, entrance.level, entrance.key)[1] != selection.area_key:
             continue
         pairing = next(pairing for pairing in record.pairings if pairing.truth_level.number == entrance.level)
-        if selected_key in pairing.matched:
+        if selection.area_key in pairing.matched:
             entrance_matched += 1
 
     return ModuleMetrics(

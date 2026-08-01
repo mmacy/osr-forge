@@ -1,10 +1,13 @@
-"""Stage 4: deterministic geometry synthesis from the extracted room graph.
+"""Stage 5: deterministic geometry synthesis from the extracted room graph, map proposals reconciled.
 
 Deterministic code only; recomputed inside every assembly (no cache),
-completing the `run.json` `geometry` entry. Input: the survey index plus the
-levels' content caches; output: a frozen per-level result (area cell clusters,
-the `edges` dict, entrance, transitions, width/height) that assembly folds
-into osrlib `LevelSpec`s.
+completing the `run.json` `geometry` entry. Input: the survey index, the
+levels' content caches, and (when present) the map-reading cache — merged
+with the prose connections through [`osrforge.reconcile`][osrforge.reconcile],
+the shared policy the eval scorer consumes too; output: a frozen per-level
+result (area cell clusters, the `edges` dict, entrance, transitions,
+width/height, the dispute channels) that assembly folds into osrlib
+`LevelSpec`s and `map_disputed` flags.
 
 The impassability hazard, defused here: osrlib grids are walls by default —
 an edge absent from `LevelSpec.edges` is a wall, and the boundary is an
@@ -23,12 +26,13 @@ import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from itertools import pairwise
-from typing import Literal
+from typing import Literal, cast
 
 from osrlib.crawl.dungeon import Direction as GridDirection
 from osrlib.crawl.dungeon import DoorSpec, Edge, EdgeKind, Position, TransitionSpec, edge_key, step
 
-from osrforge.contracts.stages import LevelContent, SurveyDungeon, SurveyIndex
+from osrforge.contracts.stages import LevelContent, MapReading, SurveyDungeon, SurveyIndex
+from osrforge.reconcile import ProseEdge, merge_level_edges, resolve_key, select_entrance
 from osrforge.survey import canonical_slug
 
 __all__ = [
@@ -116,6 +120,15 @@ class LevelGeometry:
             level's `to_level`-derived transitions — assembly flags them
             `transition_guessed`, the badge that asks a human to confirm or
             correct the landing.
+        map_disputes: `(area key, detail)` pairs for this level's map/prose
+            disagreements and adoptions — edge disputes on the
+            survey-order-first endpoint, the entrance dispute on the
+            *selected* entrance area — assembly emits each detail verbatim
+            as a `map_disputed` flag.
+        map_dropped: Module-scope dropped-proposal details (unresolvable
+            keys, self-pairs, secondary entrance proposals), each carrying
+            its level address — assembly emits them verbatim as module-scope
+            `map_disputed` flags.
     """
 
     dungeon_id: str
@@ -131,6 +144,8 @@ class LevelGeometry:
     unknown_direction_connections: tuple[tuple[str, str], ...]
     disconnected_areas: tuple[str, ...]
     guessed_transitions: tuple[tuple[str, str], ...]
+    map_disputes: tuple[tuple[str, str], ...]
+    map_dropped: tuple[str, ...]
 
 
 _DOOR_VIAS = ("door", "secret_door")
@@ -251,16 +266,6 @@ class _LevelResolution:
     unknown_direction: list[tuple[str, str]]
 
 
-def _resolve_target(to_key: str, level_keys: Sequence[str]) -> str | None:
-    """Resolve a connection target on one level: exact canonical key, else slug match."""
-    if to_key in level_keys:
-        return to_key
-    slug = canonical_slug(to_key)
-    if slug and slug in level_keys:
-        return slug
-    return None
-
-
 def transition_via(via: str) -> str:
     """Narrow a mention's `via` to a transition family: trapdoors and chutes as themselves, else stairs.
 
@@ -338,7 +343,7 @@ def _resolve_dungeon_connections(
                         )
                     )
                     continue
-                target = _resolve_target(connection.to_key, level_keys[level.number])
+                target = resolve_key(connection.to_key, level_keys[level.number])
                 if target is None:
                     if connection.direction in ("up", "down"):
                         hit = _resolve_on_siblings(connection.to_key, dungeon, level.number, level_keys)
@@ -739,9 +744,10 @@ def _place_child(
 class _Placement:
     """One level's placement state: raw-coordinate cells before normalization.
 
-    `edge_paths` maps each graph edge the router realized *as stated* (child
-    placed from its graph parent — not re-anchored, not a cycle edge) to its
-    corridor path, the association door synthesis reads.
+    `edge_paths` maps each realized graph edge to its corridor path — tree
+    edges from the BFS placement, plus every edge the cycle-routing pass
+    rescued (cycle-closing and re-anchored alike) — the association door
+    synthesis reads.
     """
 
     rooms: dict[str, tuple[Position, ...]]
@@ -775,13 +781,70 @@ def _order_components(
     return components
 
 
+def _route_unrealized_edge(
+    owner_cells: tuple[Position, ...],
+    target_cells: tuple[Position, ...],
+    room_cells: set[Position],
+    occupied: set[Position],
+) -> list[Position] | None:
+    """The cycle-routing pass's router: a BFS-shortest corridor from the owner room to the target room.
+
+    Free cells and existing corridor cells are traversable (junctions are
+    legal — `_open_edges` opens every path's pairwise edges, crossings
+    included); every other room's cells block. Determinism is pinned like
+    `_routed_candidate`'s: multi-source FIFO BFS seeded from the owner's
+    cells in row-major order, neighbours expanding in the pinned direction
+    order, first target contact winning. The search is windowed to the
+    occupied bounding box plus a 2-cell margin — every obstacle lies inside
+    the box, so a shortest route never needs to skirt more than one cell
+    beyond it, and an exhausted window means the pair is genuinely walled in.
+
+    Returns:
+        The path, owner-room cell first and target-room cell last (the shape
+        `_door_edges` reads), or `None` when the pair is walled in.
+    """
+    xs = [x for x, _ in occupied]
+    ys = [y for _, y in occupied]
+    window = (min(xs) - 2, max(xs) + 2, min(ys) - 2, max(ys) + 2)
+    target_set = set(target_cells)
+    blocked = room_cells - set(owner_cells) - target_set
+    came_from: dict[Position, Position | None] = {}
+    queue: list[Position] = []
+    for cell in sorted(owner_cells, key=lambda cell: (cell[1], cell[0])):
+        came_from[cell] = None
+        queue.append(cell)
+    while queue:
+        current = queue.pop(0)
+        for direction in _PLACEMENT_ORDER:
+            neighbor = step(current, direction)
+            if neighbor in target_set:
+                path = [neighbor, current]
+                parent = came_from[current]
+                while parent is not None:
+                    path.append(parent)
+                    parent = came_from[parent]
+                path.reverse()
+                return path
+            in_window = window[0] <= neighbor[0] <= window[1] and window[2] <= neighbor[1] <= window[3]
+            if neighbor in came_from or neighbor in blocked or not in_window:
+                continue
+            came_from[neighbor] = current
+            queue.append(neighbor)
+    return None
+
+
 def _place_level(
     survey_keys: Sequence[str],
     sizes: dict[str, tuple[int, int]],
     graph_edges: list[_GraphEdge],
     anchor: str,
-) -> tuple[_Placement, tuple[str, ...]]:
-    """BFS placement of one level from its anchor; returns the placement and the synthetic-linked areas."""
+) -> tuple[_Placement, tuple[str, ...], tuple[_GraphEdge, ...]]:
+    """BFS placement of one level from its anchor, then the cycle-routing pass.
+
+    Returns the placement, the synthetic-linked areas, and the edges no route
+    could realize (walled-in pairs — the caller flags the doorless ones;
+    `_door_edges` already flags the doored ones).
+    """
     position = {key: index for index, key in enumerate(survey_keys)}
     adjacency: dict[str, list[_GraphEdge]] = {key: [] for key in survey_keys}
     for graph_edge in graph_edges:
@@ -839,7 +902,31 @@ def _place_level(
             if not re_anchored:
                 placement.edge_paths[frozenset((graph_edge.a, graph_edge.b))] = path
             queue.append(child)
-    return placement, tuple(disconnected)
+
+    # The cycle-routing pass: every resolved edge the BFS tree left without a
+    # realized route — cycle-closing and re-anchored alike, whatever its
+    # provenance — gets a corridor, so a printed loop plays as a loop and a
+    # stated door has a wall to land on. Edges route in graph order; each
+    # success joins the corridor set later routes may traverse.
+    room_cells = {cell for cells in placement.rooms.values() for cell in cells}
+    unrouted: list[_GraphEdge] = []
+    for graph_edge in graph_edges:
+        pair = frozenset((graph_edge.a, graph_edge.b))
+        if pair in placement.edge_paths:
+            continue
+        path = _route_unrealized_edge(
+            placement.rooms[graph_edge.owner],
+            placement.rooms[graph_edge.other(graph_edge.owner)],
+            room_cells,
+            occupied,
+        )
+        if path is None:
+            unrouted.append(graph_edge)
+            continue
+        placement.paths.append(path)
+        placement.edge_paths[pair] = path
+        occupied.update(path)
+    return placement, tuple(disconnected), tuple(unrouted)
 
 
 def _normalize_placement(
@@ -890,18 +977,23 @@ def _door_edges(
     edge_paths: dict[frozenset[str], list[Position]],
     unresolved: list[tuple[str, str]],
 ) -> dict[str, Edge]:
-    """Realize stated doors onto route edges — the total rule over the three materializations.
+    """Realize stated doors onto route edges — the total rule over the materializations.
 
-    (a) A connection the router realized as its own tree edge carries its door
-    on the first edge the route opens leaving the door-stating area's cluster
-    — the prose describes the door in the wall of the room being described, so
-    the source end is the faithful placement (the arriving end of the route
-    when the source was placed as the child). (b) A re-anchored child's route
-    joins another room, so the stated door has no edge on the described wall;
-    (c) a cycle-closing connection places no route at all. Both drop the door
-    fact with `connection_ambiguous:door to <key> not placed` on the source
-    area — the geometry `edges` override is the designed remedy, and the flag
-    is what tells the human to reach for it.
+    (a) A connection with a realized route — a BFS tree edge, or a
+    cycle-closing or re-anchored edge the routing pass rescued — carries its
+    door on the first edge the route opens leaving the door-stating area's
+    cluster: the prose (or the adopting convention, for a map door) puts the
+    door in that area's wall, so that end is the faithful placement whichever
+    end of the path it is. Routed corridors may share a stating room's exit
+    (junctions are legal), so two doored routes leaving through one wall edge
+    collapse to the one physical doorway — every connection stays realized;
+    the doorway serves both, and the last edge in graph order pins the
+    surviving `DoorSpec` (deterministic; the geometry `edges` override is
+    the remedy if the collapsed kinds genuinely differ). (b) A walled-in
+    pair no route could realize
+    drops the door fact with `connection_ambiguous:door to <key> not placed`
+    on the source area — the geometry `edges` override is the designed
+    remedy, and the flag is what tells the human to reach for it.
     """
     doors: dict[str, Edge] = {}
     for graph_edge in graph_edges:
@@ -944,8 +1036,10 @@ def _open_edges(rooms: dict[str, tuple[Position, ...]], paths: list[list[Positio
     return {key: Edge(kind=EdgeKind.OPEN) for key in sorted(keys, key=edge_sort_key)}
 
 
-def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> tuple[LevelGeometry, ...]:
-    """Synthesize every level's geometry, in survey order.
+def synthesize_geometry(
+    index: SurveyIndex, levels: Sequence[LevelContent], map_reading: MapReading | None = None
+) -> tuple[LevelGeometry, ...]:
+    """Synthesize every level's geometry, in survey order, map proposals reconciled.
 
     Args:
         index: The normalized survey index.
@@ -953,6 +1047,9 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
             default-sized rooms and no connections. Assembly and the preview
             path both enforce cache completeness upstream — the tolerance
             serves direct callers (tests, future partial-cache paths).
+        map_reading: The map-reading cache, or `None` — a pre-phase-11
+            workdir (or a `pending` mapread stage) reconciles as no
+            proposals, the honest prose-only path.
 
     Returns:
         One result per survey level, in survey order, postconditions asserted.
@@ -960,11 +1057,71 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
     contents = {(level.dungeon_id, level.level_number): level for level in levels}
     results: list[LevelGeometry] = []
     for dungeon in index.dungeons:
+        readings = {
+            reading.level_number: reading
+            for reading in (map_reading.levels if map_reading is not None else ())
+            if reading.dungeon_id == dungeon.id
+        }
         resolutions, links, level_links = _resolve_dungeon_connections(dungeon, contents)
+
+        # Reconciliation: merge each level's prose edges with its map
+        # proposals under the shared precedence rule. Adopted doors fill a
+        # prose absence in place; map-only pairs join the graph *before*
+        # component ordering (they can reduce disconnected components and
+        # become tree edges), appended in proposal order after the prose
+        # edges. `via_owner` is the survey-order-first endpoint on both
+        # adoption shapes — the map has no stating area, so one pinned
+        # convention covers both.
+        map_disputes: dict[int, list[tuple[str, str]]] = {}
+        map_dropped: dict[int, list[str]] = {}
+        for level in dungeon.levels:
+            resolution = resolutions[level.number]
+            level_keys = [area.key for area in level.areas]
+            prose = {
+                frozenset((edge.a, edge.b)): ProseEdge(
+                    stated_via=edge.via,
+                    door_kind=cast("Literal['door', 'secret_door'] | None", edge.via)
+                    if edge.via in _DOOR_VIAS
+                    else None,
+                )
+                for edge in resolution.edges
+            }
+            merged = merge_level_edges(prose, readings.get(level.number), level_keys)
+            for edge in resolution.edges:
+                adopted = merged.adopted_doors.get(frozenset((edge.a, edge.b)))
+                if adopted is not None:
+                    edge.via = adopted
+                    edge.via_owner = min((edge.a, edge.b), key=level_keys.index)
+            for first, second, door in merged.map_only:
+                resolution.edges.append(
+                    _GraphEdge(
+                        a=first,
+                        b=second,
+                        owner=first,
+                        direction=None,
+                        via=door,
+                        via_owner=first if door is not None else None,
+                    )
+                )
+            if merged.disputes:
+                map_disputes.setdefault(level.number, []).extend(merged.disputes)
+            if merged.dropped:
+                map_dropped.setdefault(level.number, []).extend(
+                    f"{dungeon.id}/{level.number}: {detail}" for detail in merged.dropped
+                )
+
         realized = _realize_links(dungeon, links, level_links, resolutions)
-        # The dungeon's entrance lives on its lowest-numbered level (with any
-        # areas at all) — survey order is not guaranteed number-sorted.
-        entrance_level = min((level.number for level in dungeon.levels if level.areas), default=None)
+        # The entrance: a resolvable map proposal beats the positional
+        # heuristic (evidence over position), through the shared selection
+        # the scorer consumes too. The dispute lands on the *selected* area;
+        # dropped proposals land at module scope with their level address.
+        selection = select_entrance(dungeon, readings)
+        entrance_level = selection.level_number
+        for number, detail in selection.dropped:
+            map_dropped.setdefault(number, []).append(f"{dungeon.id}/{number}: {detail}")
+        if selection.dispute is not None:
+            assert entrance_level is not None and selection.area_key is not None
+            map_disputes.setdefault(entrance_level, []).append((selection.area_key, selection.dispute))
         transition_areas: dict[int, list[str]] = {}
         for link in realized:
             transition_areas.setdefault(link.source_level, []).append(link.source_key)
@@ -988,11 +1145,26 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
             descriptions = {area.key: area.description for area in content.areas} if content is not None else {}
             sizes = {key: _room_size(key, descriptions) for key in survey_keys}
             targets = transition_areas.get(level.number, ())
-            if level.number == entrance_level or not targets:
+            if level.number == entrance_level:
+                # The entrance level anchors on the selected entrance area —
+                # today's `survey_keys[0]` exactly, whenever the heuristic wins.
+                assert selection.area_key is not None
+                anchor = selection.area_key
+            elif not targets:
                 anchor = survey_keys[0]
             else:
                 anchor = min(targets, key=survey_keys.index)
-            placement, disconnected = _place_level(survey_keys, sizes, resolutions[level.number].edges, anchor)
+            placement, disconnected, unrouted = _place_level(
+                survey_keys, sizes, resolutions[level.number].edges, anchor
+            )
+            for graph_edge in unrouted:
+                if graph_edge.via not in _DOOR_VIAS or graph_edge.via_owner is None:
+                    # The doorless walled-in pair — the doored one already
+                    # drops loudly in door synthesis. An unrealized
+                    # connection stops being silent either way.
+                    resolutions[level.number].unresolved.append(
+                        (graph_edge.owner, f"edge to {graph_edge.other(graph_edge.owner)} not routed")
+                    )
             rooms, paths, edge_paths = _normalize_placement(placement)
             placed[level.number] = (rooms, paths, edge_paths, disconnected)
 
@@ -1060,7 +1232,8 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
                     )
             entrance = None
             if level.number == entrance_level:
-                entrance = rooms[level.areas[0].key][0]
+                assert selection.area_key is not None
+                entrance = rooms[selection.area_key][0]
             geometry = LevelGeometry(
                 dungeon_id=dungeon.id,
                 level_number=level.number,
@@ -1075,6 +1248,8 @@ def synthesize_geometry(index: SurveyIndex, levels: Sequence[LevelContent]) -> t
                 unknown_direction_connections=tuple(resolution.unknown_direction),
                 disconnected_areas=disconnected,
                 guessed_transitions=tuple(guessed.get(level.number, ())),
+                map_disputes=tuple(map_disputes.get(level.number, ())),
+                map_dropped=tuple(map_dropped.get(level.number, ())),
             )
             results.append(geometry)
     _assert_postconditions(results)

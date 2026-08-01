@@ -96,6 +96,44 @@ Constants with provenance: `_MAPREAD_LEVELS_PER_PAGE = 0.2` (measured on the pha
 
 1 (contracts + stage, prompts and schema frozen) → 2 (the merge, unit-tested pure) → 3 and 5 in either order (both consume 2; the offline hard check runs as soon as 5 lands, catching seam drift before anything else builds on it) → 4 (consumes 3's channels) → 6 anytime after 1 → 7 (fixtures record against the frozen prompts and schemas) → 8 last. One implementation PR after this plan merges; the fixture record and sweep land in it per the regression rule.
 
+## Amendments (implementation)
+
+Where the implementation found the plan silent, the pinned calls:
+
+- **A fourth unread reason, `no_keyed_areas`.** The plan's per-level behavior table didn't cover a surveyed level with zero keyed areas: there are no printed keys to propose between, so the stage makes no request and records `unread:no_keyed_areas` — the `no_map_pages` posture, same shape.
+- **Shared doorways collapse, deliberately.** Routed corridors traverse existing corridor cells (junctions are legal), so two or more doored routes can leave their stating room through the same wall edge; their doors collapse to the one physical doorway, with the last edge in graph order pinning the surviving `DoorSpec` — deterministic, and the geometry `edges` override is the remedy if the collapsed kinds genuinely differ. Nothing drops and nothing flags — every connection is realized, and the doorway sits on the stating room's wall (the dense-hub unit test pins the shape and the survivor: room 88's three stated doors all leave through one edge). The alternative — forcing distinct exits — would reject the junction legality the routing pass rests on.
+- **The missing-cache gate reads the cache whenever the file exists.** The plan enumerated `failed`/`running` (error), `pending`/absent entry, and absent cache; it didn't name the pending-entry-*with*-cache state, which no real workdir produces. Pinned as the statblocks posture verbatim: error on `failed`/`running`, otherwise read the cache when the file exists — the cache is the record.
+- **The report's usage total includes the mapread stage**, read with `.get` so a pre-phase-11 `run.json` (no mapread key) still assembles.
+- **The minimod mapread fixture records an honest `empty_reading`.** Minimod's map page draws unlabeled boxes — no printed keys — so the live model correctly proposed nothing ("propose nothing that cannot be read"), and the recorded fixture exercises the degenerate-read path end to end; the adoption, dispute, and dropped-proposal paths run through synthetic-cache pipeline tests instead. Regenerating minimod's map to print keys was rejected: it would strand every committed minimod fixture for a nicety.
+- **The offline hard check passed byte-for-byte (2026-07-31).** `rescore` over the sweep-1 workdirs left `tools/eval/corpus/scoreboard.json` byte-identical; plain `score` over the sweep-2 workdirs reproduced every value in the phase 10 amendment's table exactly. The rerouted seam and the shared entrance selection are drift-free on map-cache-less workdirs, and the pinned JN1 CI baseline is unmoved.
+- **The double sweep ran 2026-07-31** (deployment `gpt-5.4-2026-03-05`, unchanged; sweep 1 ≈ $3.71, sweep 2 ≈ $3.52; the workdirs retained at `~/osr-forge-measurement/phase11/`), the first pair with the map stage in play. `tools/eval/corpus/scoreboard.json` carries run 1. Both runs side by side, with the refreshed band (the observed pair spread floored at 0.02):
+
+    | metric | minimod | jn1-chaotic-caves | jn2-monkey-isle | band |
+    | --- | --- | --- | --- | --- |
+    | area recall | 1.0 / 1.0 | 1.0 / 1.0 | 1.0 / 1.0 | 0.02 |
+    | area precision | 1.0 / 1.0 | 1.0 / 1.0 | 0.9149 / 0.9149 | 0.02 |
+    | encounter name recall | 1.0 / 1.0 | 0.8991 / 0.844 | 0.9298 / 0.9123 | 0.0551 |
+    | encounter precision | 1.0 / 1.0 | 0.9159 / 0.902 | 1.0 / 1.0 | 0.02 |
+    | count accuracy | 1.0 / 1.0 | 0.9898 / 0.9891 | 0.902 / 0.88 | 0.022 |
+    | resolution accuracy | 1.0 / 1.0 | 0.8706 / 0.9367 | 0.6429 / 0.6429 | 0.0661 |
+    | custom accuracy | n/a / n/a | 1.0 / 1.0 | 1.0 / 1.0 | 0.02 |
+    | connection F1 | 1.0 / 0.6667 | 0.68 / 0.6305 | 0.8515 / 0.8454 | 0.3333 |
+    | treasure presence | 1.0 / 1.0 | 0.9489 / 0.9489 | 0.9651 / 0.9767 | 0.02 |
+    | door recall | n/a / n/a | 0.7619 / 0.619 | 0.8235 / 0.6471 | 0.1764 |
+    | door precision | n/a / n/a | 0.5714 / 0.52 | 0.5833 / 0.5789 | 0.0514 |
+    | door kind accuracy | n/a / n/a | 1.0 / 1.0 | 0.9286 / 0.9091 | 0.02 |
+    | door locked accuracy | n/a / n/a | 0.875 / 0.9231 | 0.9286 / 1.0 | 0.0714 |
+    | transition recall | n/a / n/a | 1.0 / 1.0 | 1.0 / 1.0 | 0.02 |
+    | transition precision | n/a / n/a | 0.1429 / 1.0 | 1.0 / 1.0 | 0.8571 |
+    | transition kind accuracy | n/a / n/a | 1.0 / 1.0 | 1.0 / 1.0 | 0.02 |
+    | entrance accuracy | 1.0 / 1.0 | 0.9286 / 0.9286 | 0.8333 / 1.0 | 0.1667 |
+
+    No survey mode-flip in any run (minimod 1/1, JN1 14/14, JN2 6/6 dungeons, all four halves). The pre-registered directions, scored: **JN1 connection F1 up** — 0.5843 → 0.68 on the board (+0.0957 against the 0.043 band), and *both* runs sit above the entire four-sample historical range (0.5843–0.6436); the mechanism is edge recall (0.6923 → 0.8718/0.7436 — map-only edges are real edges; JN1 true positives 26 → 34) with edge precision also up (0.5294 → 0.5574/0.5472). **Door recall up** — JN2 0.5882 → 0.8235 (+0.2353 against the 0.0953 band; true positives 10 → 14), JN1 0.7143 → 0.7619. **Door precision uncertain, landed benign** — JN1 up (0.5357 → 0.5714), JN2 down within its band (0.6667 → 0.5833; the union admits map-only doors: 24 extracted vs 15). **Entrance accuracy up where the map spoke** — JN2 run 2 hit 6/6 (from the heuristic's measured 5/6), and its one `entrance map 6, survey-order 1` dispute is exactly the correction; JN1 stayed 13/14 (its maps label no entrance the survey resolves). **Transitions flat by construction** — the JN1 run-1 precision 0.1429 is seven spurious *content* vertical claims on a 1-link module, the phase 10 outlier shape recurring on a surface the map stage cannot touch (per-level requests can't express a cross-level pair; run 2 scored 1.0 exactly).
+
+    The three against-band drops vs the phase 10 board, each justified counts-first: **JN2 resolution 0.6667 → 0.6429** — `resolution_matched` is 18 in both boards; the denominator grew 27 → 28 because higher name recall admitted one more template-asserting truth encounter — composition, not a resolution movement. **JN2 door kind 1.0 → 0.9286** — the true-positive set widened 10 → 14 with map-adopted doors and 13 of 14 agree on kind: the ratio dips while correct-kind doors rise 10 → 13. **JN1 transition precision 1.0 → 0.1429** — the content-claim noise above, inside the family's own 0.75-then-0.8571 band regime and the counts-first guidance.
+
+- **The dispute census (the milestone's visibility leg).** Every adoption and disagreement on the committed corpus is a visible `map_disputed` item: run 1 — JN1 72 (25 edges + 4 doors adopted; 28 edges + 15 doors kept), JN2 51 (10 edges + 11 doors adopted; 24 edges + 6 doors kept), minimod 4; run 2 — JN1 70, JN2 49 (including the one entrance dispute), minimod 5. Zero dropped proposals in any run — every proposal endpoint the model answered resolved against the survey. The flag-only posture inherited from the census holds: no re-roll, no suppression; the side-by-side previews index is the review surface.
+
 ## Definition of done
 
 - The `mapread` stage is live behind `map_reading: read` by default, proposals cached raw, and every adoption, disagreement, and dropped proposal carries `map_disputed`; the entrance selection and edge merge live in `reconcile.py` and are consumed by both geometry and the scorer, with no re-implementation on either side.

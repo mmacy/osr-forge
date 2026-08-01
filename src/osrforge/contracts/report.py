@@ -48,6 +48,7 @@ class Flag(StrEnum):
     PAGE_UNREADABLE = "page_unreadable"
     RESOLUTION_SUSPECT = "resolution_suspect"
     SURVEY_DISPUTED = "survey_disputed"
+    MAP_DISPUTED = "map_disputed"
 
 
 def parse_flag(value: str) -> tuple[Flag, str | None]:

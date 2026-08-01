@@ -46,7 +46,7 @@ wrote my-module.forge/adventure.json
 wrote my-module.forge/overrides.yaml (commented template)
 ```
 
-The pipeline is `preprocess → survey → content → monsters → assemble`. A
+The pipeline is `preprocess → survey → content → monsters → mapread → assemble`. A
 failure stops there, keeps everything upstream, and `osrforge rerun <stage>`
 resumes — see [settings and rerun](../guides/settings-and-rerun.md).
 

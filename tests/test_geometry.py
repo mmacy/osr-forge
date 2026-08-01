@@ -543,9 +543,10 @@ class TestDoors:
         assert door_edges(geometry) == {}
         assert all(edge.kind is EdgeKind.OPEN for edge in geometry.edges.values())
 
-    def test_cycle_edge_drops_the_door_with_the_flag(self):
-        # 2-3 closes a cycle: no route is placed for it, so the stated door
-        # has nowhere to land and the fact drops with the pinned flag.
+    def test_cycle_edge_routes_and_carries_its_door(self):
+        # 2-3 closes a cycle: the routing pass gives it a corridor, so the
+        # stated door lands on 2's wall instead of dropping — the printed
+        # loop plays as a loop (the phase 11 rescue).
         index = make_index(["1", "2", "3"])
         content = make_content(
             {
@@ -555,8 +556,9 @@ class TestDoors:
             }
         )
         (geometry,) = synthesize_geometry(index, [content])
-        assert door_edges(geometry) == {}
-        assert ("2", "door to 3 not placed") in geometry.unresolved_connections
+        ((_, edge),) = door_edges(geometry).items()
+        assert edge.door is not None and edge.door.kind == "normal"
+        assert geometry.unresolved_connections == ()
 
     def test_no_target_connection_is_skipped_with_the_flag(self):
         index = make_index(["1"])
@@ -582,14 +584,14 @@ class TestDoors:
         assert key == edge_key((0, 0), Direction.SOUTH)
         assert edge.door is not None and edge.door.kind == "normal"
 
-    def test_reanchored_and_cycle_edges_drop_their_doors_while_tree_edges_carry_them(self):
-        """Cases (b) and (c) over the re-anchoring hub graph: every mention states a door.
+    def test_reanchored_and_cycle_edges_route_and_carry_their_doors(self):
+        """The routing pass rescues cases (b) and (c) over the re-anchoring hub graph.
 
         The graph is the dense-hub capture whose placement provably re-anchors
-        at least one child (20 children place 20 routes but fewer pairs are
-        recorded as stated — case b's mechanism; cycle edges record none at
-        all — case c). Exactly the recorded pairs carry doors; every other
-        stated door drops with the pinned flag on its stating area.
+        at least one child and closes several cycles — pre-phase-11, every
+        such edge dropped its stated door. The cycle-routing pass now gives
+        every resolved edge a realized route, so all 28 stated doors land and
+        nothing drops: the printed loops play as loops.
         """
         from osrforge.geometry import _door_edges, _GraphEdge, _normalize_placement, _place_level
 
@@ -626,22 +628,36 @@ class TestDoors:
             ("96", "97", "east"),
         ]
         edges = [
-            _GraphEdge(a=a, b=b, owner=a, direction=Direction(direction), via="door", via_owner=a)
+            _GraphEdge(
+                a=a,
+                b=b,
+                owner=a,
+                direction=Direction(direction),
+                # (88, 97) states a secret door — the survivor probe below.
+                via="secret_door" if (a, b) == ("88", "97") else "door",
+                via_owner=a,
+            )
             for a, b, direction in mentions
         ]
-        placement, _ = _place_level(keys, sizes, edges, anchor="77")
-        # 21 rooms, one anchor: 20 children each place one route; fewer
-        # recorded pairs means at least one child re-anchored (case b).
-        assert len(placement.paths) == 20
+        placement, _, unrouted = _place_level(keys, sizes, edges, anchor="77")
+        # Every resolved edge has a realized route — the BFS tree's 20 plus
+        # the routing pass's rescues — and none stayed unroutable.
+        assert unrouted == ()
+        assert set(placement.edge_paths) == {frozenset((a, b)) for a, b, _ in mentions}
         rooms, _, edge_paths = _normalize_placement(placement)
-        assert len(edge_paths) < 20
         unresolved: list[tuple[str, str]] = []
         doors = _door_edges(edges, rooms, edge_paths, unresolved)
-        assert len(doors) == len(edge_paths)
-        assert len(unresolved) == len(mentions) - len(edge_paths)
-        for graph_edge in edges:
-            if frozenset((graph_edge.a, graph_edge.b)) not in edge_paths:
-                assert (graph_edge.a, f"door to {graph_edge.b} not placed") in unresolved
+        assert unresolved == []
+        # 26, not 28: routed corridors may share a stating room's single free
+        # exit (junctions are legal), and doors landing on one shared wall
+        # edge collapse to the one physical doorway — room 88's three stated
+        # doors (to 89, 95, 97) all leave through 8,2:north here. Nothing
+        # drops and nothing flags: every connection is realized and the
+        # doorway is on the stating room's wall. The last edge in graph order
+        # pins the surviving DoorSpec: (88, 97)'s secret door wins the shared
+        # doorway, so exactly one secret door survives.
+        assert len(doors) == 26
+        assert sum(1 for edge in doors.values() if edge.door is not None and edge.door.kind == "secret") == 1
 
 
 class TestLevelTargetedLinks:
@@ -921,9 +937,71 @@ def test_dense_hub_graph_reanchors_instead_of_exhausting():
     edges = [
         _GraphEdge(a=a, b=b, owner=owner, direction=GridDirection(direction)) for a, b, owner, direction in mentions
     ]
-    placement, disconnected = _place_level(keys, sizes, edges, anchor="77")
+    placement, disconnected, unrouted = _place_level(keys, sizes, edges, anchor="77")
     assert set(placement.rooms) == set(keys)
     assert disconnected == ()
-    # Determinism: the fallback anchor scan is placement-ordered.
-    again, _ = _place_level(keys, sizes, edges, anchor="77")
+    assert unrouted == ()
+    # Determinism: the fallback anchor scan and the cycle-routing pass are
+    # both placement-ordered, so the whole result — rooms and routed paths
+    # alike — is byte-stable across runs.
+    again, _, _ = _place_level(keys, sizes, edges, anchor="77")
     assert again.rooms == placement.rooms
+    assert again.paths == placement.paths
+    assert again.edge_paths == placement.edge_paths
+
+
+# --------------------------------------------------------------- phase 11: the map seam in geometry
+
+
+def test_no_map_inputs_are_equivalent_and_tree_graphs_are_untouched():
+    """The no-map re-bless boundary: only levels with unrealized edges change.
+
+    A missing cache, an explicit None, and an `off` echo all reconcile as no
+    proposals; on a tree-shaped graph the cycle-routing pass has nothing to
+    route, so the result is byte-identical to the pre-phase-11 output — the
+    goldens that re-bless with this phase are exactly the ones whose graphs
+    carried cycle-closing or re-anchored edges.
+    """
+    from osrforge.contracts.stages import MapReading
+
+    index = make_index(["1", "2", "3"])
+    content = make_content({"1": [("2", "east")], "2": [("3", "south")], "3": []})
+    base = synthesize_geometry(index, [content])
+    assert synthesize_geometry(index, [content], None) == base
+    assert synthesize_geometry(index, [content], MapReading(map_reading="off", levels=())) == base
+    (geometry,) = base
+    assert geometry.map_disputes == () and geometry.map_dropped == ()
+
+
+def test_routed_loops_are_byte_stable_and_reachable():
+    # The synthesize postconditions assert reachability internally; equality
+    # across runs pins the routing pass's determinism at the API surface.
+    index = make_index(["1", "2", "3"])
+    content = make_content(
+        {"1": [("2", "east"), ("3", "south")], "2": [connection(to_key="3", direction="south")], "3": []}
+    )
+    assert synthesize_geometry(index, [content]) == synthesize_geometry(index, [content])
+
+
+def test_the_router_reports_a_walled_in_pair_as_unroutable():
+    from osrforge.geometry import _route_unrealized_edge
+
+    owner = ((0, 0),)
+    target = ((5, 5),)
+    blockers = {(1, 0), (-1, 0), (0, 1), (0, -1)}
+    room_cells = set(owner) | set(target) | blockers
+    occupied = set(room_cells)
+    assert _route_unrealized_edge(owner, target, room_cells, occupied) is None
+
+
+def test_the_router_prefers_the_shortest_corridor_and_lands_on_room_cells():
+    from osrforge.geometry import _route_unrealized_edge
+
+    owner = ((0, 0), (1, 0))
+    target = ((4, 0),)
+    room_cells = set(owner) | set(target)
+    occupied = set(room_cells)
+    path = _route_unrealized_edge(owner, target, room_cells, occupied)
+    assert path is not None
+    assert path[0] in owner and path[-1] in target
+    assert path == [(1, 0), (2, 0), (3, 0), (4, 0)]

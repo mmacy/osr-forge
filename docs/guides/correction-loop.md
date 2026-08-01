@@ -74,6 +74,24 @@ names those). An override edge always wins over the synthesized one; the
 flag itself persists after the correction — it records what synthesis could
 not place, and the report shows both it and the override that answered it.
 
+`map_disputed` flags are the map reading disagreeing with the prose (or
+filling one of its silences), and the decision tree is about which
+instrument you believe after eyeballing the previews index — each level's
+synthesized SVG beside its printed map page:
+
+- **An adoption (`… — adopted`) → usually nothing.** The prose was silent
+  and the map supplied the fact (a door, an edge, the entrance); the draft
+  already carries it. If the map was *misread*, a geometry `edges` entry
+  (or `entrance`, for the entrance dispute) is the one-line correction.
+- **A kept dispute (`… — kept`) → judge it.** The prose stated a fact the
+  map contradicts, and the prose won by rule. Agree with the prose: do
+  nothing. Agree with the map: the same geometry overrides correct the
+  draft — the flag persists as the record of the disagreement.
+- **A dropped proposal (module scope, `map names '<key>' …`) → check the
+  survey.** The map read a key the survey doesn't have — sometimes a
+  misread, sometimes a genuinely missed area, which is a survey problem
+  (`rerun survey`), not an override.
+
 Three application rules complete the contract:
 
 - Monster override keys match extracted names under the same normalization the

@@ -1,4 +1,4 @@
-"""Stage 5: assembly — overrides application, the `Adventure` build, validation, report production, artifact writing.
+"""Stage 6: assembly — overrides application, the `Adventure` build, validation, report production, artifact writing.
 
 Assembly is pure: `adventure.json`, `report.json`, and the previews are a
 deterministic function of the cached stage outputs *plus `overrides.yaml`* —
@@ -80,6 +80,7 @@ from osrforge.contracts.stages import (
     AreaContent,
     AreaEncounter,
     LevelContent,
+    MapReading,
     MonsterResolution,
     MonsterResolutions,
     RawStatBlock,
@@ -1120,11 +1121,12 @@ def _build_area(
     transition_flags = [
         format_flag(Flag.TRANSITION_GUESSED, detail) for key, detail in geometry.guessed_transitions if key == area_key
     ]
+    map_flags = [format_flag(Flag.MAP_DISPUTED, detail) for key, detail in geometry.map_disputes if key == area_key]
 
     flags: list[str] = []
     if not cells_overridden:
         flags.append(format_flag(Flag.GEOMETRY_SYNTHESIZED))
-    for group in (low_confidence, monster_flags, connection_flags, transition_flags, treasure_flags):
+    for group in (low_confidence, monster_flags, connection_flags, transition_flags, map_flags, treasure_flags):
         flags.extend(dict.fromkeys(group))
     overridden = [name for name in AREA_OVERRIDE_FIELDS if name in fields]
     if cells_overridden:
@@ -1241,6 +1243,12 @@ def build_draft(
     # The census's disagreements, straight off the survey cache — an
     # extraction fact like the blanked pages, so it persists under overrides.
     module_flags.extend(format_flag(Flag.SURVEY_DISPUTED, detail) for detail in index.census_disputes)
+    # The map reading's dropped proposals, off the geometry channels — the
+    # no-silent-proposals rule's module-scope half, each detail carrying its
+    # level address (geometries ride in survey order).
+    module_flags.extend(
+        format_flag(Flag.MAP_DISPUTED, detail) for geometry in geometries for detail in geometry.map_dropped
+    )
     name = _overridden_text(index.title, plan.module, "name")
     if not name:
         name = "Untitled module"
@@ -1387,7 +1395,7 @@ def _load_caches(workdir: Workdir) -> tuple[SurveyIndex, tuple[LevelContent, ...
 
 
 def assemble(workdir_path: Path) -> AssembleResult:
-    """Run stage 5: overrides application, geometry synthesis, the adventure build, validation, and the artifact writes.
+    """Run stage 6: overrides application, geometry synthesis, the adventure build, validation, and the artifact writes.
 
     Args:
         workdir_path: The workdir root; its monsters stage must be `completed`
@@ -1399,7 +1407,11 @@ def assemble(workdir_path: Path) -> AssembleResult:
         `adventure.json` and `report.json` (plus one preview per level).
 
     Raises:
-        ValueError: If the monsters stage is not `completed`, a cache is
+        ValueError: If the monsters stage is not `completed`, the mapread
+            stage is `failed` or `running` (a mid-convert map failure must
+            not silently assemble prose-only — `rerun mapread` is the named
+            remedy; a `pending` or absent entry, or an absent cache, is the
+            honest no-proposals state of a pre-phase-11 workdir), a cache is
             missing, or the monsters or stat-block cache is stale against the
             upstream caches (programmer misuse — `convert`'s ordering makes
             these unreachable).
@@ -1416,6 +1428,19 @@ def assemble(workdir_path: Path) -> AssembleResult:
     monsters_status = run.stages.get(Stage.MONSTERS)
     if monsters_status is None or monsters_status.status != "completed":
         raise ValueError("assemble requires a completed monsters stage")
+    # The missing-cache posture, sharpened past the statblocks precedent it
+    # leans on: mapread sits downstream of the monsters gate, so a workdir
+    # whose mapread stage failed mid-convert also has no cache — a silent
+    # prose-only assemble would hide the failure. A `pending` or absent
+    # entry, or an absent cache, is the honest state of a pre-phase-11
+    # workdir (and of fabricated test workdirs, which mint unneeded stages
+    # `pending`) and reconciles as no proposals.
+    mapread_status = run.stages.get(Stage.MAPREAD)
+    if mapread_status is not None and mapread_status.status in ("failed", "running"):
+        raise ValueError(f"the mapread stage is {mapread_status.status} — rerun mapread")
+    map_reading: MapReading | None = None
+    if workdir.mapread_json.is_file():
+        map_reading = MapReading.model_validate_json(workdir.mapread_json.read_text(encoding="utf-8"))
     index, levels = _load_caches(workdir)
     if not workdir.monsters_json.is_file():
         raise ValueError(f"the monsters cache is missing: {workdir.monsters_json}")
@@ -1482,7 +1507,7 @@ def assemble(workdir_path: Path) -> AssembleResult:
     with track_stage(workdir, Stage.GEOMETRY):
         geometries = tuple(
             apply_level_overrides(geometry, plan.levels.get((geometry.dungeon_id, geometry.level_number)))
-            for geometry in synthesize_geometry(index, levels)
+            for geometry in synthesize_geometry(index, levels, map_reading)
         )
     with track_stage(workdir, Stage.ASSEMBLE):
         draft = build_draft(
@@ -1498,10 +1523,11 @@ def assemble(workdir_path: Path) -> AssembleResult:
         validation = _run_validation(draft.adventure)
         resolved_count = sum(1 for resolution in resolutions.resolutions.values() if resolution.template_id is not None)
         usage = TokenUsage()
-        for stage in (Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS):
-            stage_usage = run.stages[stage].usage
-            if stage_usage is not None:
-                usage = usage + stage_usage
+        # `.get`: a pre-phase-11 run.json has no mapread entry and still assembles.
+        for stage in (Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS, Stage.MAPREAD):
+            stage_status = run.stages.get(stage)
+            if stage_status is not None and stage_status.usage is not None:
+                usage = usage + stage_status.usage
         bundled_ids = {template.id for template in draft.adventure.monsters}
         custom_records = tuple(
             CustomMonsterRecord(
@@ -1579,11 +1605,19 @@ def render_previews(workdir_path: Path) -> tuple[Path, ...]:
     """
     workdir = Workdir(workdir_path)
     index, levels = _load_caches(workdir)
+    # The documented guarantee is that previews follow the draft, so the map
+    # cache threads here exactly as in assemble(). No run.json gate, by
+    # design: the pure preview path reads caches alone, and previews after a
+    # failed mapread are harmless prose-only renders (there is no draft to
+    # diverge from — assemble errors loudly).
+    map_reading: MapReading | None = None
+    if workdir.mapread_json.is_file():
+        map_reading = MapReading.model_validate_json(workdir.mapread_json.read_text(encoding="utf-8"))
     overrides = load_overrides(workdir.overrides_yaml)
     plan = plan_overrides(index, overrides)
     geometries = tuple(
         apply_level_overrides(geometry, plan.levels.get((geometry.dungeon_id, geometry.level_number)))
-        for geometry in synthesize_geometry(index, levels)
+        for geometry in synthesize_geometry(index, levels, map_reading)
     )
     geometry_by_address = {(geometry.dungeon_id, geometry.level_number): geometry for geometry in geometries}
     workdir.previews_dir.mkdir(parents=True, exist_ok=True)

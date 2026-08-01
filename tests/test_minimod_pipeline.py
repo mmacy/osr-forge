@@ -12,7 +12,10 @@ FixtureProvider to answer with, so a call would fail loudly.
 The survey stage is a two-call stage since phase 10 (the census rides the
 same pages), so every replaying test needs the recorded census fixture —
 committed at `assets/minimod/fixtures/census.*.json`; deleting it fails the
-suite loudly, as a stranded fixture should.
+suite loudly, as a stranded fixture should. The mapread stage (phase 11)
+makes one call per surveyed level — one for minimod — replayed from the
+`mapread.*.json` fixture recorded through the extraction runner's targeted
+leg.
 """
 
 import shutil
@@ -24,6 +27,7 @@ from osrforge.content import content
 from osrforge.contracts.report import AreaAddress
 from osrforge.contracts.run import RunMeta, Stage, StageStatus
 from osrforge.contracts.stages import CANONICAL_SLUG_PATTERN, LevelContent, SurveyIndex
+from osrforge.mapread import mapread
 from osrforge.monsters import monsters
 from osrforge.providers.fixtures import FixtureProvider
 from osrforge.settings import ConversionSettings
@@ -62,6 +66,7 @@ def run_pipeline(root: Path) -> dict[str, bytes]:
     survey(workdir, provider)
     content(workdir, provider)
     monsters(workdir, provider)
+    mapread(workdir, provider)
     assemble(root)
     produced = {f"stages/{path.name}": path.read_bytes() for path in sorted(workdir.stages_dir.iterdir())}
     produced |= {f"previews/{path.name}": path.read_bytes() for path in sorted(workdir.previews_dir.iterdir())}
@@ -98,9 +103,10 @@ def test_run_json_records_every_stage_with_usage_and_identity(tmp_path: Path):
     survey(workdir, provider)
     content(workdir, provider)
     monsters(workdir, provider)
+    mapread(workdir, provider)
     assemble(workdir.root)
     run = workdir.read_run()
-    for stage in (Stage.SURVEY, Stage.CONTENT):
+    for stage in (Stage.SURVEY, Stage.CONTENT, Stage.MAPREAD):
         status = run.stages[stage]
         assert status.status == "completed"
         assert status.usage is not None
