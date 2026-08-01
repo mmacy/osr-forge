@@ -592,11 +592,16 @@ def test_transitions_override_drops_guessed_transition_flags():
         unknown_direction_connections=(),
         disconnected_areas=(),
         guessed_transitions=(("1", "lair/2/9"),),
+        map_disputes=(("1", "entrance map 1, survey-order 2"),),
+        map_dropped=("lair/1: map names 'x9'; the survey does not",),
     )
     kept = apply_level_overrides(geometry, LevelOverridePlan())
     assert kept.guessed_transitions == (("1", "lair/2/9"),)
     dropped = apply_level_overrides(geometry, LevelOverridePlan(transitions_set=True, transitions=()))
     assert dropped.guessed_transitions == ()
+    # Map disputes are extraction facts: they persist under overrides.
+    assert dropped.map_disputes == geometry.map_disputes
+    assert dropped.map_dropped == geometry.map_dropped
 
 
 def test_cells_replacement_recomputes_the_bounds():

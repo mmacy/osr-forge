@@ -48,6 +48,7 @@ class Stage(StrEnum):
     SURVEY = "survey"
     CONTENT = "content"
     MONSTERS = "monsters"
+    MAPREAD = "mapread"
     GEOMETRY = "geometry"
     ASSEMBLE = "assemble"
 

@@ -34,6 +34,7 @@ __all__ = [
     "CONNECTION_VIAS",
     "DICE_PATTERN",
     "DIRECTIONS",
+    "MAP_DOORS",
     "AcNotation",
     "AreaConnection",
     "AreaContent",
@@ -42,6 +43,10 @@ __all__ = [
     "ConnectionVia",
     "Direction",
     "LevelContent",
+    "MapDoor",
+    "MapEdgeProposal",
+    "MapLevelReading",
+    "MapReading",
     "MonsterResolution",
     "MonsterResolutions",
     "RawStatBlock",
@@ -439,6 +444,106 @@ class MonsterResolutions(BaseModel):
     @classmethod
     def _keys_sorted(cls, value: dict[str, MonsterResolution]) -> dict[str, MonsterResolution]:
         return dict(sorted(value.items()))
+
+
+MapDoor = Literal["none", "door", "secret_door"]
+"""A map-proposed pair's door reading; `none` is an assertion, not an absence.
+
+The truth convention's own posture, inverted from prose: a proposed pair's
+door reading is complete, so `none` on a proposed pair disputes a
+prose-stated door, while prose with no stated door on that pair agrees
+silently whatever its non-door mechanism (the map's vocabulary doesn't carry
+mechanisms).
+"""
+
+MAP_DOORS: tuple[str, ...] = get_args(MapDoor)
+"""The `MapDoor` wire values, for building extraction-schema enums."""
+
+
+class MapEdgeProposal(BaseModel):
+    """One map-proposed same-level adjacency between two printed keys.
+
+    `a` and `b` cache **as answered, raw** — endpoint resolution
+    (exact-then-slug against the survey's keys) happens at reconcile time in
+    deterministic code, so a reconciliation-policy fix never strands a
+    recorded fixture.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    a: str
+    """One endpoint's printed key, as the model answered it."""
+
+    b: str
+    """The other endpoint's printed key, as the model answered it."""
+
+    door: MapDoor = "none"
+    """The pair's door reading — complete for a proposed pair (see
+    [`MapDoor`][osrforge.contracts.stages.MapDoor])."""
+
+
+class MapLevelReading(BaseModel):
+    """One level's map reading: the proposals, or the recorded reason there are none."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    dungeon_id: str
+    """The [canonical][canonical-slug] dungeon id, matching the survey index."""
+
+    level_number: int = Field(ge=1)
+    """The 1-based level number, matching the survey index."""
+
+    map_pages: tuple[int, ...]
+    """The pages actually sent — provenance, not the survey's `map_pages`
+    verbatim: blanked renders are excluded, and an unread level sent none."""
+
+    status: Literal["read", "unread"]
+    """Whether this level's map was read. An `unread` level produces no
+    adoptions and no disagreements at reconcile time — the prose-only path,
+    bit for bit."""
+
+    unread_reason: str | None = None
+    """Why the level went unread (`no_map_pages`, `pages_blanked`,
+    `no_keyed_areas`, `empty_reading`); `None` exactly when `status` is
+    `read`."""
+
+    proposals: tuple[MapEdgeProposal, ...] = ()
+    """The proposed adjacencies, as answered."""
+
+    entrance_key: str | None = None
+    """The map-labeled way in, as answered; `None` when the map labels none."""
+
+    @model_validator(mode="after")
+    def _reason_iff_unread(self) -> MapLevelReading:
+        if (self.unread_reason is None) != (self.status == "read"):
+            raise ValueError("unread_reason must be set exactly when the status is 'unread'")
+        return self
+
+    @field_validator("dungeon_id")
+    @classmethod
+    def _id_canonical(cls, value: str) -> str:
+        return _canonical(value)
+
+
+class MapReading(BaseModel):
+    """The `stages/mapread.json` cache: every level's map reading.
+
+    Carries the `map_reading` knob echo (the
+    [`StatBlocks.custom_monsters`][osrforge.contracts.stages.StatBlocks]
+    precedent) so assembly reads the cache, never the knob; under `off` the
+    stage writes the echo with zero levels.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: int = SCHEMA_VERSION
+    """The stage-cache schema version this cache was written under."""
+
+    map_reading: Literal["read", "off"]
+    """The knob the stage ran under, echoed."""
+
+    levels: tuple[MapLevelReading, ...] = ()
+    """One reading per surveyed level, in survey order; empty under `off`."""
 
 
 AcNotation = Literal["descending", "ascending", "dual"]

@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "fingerprint": "26ebe7df59c2109309aacabe3f48bee2f5a085ee126e18a9aea0321d89d7a745",
+  "tag": "mapread.the-root-cellar-of-old-wenna.1",
+  "request": {
+    "system": "You read one dungeon level's printed map from a tabletop adventure module. The user message names the dungeon and level and lists the level's keyed areas in printed order, then interleaves each map page's extracted text (each headed by a [page N] marker) with that page's image — the map is in the images; read them.\n\nRules:\n- Propose adjacency only between the provided printed keys. Two keyed areas are adjacent when the map joins them directly by a door, opening, or passage, or through unkeyed passage in consecutive order along it.\n- Report a door only where the map marks one; use \"secret_door\" only where the map's legend marks the door secret. \"none\" means the map joins the pair with no door marked.\n- \"entrance\" is the keyed area holding the way into the level from outside, only where the map labels it (an entrance arrow, a labeled stair from the surface, a marked cave mouth). Answer null when the map labels none.\n- Propose nothing that cannot be read: keys the map does not show, adjacencies you cannot trace, or an entrance the map does not label are omissions, never guesses.\n",
+    "parts": [
+      {
+        "text": "Read the level map for \"The Root Cellar of Old Wenna\", level 1. The level's keyed areas, in printed order:\n- 1\n- 2\n- 3\n- 4\n- 5\n- 6\n"
+      },
+      {
+        "text": "[page 4]\n"
+      },
+      {
+        "sha256": "f6475973849d7a88a881b912efa4dd7de482816a18567c02c13685ee28baf0c1",
+        "bytes": 11627
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "adjacencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "b": {
+                "type": "string"
+              },
+              "door": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "door",
+                  "secret_door"
+                ]
+              }
+            },
+            "required": [
+              "a",
+              "b",
+              "door"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "entrance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "adjacencies",
+        "entrance"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "adjacencies": [],
+      "entrance": null
+    },
+    "usage": {
+      "input_tokens": 1307,
+      "output_tokens": 29
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

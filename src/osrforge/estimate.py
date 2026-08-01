@@ -83,6 +83,16 @@ _MONSTERS_OUTPUT_TOKENS = 500
 _STATBLOCK_NAMES_PER_PAGE = 0.6
 _STATBLOCK_INPUT_TOKENS_PER_REQUEST = 8_000
 _STATBLOCK_OUTPUT_TOKENS_PER_REQUEST = 150
+# The map-reading stage (read is the default): one request per surveyed
+# level. Levels cannot be counted before extraction, so the term prices from
+# page count. Measured over the phase 10 retained pair: 15 levels over 48
+# pages, 6 over 54 — pinned at 0.2 levels/page. Per-request input: a map
+# page ≈ 905 image tokens plus its text layer, the key list, and the prompt;
+# map pages per level measured 45/44 ≈ 1.02 across the retained pair, so the
+# one-page arithmetic holds as a mean — pinned at 2,500 in / 400 out.
+_MAPREAD_LEVELS_PER_PAGE = 0.2
+_MAPREAD_INPUT_TOKENS_PER_REQUEST = 2_500
+_MAPREAD_OUTPUT_TOKENS_PER_REQUEST = 400
 
 
 @dataclass(frozen=True)
@@ -106,6 +116,9 @@ class CostEstimate:
         monsters_input_tokens: Estimated monsters-stage input — the flat LLM
             tier plus the page-count-priced stat-block pass.
         monsters_output_tokens: Estimated monsters-stage output, same terms.
+        mapread_input_tokens: Estimated map-reading input — one request per
+            level, levels priced from page count.
+        mapread_output_tokens: Estimated map-reading output, same terms.
         input_tokens: The input total.
         output_tokens: The output total.
         usd: The estimated cost, with each survey and census window priced at
@@ -125,6 +138,8 @@ class CostEstimate:
     content_output_tokens: int
     monsters_input_tokens: int
     monsters_output_tokens: int
+    mapread_input_tokens: int
+    mapread_output_tokens: int
     input_tokens: int
     output_tokens: int
     usd: float
@@ -144,8 +159,9 @@ def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: Conve
     per-window output — its cost lever is the page images, and blindness on
     scanned modules is the wrong trade, so it re-sends the full page parts.
     The monsters term is the flat LLM-tier constant plus the widened
-    stat-block pass priced from page count (the constants' provenance is
-    documented where they are defined).
+    stat-block pass priced from page count; the mapread term prices one
+    request per level with levels likewise priced from page count (the
+    constants' provenance is documented where they are defined).
     """
     page_count = len(page_text_tokens)
     text_tokens = sum(page_text_tokens)
@@ -180,10 +196,13 @@ def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: Conve
     statblock_requests = math.ceil(_STATBLOCK_NAMES_PER_PAGE * page_count)
     monsters_input = _MONSTERS_INPUT_TOKENS + statblock_requests * _STATBLOCK_INPUT_TOKENS_PER_REQUEST
     monsters_output = _MONSTERS_OUTPUT_TOKENS + statblock_requests * _STATBLOCK_OUTPUT_TOKENS_PER_REQUEST
+    mapread_requests = math.ceil(_MAPREAD_LEVELS_PER_PAGE * page_count)
+    mapread_input = mapread_requests * _MAPREAD_INPUT_TOKENS_PER_REQUEST
+    mapread_output = mapread_requests * _MAPREAD_OUTPUT_TOKENS_PER_REQUEST
     usd = (
         windowed_usd
-        + (content_input + monsters_input) * INPUT_USD_PER_TOKEN
-        + (content_output + monsters_output) * OUTPUT_USD_PER_TOKEN
+        + (content_input + monsters_input + mapread_input) * INPUT_USD_PER_TOKEN
+        + (content_output + monsters_output + mapread_output) * OUTPUT_USD_PER_TOKEN
     )
     return CostEstimate(
         page_count=page_count,
@@ -198,8 +217,10 @@ def _estimate_from_measurements(page_text_tokens: Sequence[int], settings: Conve
         content_output_tokens=content_output,
         monsters_input_tokens=monsters_input,
         monsters_output_tokens=monsters_output,
-        input_tokens=survey_input + census_input + content_input + monsters_input,
-        output_tokens=survey_output + census_output + content_output + monsters_output,
+        mapread_input_tokens=mapread_input,
+        mapread_output_tokens=mapread_output,
+        input_tokens=survey_input + census_input + content_input + monsters_input + mapread_input,
+        output_tokens=survey_output + census_output + content_output + monsters_output + mapread_output,
         usd=usd,
     )
 

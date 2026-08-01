@@ -357,6 +357,7 @@ def _cmd_estimate(args: argparse.Namespace) -> None:
     print(f"census:   in={result.census_input_tokens} out={result.census_output_tokens}")
     print(f"content:  in={result.content_input_tokens} out={result.content_output_tokens}")
     print(f"monsters: in={result.monsters_input_tokens} out={result.monsters_output_tokens}")
+    print(f"mapread:  in={result.mapread_input_tokens} out={result.mapread_output_tokens}")
     print(f"total:    in={result.input_tokens} out={result.output_tokens}")
     print(f"estimated cost: ${result.usd:.2f}")
 

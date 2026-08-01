@@ -464,6 +464,10 @@ def apply_level_overrides(geometry: LevelGeometry, plan: LevelOverridePlan | Non
         # their review badges drop with them — the same rule that drops
         # `geometry_synthesized` on overridden cells; connection facts persist.
         guessed_transitions=() if plan.transitions_set else geometry.guessed_transitions,
+        # Map disputes are extraction facts, like connection ambiguities: no
+        # override kind touches the reconciled evidence, so they persist.
+        map_disputes=geometry.map_disputes,
+        map_dropped=geometry.map_dropped,
     )
 
 

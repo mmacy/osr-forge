@@ -98,6 +98,7 @@
 <rect x="366" y="44" width="24" height="24" fill="#efe9dc"/>
 <rect x="246" y="92" width="24" height="24" fill="#efe9dc"/>
 <rect x="318" y="92" width="24" height="24" fill="#efe9dc"/>
+<rect x="390" y="92" width="24" height="24" fill="#efe9dc"/>
 <rect x="366" y="116" width="24" height="24" fill="#efe9dc"/>
 <rect x="246" y="164" width="24" height="24" fill="#efe9dc"/>
 <rect x="246" y="236" width="24" height="24" fill="#efe9dc"/>
@@ -107,6 +108,9 @@
 <rect x="30" y="308" width="24" height="24" fill="#efe9dc"/>
 <rect x="102" y="308" width="24" height="24" fill="#efe9dc"/>
 <rect x="174" y="308" width="24" height="24" fill="#efe9dc"/>
+<rect x="150" y="332" width="24" height="24" fill="#efe9dc"/>
+<rect x="78" y="356" width="24" height="24" fill="#efe9dc"/>
+<rect x="78" y="380" width="24" height="24" fill="#efe9dc"/>
 <rect x="102" y="380" width="24" height="24" fill="#efe9dc"/>
 <line x1="30" y1="260" x2="30" y2="284" stroke="#333333" stroke-width="2"/>
 <line x1="30" y1="260" x2="54" y2="260" stroke="#333333" stroke-width="2"/>
@@ -124,13 +128,14 @@
 <line x1="78" y1="284" x2="78" y2="308" stroke="#333333" stroke-width="2"/>
 <line x1="78" y1="284" x2="102" y2="284" stroke="#333333" stroke-width="2"/>
 <line x1="78" y1="332" x2="78" y2="356" stroke="#333333" stroke-width="2"/>
-<line x1="78" y1="356" x2="78" y2="380" stroke="#333333" stroke-width="2"/>
+<line x1="78" y1="356" x2="102" y2="356" stroke="#333333" stroke-width="2"/>
+<line x1="78" y1="380" x2="78" y2="404" stroke="#333333" stroke-width="2"/>
+<line x1="78" y1="404" x2="102" y2="404" stroke="#333333" stroke-width="2"/>
 <line x1="102" y1="260" x2="126" y2="260" stroke="#333333" stroke-width="2"/>
 <line x1="102" y1="284" x2="102" y2="308" stroke="#333333" stroke-width="2"/>
 <line x1="102" y1="308" x2="102" y2="332" stroke="#333333" stroke-width="2"/>
 <line x1="102" y1="332" x2="102" y2="356" stroke="#333333" stroke-width="2"/>
 <line x1="102" y1="356" x2="102" y2="380" stroke="#333333" stroke-width="2"/>
-<line x1="102" y1="380" x2="102" y2="404" stroke="#333333" stroke-width="2"/>
 <line x1="102" y1="404" x2="102" y2="428" stroke="#333333" stroke-width="2"/>
 <line x1="102" y1="428" x2="102" y2="452" stroke="#333333" stroke-width="2"/>
 <line x1="102" y1="452" x2="126" y2="452" stroke="#333333" stroke-width="2"/>
@@ -145,14 +150,14 @@
 <line x1="150" y1="260" x2="174" y2="260" stroke="#333333" stroke-width="2"/>
 <line x1="150" y1="284" x2="150" y2="308" stroke="#333333" stroke-width="2"/>
 <line x1="150" y1="284" x2="174" y2="284" stroke="#333333" stroke-width="2"/>
-<line x1="150" y1="332" x2="150" y2="356" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="332" x2="174" y2="332" stroke="#333333" stroke-width="2"/>
 <line x1="150" y1="356" x2="150" y2="380" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="356" x2="174" y2="356" stroke="#333333" stroke-width="2"/>
 <line x1="150" y1="404" x2="150" y2="428" stroke="#333333" stroke-width="2"/>
 <line x1="150" y1="428" x2="150" y2="452" stroke="#333333" stroke-width="2"/>
 <line x1="174" y1="260" x2="198" y2="260" stroke="#333333" stroke-width="2"/>
 <line x1="174" y1="284" x2="174" y2="308" stroke="#333333" stroke-width="2"/>
 <line x1="174" y1="308" x2="174" y2="332" stroke="#333333" stroke-width="2"/>
-<line x1="174" y1="332" x2="174" y2="356" stroke="#333333" stroke-width="2"/>
 <line x1="174" y1="356" x2="174" y2="380" stroke="#333333" stroke-width="2"/>
 <line x1="174" y1="380" x2="198" y2="380" stroke="#333333" stroke-width="2"/>
 <line x1="198" y1="260" x2="222" y2="260" stroke="#333333" stroke-width="2"/>
@@ -216,11 +221,11 @@
 <line x1="366" y1="140" x2="390" y2="140" stroke="#333333" stroke-width="2"/>
 <line x1="390" y1="44" x2="414" y2="44" stroke="#333333" stroke-width="2"/>
 <line x1="390" y1="68" x2="390" y2="92" stroke="#333333" stroke-width="2"/>
-<line x1="390" y1="92" x2="414" y2="92" stroke="#333333" stroke-width="2"/>
-<line x1="390" y1="116" x2="414" y2="116" stroke="#333333" stroke-width="2"/>
+<line x1="390" y1="92" x2="390" y2="116" stroke="#333333" stroke-width="2"/>
 <line x1="390" y1="140" x2="390" y2="164" stroke="#333333" stroke-width="2"/>
 <line x1="390" y1="164" x2="414" y2="164" stroke="#333333" stroke-width="2"/>
 <line x1="414" y1="44" x2="438" y2="44" stroke="#333333" stroke-width="2"/>
+<line x1="414" y1="92" x2="414" y2="116" stroke="#333333" stroke-width="2"/>
 <line x1="414" y1="92" x2="438" y2="92" stroke="#333333" stroke-width="2"/>
 <line x1="414" y1="116" x2="438" y2="116" stroke="#333333" stroke-width="2"/>
 <line x1="414" y1="164" x2="438" y2="164" stroke="#333333" stroke-width="2"/>

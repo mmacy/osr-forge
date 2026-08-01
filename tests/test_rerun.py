@@ -35,7 +35,7 @@ def produced_artifacts(root: Path) -> dict[str, bytes]:
     return produced
 
 
-@pytest.mark.parametrize("stage", [Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS, Stage.ASSEMBLE])
+@pytest.mark.parametrize("stage", [Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS, Stage.MAPREAD, Stage.ASSEMBLE])
 def test_rerun_resumes_each_stage_through_assemble_to_the_goldens(tmp_path: Path, stage: Stage):
     root = tmp_path / "mod.forge"
     run_pipeline(root)
@@ -154,10 +154,12 @@ def test_unknown_knob_is_a_validation_error(tmp_path: Path):
 def test_rerun_requires_a_provider_exactly_when_the_chain_has_model_stages(tmp_path: Path):
     root = tmp_path / "mod.forge"
     run_pipeline(root)
-    with pytest.raises(ValueError, match="survey, content, monsters"):
+    with pytest.raises(ValueError, match="survey, content, monsters, mapread"):
         rerun(root, Stage.SURVEY)
-    with pytest.raises(ValueError, match="monsters"):
+    with pytest.raises(ValueError, match="monsters, mapread"):
         rerun(root, Stage.MONSTERS)
+    with pytest.raises(ValueError, match="mapread"):
+        rerun(root, Stage.MAPREAD)
 
 
 def test_rerun_rejects_the_geometry_stage(tmp_path: Path):

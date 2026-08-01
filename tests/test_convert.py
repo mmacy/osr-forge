@@ -78,17 +78,19 @@ def test_full_chain_events_and_result(tmp_path: Path, monkeypatch: pytest.Monkey
     assert result.adventure.name == "The Root Cellar of Old Wenna"
     assert result.report.validation.passed is True
     assert result.run.stages[Stage.ASSEMBLE].status == "completed"
-    chain = [Stage.PREPROCESS, Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS, Stage.ASSEMBLE]
+    chain = [Stage.PREPROCESS, Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS, Stage.MAPREAD, Stage.ASSEMBLE]
     assert [(event.stage, event.status) for event in events] == [
         (stage, status) for stage in chain for status in ("running", "completed")
     ]
-    # Completed events carry that stage's usage from run.json; the survey made
-    # a model call, the monsters stage did not.
+    # Completed events carry that stage's usage from run.json; the survey and
+    # mapread stages made model calls, the monsters stage did not.
     by_stage = {event.stage: event for event in events if event.status == "completed"}
     survey_usage = by_stage[Stage.SURVEY].usage
     assert survey_usage is not None and survey_usage.input_tokens > 0
     monsters_usage = by_stage[Stage.MONSTERS].usage
     assert monsters_usage is not None and monsters_usage.input_tokens == 0
+    mapread_usage = by_stage[Stage.MAPREAD].usage
+    assert mapread_usage is not None and mapread_usage.input_tokens > 0
     for stage in chain:
         assert next(event for event in events if event.stage is stage and event.status == "running").usage is None
     # The DoD's byte gate for the literal convert(): every produced artifact

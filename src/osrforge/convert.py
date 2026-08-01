@@ -1,4 +1,4 @@
-"""The end-to-end conversion and its resume: `preprocess → survey → content → monsters → assemble`.
+"""The end-to-end conversion and its resume: `preprocess → survey → content → monsters → mapread → assemble`.
 
 Each stage writes its own `run.json` status; a stage failure propagates after
 its `failed` status is written, keeping everything upstream. `rerun` resumes:
@@ -19,6 +19,7 @@ from osrforge.assemble import AssembleResult, assemble
 from osrforge.content import content
 from osrforge.contracts.report import ExtractionReport
 from osrforge.contracts.run import RunMeta, Stage, StageState, TokenUsage
+from osrforge.mapread import mapread
 from osrforge.monsters import monsters
 from osrforge.preprocess import preprocess
 from osrforge.providers.base import ModelProvider
@@ -28,10 +29,17 @@ from osrforge.workdir import Workdir
 
 __all__ = ["KNOB_STAGES", "RUNNABLE_STAGES", "ConversionResult", "OnProgress", "StageEvent", "convert", "rerun"]
 
-RUNNABLE_STAGES: tuple[Stage, ...] = (Stage.PREPROCESS, Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS, Stage.ASSEMBLE)
-"""The five chain steps, in order — geometry has no independent run (it lives inside assembly)."""
+RUNNABLE_STAGES: tuple[Stage, ...] = (
+    Stage.PREPROCESS,
+    Stage.SURVEY,
+    Stage.CONTENT,
+    Stage.MONSTERS,
+    Stage.MAPREAD,
+    Stage.ASSEMBLE,
+)
+"""The six chain steps, in order — geometry has no independent run (it lives inside assembly)."""
 
-_MODEL_STAGES = frozenset({Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS})
+_MODEL_STAGES = frozenset({Stage.SURVEY, Stage.CONTENT, Stage.MONSTERS, Stage.MAPREAD})
 
 KNOB_STAGES: Mapping[str, Stage] = {
     "render_dpi": Stage.PREPROCESS,
@@ -43,6 +51,7 @@ KNOB_STAGES: Mapping[str, Stage] = {
     "monster_fuzzy_threshold": Stage.MONSTERS,
     "monster_llm_top_k": Stage.MONSTERS,
     "custom_monsters": Stage.MONSTERS,
+    "map_reading": Stage.MAPREAD,
     "unresolved_fallback": Stage.ASSEMBLE,
 }
 """Each settings knob's owning stage — the drift guard's table.
@@ -124,7 +133,7 @@ def _chain_steps(
     provider: ModelProvider | None,
     preprocess_step: Callable[[], object] | None,
 ) -> list[tuple[Stage, Callable[[], object]]]:
-    model_steps = {Stage.SURVEY: survey, Stage.CONTENT: content, Stage.MONSTERS: monsters}
+    model_steps = {Stage.SURVEY: survey, Stage.CONTENT: content, Stage.MONSTERS: monsters, Stage.MAPREAD: mapread}
     steps: list[tuple[Stage, Callable[[], object]]] = []
     for stage in stages:
         if stage is Stage.PREPROCESS:

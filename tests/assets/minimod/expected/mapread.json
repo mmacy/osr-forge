@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "map_reading": "read",
+  "levels": [
+    {
+      "dungeon_id": "the-root-cellar-of-old-wenna",
+      "level_number": 1,
+      "map_pages": [
+        4
+      ],
+      "status": "unread",
+      "unread_reason": "empty_reading",
+      "proposals": [],
+      "entrance_key": null
+    }
+  ]
+}

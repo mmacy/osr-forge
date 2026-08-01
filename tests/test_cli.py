@@ -527,8 +527,10 @@ class TestEstimateCommand:
                 content_output_tokens=110_000,
                 monsters_input_tokens=965_000,
                 monsters_output_tokens=18_500,
-                input_tokens=1_562_575,
-                output_tokens=143_500,
+                mapread_input_tokens=100_000,
+                mapread_output_tokens=16_000,
+                input_tokens=1_662_575,
+                output_tokens=159_500,
                 usd=2.9,
             )
 
@@ -539,6 +541,7 @@ class TestEstimateCommand:
         assert "pages: 200" in out
         assert "(2 windows)" in out
         assert "census:   in=184100 out=1000" in out
+        assert "mapread:  in=100000 out=16000" in out
         assert "estimated cost: $2.90" in out
         # The guard warning is gone from the table — larger sources chunk.
         assert "survey guard" not in out

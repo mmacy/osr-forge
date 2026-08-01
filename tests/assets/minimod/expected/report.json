@@ -87,8 +87,8 @@
     "vetoed": []
   },
   "usage": {
-    "input_tokens": 15236,
-    "output_tokens": 1213
+    "input_tokens": 16543,
+    "output_tokens": 1242
   },
   "flags": [],
   "findings": []

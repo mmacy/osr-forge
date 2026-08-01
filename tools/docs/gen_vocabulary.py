@@ -36,6 +36,12 @@ _FLAG_MEANINGS = {
         "level counts, or a printed key range against the survey's keyed extremes (detail: the disagreement; "
         "module-scope)"
     ),
+    Flag.MAP_DISPUTED: (
+        "the map reading and the prose disagreed, a map fact filled a prose absence, or a proposal was "
+        "dropped — every adoption, disagreement, and dropped proposal carries one (detail: both readings; "
+        "edge disputes on the survey-order-first endpoint, the entrance dispute on the selected entrance "
+        "area, dropped proposals module-scope with the level address)"
+    ),
 }
 
 _CHECK_MEANINGS = {

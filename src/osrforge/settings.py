@@ -94,6 +94,18 @@ class ConversionSettings(BaseModel):
     including its LLM resolution tier.
     """
 
+    map_reading: Literal["read", "off"] = "read"
+    """Whether the map-reading stage sends each level's map pages for adjacency proposals.
+
+    `read` runs one request per surveyed level over its unblanked map pages,
+    caching the proposed adjacencies, doors, and entrance for geometry's
+    deterministic reconciliation; `off` skips every request and writes the
+    knob-echoed cache with zero levels — the prose-only pipeline, bit for
+    bit, and the cost control for modules whose maps are known-unreadable.
+    Owned by the mapread stage and only by it: assembly is driven purely by
+    the cache's echo, so toggling the knob re-runs mapread.
+    """
+
     unresolved_fallback: Literal["best-effort", "omit"] = "best-effort"
     """What assembly puts in the draft where resolution or parsing came up empty.
 

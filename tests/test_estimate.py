@@ -37,8 +37,11 @@ def test_minimod_estimate_is_pinned(tmp_path: Path):
     # requests at 8,000/150 each.
     assert result.monsters_input_tokens == 5000 + 3 * 8000
     assert result.monsters_output_tokens == 500 + 3 * 150
-    assert result.input_tokens == 6987 + 5487 + 6234 + 29_000
-    assert result.output_tokens == 350 + 500 + 2750 + 950
+    # The mapread term: ceil(0.2 * 5) = 1 per-level request at 2,500/400.
+    assert result.mapread_input_tokens == 2500
+    assert result.mapread_output_tokens == 400
+    assert result.input_tokens == 6987 + 5487 + 6234 + 29_000 + 2500
+    assert result.output_tokens == 350 + 500 + 2750 + 950 + 400
     expected_usd = result.input_tokens * INPUT_USD_PER_TOKEN + result.output_tokens * OUTPUT_USD_PER_TOKEN
     assert result.usd == pytest.approx(expected_usd)
 
@@ -65,8 +68,10 @@ def test_a_single_request_survey_crosses_the_tier_cliff_alone():
     expected_usd = (
         (result.survey_input_tokens + result.census_input_tokens) * LARGE_INPUT_USD_PER_TOKEN
         + (result.survey_output_tokens + result.census_output_tokens) * LARGE_OUTPUT_USD_PER_TOKEN
-        + (result.content_input_tokens + result.monsters_input_tokens) * INPUT_USD_PER_TOKEN
-        + (result.content_output_tokens + result.monsters_output_tokens) * OUTPUT_USD_PER_TOKEN
+        + (result.content_input_tokens + result.monsters_input_tokens + result.mapread_input_tokens)
+        * INPUT_USD_PER_TOKEN
+        + (result.content_output_tokens + result.monsters_output_tokens + result.mapread_output_tokens)
+        * OUTPUT_USD_PER_TOKEN
     )
     assert result.usd == pytest.approx(expected_usd)
 
@@ -110,8 +115,10 @@ def test_the_tier_cliff_applies_per_window_for_text_dense_sources():
     expected_usd = (
         survey_usd
         + census_usd
-        + (result.content_input_tokens + result.monsters_input_tokens) * INPUT_USD_PER_TOKEN
-        + (result.content_output_tokens + result.monsters_output_tokens) * OUTPUT_USD_PER_TOKEN
+        + (result.content_input_tokens + result.monsters_input_tokens + result.mapread_input_tokens)
+        * INPUT_USD_PER_TOKEN
+        + (result.content_output_tokens + result.monsters_output_tokens + result.mapread_output_tokens)
+        * OUTPUT_USD_PER_TOKEN
     )
     assert result.usd == pytest.approx(expected_usd)
 
@@ -126,8 +133,10 @@ def test_the_tier_cliff_still_fires_for_a_single_request_survey_with_the_knob_ra
     ) * LARGE_OUTPUT_USD_PER_TOKEN
     expected_usd = (
         expected_windowed_usd
-        + (result.content_input_tokens + result.monsters_input_tokens) * INPUT_USD_PER_TOKEN
-        + (result.content_output_tokens + result.monsters_output_tokens) * OUTPUT_USD_PER_TOKEN
+        + (result.content_input_tokens + result.monsters_input_tokens + result.mapread_input_tokens)
+        * INPUT_USD_PER_TOKEN
+        + (result.content_output_tokens + result.monsters_output_tokens + result.mapread_output_tokens)
+        * OUTPUT_USD_PER_TOKEN
     )
     assert result.usd == pytest.approx(expected_usd)
 
