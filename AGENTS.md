@@ -5,7 +5,7 @@ osr-forge is a standalone Python package and CLI that converts tabletop adventur
 ## Start here
 
 - `docs/spec.md` is the single source of truth. Read it before any implementation work. It is decision-complete: contracts, pipeline architecture, and a phased roadmap. Implement in phase order.
-- osrlib (checked out at `~/repos/osrlib-python`, published as `osrlib`) is the downstream authority. Converted output must load through the pinned osrlib (`check_document`, `Adventure.model_validate`, `validate_adventure`) — never re-implement or fork its validation. When an output-format question comes up, osrlib's models and documentation are the authority; verify against them rather than working from memory.
+- osrlib (a sibling checkout at `../osrlib-python`, published as `osrlib`) is the downstream authority. Converted output must load through the pinned osrlib (`check_document`, `Adventure.model_validate`, `validate_adventure`) — never re-implement or fork its validation. When an output-format question comes up, osrlib's models and documentation are the authority; verify against them rather than working from memory.
 - Never hand-edit generated artifacts (`adventure.json`, `report.json`, previews). Corrections belong in `overrides.yaml` — assembly purity is the core invariant.
 
 ## The phase loop
