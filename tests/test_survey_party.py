@@ -21,9 +21,6 @@ from osrforge.contracts.stages import SurveyIndex
 from osrforge.survey import PARTY_SCHEMA, SURVEY_SCHEMA, merge_survey_answers, normalize_party, normalize_survey, survey
 from test_survey import raw_census, raw_survey
 
-STUB = pytest.mark.xfail(reason="chunk: survey-party", raises=NotImplementedError, strict=True)
-WIRING = pytest.mark.xfail(reason="chunk: survey-party", strict=True)
-
 SIX_TO_EIGHT = {"min_level": 1, "max_level": 3, "min_size": 6, "max_size": 8}
 LEVEL_TWO_TO_FOUR = {"min_level": 2, "max_level": 4, "min_size": None, "max_size": None}
 MINIMOD = Path(__file__).parent / "assets" / "minimod" / "expected"
@@ -51,7 +48,6 @@ class TestPartySchema:
         with pytest.raises(jsonschema.ValidationError):
             jsonschema.validate(value, PARTY_SCHEMA)
 
-    @WIRING
     def test_survey_schema_requires_party(self):
         properties = SURVEY_SCHEMA["properties"]
         assert isinstance(properties, dict)
@@ -62,16 +58,13 @@ class TestPartySchema:
 
 
 class TestNormalizeParty:
-    @STUB
     def test_null_means_no_party(self):
         assert normalize_party(None) is None
 
-    @STUB
     def test_a_reading_becomes_a_party_spec(self):
         assert normalize_party(SIX_TO_EIGHT) == PartySpec(min_level=1, max_level=3, min_size=6, max_size=8)
         assert normalize_party(LEVEL_TWO_TO_FOUR) == PartySpec(min_level=2, max_level=4)
 
-    @STUB
     @pytest.mark.parametrize(
         "value",
         [
@@ -85,25 +78,21 @@ class TestNormalizeParty:
 
 
 class TestMergeParty:
-    @WIRING
     def test_first_non_null_window_wins_whole(self):
         merged = merge_survey_answers(
             [raw_survey(party=None), raw_survey(party=SIX_TO_EIGHT), raw_survey(party=LEVEL_TWO_TO_FOUR)]
         )
         assert merged["party"] == SIX_TO_EIGHT
 
-    @WIRING
     def test_no_window_stating_a_party_merges_to_null(self):
         merged = merge_survey_answers([raw_survey(party=None), raw_survey(party=None)])
         assert "party" in merged
         assert merged["party"] is None
 
-    @WIRING
     def test_an_answer_without_the_key_counts_as_null(self):
         merged = merge_survey_answers([raw_survey(), raw_survey(party=LEVEL_TWO_TO_FOUR)])
         assert merged["party"] == LEVEL_TWO_TO_FOUR
 
-    @WIRING
     def test_the_merge_does_not_mutate_its_inputs(self):
         later = raw_survey(party=dict(SIX_TO_EIGHT))
         merged = merge_survey_answers([raw_survey(party=None), later])
@@ -112,7 +101,6 @@ class TestMergeParty:
 
 
 class TestNormalizeSurveyParty:
-    @WIRING
     def test_the_index_carries_the_normalized_party(self):
         index = normalize_survey(raw_survey(party=SIX_TO_EIGHT), page_count=48)
         assert index.party == PartySpec(min_level=1, max_level=3, min_size=6, max_size=8)
@@ -127,7 +115,6 @@ class TestNormalizeSurveyParty:
         assert index.party is None
         assert index.title == "The Chaotic Caves"
 
-    @WIRING
     def test_the_stage_caches_the_party(self, tmp_path: Path):
         workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=2)
         survey(workdir, ScriptedProvider([raw_survey(party=LEVEL_TWO_TO_FOUR), raw_census()]))
@@ -141,7 +128,6 @@ def test_a_cache_without_the_field_loads_with_no_party():
     assert SurveyIndex.model_validate(cached).party is None
 
 
-@WIRING
 def test_minimod_goldens_carry_its_printed_party():
     # Page 1: "A one-evening dungeon crawl for characters of level 1."
     expected = {"min_level": 1, "max_level": 1, "min_size": None, "max_size": None}

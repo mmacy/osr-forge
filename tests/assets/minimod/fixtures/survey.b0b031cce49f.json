@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "fingerprint": "fc8ba453903e1fadf866805c78ed5c4058b63bdfe5d871136a396f3b3c316093",
+  "fingerprint": "b0b031cce49f9c1498c8fb9c6f71974826e814c3bb381059f5044978d26c81f8",
   "tag": "survey",
   "request": {
-    "system": "You survey tabletop adventure modules. The user message interleaves every page's extracted text (each headed by a [page N] marker) with that page's image. Fill the survey schema from those pages.\n\nRules:\n- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. A dungeon exists only where the module prints a keyed area list for it — lettered or unkeyed callouts on another site's map are that site's features, never sites of their own. The town or home base and its buildings are never dungeons — describe them only in \"town\". Leave \"town.name\" empty only when the module genuinely leaves the town unnamed.\n- One dungeon per independently keyed site: first enumerate the module's independently keyed sites, then emit exactly that many dungeons. Maps connected internally by stairs or shafts are levels of one dungeon; separate lairs or sites with their own maps and entrances are separate dungeons, even when they are drawn together on one regional map or share a running area-number sequence (a module keying \"A. Orc Lair\", \"B. Goblin Lair\" describes separate dungeons — one dungeon each, never merged).\n- \"description\" is the module's own pitch: an excerpt of its printed introduction or back-cover text, quoted or tightened from the module's own words — never invented. Leave it empty when the module states none.\n- \"town.services\" lists the named establishments and services the module states the town offers (an inn, a temple, a general store). List only what the module states.\n- \"hooks\" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's introduction or background.\n- Each level's \"map_pages\" lists the pages showing that level's map; each area's \"source_pages\" lists the pages describing it. Both refer to the [page N] markers in this request, never to page numbers printed on the pages themselves.\n- An area's \"key\" is the module's printed key for it (like \"5\" or \"4a\"); when an area has no printed key, use its name. \"monster_names\" collects every monster name that appears anywhere in the module.\n",
+    "system": "You survey tabletop adventure modules. The user message interleaves every page's extracted text (each headed by a [page N] marker) with that page's image. Fill the survey schema from those pages.\n\nRules:\n- A dungeon is a keyed adventuring site: caves, ruins, lairs, and the like. A dungeon exists only where the module prints a keyed area list for it — lettered or unkeyed callouts on another site's map are that site's features, never sites of their own. The town or home base and its buildings are never dungeons — describe them only in \"town\". Leave \"town.name\" empty only when the module genuinely leaves the town unnamed.\n- One dungeon per independently keyed site: first enumerate the module's independently keyed sites, then emit exactly that many dungeons. Maps connected internally by stairs or shafts are levels of one dungeon; separate lairs or sites with their own maps and entrances are separate dungeons, even when they are drawn together on one regional map or share a running area-number sequence (a module keying \"A. Orc Lair\", \"B. Goblin Lair\" describes separate dungeons — one dungeon each, never merged).\n- \"description\" is the module's own pitch: an excerpt of its printed introduction or back-cover text, quoted or tightened from the module's own words — never invented. Leave it empty when the module states none.\n- \"town.services\" lists the named establishments and services the module states the town offers (an inn, a temple, a general store). List only what the module states.\n- \"hooks\" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's introduction or background.\n- \"party\" is the party the module says it is written for, as its cover or introduction prints it: the character levels and, when printed, the number of characters. \"For 6 to 8 characters of levels 1 to 3\" is min_level 1, max_level 3, min_size 6, max_size 8. A single printed level fills both level fields. An unstated number of characters leaves both size fields null, and an open count like \"4 or more characters\" fills only min_size. Answer null when the module doesn't state the character levels. Never infer a party from the monsters, the treasure, or the module's code.\n- Each level's \"map_pages\" lists the pages showing that level's map; each area's \"source_pages\" lists the pages describing it. Both refer to the [page N] markers in this request, never to page numbers printed on the pages themselves.\n- An area's \"key\" is the module's printed key for it (like \"5\" or \"4a\"); when an area has no printed key, use its name. \"monster_names\" collects every monster name that appears anywhere in the module.\n",
     "parts": [
       {
         "text": "[page 1]\nThe Root Cellar of Old Wenna\nA one-evening dungeon crawl for characters of level 1.\nAn original mini-module authored as a test asset for osr-forge.\nTo the extent possible under law, the author has dedicated this\nwork to the public domain under CC0 1.0. No rights reserved."
@@ -125,6 +125,43 @@
             "additionalProperties": false
           }
         },
+        "party": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "min_level": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_level": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "min_size": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "max_size": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            }
+          },
+          "required": [
+            "min_level",
+            "max_level",
+            "min_size",
+            "max_size"
+          ],
+          "additionalProperties": false
+        },
         "monster_names": {
           "type": "array",
           "items": {
@@ -136,6 +173,7 @@
         "title",
         "description",
         "hooks",
+        "party",
         "town",
         "dungeons",
         "monster_names"
@@ -182,16 +220,16 @@
   "response": {
     "data": {
       "title": "The Root Cellar of Old Wenna",
-      "description": "A one-evening dungeon crawl for characters of level 1.",
+      "description": "\"A one-evening dungeon crawl for characters of level 1.\"",
       "hooks": [
-        "Old Wenna's farmhouse burned down a generation ago, but her famous root cellar survives beneath the ruin, and lately things have been crawling out of it at night."
+        "Things have been crawling out of Old Wenna's root cellar at night."
       ],
       "town": {
         "name": "Wennadale",
         "description": "A village of forty souls.",
         "services": [
-          "The Dry Barrel inn offers beds and rumors",
-          "Maro the peddler sells torches, rope, and oil"
+          "The Dry Barrel inn",
+          "Maro the peddler"
         ]
       },
       "dungeons": [
@@ -257,17 +295,23 @@
           ]
         }
       ],
+      "party": {
+        "min_level": 1,
+        "max_level": 1,
+        "min_size": null,
+        "max_size": null
+      },
       "monster_names": [
+        "giant centipedes",
         "giant rats",
         "goblin",
-        "giant centipedes",
         "skeleton",
         "stirges"
       ]
     },
     "usage": {
-      "input_tokens": 5781,
-      "output_tokens": 286
+      "input_tokens": 5962,
+      "output_tokens": 279
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

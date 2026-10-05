@@ -39,6 +39,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   area's cached confidence below the pinned 0.6 floor).
 - `estimate` prices the census and the widened stat-block pass; the CLI
   table gains a census line.
+- The survey reads the party a module is written for from its cover or introduction: the character levels and, when the module prints it, the number of characters. The survey writes the reading to `survey.json` as `party`, or `null` when the module states no levels, and assembly copies it to the draft's `Adventure.party`. The survey drops a reading with a reversed range instead of failing.
 
 ### Changed
 

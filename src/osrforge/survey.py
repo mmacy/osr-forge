@@ -33,6 +33,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, cast
 
 from osrlib.crawl.adventure import PartySpec
+from pydantic import ValidationError
 
 from osrforge.contracts.run import Stage
 from osrforge.contracts.stages import (
@@ -90,11 +91,42 @@ or tightened from the module's own words — never invented. Leave it empty when
 temple, a general store). List only what the module states.
 - "hooks" are the rumors, jobs, and reasons the party goes on the adventure — usually found in the module's \
 introduction or background.
+- "party" is the party the module says it is written for, as its cover or introduction prints it: the \
+character levels and, when printed, the number of characters. "For 6 to 8 characters of levels 1 to 3" is \
+min_level 1, max_level 3, min_size 6, max_size 8. A single printed level fills both level fields. An unstated \
+number of characters leaves both size fields null, and an open count like "4 or more characters" fills only \
+min_size. Answer null when the module doesn't state the character levels. Never infer a party from the \
+monsters, the treasure, or the module's code.
 - Each level's "map_pages" lists the pages showing that level's map; each area's "source_pages" lists the \
 pages describing it. Both refer to the [page N] markers in this request, never to page numbers printed on \
 the pages themselves.
 - An area's "key" is the module's printed key for it (like "5" or "4a"); when an area has no printed key, \
 use its name. "monster_names" collects every monster name that appears anywhere in the module.
+"""
+
+PARTY_SCHEMA: dict[str, object] = {
+    "type": ["object", "null"],
+    "properties": {
+        "min_level": {"type": "integer", "minimum": 1},
+        "max_level": {"type": "integer", "minimum": 1},
+        "min_size": {"type": ["integer", "null"], "minimum": 1},
+        "max_size": {"type": ["integer", "null"], "minimum": 1},
+    },
+    "required": ["min_level", "max_level", "min_size", "max_size"],
+    "additionalProperties": False,
+}
+"""The survey answer's `party` property: the party the module says it's written for.
+
+The model answers `null` when the module states no party, and otherwise the
+printed character levels and, when printed, the number of characters ("for 6
+to 8 characters of levels 1 to 3" is `{"min_level": 1, "max_level": 3,
+"min_size": 6, "max_size": 8}`). A single printed level fills both level
+fields, and an unstated size leaves both size fields `null`. The fields are
+the fields of [`PartySpec`][osrlib.crawl.adventure.PartySpec], with the same
+lower bound of 1. The schema can't express `PartySpec`'s ordering rule (max
+not below min), so [`normalize_party`][osrforge.survey.normalize_party]
+applies it. [`SURVEY_SCHEMA`][osrforge.survey.SURVEY_SCHEMA] lists `party` as
+a required property, so every answer carries the key.
 """
 
 SURVEY_SCHEMA: dict[str, object] = {
@@ -138,9 +170,10 @@ SURVEY_SCHEMA: dict[str, object] = {
                 "additionalProperties": False,
             },
         },
+        "party": PARTY_SCHEMA,
         "monster_names": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["title", "description", "hooks", "town", "dungeons", "monster_names"],
+    "required": ["title", "description", "hooks", "party", "town", "dungeons", "monster_names"],
     "additionalProperties": False,
     "$defs": {
         "area": {
@@ -163,31 +196,6 @@ Two deliberate changes from the probe-era schema: no model-supplied dungeon `id`
 `map_pages` added per level (feeds the content stage's direction extraction).
 The schema is a fraction of the largest probe-proven schema budget. Its
 required `party` property is [`PARTY_SCHEMA`][osrforge.survey.PARTY_SCHEMA].
-"""
-
-PARTY_SCHEMA: dict[str, object] = {
-    "type": ["object", "null"],
-    "properties": {
-        "min_level": {"type": "integer", "minimum": 1},
-        "max_level": {"type": "integer", "minimum": 1},
-        "min_size": {"type": ["integer", "null"], "minimum": 1},
-        "max_size": {"type": ["integer", "null"], "minimum": 1},
-    },
-    "required": ["min_level", "max_level", "min_size", "max_size"],
-    "additionalProperties": False,
-}
-"""The survey answer's `party` property: the party the module says it's written for.
-
-The model answers `null` when the module states no party, and otherwise the
-printed character levels and, when printed, the number of characters ("for 6
-to 8 characters of levels 1 to 3" is `{"min_level": 1, "max_level": 3,
-"min_size": 6, "max_size": 8}`). A single printed level fills both level
-fields, and an unstated size leaves both size fields `null`. The fields are
-the fields of [`PartySpec`][osrlib.crawl.adventure.PartySpec], with the same
-lower bound of 1. The schema can't express `PartySpec`'s ordering rule (max
-not below min), so [`normalize_party`][osrforge.survey.normalize_party]
-applies it. [`SURVEY_SCHEMA`][osrforge.survey.SURVEY_SCHEMA] lists `party` as
-a required property, so every answer carries the key.
 """
 
 
@@ -407,6 +415,7 @@ def merge_survey_answers(answers: Sequence[dict[str, Any]]) -> dict[str, Any]:
         "title": _first_nonempty(cast(str, answer["title"]) for answer in answers),
         "description": _first_nonempty(cast(str, answer["description"]) for answer in answers),
         "hooks": hooks,
+        "party": next((copy.deepcopy(answer["party"]) for answer in answers if answer.get("party") is not None), None),
         "town": _merge_town(answers),
         "dungeons": dungeons,
         "monster_names": monster_names,
@@ -546,6 +555,7 @@ def normalize_survey(raw: dict[str, Any], page_count: int) -> SurveyIndex:
         title=cast(str, raw["title"]),
         description=cast(str, raw["description"]),
         hooks=tuple(cast(list[str], raw["hooks"])),
+        party=normalize_party(cast(Mapping[str, Any] | None, raw.get("party"))),
         town=TownInfo(
             name=cast(str, town["name"]),
             description=cast(str, town["description"]),
@@ -589,7 +599,12 @@ def normalize_party(raw: Mapping[str, Any] | None) -> PartySpec | None:
         # None
         ```
     """
-    raise NotImplementedError("chunk: survey-party")
+    if raw is None:
+        return None
+    try:
+        return PartySpec.model_validate(dict(raw))
+    except ValidationError:
+        return None
 
 
 def filter_index_to_pages(index: SurveyIndex, page_numbers: Iterable[int]) -> SurveyIndex:

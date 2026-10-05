@@ -4,17 +4,22 @@
   "engine_version": "1.8.0",
   "payload": {
     "name": "The Root Cellar of Old Wenna",
-    "description": "A one-evening dungeon crawl for characters of level 1.",
+    "description": "\"A one-evening dungeon crawl for characters of level 1.\"",
     "hooks": [
-      "Old Wenna's farmhouse burned down a generation ago, but her famous root cellar survives beneath the ruin, and lately things have been crawling out of it at night."
+      "Things have been crawling out of Old Wenna's root cellar at night."
     ],
-    "party": null,
+    "party": {
+      "min_level": 1,
+      "max_level": 1,
+      "min_size": null,
+      "max_size": null
+    },
     "town": {
       "name": "Wennadale",
       "description": "A village of forty souls.",
       "services": [
-        "The Dry Barrel inn offers beds and rumors",
-        "Maro the peddler sells torches, rope, and oil"
+        "The Dry Barrel inn",
+        "Maro the peddler"
       ],
       "travel_turns": {}
     },

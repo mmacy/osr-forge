@@ -792,7 +792,9 @@ def test_census_disputed_path_replays_through_recorded_fixtures(tmp_path: Path):
     fixtures = tmp_path / "fixtures"
     census = raw_census([{"name": "Crypt of Horrors", "levels": [census_level(1, "1", "8")]}])
     recording_workdir = fabricate_workdir(tmp_path / "record.forge", page_count=2)
-    recorded = survey(recording_workdir, RecordingProvider(ScriptedProvider([raw_survey(), census]), fixtures))
+    recorded = survey(
+        recording_workdir, RecordingProvider(ScriptedProvider([raw_survey(party=None), census]), fixtures)
+    )
     replay_workdir = fabricate_workdir(tmp_path / "replay.forge", page_count=2)
     replayed = survey(replay_workdir, FixtureProvider(fixtures))
     assert replayed == recorded
