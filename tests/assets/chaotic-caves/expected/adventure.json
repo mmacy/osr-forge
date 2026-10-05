@@ -1,7 +1,7 @@
 {
   "kind": "adventure",
-  "schema_version": 2,
-  "engine_version": "1.2.0",
+  "schema_version": 3,
+  "engine_version": "1.8.0",
   "payload": {
     "name": "The Chaotic Caves",
     "description": "",
@@ -10,6 +10,7 @@
       "Locals offer rumors of monster activity in the wilderness, including orcs, goblins, gnolls, lizard men, bandits, ghouls near old crypts, and possible spell-casting attackers.",
       "The heroes can explore the marked wilderness sites, recover loot from monsters, rescue captives, and root out the caves threatening nearby towns and villages."
     ],
+    "party": null,
     "town": {
       "name": "Town",
       "description": "An unnamed frontier town on the border between wilderness and civilized lands, beside a river and bridge and protected by a wooden stockade being replaced by a stone wall. It serves as the local home base, with merchants, taverns, craftsmen, church, healer, garrison, militia, docks, warehouse, and many residences.",
@@ -438,6 +439,7 @@
                     "description": "large round green door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -454,6 +456,7 @@
                     "description": "locked but rotten and easy to knock in",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -500,7 +503,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -509,6 +513,7 @@
                     "description": "fireplace in south wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -525,6 +530,7 @@
                     "description": "round window in north wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -541,6 +547,7 @@
                     "description": "small secret niche in fireplace found by searching for loose stones",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -557,6 +564,7 @@
                     "description": "long-dead mauled body in center of room",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -573,6 +581,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 350,
@@ -620,6 +629,7 @@
                     "description": "15 x 17 foot room",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -636,6 +646,7 @@
                     "description": "two round windows in north wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -652,6 +663,7 @@
                     "description": "dust marks showing where tables and chairs once stood",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -696,6 +708,7 @@
                     "description": "stone stove against north wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -712,6 +725,7 @@
                     "description": "chimney to roof with 1-foot-square flue",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -728,6 +742,7 @@
                     "description": "round window in northwest corner with broken glass",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -744,6 +759,7 @@
                     "description": "pool of slimy green water that resembles green slime but is harmless",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -788,6 +804,7 @@
                     "description": "round window about 4 feet in diameter in south wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -832,6 +849,7 @@
                     "description": "round window about 4 feet in diameter in south wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -876,6 +894,7 @@
                     "description": "round window about 4 feet in diameter in southwest corner",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -920,6 +939,7 @@
                     "description": "simple round door about 5 feet high",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -936,6 +956,7 @@
                     "description": "old peeling red paint",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -952,6 +973,7 @@
                     "description": "barred from inside",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -968,6 +990,7 @@
                     "description": "old and easy to knock in",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1014,7 +1037,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -1023,6 +1047,7 @@
                     "description": "simple square tree house",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1039,6 +1064,7 @@
                     "description": "about 20 feet above the ground",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1055,6 +1081,7 @@
                     "description": "about 6 feet floor to ceiling",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1101,7 +1128,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -1110,6 +1138,7 @@
                     "description": "double doors",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1126,6 +1155,7 @@
                     "description": "dirt floor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1142,6 +1172,7 @@
                     "description": "heavy stone-block wall frames",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1158,6 +1189,7 @@
                     "description": "heavy wooden timber ceiling",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1174,6 +1206,7 @@
                     "description": "round shuttered windows in east, north, and west walls",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1190,6 +1223,7 @@
                     "description": "broken north window smeared with feces",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1206,6 +1240,7 @@
                     "description": "two empty pony stalls in west end",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1222,6 +1257,7 @@
                     "description": "moldering grain sacks covered in harmless yellow fungus",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1238,6 +1274,7 @@
                     "description": "floor covered in stinking feces",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1285,6 +1322,7 @@
                     "description": "earth mound overgrown with brush and weeds",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1301,6 +1339,7 @@
                     "description": "square stones near main entrance hint at burial",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1317,6 +1356,7 @@
                     "description": "digging for an hour or two reaches the house",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1333,6 +1373,7 @@
                     "description": "small one-foot-square chimney visible on top leading to H12 fireplace",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1349,6 +1390,7 @@
                     "description": "all windows and doors buried",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1365,6 +1407,7 @@
                     "description": "two main doors heavily boarded shut",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1411,7 +1454,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -1420,6 +1464,7 @@
                     "description": "brick fireplace in northwest corner",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1436,6 +1481,7 @@
                     "description": "four cloth-swaddled humanoid shapes on floor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1480,6 +1526,7 @@
                     "description": "two cozy chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1496,6 +1543,7 @@
                     "description": "couch",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1512,6 +1560,7 @@
                     "description": "table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1528,6 +1577,7 @@
                     "description": "six wooden chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1544,6 +1594,7 @@
                     "description": "cupboards",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1560,6 +1611,7 @@
                     "description": "stove",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1606,7 +1658,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -1615,6 +1668,7 @@
                     "description": "bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1631,6 +1685,7 @@
                     "description": "dresser",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1647,6 +1702,7 @@
                     "description": "writing table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1663,6 +1719,7 @@
                     "description": "old papers with poems to \"Kylenne My Lady Love\" and the name \"Tyrok the Indefatigable\"",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1679,6 +1736,7 @@
                     "description": "zombie's back has a massive hole from a brutal sword wound",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1695,6 +1753,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 500,
@@ -1739,6 +1798,7 @@
                     "description": "bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1755,6 +1815,7 @@
                     "description": "table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1771,6 +1832,7 @@
                     "description": "small dresser",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1787,6 +1849,7 @@
                     "description": "other furnishings",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -1812,7 +1875,8 @@
             "entrance": [
               9,
               9
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -2165,6 +2229,7 @@
                     "description": "Bones outside the entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2181,6 +2246,7 @@
                     "description": "Large ogre-sized footprints near the entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2197,6 +2263,7 @@
                     "description": "Five dust-covered trip cords across the floor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2213,6 +2280,7 @@
                     "description": "Broad spiked frame concealed against the east wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2276,7 +2344,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -2285,6 +2354,7 @@
                     "description": "Bear corpse",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2301,6 +2371,7 @@
                     "description": "Hides and piles of leaves used as furnishings",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2317,6 +2388,7 @@
                     "description": "Tree trunks used as benches",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2333,6 +2405,7 @@
                     "description": "Natural stone steps in the southwest hall descending 10 feet",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2349,6 +2422,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2395,7 +2469,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -2404,6 +2479,7 @@
                     "description": "Wide 3-foot-deep pool",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2420,6 +2496,7 @@
                     "description": "Bones scattered around the pool",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2436,6 +2513,7 @@
                     "description": "Plant-fiber retrieval cord with prickly spines",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2452,6 +2530,7 @@
                     "description": "Heavy rock anchoring the cord",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2468,6 +2547,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 23,
                       "gp": 42,
@@ -2512,6 +2592,7 @@
                     "description": "Rough natural steps descending 20 feet",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2528,6 +2609,7 @@
                     "description": "Harmless slime coating the steps",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2572,6 +2654,7 @@
                     "description": "Rough natural steps descending 20 feet",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2588,6 +2671,7 @@
                     "description": "Slime and pebbles coating the steps",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2632,6 +2716,7 @@
                     "description": "Slope descending 30 feet",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2678,7 +2763,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -2687,6 +2773,7 @@
                     "description": "Long narrow ceiling hole to the forest floor 30 feet above",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2703,6 +2790,7 @@
                     "description": "Dim noon light from above",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2719,6 +2807,7 @@
                     "description": "Ground covered in feces and leaves",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2735,6 +2824,7 @@
                     "description": "Worms in the leaves",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2751,6 +2841,7 @@
                     "description": "Buried wooden chest",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2767,6 +2858,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 124,
@@ -2814,6 +2906,7 @@
                     "description": "Smashed-in door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2830,6 +2923,7 @@
                     "description": "Room carved by human hands",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2846,6 +2940,7 @@
                     "description": "Table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2862,6 +2957,7 @@
                     "description": "Chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2878,6 +2974,7 @@
                     "description": "Single skeletal figure seated at the far end of the table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2894,6 +2991,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2981,6 +3079,7 @@
                     "description": "Fragile ceiling",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -2997,6 +3096,7 @@
                     "description": "Hallway can be blocked by cave-in rubble",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3060,7 +3160,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -3069,6 +3170,7 @@
                     "description": "Fungus-covered floor and walls",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3085,6 +3187,7 @@
                     "description": "Moss-covered floor and walls",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3131,7 +3234,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -3140,6 +3244,7 @@
                     "description": "Clear pool of water",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3156,6 +3261,7 @@
                     "description": "Frog, small fish, and crayfish in the pool",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3172,6 +3278,7 @@
                     "description": "Mud and muck at the bottom",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3188,6 +3295,7 @@
                     "description": "Rough iron ladder",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3204,6 +3312,7 @@
                     "description": "Tight 3-foot-wide hole leading to the woods 30 feet above",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3220,6 +3329,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3248,7 +3358,8 @@
             "entrance": [
               0,
               6
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -3311,7 +3422,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -3320,6 +3432,7 @@
                     "description": "rusted iron gate and door at the entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3336,6 +3449,7 @@
                     "description": "worn runes over the doorway",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3352,6 +3466,7 @@
                     "description": "three stone coffins (sarcophagi)",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3368,6 +3483,7 @@
                     "description": "middle sarcophagus holds the main occupant",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3384,6 +3500,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 300,
@@ -3412,7 +3529,8 @@
             "entrance": [
               0,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -3723,7 +3841,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -3732,6 +3851,7 @@
                     "description": "Gaping cave entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3748,6 +3868,7 @@
                     "description": "First chamber used as bunk room",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3795,6 +3916,7 @@
                     "description": "Collapsed walls",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3811,6 +3933,7 @@
                     "description": "Partially collapsed ceiling",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3827,6 +3950,7 @@
                     "description": "Unfit for habitation",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3873,7 +3997,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -3882,6 +4007,7 @@
                     "description": "Crude furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3898,6 +4024,7 @@
                     "description": "Wooden bunks lining the walls",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3914,6 +4041,7 @@
                     "description": "Sacks of foodstuffs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3930,6 +4058,7 @@
                     "description": "Hanging meat",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3946,6 +4075,7 @@
                     "description": "Stored vegetables and meat weighing 12–72 pounds each",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -3995,7 +4125,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -4004,6 +4135,7 @@
                     "description": "Wooden fence at both ends of the area",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4020,6 +4152,7 @@
                     "description": "Wooden gates, 3' wide and 6' high, lashed shut with rope",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4036,6 +4169,7 @@
                     "description": "Soft earthen floor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4052,6 +4186,7 @@
                     "description": "Wooden bowls of water",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4068,6 +4203,7 @@
                     "description": "Bones and offal scattered on the floor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4119,7 +4255,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -4128,6 +4265,7 @@
                     "description": "Jail key hung on a hide cord on the wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4144,6 +4282,7 @@
                     "description": "Crude furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4160,6 +4299,7 @@
                     "description": "Simple wooden interrogation devices",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4176,6 +4316,7 @@
                     "description": "Simple stone interrogation devices",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4223,6 +4364,7 @@
                     "description": "Locked jail cell or chamber",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4239,6 +4381,7 @@
                     "description": "Currently holds a captive merchant",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4255,6 +4398,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 100,
@@ -4316,7 +4460,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -4325,6 +4470,7 @@
                     "description": "Large heavily built throne",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4341,6 +4487,7 @@
                     "description": "Throne has a flip-up seat and serves as a treasure chest",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4357,6 +4504,7 @@
                     "description": "Southern sub-room with bed and personal furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4373,6 +4521,7 @@
                     "description": "Steel hoop on the base of the throne",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4389,6 +4538,7 @@
                     "description": "Strong steel chain for the mountain lion",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4405,6 +4555,7 @@
                     "description": "Heavy leather collars on the wolves",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4421,6 +4572,7 @@
                     "description": "Chief has the key to the west temple door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4437,6 +4589,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 771,
@@ -4493,7 +4646,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -4502,6 +4656,7 @@
                     "description": "Crude furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4518,6 +4673,7 @@
                     "description": "Common foodstuffs in bags",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4534,6 +4690,7 @@
                     "description": "Dried meats hanging on strings",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4550,6 +4707,7 @@
                     "description": "Guard post against lair B",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4597,6 +4755,7 @@
                     "description": "Pools fed by underground springs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4613,6 +4772,7 @@
                     "description": "Year-round fresh water source",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4629,6 +4789,7 @@
                     "description": "Pools are 6 feet deep",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4673,6 +4834,7 @@
                     "description": "Heavy thick wooden door at each end",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4689,6 +4851,7 @@
                     "description": "Strong steel bands on both doors",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4705,6 +4868,7 @@
                     "description": "Crafty heavy locks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4721,6 +4885,7 @@
                     "description": "Chief in room 6 has the key to the west temple door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4737,6 +4902,7 @@
                     "description": "Chief in room 13 has the key to the east temple door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4781,6 +4947,7 @@
                     "description": "Temple cut from living stone",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4797,6 +4964,7 @@
                     "description": "Four fluted ornate pillars",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4813,6 +4981,7 @@
                     "description": "Polished green and red marble floor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4829,6 +4998,7 @@
                     "description": "20-foot-high ceiling",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4845,6 +5015,7 @@
                     "description": "Dais 6 feet above the floor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4861,6 +5032,7 @@
                     "description": "12-foot black basalt statue of an evil orc god",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4877,6 +5049,7 @@
                     "description": "No steps onto the dais",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -4905,7 +5078,8 @@
             "entrance": [
               0,
               3
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -5093,7 +5267,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [],
                 "trap": null,
@@ -5132,6 +5307,7 @@
                     "description": "Two very well-hidden secret doors",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5148,6 +5324,7 @@
                     "description": "Sword",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5164,6 +5341,7 @@
                     "description": "Food stores",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5180,6 +5358,7 @@
                     "description": "Flint and steel",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5196,6 +5375,7 @@
                     "description": "Skin of water",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5212,6 +5392,7 @@
                     "description": "Cot",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5228,6 +5409,7 @@
                     "description": "Cloak",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5244,6 +5426,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 25,
@@ -5307,7 +5490,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -5316,6 +5500,7 @@
                     "description": "Guard door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5332,6 +5517,7 @@
                     "description": "Short buffer corridor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5391,7 +5577,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -5400,6 +5587,7 @@
                     "description": "Locked chest",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5416,6 +5604,7 @@
                     "description": "Stout wooden furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5432,6 +5621,7 @@
                     "description": "Alarm bell under a heavy chair in the northeast corner",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5448,6 +5638,7 @@
                     "description": "Key to the eastern temple door at room 9",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5464,6 +5655,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 800,
@@ -5537,7 +5729,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -5546,6 +5739,7 @@
                     "description": "Trash-littered room",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5595,7 +5789,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -5604,6 +5799,7 @@
                     "description": "Miscellaneous debris",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5620,6 +5816,7 @@
                     "description": "Firewood",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5636,6 +5833,7 @@
                     "description": "Stone cooking circles",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5652,6 +5850,7 @@
                     "description": "Hidden hole in the northeast corner covered by fireplace rocks and a foot of earth",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5668,6 +5867,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 10,
                       "gp": 0,
@@ -5693,7 +5893,8 @@
             "entrance": [
               0,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -5900,7 +6101,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -5909,6 +6111,7 @@
                     "description": "Wide underground stream at \"A\" used as a moat",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5925,6 +6128,7 @@
                     "description": "Wooden crossing planks stored on the opposite side",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5941,6 +6145,7 @@
                     "description": "Ox horn on a peg used to summon hobgoblins from area 17 to place planks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -5957,6 +6162,7 @@
                     "description": "Crude stone-painted hide at \"C\" used as an ambush screen",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6004,6 +6210,7 @@
                     "description": "Three sets of supporting pillars",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6020,6 +6227,7 @@
                     "description": "20' high ceiling",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6036,6 +6244,7 @@
                     "description": "Bell-covered net trap that can alert area 17",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6099,7 +6308,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -6108,6 +6318,7 @@
                     "description": "Former casket platforms repurposed as benches and tables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6124,6 +6335,7 @@
                     "description": "Three fancy funeral shrouds used as hammocks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6171,6 +6383,7 @@
                     "description": "Usually locked, with two easily picked or forced doors",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6187,6 +6400,7 @@
                     "description": "Clothing and minor plunder",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6203,6 +6417,7 @@
                     "description": "Sacks of grain and potatoes",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6219,6 +6434,7 @@
                     "description": "Hanging dried meats and possibly slain foes used as \"fresh meat\"",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6235,6 +6451,7 @@
                     "description": "Mining tools: picks, chisels, hammers, etc.",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6281,7 +6498,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -6290,6 +6508,7 @@
                     "description": "Luxurious quarters",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6306,6 +6525,7 @@
                     "description": "Short bow on the wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6322,6 +6542,7 @@
                     "description": "Two quivers of arrows on the wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6338,6 +6559,7 @@
                     "description": "Room key carried on a hair string belt-cord",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6354,6 +6576,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 300,
@@ -6400,7 +6623,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -6409,6 +6633,7 @@
                     "description": "Rubble piled in the hallway as a barricade",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6425,6 +6650,7 @@
                     "description": "Stockpile of six vials of holy water for defense against ghouls to the west",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6479,7 +6705,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -6488,6 +6715,7 @@
                     "description": "Plain bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6504,6 +6732,7 @@
                     "description": "Chairs and tables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6520,6 +6749,7 @@
                     "description": "Other furnishings",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6536,6 +6766,7 @@
                     "description": "Chief carries key to area 18",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6552,6 +6783,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 600,
@@ -6580,7 +6812,8 @@
             "entrance": [
               3,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -6731,7 +6964,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -6740,6 +6974,7 @@
                     "description": "rubble blocking passage toward area 20",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6786,7 +7021,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -6795,6 +7031,7 @@
                     "description": "broken coffins",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6811,6 +7048,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 21,
                       "gp": 30,
@@ -6860,7 +7098,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -6869,6 +7108,7 @@
                     "description": "empty old and rotten coffins",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6885,6 +7125,7 @@
                     "description": "smashed coffins",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6901,6 +7142,7 @@
                     "description": "splinters of an ornate cabinet",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6917,6 +7159,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 56,
@@ -6966,7 +7209,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -6975,6 +7219,7 @@
                     "description": "outward-facing walls lined by crypt spaces",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -6991,6 +7236,7 @@
                     "description": "many crypt spaces are empty",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7007,6 +7253,7 @@
                     "description": "occupied crypts contain the remains of poor people",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7023,6 +7270,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 1026,
@@ -7055,7 +7303,8 @@
             "entrance": [
               0,
               6
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -7306,7 +7555,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -7315,6 +7565,7 @@
                     "description": "Rope control for the net trap at the entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7381,7 +7632,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -7390,6 +7642,7 @@
                     "description": "Crude rawhide and cheap-cloth curtains over the entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7406,6 +7659,7 @@
                     "description": "Wooden stools, tables, cots, and bedding of common furs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7453,6 +7707,7 @@
                     "description": "Cleverly concealed pit cover",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7516,7 +7771,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -7525,6 +7781,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 50,
@@ -7574,7 +7831,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -7583,6 +7841,7 @@
                     "description": "Large wicker baskets stacked along the back wall containing food stores",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7599,6 +7858,7 @@
                     "description": "Niches in the southeast wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7653,7 +7913,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -7662,6 +7923,7 @@
                     "description": "Curtains covering the north, south, and east walls",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7678,6 +7940,7 @@
                     "description": "Overturned bucket in the northeast corner",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7694,6 +7957,7 @@
                     "description": "Hidden dug-out cache in the southeast corner with a clever covering, found like a secret door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7710,6 +7974,7 @@
                     "description": "Simple wooden box buried in the southeast cache",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -7726,6 +7991,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 603,
@@ -7754,7 +8020,8 @@
             "entrance": [
               0,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -8098,7 +8365,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -8107,6 +8375,7 @@
                     "description": "Cave entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8123,6 +8392,7 @@
                     "description": "Dozen torches kept just inside at night",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8139,6 +8409,7 @@
                     "description": "Covered bowl of hot coals",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8155,6 +8426,7 @@
                     "description": "Crossbows and bolt cases for the guards",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8204,7 +8476,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -8213,6 +8486,7 @@
                     "description": "Light, easily moved furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8229,6 +8503,7 @@
                     "description": "Two common oil lamps",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8245,6 +8520,7 @@
                     "description": "Wooden cup used to bring oil",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8292,6 +8568,7 @@
                     "description": "Heavy locked door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8308,6 +8585,7 @@
                     "description": "Well for water",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8324,6 +8602,7 @@
                     "description": "Barrels of beer",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8340,6 +8619,7 @@
                     "description": "Bags of grain",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8356,6 +8636,7 @@
                     "description": "Vegetables and other sundries",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8372,6 +8653,7 @@
                     "description": "Large clay jug holding eight gallons of lantern oil",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8388,6 +8670,7 @@
                     "description": "Three dozen torches",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8437,7 +8720,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -8446,6 +8730,7 @@
                     "description": "Two common oil lamps",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8462,6 +8747,7 @@
                     "description": "Wooden cup used to bring oil",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8516,7 +8802,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -8525,6 +8812,7 @@
                     "description": "Table with map of the general area and ambush notes",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8541,6 +8829,7 @@
                     "description": "Lantern on a swinging hook",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8557,6 +8846,7 @@
                     "description": "Continual light spell inside the lantern",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8573,6 +8863,7 @@
                     "description": "Wooden jar with a gallon of lantern oil",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8589,6 +8880,7 @@
                     "description": "Key to treasure room #40 carried by the captain",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8605,6 +8897,7 @@
                     "description": "Ring of keys to the dungeon doors at #38 on the captain's belt",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8621,6 +8914,7 @@
                     "description": "Locked strongbox under the table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8637,6 +8931,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 500,
@@ -8684,6 +8979,7 @@
                     "description": "Wooden fences with gates",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8700,6 +8996,7 @@
                     "description": "Two riding horses",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8716,6 +9013,7 @@
                     "description": "Two mules",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8732,6 +9030,7 @@
                     "description": "Two cows",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8748,6 +9047,7 @@
                     "description": "Wagon",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8764,6 +9064,7 @@
                     "description": "Two saddles and bridles",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8780,6 +9081,7 @@
                     "description": "Two sets of saddlebags",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8796,6 +9098,7 @@
                     "description": "Several large bags of grain",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8812,6 +9115,7 @@
                     "description": "Buckets and other stable items",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8858,7 +9162,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -8867,6 +9172,7 @@
                     "description": "Holding cells a through e",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8883,6 +9189,7 @@
                     "description": "Dungeon doors locked; keys held by captain in room 36",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8899,6 +9206,7 @@
                     "description": "Irons for prisoners",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8948,7 +9256,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -8957,6 +9266,7 @@
                     "description": "Guard post for the main loot",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -8973,6 +9283,7 @@
                     "description": "Common oil lamp",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9020,6 +9331,7 @@
                     "description": "Strong locked door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9036,6 +9348,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9110,7 +9423,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -9119,6 +9433,7 @@
                     "description": "Shortbow and quiver of arrows on a peg by the door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9135,6 +9450,7 @@
                     "description": "Main room with tables, couches, and living furnishings",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9151,6 +9467,7 @@
                     "description": "Three back rooms (41a, 41b, 41c) with beds and personal items",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9167,6 +9484,7 @@
                     "description": "Crude handmade furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9183,6 +9501,7 @@
                     "description": "Plain oil lamp in each room",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9199,6 +9518,7 @@
                     "description": "Wooden jug with a quart of oil in the main room",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9215,6 +9535,7 @@
                     "description": "Deputy usually has the key to room 34",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9261,7 +9582,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -9270,6 +9592,7 @@
                     "description": "Cave entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9286,6 +9609,7 @@
                     "description": "Dozen torches kept just inside the entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9302,6 +9626,7 @@
                     "description": "Covered bowl of hot coals",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9318,6 +9643,7 @@
                     "description": "Crossbows and bolt cases for the guards",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9346,7 +9672,8 @@
             "entrance": [
               0,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -9577,7 +9904,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -9586,6 +9914,7 @@
                     "description": "Locked storeroom to the south",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9602,6 +9931,7 @@
                     "description": "Storeroom contains dried meat, pickled vegetables in clay jars, and other supplies",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9648,7 +9978,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -9657,6 +9988,7 @@
                     "description": "Benches",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9673,6 +10005,7 @@
                     "description": "Chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9689,6 +10022,7 @@
                     "description": "Tables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9735,7 +10069,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -9744,6 +10079,7 @@
                     "description": "Flimsy wooden-pole doors lashed together",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9760,6 +10096,7 @@
                     "description": "Doors can be kicked in easily",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9776,6 +10113,7 @@
                     "description": "Doors can be heard through easily",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9792,6 +10130,7 @@
                     "description": "Normal rats kept as pets",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9838,7 +10177,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -9847,6 +10187,7 @@
                     "description": "Rickety door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9863,6 +10204,7 @@
                     "description": "Door can be kicked in easily",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9879,6 +10221,7 @@
                     "description": "Door can be listened through easily",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9895,6 +10238,7 @@
                     "description": "Litter on the floor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9911,6 +10255,7 @@
                     "description": "Fire with rats and mice being cooked",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9955,6 +10300,7 @@
                     "description": "Open chamber",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9971,6 +10317,7 @@
                     "description": "Old metal helmets",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -9987,6 +10334,7 @@
                     "description": "Clothing hung on wooden frames like scarecrows",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10003,6 +10351,7 @@
                     "description": "Battle mementos and trophies",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10019,6 +10368,7 @@
                     "description": "Secret door in center of west wall, 3' wide and 6' high",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10035,6 +10385,7 @@
                     "description": "Secret door is well-hidden and opens by pulling one side",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10091,7 +10442,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -10100,6 +10452,7 @@
                     "description": "Large clay urn in back with wooden lid tied on by rough fiber rope",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10116,6 +10469,7 @@
                     "description": "Chief holds the key to the storeroom in area 43",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10132,6 +10486,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 406,
@@ -10181,7 +10536,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -10190,6 +10546,7 @@
                     "description": "Concealed outside exit in the woods",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10206,6 +10563,7 @@
                     "description": "Exit hidden by living brush and debris",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10248,7 +10606,8 @@
             "entrance": [
               3,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -10484,7 +10843,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -10493,6 +10853,7 @@
                     "description": "two totem poles capped with bear skulls and feathers",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10509,6 +10870,7 @@
                     "description": "sloping tunnel descending about 30 feet",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10525,6 +10887,7 @@
                     "description": "boulders that can be rolled into the hallway and packed with mud to prevent flooding",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10569,6 +10932,7 @@
                     "description": "stored firewood",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10585,6 +10949,7 @@
                     "description": "dry grass for tinder",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10601,6 +10966,7 @@
                     "description": "rocks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10647,7 +11013,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [],
                 "trap": null,
@@ -10683,6 +11050,7 @@
                     "description": "two storage chambers separated by 3-foot-high reed walls",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10699,6 +11067,7 @@
                     "description": "western pool 2 feet deep",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10715,6 +11084,7 @@
                     "description": "food animals including fish, eels, crawdads, turtles, lizards, and rabbits",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10771,7 +11141,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -10780,6 +11151,7 @@
                     "description": "hidden hole in the center of the north wall covered with mud",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10796,6 +11168,7 @@
                     "description": "two hollow tree trunks through the roof providing ventilation",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10812,6 +11185,7 @@
                     "description": "ceiling can be dug out for escape in about an hour or less",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10828,6 +11202,7 @@
                     "description": "smoldering fire with large rats smoking over it",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10844,6 +11219,7 @@
                     "description": "smoked meats and vegetables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10860,6 +11236,7 @@
                     "description": "large hard-baked clay pots and jars",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10876,6 +11253,7 @@
                     "description": "hides and furs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10892,6 +11270,7 @@
                     "description": "firewood, grasses, and leaves for bedding and fires",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -10908,6 +11287,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 100,
@@ -10957,7 +11337,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -10966,6 +11347,7 @@
                     "description": "simple bamboo gigs for fish-and-frog hunting",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11017,7 +11399,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -11026,6 +11409,7 @@
                     "description": "dark guard post",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11042,6 +11426,7 @@
                     "description": "sloping tunnel descending about 30 feet from the entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11058,6 +11443,7 @@
                     "description": "boulders that can be rolled into the hallway and packed with mud to prevent flooding",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11074,6 +11460,7 @@
                     "description": "thick fiber rope for the giant gecko lizard",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11118,6 +11505,7 @@
                     "description": "entrance opens into a stream bank about 20 feet high",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11134,6 +11522,7 @@
                     "description": "two 9-foot totem poles with crude animals and lizards",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11150,6 +11539,7 @@
                     "description": "bear skulls and feathers atop the totem poles",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11175,7 +11565,8 @@
             "entrance": [
               0,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -11478,7 +11869,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -11487,6 +11879,7 @@
                     "description": "Entranceway",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11503,6 +11896,7 @@
                     "description": "Niche just inside the entrance",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11519,6 +11913,7 @@
                     "description": "Heavy wooden beam supports",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11535,6 +11930,7 @@
                     "description": "15-foot-high ceilings",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11582,6 +11978,7 @@
                     "description": "Hall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11598,6 +11995,7 @@
                     "description": "Pressure plates at both ends",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11614,6 +12012,7 @@
                     "description": "Swinging spiked wooden frame trap",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11677,7 +12076,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -11686,6 +12086,7 @@
                     "description": "Open door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11702,6 +12103,7 @@
                     "description": "Hanging tarp just inside the doorway",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11718,6 +12120,7 @@
                     "description": "Crates of food",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11734,6 +12137,7 @@
                     "description": "Bags of meat",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11750,6 +12154,7 @@
                     "description": "Three 50-foot sections of rope",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11766,6 +12171,7 @@
                     "description": "A dozen iron spikes",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11829,7 +12235,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -11838,6 +12245,7 @@
                     "description": "Prayer scrolls on the east wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11854,6 +12262,7 @@
                     "description": "Three long strips of cheap paper with bugbear writing",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11901,6 +12310,7 @@
                     "description": "Benches stacked on the north wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11917,6 +12327,7 @@
                     "description": "Tables stacked on the north wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11933,6 +12344,7 @@
                     "description": "Bunks on the south wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11949,6 +12361,7 @@
                     "description": "Boxes on the south wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -11993,6 +12406,7 @@
                     "description": "Well-hidden secret door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12009,6 +12423,7 @@
                     "description": "Ceiling block trigger",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12025,6 +12440,7 @@
                     "description": "Door swings up",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12041,6 +12457,7 @@
                     "description": "Latch resets when swung down",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12085,6 +12502,7 @@
                     "description": "Extremely strong locked door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12101,6 +12519,7 @@
                     "description": "High-quality lock",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12117,6 +12536,7 @@
                     "description": "Small niche hidden in the door frame",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12133,6 +12553,7 @@
                     "description": "Chests",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12149,6 +12570,7 @@
                     "description": "Boxes",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12165,6 +12587,7 @@
                     "description": "Barrels",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12181,6 +12604,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 500,
@@ -12247,7 +12671,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -12256,6 +12681,7 @@
                     "description": "Locked heavy wooden cell doors",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12272,6 +12698,7 @@
                     "description": "Barred windows in cell doors",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12288,6 +12715,7 @@
                     "description": "Torture room e",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12304,6 +12732,7 @@
                     "description": "Stools for guards",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12320,6 +12749,7 @@
                     "description": "Iron loops and chains on the walls",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12336,6 +12766,7 @@
                     "description": "Hot brazier",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12352,6 +12783,7 @@
                     "description": "Fireplace poker",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12368,6 +12800,7 @@
                     "description": "Cell a empty",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12384,6 +12817,7 @@
                     "description": "Cell b holds a desperate merchant",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12400,6 +12834,7 @@
                     "description": "Cell c holds two harmless skeletons",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12416,6 +12851,7 @@
                     "description": "Cell d empty",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12432,6 +12868,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 200,
@@ -12481,7 +12918,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -12490,6 +12928,7 @@
                     "description": "Rattan tables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12506,6 +12945,7 @@
                     "description": "Rattan chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12522,6 +12962,7 @@
                     "description": "Heavy wooden bunks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12571,7 +13012,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -12580,6 +13022,7 @@
                     "description": "Door from which grunting and snuffling can be heard",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12596,6 +13039,7 @@
                     "description": "Chain attached to east wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12612,6 +13056,7 @@
                     "description": "Weak wall attachment for the chain",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12663,7 +13108,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -12672,6 +13118,7 @@
                     "description": "Heavy wooden beds",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12688,6 +13135,7 @@
                     "description": "Heavy wooden chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12704,6 +13152,7 @@
                     "description": "Heavy wooden tables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12720,6 +13169,7 @@
                     "description": "Stout thick iron-bound locked door to the west",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12736,6 +13186,7 @@
                     "description": "Empty room beyond the western door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12752,6 +13203,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -12787,7 +13239,8 @@
             "entrance": [
               0,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -13048,6 +13501,7 @@
                     "description": "Dead goblin outside",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13064,6 +13518,7 @@
                     "description": "Two dead bugbears outside",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13080,6 +13535,7 @@
                     "description": "Ambush point at location \"w\"",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13096,6 +13552,7 @@
                     "description": "Well-concealed secret door used by gnolls from 71",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13159,7 +13616,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -13168,6 +13626,7 @@
                     "description": "Shabby furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13184,6 +13643,7 @@
                     "description": "Three crude benches carved from large tree sections",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13233,7 +13693,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -13242,6 +13703,7 @@
                     "description": "Shabby furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13258,6 +13720,7 @@
                     "description": "Secret door used for flanking attacks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13312,7 +13775,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -13321,6 +13785,7 @@
                     "description": "Pet wolf tied by rope to the northwest corner",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13337,6 +13802,7 @@
                     "description": "Unmarked room to the southwest with crude cots",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13384,6 +13850,7 @@
                     "description": "Stone columns dividing the cavern",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13400,6 +13867,7 @@
                     "description": "Pools of clean drinking water",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13451,7 +13919,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -13460,6 +13929,7 @@
                     "description": "Room full of junk",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13476,6 +13946,7 @@
                     "description": "Collection of clay drinking jars, many smashed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13492,6 +13963,7 @@
                     "description": "Jar containing two tied keys",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13508,6 +13980,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13564,7 +14037,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -13573,6 +14047,7 @@
                     "description": "Dust-covered overhead webs about 10' up",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13589,6 +14064,7 @@
                     "description": "Actual ceiling 15' high",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13605,6 +14081,7 @@
                     "description": "Strong chest",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13621,6 +14098,7 @@
                     "description": "Boxes of stored goods",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13637,6 +14115,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 639,
@@ -13701,6 +14180,7 @@
                     "description": "Locked door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13717,6 +14197,7 @@
                     "description": "Barrels, boxes, and bags crammed into the room",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13733,6 +14214,7 @@
                     "description": "Stores of food and cheap ale",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13779,7 +14261,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -13788,6 +14271,7 @@
                     "description": "Cell \"a\" common cell",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13804,6 +14288,7 @@
                     "description": "Cell \"b\" segregated cell",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13820,6 +14305,7 @@
                     "description": "Thick wooden-bar cell doors with 1-inch gaps",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13836,6 +14322,7 @@
                     "description": "Iron hinges and locks of poor quality",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13852,6 +14339,7 @@
                     "description": "Rough-cut steps leading 10' up to area \"c\"",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13868,6 +14356,7 @@
                     "description": "Torture area",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13884,6 +14373,7 @@
                     "description": "Chopping block",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13900,6 +14390,7 @@
                     "description": "Hand axe",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13916,6 +14407,7 @@
                     "description": "Wooden rack",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13932,6 +14424,7 @@
                     "description": "Several wooden sawhorses",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13948,6 +14441,7 @@
                     "description": "Pile of coal",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13964,6 +14458,7 @@
                     "description": "Iron brazier",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -13980,6 +14475,7 @@
                     "description": "Crude iron pokers",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14008,7 +14504,8 @@
             "entrance": [
               0,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       },
@@ -14653,6 +15150,7 @@
                     "description": "Corroded brass plaque reading \"Roslof Manor\"",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14669,6 +15167,7 @@
                     "description": "Ruined wooden gates with salvaged timbers and metal hardware laid out for replacement",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14685,6 +15184,7 @@
                     "description": "Broken paving stones",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14701,6 +15201,7 @@
                     "description": "Hoofprints and wagon tracks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14757,7 +15258,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -14766,6 +15268,7 @@
                     "description": "Collapsed upper stories",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14782,6 +15285,7 @@
                     "description": "Steep interior stairway",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14798,6 +15302,7 @@
                     "description": "Arrow slits every 10 feet",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14814,6 +15319,7 @@
                     "description": "Door with lock and nearby heavy bar",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14868,7 +15374,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -14877,6 +15384,7 @@
                     "description": "Badly damaged unsafe tower",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14893,6 +15401,7 @@
                     "description": "Broken door wedged in frame with heavy wooden pegs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14909,6 +15418,7 @@
                     "description": "Rubble",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14925,6 +15435,7 @@
                     "description": "Broken furniture",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14941,6 +15452,7 @@
                     "description": "Harmless skeletal remains",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -14992,7 +15504,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -15001,6 +15514,7 @@
                     "description": "Ruined remains of former stables complex",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15017,6 +15531,7 @@
                     "description": "Collapsed structures forming a maze of darkness and ruin",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15033,6 +15548,7 @@
                     "description": "Soot and burned timbers from ancient fires",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15049,6 +15565,7 @@
                     "description": "Weeds growing through rubbish",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15093,6 +15610,7 @@
                     "description": "Ruined staff cottages",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15109,6 +15627,7 @@
                     "description": "Wild berries, fruit trees, and vegetables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15158,7 +15677,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -15167,6 +15687,7 @@
                     "description": "Rotten wooden buildings from former dog kennels",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15183,6 +15704,7 @@
                     "description": "Wall patrol route",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15199,6 +15721,7 @@
                     "description": "Steps down from the wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15215,6 +15738,7 @@
                     "description": "Lean-to of hides in the northeast corner",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15231,6 +15755,7 @@
                     "description": "Half-eaten deer carcass and scattered animal parts",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15247,6 +15772,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 50,
                       "gp": 100,
@@ -15291,6 +15817,7 @@
                     "description": "10-foot-deep full moat",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15307,6 +15834,7 @@
                     "description": "Burned-out remains of former wooden bridge",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15323,6 +15851,7 @@
                     "description": "Slow-moving stream entering under the north wall and exiting east",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15339,6 +15868,7 @@
                     "description": "Arched undercuts at stream openings",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15355,6 +15885,7 @@
                     "description": "Two sets of heavy iron bars at each opening",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15399,6 +15930,7 @@
                     "description": "Great iron double doors barred from inside",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15415,6 +15947,7 @@
                     "description": "High wide windows with heavy iron bars",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15431,6 +15964,7 @@
                     "description": "Loose wall blocks on west side that can be removed to make an entry hole into 85",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15447,6 +15981,7 @@
                     "description": "Three wooden wagon ramps about 24 feet long",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15503,7 +16038,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -15512,6 +16048,7 @@
                     "description": "Heavy iron chandelier",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15528,6 +16065,7 @@
                     "description": "Wall torch or lantern mounts",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15544,6 +16082,7 @@
                     "description": "Skylights",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15560,6 +16099,7 @@
                     "description": "Two ornate stairways (a and b) up to second-floor balcony",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15576,6 +16116,7 @@
                     "description": "Swinging double doors under the balcony",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15592,6 +16133,7 @@
                     "description": "30-foot-high main hall ceiling",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15608,6 +16150,7 @@
                     "description": "Bootprints in the dust",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15624,6 +16167,7 @@
                     "description": "Torn-down interior wall sections",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15668,6 +16212,7 @@
                     "description": "Simple wooden stalls",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15684,6 +16229,7 @@
                     "description": "4 riding horses",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15700,6 +16246,7 @@
                     "description": "3 mules",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15716,6 +16263,7 @@
                     "description": "3 oxen",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15732,6 +16280,7 @@
                     "description": "Hay and feed supplies",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15748,6 +16297,7 @@
                     "description": "Small traveling anvil",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15764,6 +16314,7 @@
                     "description": "Pile of bricks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15780,6 +16331,7 @@
                     "description": "Bags of coal",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15796,6 +16348,7 @@
                     "description": "Hammers and smithing tools",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15812,6 +16365,7 @@
                     "description": "Horseshoes",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15856,6 +16410,7 @@
                     "description": "Two wagons",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15872,6 +16427,7 @@
                     "description": "Two carts",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15888,6 +16444,7 @@
                     "description": "Boxes and tarps",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15904,6 +16461,7 @@
                     "description": "Stacks of smashed tables and chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15920,6 +16478,7 @@
                     "description": "Thicker wood pieces arranged like building timbers",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15936,6 +16495,7 @@
                     "description": "Open paths to the kitchen and prep room",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -15987,7 +16547,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -15996,6 +16557,7 @@
                     "description": "Tables and chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16012,6 +16574,7 @@
                     "description": "Dirty wooden plates",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16028,6 +16591,7 @@
                     "description": "Pewter or wooden mugs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16044,6 +16608,7 @@
                     "description": "Keg of cheap beer",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16093,7 +16658,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -16102,6 +16668,7 @@
                     "description": "Several ovens and stoves",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16118,6 +16685,7 @@
                     "description": "Tables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16134,6 +16702,7 @@
                     "description": "Sinks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16150,6 +16719,7 @@
                     "description": "Dirty wooden dishes",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16166,6 +16736,7 @@
                     "description": "Stew cooking on a stove",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16213,6 +16784,7 @@
                     "description": "Bags of flour",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16229,6 +16801,7 @@
                     "description": "Stored grains and vegetables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16245,6 +16818,7 @@
                     "description": "Narrow stairs down 10 feet to cold room",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16261,6 +16835,7 @@
                     "description": "Cold room with game carcasses on iron hooks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16305,6 +16880,7 @@
                     "description": "Long laundry ropes",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16321,6 +16897,7 @@
                     "description": "Empty wooden shelves for linens and rugs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16337,6 +16914,7 @@
                     "description": "Sealed bucket of red paint",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16353,6 +16931,7 @@
                     "description": "Sealed bucket of red varnish",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16397,6 +16976,7 @@
                     "description": "Bathtubs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16413,6 +16993,7 @@
                     "description": "Cloth screens on wooden frames",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16429,6 +17010,7 @@
                     "description": "Table with bars of soap",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16473,6 +17055,7 @@
                     "description": "Heavy back door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16489,6 +17072,7 @@
                     "description": "Two iron bars securing it from inside",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16535,7 +17119,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -16544,6 +17129,7 @@
                     "description": "Former servant quarters with inner partitions torn down",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16588,6 +17174,7 @@
                     "description": "Former servant quarters with inner partitions torn down",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16632,6 +17219,7 @@
                     "description": "Former servant quarters with inner partitions torn down",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16678,7 +17266,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -16687,6 +17276,7 @@
                     "description": "Former servant quarters with inner partitions torn down",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16703,6 +17293,7 @@
                     "description": "Nearby spears and hand axes",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -16735,7 +17326,8 @@
                   3,
                   3
                 ],
-                "to_facing": "north"
+                "to_facing": "north",
+                "requires": null
               }
             ],
             "wandering": {
@@ -16746,7 +17338,8 @@
             "entrance": [
               3,
               9
-            ]
+            ],
+            "guidance": ""
           },
           {
             "number": 2,
@@ -16993,6 +17586,7 @@
                     "description": "Stairs descending to area 85 on the ground floor",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17009,6 +17603,7 @@
                     "description": "Safety railing",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17025,6 +17620,7 @@
                     "description": "Upper floor has gas lighting, windows, and torch holders",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17041,6 +17637,7 @@
                     "description": "10' ceilings on this floor; stairs rise 20'",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17085,6 +17682,7 @@
                     "description": "Makeshift bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17101,6 +17699,7 @@
                     "description": "Table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17117,6 +17716,7 @@
                     "description": "Chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17133,6 +17733,7 @@
                     "description": "Locked casket with a crude lock meant only to indicate tampering",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17149,6 +17750,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 345,
@@ -17198,7 +17800,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -17207,6 +17810,7 @@
                     "description": "Makeshift bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17223,6 +17827,7 @@
                     "description": "Table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17239,6 +17844,7 @@
                     "description": "Chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17255,6 +17861,7 @@
                     "description": "Sack hidden under the bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17271,6 +17878,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 198,
@@ -17318,6 +17926,7 @@
                     "description": "Makeshift bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17334,6 +17943,7 @@
                     "description": "Table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17350,6 +17960,7 @@
                     "description": "Chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17366,6 +17977,7 @@
                     "description": "Chest of drawers",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17382,6 +17994,7 @@
                     "description": "Religious display on the chest of drawers",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17398,6 +18011,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17452,6 +18066,7 @@
                     "description": "Shabby, slapped-together bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17468,6 +18083,7 @@
                     "description": "Table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17484,6 +18100,7 @@
                     "description": "Chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17500,6 +18117,7 @@
                     "description": "Painting of horrors and stark terror hanging on the wall",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17516,6 +18134,7 @@
                     "description": "Holy symbol hung beneath the painting",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17532,6 +18151,7 @@
                     "description": "Three necklaces hung beneath the painting",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17548,6 +18168,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 350,
@@ -17595,6 +18216,7 @@
                     "description": "Makeshift bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17611,6 +18233,7 @@
                     "description": "Table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17627,6 +18250,7 @@
                     "description": "Chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17643,6 +18267,7 @@
                     "description": "Incomplete alchemical laboratory for making potions",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17687,6 +18312,7 @@
                     "description": "Stored tables",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17703,6 +18329,7 @@
                     "description": "Stored bedding",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17719,6 +18346,7 @@
                     "description": "Miscellaneous items for future use",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17763,6 +18391,7 @@
                     "description": "Double doors hanging open",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17779,6 +18408,7 @@
                     "description": "Old toys scattered about",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17795,6 +18425,7 @@
                     "description": "Cribs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17811,6 +18442,7 @@
                     "description": "Dust-covered nursery",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17862,7 +18494,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -17871,6 +18504,7 @@
                     "description": "Shut door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17887,6 +18521,7 @@
                     "description": "Small warning bell hung on the inside of the door",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17903,6 +18538,7 @@
                     "description": "Several gaslights fed by natural gas taps",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17919,6 +18555,7 @@
                     "description": "Large round table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17935,6 +18572,7 @@
                     "description": "Chairs",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17951,6 +18589,7 @@
                     "description": "Desk",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17967,6 +18606,7 @@
                     "description": "Map on the table",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17983,6 +18623,7 @@
                     "description": "Two large chests holding war funds",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -17999,6 +18640,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 491,
                       "gp": 1686,
@@ -18048,7 +18690,8 @@
                   9,
                   12
                 ],
-                "to_facing": "north"
+                "to_facing": "north",
+                "requires": null
               }
             ],
             "wandering": {
@@ -18056,7 +18699,8 @@
               "interval_turns": 2,
               "table": null
             },
-            "entrance": null
+            "entrance": null,
+            "guidance": ""
           }
         ]
       }
@@ -19036,6 +19680,9 @@
         "categories": [],
         "overrides_applied": []
       }
-    ]
+    ],
+    "items": [],
+    "triggers": [],
+    "quests": []
   }
 }
