@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "fingerprint": "6115cd24ea93b297504193dc090529de03fd409fb6f352bc93a5aa64e7b87685",
+  "tag": "mapread.bandit-lair.1",
+  "request": {
+    "system": "You read one dungeon level's printed map from a tabletop adventure module. The user message names the dungeon and level and lists the level's keyed areas in printed order, then interleaves each map page's extracted text (each headed by a [page N] marker) with that page's image — the map is in the images; read them.\n\nRules:\n- Propose adjacency only between the provided printed keys. Two keyed areas are adjacent when the map joins them directly by a door, opening, or passage, or through unkeyed passage in consecutive order along it.\n- Report a door only where the map marks one; use \"secret_door\" only where the map's legend marks the door secret. \"none\" means the map joins the pair with no door marked.\n- \"entrance\" is the keyed area holding the way into the level from outside, only where the map labels it (an entrance arrow, a labeled stair from the surface, a marked cave mouth). Answer null when the map labels none.\n- Propose nothing that cannot be read: keys the map does not show, adjacencies you cannot trace, or an entrance the map does not label are omissions, never guesses.\n",
+    "parts": [
+      {
+        "text": "Read the level map for \"Bandit Lair\", level 1. The level's keyed areas, in printed order:\n- 32\n- 33\n- 34\n- 35\n- 36\n- 37\n- 38\n- 39\n- 40\n- 41\n- 42\n"
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "adjacencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "b": {
+                "type": "string"
+              },
+              "door": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "door",
+                  "secret_door"
+                ]
+              }
+            },
+            "required": [
+              "a",
+              "b",
+              "door"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "entrance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "adjacencies",
+        "entrance"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "adjacencies": [],
+      "entrance": null
+    },
+    "usage": {
+      "input_tokens": 1328,
+      "output_tokens": 24
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

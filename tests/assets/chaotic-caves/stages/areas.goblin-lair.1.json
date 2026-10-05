@@ -1,0 +1,237 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "goblin-lair",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "26",
+      "description": "A dark, dank goblin guard post in the crudely tunneled warren. Six goblins hunker here ready to fight intruders. Each carries 1d6 cp. They control a net trap at the lair entrance by jerking a rope; if intruders try to free trapped companions, the goblins pelt them with slings.",
+      "encounters": [
+        {
+          "monster": "goblin",
+          "count_fixed": 6,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": "A net trap covers the marked entrance area. The goblins can drop it by pulling a rope. Entangled victims are easily subdued but can free themselves in 1d6 rounds if left alone; those walking directly under it are very likely to be caught.",
+      "treasure": [
+        "Each goblin has 1d6 cp."
+      ],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "27",
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        27
+      ],
+      "confidence": 0.85
+    },
+    {
+      "key": "27",
+      "description": "A common room whose entrance is covered by crude curtains made from rawhide and cheap cloth. Inside, seven unarmored goblins rest on simple but well-made wooden furniture: stools, tables, cots, and bedding of common furs. Each carries 1d6 cp.",
+      "encounters": [
+        {
+          "monster": "goblin",
+          "count_fixed": 7,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each goblin has 1d6 cp."
+      ],
+      "features": [
+        "Crude rawhide and cheap-cloth curtains over the entrance.",
+        "Simple but well-made wooden stools, tables, cots, and bedding of common furs."
+      ],
+      "connections": [
+        {
+          "to_key": "26",
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "28",
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        28
+      ],
+      "confidence": 0.82
+    },
+    {
+      "key": "28",
+      "description": "A cleverly concealed pit trap in the goblin lair.",
+      "encounters": [],
+      "trap": "A 10-foot-deep pit trap. Victims take 1d6 damage from falling. The covering is cleverly made; even tapping for a hollow floor only reveals a faint noise on a standard trap-finding check.",
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "27",
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "29",
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "30",
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        28
+      ],
+      "confidence": 0.74
+    },
+    {
+      "key": "29",
+      "description": "The room of an old goblin who serves as spiritual adviser to the chief and tribe. He is wise but petty and cruel, and misguides others for his own profit. He is not truly a cleric and cannot use the scroll found here. He does not have armor.",
+      "encounters": [
+        {
+          "monster": "goblin",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "the goblin priest"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Potion of Healing.",
+        "Scroll of Cure Light Wounds.",
+        "Silver amulet representing a goblin god, worth about 50 gp to a collector."
+      ],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "28",
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        28
+      ],
+      "confidence": 0.88
+    },
+    {
+      "key": "30",
+      "description": "A combined common room and store room occupied by unarmored goblins. Large wicker baskets are stacked along the back wall, filled with wheat grain, flour, vegetables, dried meats, and other items. Each goblin carries 1d6 cp.",
+      "encounters": [
+        {
+          "monster": "goblin",
+          "count_fixed": 11,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each goblin has 1d6 cp.",
+        "Six rare-wood statues about 1 foot tall, worth about 25 gp each."
+      ],
+      "features": [
+        "Large wicker baskets stacked along the back wall, filled with wheat grain, flour, vegetables, dried meats, and other items.",
+        "Six beautiful 1-foot-tall statues in niches in the southeast wall."
+      ],
+      "connections": [
+        {
+          "to_key": "28",
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "31",
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        28
+      ],
+      "confidence": 0.82
+    },
+    {
+      "key": "31",
+      "description": "The goblin chief's room, inhabited by the chief and three other goblins. The chief wields a Shortsword +1. The north, south, and east walls are covered by curtains assembled from a hodgepodge of bed linens, tapestries, and hides. A concealed cache is buried in the southeast corner under a clever covering that requires a find secret door check or equivalent search to locate.",
+      "encounters": [
+        {
+          "monster": "goblin king",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "the goblin chief"
+        },
+        {
+          "monster": "goblin",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Shortsword +1 wielded by the chief.",
+        "Under an overturned bucket in the northeast corner: 131 gp, 456 sp, and 872 cp.",
+        "Buried in a hidden wooden box in the southeast corner: 472 gp, 178 sp, and 1,234 cp."
+      ],
+      "features": [
+        "Curtains on the north, south, and east walls made from mixed bed linens, tapestries, and hides.",
+        "Overturned bucket in the northeast corner hiding a bag of coins.",
+        "A buried hidden cache in the southeast corner beneath a clever covering."
+      ],
+      "connections": [
+        {
+          "to_key": "30",
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        28
+      ],
+      "confidence": 0.84
+    }
+  ]
+}

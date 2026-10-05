@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "fingerprint": "f6b6755a05e5913397c0cb66a0c19c9ada02946a7650a509df51464403f956ba",
+  "tag": "statblock.gnoll-females",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"gnoll females\" from the pages below.\n"
+      },
+      {
+        "text": "[page 36]\nThe Caves The Chaotic Caves\nJ. GNOLL LAIR\nThese gnolls have been brought here by the\nscent of loot and fresh meat.\nThey are armed with wide-bladed, heavy\nswords of their own making; others who wish\nto wield them must have at least 12 Strength\nto do so.\n69. ENTRANCE: This entranceway seems to be\nunguarded. A dead goblin and two dead\nbugbears lie sprawled just outside it. They\nhave been dead for several days and have not\nbeen disturbed, beyond some nibbling by small\nanimals and birds. The place is quiet and\nreeks of desolation; any tracks that are found\nare days old.\nWhich is a trap: gnolls from the guard posts at\n#70 and #71 keep watch around the corner at\nlocation \"w\". Based on what any intruders do,\nthe gnolls attempt an end-round. If intruders\nexplore the door to #70, gnolls from that room\nleave and come charging down the hall from\nthe west opening (\"w\"). If they bypass the\ndoor, gnolls exit the door and attack. Those at\n#71 will remain in reserve and make crafty use\nof the well-concealed secret door to come out\nbehind opponents and attack if they can.\n70. GUARD POST: Three gnolls wait here – one\nis on duty at the corner at the area marked \"w\"\n(along with the one from room #71) and will\nalert the rest of those in this room if it detects\nintruders. Most of their furniture is shabby,\nalthough three sections of a large tree have\nbeen carved into crude benches. Each gnoll\nhas 1d6 ep.\n3 Gnolls: AC 15, HD 2, #At 1 heavy sword, \nDam 2d4, Mv 30', Sv F2, ML 8, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n71. GUARD POST: Three gnolls wait here – one\nis on duty at the corner at the area marked \"w\"\n(along with the one from room #70) and will\nalert the ones in this room if intruders are\nspotted. They have shabby furniture. Each\ngnoll has 1d6 ep.\n3 Gnolls: AC 15, HD 2, #At 1 heavy sword, \nDam 2d4, Mv 30', Sv F2, ML 8, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n72. COMMON ROOM: A group of gnolls lounge\nin this room, often bored and bickering. A pet\nwolf is tied by rope to the northwest corner,\nfed scraps, and trained as both guard and war\ndog. It has a high chance of hearing or\nsmelling anyone who spends too much time\noutside the doors debating what to do. Each\ngnoll has 1d6 ep. The unmarked room to the\nsouthwest contains crude cots.\n5 Gnolls: AC 15, HD 2, #At 1 heavy sword, \nDam 2d4, Mv 30', Sv F2, ML 8, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\nWolf: AC 13, HD 2, #At 1 bite, Dam 1d6, Mv 60', \nSv F2, ML 8, XP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\n73. CAVERN: This natural cavern is divided by\nstone columns. There is nothing here, although\nthe dripping of water provides some pools of\nclean drinking water.\n74. LEADER'S ROOM: The gnoll leader resides\nhere along with two mates. The leader wields\na Battle Axe +1 and fights fiercely. It wears a\ngolden necklace with gems worth 700 gp.\nThe room has a lot of junk in it, including a\ncollection of clay jars (drinking size), many of\nthem smashed. One jar contains two keys tied\ntogether: they open the treasure room to the\nsouth and the store room at #75.\nGnoll leader: AC 15, HD 6, #At 1 battle axe +1, \nDam 1d8+2, Mv 30', Sv F6, ML 8, XP 500\nHP 27 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐\n☐☐☐☐☐ ☐☐\n2 Gnoll Females: AC 15, HD 2, #At 1 heavy \nsword, Dam 2d4, Mv 30', Sv F2, ML 8, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n34"
+      },
+      {
+        "sha256": "ac52cd24a3f75b4f402d708bc893ab2fb097805f0cbe4a8c8bc2ccf2ab69eae6",
+        "bytes": 481345
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2",
+      "class_level": null,
+      "hp": 8,
+      "attacks": [
+        "1 heavy sword, Dam 2d4"
+      ],
+      "movement": "30'",
+      "saves": "F2",
+      "morale": 8,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": "2",
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        36
+      ]
+    },
+    "usage": {
+      "input_tokens": 2944,
+      "output_tokens": 108
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

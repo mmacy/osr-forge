@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "fingerprint": "d2149fdb7464fd1f5cba1a5f875398d2aa579cc8ac122c55f2e320879252066f",
+  "tag": "mapread.cave-of-horrors.1",
+  "request": {
+    "system": "You read one dungeon level's printed map from a tabletop adventure module. The user message names the dungeon and level and lists the level's keyed areas in printed order, then interleaves each map page's extracted text (each headed by a [page N] marker) with that page's image — the map is in the images; read them.\n\nRules:\n- Propose adjacency only between the provided printed keys. Two keyed areas are adjacent when the map joins them directly by a door, opening, or passage, or through unkeyed passage in consecutive order along it.\n- Report a door only where the map marks one; use \"secret_door\" only where the map's legend marks the door secret. \"none\" means the map joins the pair with no door marked.\n- \"entrance\" is the keyed area holding the way into the level from outside, only where the map labels it (an entrance arrow, a labeled stair from the surface, a marked cave mouth). Answer null when the map labels none.\n- Propose nothing that cannot be read: keys the map does not show, adjacencies you cannot trace, or an entrance the map does not label are omissions, never guesses.\n",
+    "parts": [
+      {
+        "text": "Read the level map for \"Cave of Horrors\", level 1. The level's keyed areas, in printed order:\n- C1\n- C2\n- C3\n- C4\n- C5\n- C6\n- C7\n- C8\n- C9\n- C10\n- C11\n"
+      },
+      {
+        "text": "[page 21]\nThe Chaotic Caves The Town and Surroundings\nMiscellaneous Maps\n19"
+      },
+      {
+        "sha256": "3102a1d0e21bee9266e7ff4a219892e6084adbabe09e0c7885609fed4154aeba",
+        "bytes": 212238
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "adjacencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "b": {
+                "type": "string"
+              },
+              "door": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "door",
+                  "secret_door"
+                ]
+              }
+            },
+            "required": [
+              "a",
+              "b",
+              "door"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "entrance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "adjacencies",
+        "entrance"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "adjacencies": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "door": "none"
+        },
+        {
+          "a": "C1",
+          "b": "C3",
+          "door": "none"
+        },
+        {
+          "a": "C2",
+          "b": "C3",
+          "door": "none"
+        },
+        {
+          "a": "C2",
+          "b": "C6",
+          "door": "none"
+        },
+        {
+          "a": "C2",
+          "b": "C8",
+          "door": "none"
+        },
+        {
+          "a": "C3",
+          "b": "C4",
+          "door": "none"
+        },
+        {
+          "a": "C3",
+          "b": "C9",
+          "door": "none"
+        },
+        {
+          "a": "C4",
+          "b": "C5",
+          "door": "none"
+        },
+        {
+          "a": "C5",
+          "b": "C7",
+          "door": "none"
+        },
+        {
+          "a": "C6",
+          "b": "C7",
+          "door": "none"
+        },
+        {
+          "a": "C6",
+          "b": "C8",
+          "door": "none"
+        },
+        {
+          "a": "C8",
+          "b": "C9",
+          "door": "none"
+        },
+        {
+          "a": "C8",
+          "b": "C10",
+          "door": "none"
+        },
+        {
+          "a": "C9",
+          "b": "C10",
+          "door": "none"
+        },
+        {
+          "a": "C10",
+          "b": "C11",
+          "door": "none"
+        }
+      ],
+      "entrance": "C1"
+    },
+    "usage": {
+      "input_tokens": 1337,
+      "output_tokens": 238
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

@@ -344,8 +344,15 @@ def test_minimod_golden_delves_with_no_errors(tmp_path: Path):
 def test_jn1_golden_delves_with_no_errors(tmp_path: Path):
     findings = golden_check(tmp_path, "chaotic-caves")
     assert [finding for finding in findings if finding.severity == "error"] == []
-    assert all(finding.id is LintCheck.DELVE_INCOMPLETE for finding in findings)
-    assert len(findings) == 13
+    # The module reaches these areas only through secret doors: the orc lair's
+    # secret safe room and the kobold chief's room behind the trophy room's
+    # secret door, with the escape route beyond it.
+    assert [(finding.id, finding.location) for finding in findings if finding.id is not LintCheck.DELVE_INCOMPLETE] == [
+        (LintCheck.SECRET_ONLY_ACCESS, "orc-lair-b/1/11"),
+        (LintCheck.SECRET_ONLY_ACCESS, "kobold-lair/1/48"),
+        (LintCheck.SECRET_ONLY_ACCESS, "kobold-lair/1/49"),
+    ]
+    assert sum(1 for finding in findings if finding.id is LintCheck.DELVE_INCOMPLETE) == 13
 
 
 def test_check_is_deterministic_on_a_real_module(tmp_path: Path):

@@ -16,7 +16,7 @@
         16,
         21
       ],
-      "confidence": 0.98,
+      "confidence": 0.95,
       "flags": [
         "geometry_synthesized"
       ],
@@ -28,11 +28,14 @@
         16,
         21
       ],
-      "confidence": 0.97,
+      "confidence": 0.96,
       "flags": [
         "geometry_synthesized",
         "monster_custom:tentacle worm",
-        "treasure_unparsed:On the long-dead body: a silver dagger, 2 vials of holy water, 1 Potion of Healing, and a leather pouch with 3 cp."
+        "map_disputed:door h2–h5 map-read door; prose states no mechanism — adopted",
+        "treasure_unparsed:Silver dagger",
+        "treasure_unparsed:2 vials of holy water",
+        "treasure_unparsed:1 Potion of Healing"
       ],
       "overridden": []
     },
@@ -42,9 +45,12 @@
         16,
         21
       ],
-      "confidence": 0.96,
+      "confidence": 0.95,
       "flags": [
-        "geometry_synthesized"
+        "geometry_synthesized",
+        "map_disputed:door h3–h4 map-read door; prose states no mechanism — adopted",
+        "map_disputed:edge h3–h5 map-proposed (door); prose states no connection — adopted",
+        "map_disputed:edge h3–h10 prose-stated; the map shows no adjacency — kept"
       ],
       "overridden": []
     },
@@ -54,7 +60,7 @@
         16,
         21
       ],
-      "confidence": 0.97,
+      "confidence": 0.95,
       "flags": [
         "geometry_synthesized"
       ],
@@ -66,7 +72,7 @@
         16,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.92,
       "flags": [
         "geometry_synthesized"
       ],
@@ -78,7 +84,7 @@
         16,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.92,
       "flags": [
         "geometry_synthesized"
       ],
@@ -90,7 +96,7 @@
         16,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.92,
       "flags": [
         "geometry_synthesized"
       ],
@@ -102,7 +108,7 @@
         17,
         21
       ],
-      "confidence": 0.98,
+      "confidence": 0.91,
       "flags": [
         "geometry_synthesized"
       ],
@@ -114,9 +120,10 @@
         17,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.96,
       "flags": [
         "geometry_synthesized",
+        "resolution_suspect:giant fire beetles → fire_beetle, printed AC 16 read as 3 [16] vs 4 [15]",
         "connection_ambiguous:not connected to the entrance in the extracted graph"
       ],
       "overridden": []
@@ -127,11 +134,12 @@
         17,
         21
       ],
-      "confidence": 0.97,
+      "confidence": 0.95,
       "flags": [
         "geometry_synthesized",
-        "connection_ambiguous:not connected to the entrance in the extracted graph",
-        "treasure_unparsed:Encrusted by droppings are 3d6 gp, 4d6 sp, and 5d6 cp."
+        "treasure_unparsed:3d6 gp encrusted in droppings",
+        "treasure_unparsed:4d6 sp encrusted in droppings",
+        "treasure_unparsed:5d6 cp encrusted in droppings"
       ],
       "overridden": []
     },
@@ -141,10 +149,11 @@
         17,
         21
       ],
-      "confidence": 0.92,
+      "confidence": 0.83,
       "flags": [
         "geometry_synthesized",
-        "connection_ambiguous:not connected to the entrance in the extracted graph"
+        "connection_ambiguous:not connected to the entrance in the extracted graph",
+        "map_disputed:edge h11–h13 map-proposed (door); prose states no connection — adopted"
       ],
       "overridden": []
     },
@@ -154,10 +163,11 @@
         17,
         21
       ],
-      "confidence": 0.96,
+      "confidence": 0.93,
       "flags": [
         "geometry_synthesized",
-        "connection_ambiguous:not connected to the entrance in the extracted graph"
+        "connection_ambiguous:not connected to the entrance in the extracted graph",
+        "map_disputed:edge h12–h13 prose-stated; the map shows no adjacency — kept"
       ],
       "overridden": []
     },
@@ -167,7 +177,7 @@
         17,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.93,
       "flags": [
         "geometry_synthesized",
         "connection_ambiguous:not connected to the entrance in the extracted graph"
@@ -180,7 +190,7 @@
         17,
         21
       ],
-      "confidence": 0.97,
+      "confidence": 0.95,
       "flags": [
         "geometry_synthesized",
         "connection_ambiguous:not connected to the entrance in the extracted graph"
@@ -193,7 +203,7 @@
         17,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.93,
       "flags": [
         "geometry_synthesized",
         "connection_ambiguous:not connected to the entrance in the extracted graph"
@@ -218,9 +228,11 @@
         18,
         21
       ],
-      "confidence": 0.93,
+      "confidence": 0.87,
       "flags": [
-        "geometry_synthesized"
+        "geometry_synthesized",
+        "map_disputed:edge c2–c8 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge c2–c4 prose-stated; the map shows no adjacency — kept"
       ],
       "overridden": []
     },
@@ -230,9 +242,12 @@
         19,
         21
       ],
-      "confidence": 0.94,
+      "confidence": 0.86,
       "flags": [
-        "geometry_synthesized"
+        "geometry_synthesized",
+        "resolution_suspect:gray jelly → grey_ooze, printed AC 12 read as 7 [12] vs 8 [11]",
+        "map_disputed:edge c3–c9 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge c3–c8 prose-stated; the map shows no adjacency — kept"
       ],
       "overridden": []
     },
@@ -242,7 +257,7 @@
         19,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.93,
       "flags": [
         "geometry_synthesized"
       ],
@@ -254,7 +269,7 @@
         19,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.93,
       "flags": [
         "geometry_synthesized"
       ],
@@ -266,9 +281,10 @@
         19,
         21
       ],
-      "confidence": 0.85,
+      "confidence": 0.72,
       "flags": [
-        "geometry_synthesized"
+        "geometry_synthesized",
+        "map_disputed:edge c6–c7 map-proposed; prose states no connection — adopted"
       ],
       "overridden": []
     },
@@ -278,7 +294,7 @@
         19,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.88,
       "flags": [
         "geometry_synthesized",
         "treasure_unparsed:Wooden chest buried under the muck containing a Potion of Healing",
@@ -292,9 +308,11 @@
         19,
         21
       ],
-      "confidence": 0.88,
+      "confidence": 0.84,
       "flags": [
-        "geometry_synthesized"
+        "geometry_synthesized",
+        "map_disputed:edge c8–c10 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge c8–c11 prose-stated; the map shows no adjacency — kept"
       ],
       "overridden": []
     },
@@ -304,7 +322,7 @@
         19,
         21
       ],
-      "confidence": 0.94,
+      "confidence": 0.85,
       "flags": [
         "geometry_synthesized"
       ],
@@ -316,9 +334,10 @@
         19,
         21
       ],
-      "confidence": 0.94,
+      "confidence": 0.84,
       "flags": [
-        "geometry_synthesized"
+        "geometry_synthesized",
+        "resolution_suspect:giant cave locust → cave_locust, printed AC 16 read as 3 [16] vs 4 [15]"
       ],
       "overridden": []
     },
@@ -328,10 +347,9 @@
         19,
         21
       ],
-      "confidence": 0.95,
+      "confidence": 0.86,
       "flags": [
         "geometry_synthesized",
-        "connection_ambiguous:unresolved target woods",
         "treasure_unparsed:A bone tube containing a Clerical Scroll of Cure Light Wounds"
       ],
       "overridden": []
@@ -341,112 +359,20 @@
       "source_pages": [
         20
       ],
-      "confidence": 0.98,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Plate Mail +1 armor worn by the wight",
-        "treasure_unparsed:a silver-bladed sword in the coffin"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "a-orc-lair/1/1",
-      "source_pages": [
-        22,
-        38
-      ],
-      "confidence": 0.93,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each orc has 1d6 sp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "a-orc-lair/1/2",
-      "source_pages": [
-        22,
-        38
-      ],
-      "confidence": 0.92,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "a-orc-lair/1/3",
-      "source_pages": [
-        22,
-        23,
-        38
-      ],
-      "confidence": 0.95,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each orc has 1d6 sp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "a-orc-lair/1/4",
-      "source_pages": [
-        23,
-        38
-      ],
-      "confidence": 0.96,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "a-orc-lair/1/5",
-      "source_pages": [
-        23,
-        38
-      ],
-      "confidence": 0.95,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:The warden has 1d6 gp.",
-        "treasure_unparsed:Each of the two other orcs has 1d6 sp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "a-orc-lair/1/jail-area",
-      "source_pages": [
-        23,
-        38
-      ],
-      "confidence": 0.9,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "a-orc-lair/1/6",
-      "source_pages": [
-        23,
-        24,
-        38
-      ],
       "confidence": 0.97,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Potion of Passwall in a stoppered flask inside a padded jar."
+        "treasure_unparsed:Plate Mail +1 armor worn by the wight",
+        "treasure_unparsed:a silver-bladed sword in its coffin"
       ],
       "overridden": []
     },
     {
-      "id": "a-orc-lair/1/7",
+      "id": "orc-lair-a/1/1",
       "source_pages": [
-        24,
-        38
+        22
       ],
-      "confidence": 0.93,
+      "confidence": 0.89,
       "flags": [
         "geometry_synthesized",
         "treasure_unparsed:Each orc has 1d6 sp."
@@ -454,177 +380,58 @@
       "overridden": []
     },
     {
-      "id": "a-orc-lair/1/8",
+      "id": "orc-lair-a/1/2",
       "source_pages": [
-        24,
-        38
+        22
       ],
-      "confidence": 0.91,
+      "confidence": 0.84,
       "flags": [
         "geometry_synthesized"
       ],
       "overridden": []
     },
     {
-      "id": "a-orc-lair/1/9",
+      "id": "orc-lair-a/1/3",
       "source_pages": [
-        24,
-        38
+        22,
+        23
       ],
-      "confidence": 0.76,
+      "confidence": 0.9,
       "flags": [
         "geometry_synthesized",
-        "connection_ambiguous:unresolved target 13"
+        "treasure_unparsed:Each orc has 1d6 sp."
       ],
       "overridden": []
     },
     {
-      "id": "a-orc-lair/1/10",
+      "id": "orc-lair-a/1/4",
       "source_pages": [
-        24,
-        38
+        23
+      ],
+      "confidence": 0.89,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "orc-lair-a/1/5",
+      "source_pages": [
+        23
       ],
       "confidence": 0.92,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Two red gems in the statue's eyes, worth 250 gp each."
+        "monster_custom:orc warden",
+        "treasure_unparsed:The warden has 1d6 gp.",
+        "treasure_unparsed:Each of the other two orcs has 1d6 sp."
       ],
       "overridden": []
     },
     {
-      "id": "b-orc-lair/1/entrance",
+      "id": "orc-lair-a/1/jail-area",
       "source_pages": [
-        24,
-        38
-      ],
-      "confidence": 0.94,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each inhabitant has 1d6 sp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "b-orc-lair/1/11",
-      "source_pages": [
-        24,
-        38
-      ],
-      "confidence": 0.96,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "b-orc-lair/1/12",
-      "source_pages": [
-        24,
-        38
-      ],
-      "confidence": 0.95,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each orc has 1d6 sp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "b-orc-lair/1/13",
-      "source_pages": [
-        25,
-        38
-      ],
-      "confidence": 0.91,
-      "flags": [
-        "geometry_synthesized",
-        "monster_custom:orc war leader",
-        "connection_ambiguous:unresolved target 9",
-        "treasure_unparsed:Potion of Healing"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "b-orc-lair/1/14",
-      "source_pages": [
-        25,
-        38
-      ],
-      "confidence": 0.94,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each orc has 1d6 sp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "b-orc-lair/1/15",
-      "source_pages": [
-        25,
-        38
-      ],
-      "confidence": 0.93,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "c-hobgoblin-lair/1/entrance",
-      "source_pages": [
-        25,
-        38
-      ],
-      "confidence": 0.87,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each hobgoblin has 1d6 sp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "c-hobgoblin-lair/1/16",
-      "source_pages": [
-        26,
-        38
-      ],
-      "confidence": 0.91,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "c-hobgoblin-lair/1/17",
-      "source_pages": [
-        26,
-        38
-      ],
-      "confidence": 0.88,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each hobgoblin has 1d6 sp.",
-        "treasure_unparsed:Three elaborate red funeral shrouds with thin gold threading and black details, used as hammocks, worth 50 gp each."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "c-hobgoblin-lair/1/18",
-      "source_pages": [
-        26,
-        38
-      ],
-      "confidence": 0.82,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "c-hobgoblin-lair/1/19",
-      "source_pages": [
-        26,
-        38
+        23
       ],
       "confidence": 0.85,
       "flags": [
@@ -633,191 +440,407 @@
       "overridden": []
     },
     {
-      "id": "c-hobgoblin-lair/1/20",
+      "id": "orc-lair-a/1/6",
       "source_pages": [
-        26,
-        38
-      ],
-      "confidence": 0.88,
-      "flags": [
-        "geometry_synthesized",
-        "connection_ambiguous:unresolved target D. ABANDONED CRYPTS",
-        "treasure_unparsed:Each hobgoblin has 1d6 sp.",
-        "treasure_unparsed:Six vials of holy water."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "c-hobgoblin-lair/1/21",
-      "source_pages": [
-        26,
-        38
-      ],
-      "confidence": 0.86,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:A vial containing a Potion of Stone to Flesh (1 use)."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "d-abandoned-crypts/1/22",
-      "source_pages": [
-        27,
-        38
+        23,
+        24
       ],
       "confidence": 0.91,
       "flags": [
         "geometry_synthesized",
-        "connection_ambiguous:unresolved target 20"
+        "monster_custom:orc chief",
+        "treasure_unparsed:Potion of Passwall in a stoppered flask inside a padded jar."
       ],
       "overridden": []
     },
     {
-      "id": "d-abandoned-crypts/1/23",
+      "id": "orc-lair-a/1/7",
       "source_pages": [
-        27,
-        38
+        24
       ],
-      "confidence": 0.77,
+      "confidence": 0.79,
       "flags": [
         "geometry_synthesized",
-        "connection_ambiguous:not connected to the entrance in the extracted graph",
-        "treasure_unparsed:silver dagger"
+        "treasure_unparsed:Each orc has 1d6 sp."
       ],
       "overridden": []
     },
     {
-      "id": "d-abandoned-crypts/1/24",
+      "id": "orc-lair-a/1/8",
       "source_pages": [
-        27,
-        38
+        24
       ],
-      "confidence": 0.76,
-      "flags": [
-        "geometry_synthesized",
-        "connection_ambiguous:not connected to the entrance in the extracted graph",
-        "treasure_unparsed:six intact vials of holy water"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "d-abandoned-crypts/1/25",
-      "source_pages": [
-        27,
-        38
-      ],
-      "confidence": 0.69,
-      "flags": [
-        "geometry_synthesized",
-        "connection_ambiguous:unresolved target 26",
-        "connection_ambiguous:not connected to the entrance in the extracted graph"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "e-goblin-lair/1/26",
-      "source_pages": [
-        27
-      ],
-      "confidence": 0.88,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each goblin has 1d6 cp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "e-goblin-lair/1/27",
-      "source_pages": [
-        28
-      ],
-      "confidence": 0.9,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each goblin has 1d6 cp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "e-goblin-lair/1/28",
-      "source_pages": [
-        28
-      ],
-      "confidence": 0.78,
+      "confidence": 0.8,
       "flags": [
         "geometry_synthesized"
       ],
       "overridden": []
     },
     {
-      "id": "e-goblin-lair/1/29",
+      "id": "orc-lair-a/1/9",
       "source_pages": [
-        28
+        24
       ],
-      "confidence": 0.89,
+      "confidence": 0.71,
       "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Potion of Healing",
-        "treasure_unparsed:Scroll of Cure Light Wounds"
+        "geometry_synthesized"
       ],
       "overridden": []
     },
     {
-      "id": "e-goblin-lair/1/30",
+      "id": "orc-lair-a/1/10",
       "source_pages": [
-        28
+        24
       ],
-      "confidence": 0.89,
+      "confidence": 0.87,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Each goblin has 1d6 cp.",
-        "treasure_unparsed:Six rare-wood statues, about 1' tall, worth about 25 gp each"
+        "treasure_unparsed:Two red gems in the statue's eyes, each worth 250 gp."
       ],
       "overridden": []
     },
     {
-      "id": "e-goblin-lair/1/31",
+      "id": "orc-lair-b/1/entrance",
+      "source_pages": [
+        24,
+        38
+      ],
+      "confidence": 0.9,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:Each orc and the hobgoblin has 1d6 sp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "orc-lair-b/1/11",
+      "source_pages": [
+        24,
+        38
+      ],
+      "confidence": 0.94,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:A sword."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "orc-lair-b/1/12",
+      "source_pages": [
+        24,
+        38
+      ],
+      "confidence": 0.9,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:Each orc has 1d6 sp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "orc-lair-b/1/13",
+      "source_pages": [
+        25,
+        38
+      ],
+      "confidence": 0.91,
+      "flags": [
+        "geometry_synthesized",
+        "monster_custom:orc chief",
+        "monster_custom:orc war leader",
+        "connection_ambiguous:unresolved target 9",
+        "treasure_unparsed:Necklace of long pencil-thin gold bars worth 100 gp with key to the eastern temple door at room 9."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "orc-lair-b/1/14",
+      "source_pages": [
+        25,
+        38
+      ],
+      "confidence": 0.82,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:Each orc has 1d6 sp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "orc-lair-b/1/15",
+      "source_pages": [
+        25,
+        38
+      ],
+      "confidence": 0.83,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "hobgoblin-lair/1/entrance",
+      "source_pages": [
+        25,
+        38
+      ],
+      "confidence": 0.85,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge entrance–16 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge entrance–17 prose-stated; the map shows no adjacency — kept",
+        "treasure_unparsed:Each hobgoblin has 1d6 sp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "hobgoblin-lair/1/16",
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.9,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "hobgoblin-lair/1/17",
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.75,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:door 17–18 prose-stated door; the map shows none — kept",
+        "map_disputed:edge 17–19 prose-stated; the map shows no adjacency — kept",
+        "treasure_unparsed:Each hobgoblin has 1d6 sp.",
+        "treasure_unparsed:Three funeral shrouds used as hammocks, worth 50 gp each"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "hobgoblin-lair/1/18",
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.8,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 18–19 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge 18–20 prose-stated; the map shows no adjacency — kept"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "hobgoblin-lair/1/19",
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.77,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 19–20 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge 19–21 prose-stated; the map shows no adjacency — kept"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "hobgoblin-lair/1/20",
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.67,
+      "flags": [
+        "geometry_synthesized",
+        "connection_ambiguous:unresolved target Abandoned Crypts",
+        "map_disputed:edge 20–21 map-proposed; prose states no connection — adopted",
+        "treasure_unparsed:Each hobgoblin has 1d6 sp.",
+        "treasure_unparsed:Six vials of holy water"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "hobgoblin-lair/1/21",
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.76,
+      "flags": [
+        "geometry_synthesized",
+        "monster_custom:hobgoblin chief",
+        "treasure_unparsed:Potion of Stone to Flesh (1 use)"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "abandoned-crypts/1/22",
+      "source_pages": [
+        27,
+        38
+      ],
+      "confidence": 0.88,
+      "flags": [
+        "geometry_synthesized",
+        "connection_ambiguous:unresolved target 20",
+        "map_disputed:edge 22–23 map-proposed; prose states no connection — adopted"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "abandoned-crypts/1/23",
+      "source_pages": [
+        27
+      ],
+      "confidence": 0.73,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 23–24 map-proposed; prose states no connection — adopted",
+        "treasure_unparsed:silver dagger"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "abandoned-crypts/1/24",
+      "source_pages": [
+        27
+      ],
+      "confidence": 0.73,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 24–25 map-proposed; prose states no connection — adopted",
+        "treasure_unparsed:six intact vials of holy water"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "abandoned-crypts/1/25",
+      "source_pages": [
+        27
+      ],
+      "confidence": 0.75,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "goblin-lair/1/26",
+      "source_pages": [
+        27
+      ],
+      "confidence": 0.85,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:Each goblin has 1d6 cp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "goblin-lair/1/27",
       "source_pages": [
         28
       ],
       "confidence": 0.82,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Shortsword +1"
+        "treasure_unparsed:Each goblin has 1d6 cp."
       ],
       "overridden": []
     },
     {
-      "id": "f-bandit-lair/1/32",
+      "id": "goblin-lair/1/28",
       "source_pages": [
-        29
+        28
       ],
-      "confidence": 0.94,
+      "confidence": 0.74,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Each guard has 1d6+6 sp on their person."
+        "map_disputed:edge 28–30 prose-stated; the map shows no adjacency — kept"
       ],
       "overridden": []
     },
     {
-      "id": "f-bandit-lair/1/33",
+      "id": "goblin-lair/1/29",
       "source_pages": [
-        29
+        28
       ],
       "confidence": 0.88,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Each bandit has 1d6+6 sp on their person."
+        "map_disputed:edge 29–30 map-proposed; prose states no connection — adopted",
+        "treasure_unparsed:Potion of Healing.",
+        "treasure_unparsed:Scroll of Cure Light Wounds."
       ],
       "overridden": []
     },
     {
-      "id": "f-bandit-lair/1/34",
+      "id": "goblin-lair/1/30",
       "source_pages": [
-        29
+        28
       ],
-      "confidence": 0.9,
+      "confidence": 0.82,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:Each goblin has 1d6 cp.",
+        "treasure_unparsed:Six rare-wood statues about 1 foot tall, worth about 25 gp each."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "goblin-lair/1/31",
+      "source_pages": [
+        28
+      ],
+      "confidence": 0.84,
+      "flags": [
+        "geometry_synthesized",
+        "monster_custom:goblin king",
+        "treasure_unparsed:Shortsword +1 wielded by the chief."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bandit-lair/1/32",
+      "source_pages": [
+        29,
+        38
+      ],
+      "confidence": 0.81,
+      "flags": [
+        "geometry_synthesized",
+        "resolution_suspect:dwarf fighter → dwarf_monster, printed AC 13 read as 6 [13] vs 4 [15]",
+        "treasure_unparsed:Each guard carries 1d6+6 sp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bandit-lair/1/33",
+      "source_pages": [
+        29,
+        38
+      ],
+      "confidence": 0.72,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:Each bandit carries 1d6+6 sp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bandit-lair/1/34",
+      "source_pages": [
+        29,
+        38
+      ],
+      "confidence": 0.74,
       "flags": [
         "geometry_synthesized",
         "treasure_unparsed:Provisions and loot from raids"
@@ -825,340 +848,144 @@
       "overridden": []
     },
     {
-      "id": "f-bandit-lair/1/35",
-      "source_pages": [
-        29
-      ],
-      "confidence": 0.83,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each bandit has 1d6+6 sp on his or her person."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "f-bandit-lair/1/36",
+      "id": "bandit-lair/1/35",
       "source_pages": [
         29,
         38
       ],
-      "confidence": 0.84,
+      "confidence": 0.62,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Longsword +1 wielded by the leader.",
-        "treasure_unparsed:Chainmail +1 worn by the leader."
+        "treasure_unparsed:Each bandit carries 1d6+6 sp."
       ],
       "overridden": []
     },
     {
-      "id": "f-bandit-lair/1/37",
+      "id": "bandit-lair/1/36",
       "source_pages": [
-        30
+        29,
+        38
       ],
-      "confidence": 0.78,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "f-bandit-lair/1/38",
-      "source_pages": [
-        30
-      ],
-      "confidence": 0.89,
+      "confidence": 0.68,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:If the three merchants are rescued and returned to town: one offers a necklace with gems worth 100 gp, and the other two offer 100 gp each.",
-        "treasure_unparsed:Three jars of good wine",
-        "treasure_unparsed:Two jars of cheap wine",
-        "treasure_unparsed:A dozen bottles of ale in a box"
+        "monster_custom:bandit leader",
+        "monster_custom:bandit cronies",
+        "treasure_unparsed:Longsword +1 wielded by the leader",
+        "treasure_unparsed:Chainmail +1 worn by the leader"
       ],
       "overridden": []
     },
     {
-      "id": "f-bandit-lair/1/39",
-      "source_pages": [
-        30
-      ],
-      "confidence": 0.82,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each guard has 1d6+6 sp on their person."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "f-bandit-lair/1/40",
-      "source_pages": [
-        30
-      ],
-      "confidence": 0.93,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:10 silver cups worth 10 gp each (100 gp total)",
-        "treasure_unparsed:10 silver plates worth 25 gp each, finely engraved and decorated (250 gp total)",
-        "treasure_unparsed:10 forks and 10 spoons of silver worth 5 gp each (100 gp total value)"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "f-bandit-lair/1/41",
+      "id": "bandit-lair/1/37",
       "source_pages": [
         30,
         38
       ],
-      "confidence": 0.82,
+      "confidence": 0.58,
       "flags": [
         "geometry_synthesized",
+        "low_confidence:0.58 self-assessed"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bandit-lair/1/38",
+      "source_pages": [
+        30,
+        38
+      ],
+      "confidence": 0.74,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:If rescued and returned to town, the merchants reward the party with a necklace with gems worth 100 gp and 100 gp from each of the other two merchants",
+        "treasure_unparsed:Cell d contains three jars of good wine, two jars of cheap wine, and a dozen bottles of ale in a box"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bandit-lair/1/39",
+      "source_pages": [
+        30,
+        38
+      ],
+      "confidence": 0.59,
+      "flags": [
+        "geometry_synthesized",
+        "low_confidence:0.59 self-assessed",
+        "treasure_unparsed:Each guard carries 1d6+6 sp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bandit-lair/1/40",
+      "source_pages": [
+        30,
+        38
+      ],
+      "confidence": 0.8,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:10 silver cups worth 10 gp each (100 gp total)",
+        "treasure_unparsed:10 silver plates worth 25 gp each, finely engraved and decorated (250 gp total)",
+        "treasure_unparsed:10 forks and 10 spoons of silver worth 5 gp each (100 gp total)"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bandit-lair/1/41",
+      "source_pages": [
+        30,
+        38
+      ],
+      "confidence": 0.52,
+      "flags": [
+        "geometry_synthesized",
+        "low_confidence:0.52 self-assessed",
         "monster_custom:elven thief"
       ],
       "overridden": []
     },
     {
-      "id": "f-bandit-lair/1/42",
+      "id": "bandit-lair/1/42",
+      "source_pages": [
+        31,
+        38
+      ],
+      "confidence": 0.72,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:Each guard carries 1d6+6 sp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "kobold-lair/1/43",
       "source_pages": [
         31
       ],
       "confidence": 0.91,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Each guard has 1d6+6 sp on his or her person."
+        "connection_ambiguous:no target stated"
       ],
       "overridden": []
     },
     {
-      "id": "g-kobold-lair/1/43",
+      "id": "kobold-lair/1/44",
       "source_pages": [
         31
       ],
-      "confidence": 0.95,
+      "confidence": 0.82,
       "flags": [
         "geometry_synthesized"
       ],
       "overridden": []
     },
     {
-      "id": "g-kobold-lair/1/44",
+      "id": "kobold-lair/1/45",
       "source_pages": [
         31
-      ],
-      "confidence": 0.95,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "g-kobold-lair/1/45",
-      "source_pages": [
-        31
-      ],
-      "confidence": 0.94,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "g-kobold-lair/1/46",
-      "source_pages": [
-        31
-      ],
-      "confidence": 0.92,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "g-kobold-lair/1/47",
-      "source_pages": [
-        31
-      ],
-      "confidence": 0.74,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "g-kobold-lair/1/48",
-      "source_pages": [
-        32
-      ],
-      "confidence": 0.88,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Chief's silver-bladed hand-axe worth about 40 to 50 gp",
-        "treasure_unparsed:Two golden arm-bands worth 50 gp each"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "g-kobold-lair/1/49",
-      "source_pages": [
-        32
-      ],
-      "confidence": 0.84,
-      "flags": [
-        "geometry_synthesized",
-        "connection_ambiguous:unresolved target outside"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "h-lizard-man-lair/1/50",
-      "source_pages": [
-        32
-      ],
-      "confidence": 0.95,
-      "flags": [
-        "geometry_synthesized",
-        "monster_custom:giant gecko lizard",
-        "connection_ambiguous:unresolved target outside"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "h-lizard-man-lair/1/51",
-      "source_pages": [
-        32,
-        38
-      ],
-      "confidence": 0.76,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "h-lizard-man-lair/1/52",
-      "source_pages": [
-        33,
-        38
-      ],
-      "confidence": 0.73,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "h-lizard-man-lair/1/53",
-      "source_pages": [
-        33,
-        38
-      ],
-      "confidence": 0.72,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "h-lizard-man-lair/1/54",
-      "source_pages": [
-        33,
-        38
-      ],
-      "confidence": 0.89,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:leather sack hidden in a mud-covered hole containing 20 x 25 gp gems, 20 x 10 gp gems, 123 gp, 911 sp, and 345 cp",
-        "treasure_unparsed:three furs worth 50 gp each",
-        "treasure_unparsed:reed whistle (Whistle of Summoning Animals)"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "h-lizard-man-lair/1/55",
-      "source_pages": [
-        34,
-        38
-      ],
-      "confidence": 0.77,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "h-lizard-man-lair/1/56",
-      "source_pages": [
-        34,
-        38
-      ],
-      "confidence": 0.8,
-      "flags": [
-        "geometry_synthesized",
-        "monster_custom:giant gecko lizard"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "h-lizard-man-lair/1/57",
-      "source_pages": [
-        34,
-        38
-      ],
-      "confidence": 0.84,
-      "flags": [
-        "geometry_synthesized",
-        "connection_ambiguous:unresolved target outside"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "i-bugbear-lair/1/58",
-      "source_pages": [
-        34
-      ],
-      "confidence": 0.89,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each bugbear carries 1d6 gp."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "i-bugbear-lair/1/59",
-      "source_pages": [
-        34
-      ],
-      "confidence": 0.86,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "i-bugbear-lair/1/60",
-      "source_pages": [
-        34
-      ],
-      "confidence": 0.94,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "i-bugbear-lair/1/61",
-      "source_pages": [
-        34
-      ],
-      "confidence": 0.86,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each bugbear has 1d6 gp on its person."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "i-bugbear-lair/1/62",
-      "source_pages": [
-        34
       ],
       "confidence": 0.81,
       "flags": [
@@ -1167,236 +994,132 @@
       "overridden": []
     },
     {
-      "id": "i-bugbear-lair/1/63",
+      "id": "kobold-lair/1/46",
       "source_pages": [
-        35
+        31
+      ],
+      "confidence": 0.79,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "kobold-lair/1/47",
+      "source_pages": [
+        31,
+        38
+      ],
+      "confidence": 0.87,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "kobold-lair/1/48",
+      "source_pages": [
+        32,
+        38
+      ],
+      "confidence": 0.87,
+      "flags": [
+        "geometry_synthesized",
+        "monster_custom:kobold chief",
+        "resolution_suspect:kobold bodyguards → kobold, printed AC 13 read as 6 [13] vs 7 [12]",
+        "treasure_unparsed:Silver-bladed hand-axe worth about 40 to 50 gp",
+        "treasure_unparsed:Two golden arm-bands worth 50 gp each"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "kobold-lair/1/49",
+      "source_pages": [
+        32,
+        38
+      ],
+      "confidence": 0.8,
+      "flags": [
+        "geometry_synthesized",
+        "connection_ambiguous:no target stated"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "lizard-man-lair/1/50",
+      "source_pages": [
+        32,
+        38
       ],
       "confidence": 0.91,
       "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "i-bugbear-lair/1/64",
-      "source_pages": [
-        35
-      ],
-      "confidence": 0.95,
-      "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Shield +1",
-        "treasure_unparsed:Potion of Gaseous Form",
-        "treasure_unparsed:Potion of Healing"
+        "monster_custom:giant gecko lizard"
       ],
       "overridden": []
     },
     {
-      "id": "i-bugbear-lair/1/65",
+      "id": "lizard-man-lair/1/51",
       "source_pages": [
-        35
-      ],
-      "confidence": 0.94,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each jailer has 3d6 gp on his person."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "i-bugbear-lair/1/66",
-      "source_pages": [
-        35
-      ],
-      "confidence": 0.78,
-      "flags": [
-        "geometry_synthesized",
-        "connection_ambiguous:unresolved target unknown",
-        "treasure_unparsed:Each bugbear has 1d6 gp on its person."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "i-bugbear-lair/1/67",
-      "source_pages": [
-        35
-      ],
-      "confidence": 0.9,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "i-bugbear-lair/1/68",
-      "source_pages": [
-        35
+        32,
+        38
       ],
       "confidence": 0.83,
       "flags": [
-        "geometry_synthesized",
-        "connection_ambiguous:unresolved target Locked door",
-        "connection_ambiguous:unknown direction to 64",
-        "treasure_unparsed:Each individual has 1d6 gp on its person.",
-        "treasure_unparsed:Key to the locked western door",
-        "treasure_unparsed:Key to room 64 treasure room"
+        "geometry_synthesized"
       ],
       "overridden": []
     },
     {
-      "id": "j-gnoll-lair/1/69",
+      "id": "lizard-man-lair/1/52",
       "source_pages": [
-        36
+        33,
+        38
       ],
-      "confidence": 0.92,
+      "confidence": 0.79,
       "flags": [
         "geometry_synthesized"
       ],
       "overridden": []
     },
     {
-      "id": "j-gnoll-lair/1/70",
+      "id": "lizard-man-lair/1/53",
       "source_pages": [
-        36
+        33,
+        38
       ],
-      "confidence": 0.95,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each gnoll has 1d6 ep."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "j-gnoll-lair/1/71",
-      "source_pages": [
-        36
-      ],
-      "confidence": 0.94,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each gnoll has 1d6 ep."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "j-gnoll-lair/1/72",
-      "source_pages": [
-        36
-      ],
-      "confidence": 0.9,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Each gnoll has 1d6 ep."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "j-gnoll-lair/1/73",
-      "source_pages": [
-        36
-      ],
-      "confidence": 0.86,
+      "confidence": 0.74,
       "flags": [
         "geometry_synthesized"
       ],
       "overridden": []
     },
     {
-      "id": "j-gnoll-lair/1/74",
+      "id": "lizard-man-lair/1/54",
       "source_pages": [
-        36
+        33,
+        38
       ],
-      "confidence": 0.95,
+      "confidence": 0.88,
       "flags": [
         "geometry_synthesized",
-        "treasure_unparsed:Battle Axe +1",
-        "treasure_unparsed:Two keys tied together opening the treasure room and area 75"
+        "monster_custom:lizard man leader",
+        "resolution_suspect:female lizard men → lizard_man, printed HD 2 vs 2+1; printed AC 12 read as 7 [12] vs 5 [14]",
+        "monster_custom:young lizard men",
+        "connection_ambiguous:no target stated",
+        "treasure_unparsed:Leather sack hidden in the north wall containing 20 x 25 gp gems, 20 x 10 gp gems, 123 gp, 911 sp, and 345 cp",
+        "treasure_unparsed:Three furs worth 50 gp each",
+        "treasure_unparsed:Whistle of Summoning Animals"
       ],
       "overridden": []
     },
     {
-      "id": "j-gnoll-lair/1/treasure-hoard",
+      "id": "lizard-man-lair/1/55",
       "source_pages": [
-        37
+        34,
+        38
       ],
-      "confidence": 0.96,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:Assorted goods including food",
-        "treasure_unparsed:About 6 bolts of raw cloth, each worth perhaps 1 to 5 gp",
-        "treasure_unparsed:Other boxed items"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "j-gnoll-lair/1/75",
-      "source_pages": [
-        37
-      ],
-      "confidence": 0.92,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "j-gnoll-lair/1/76",
-      "source_pages": [
-        37
-      ],
-      "confidence": 0.73,
-      "flags": [
-        "geometry_synthesized",
-        "treasure_unparsed:The gnoll guard has 1d6 ep."
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/77",
-      "source_pages": [
-        41,
-        46
-      ],
-      "confidence": 0.95,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/78",
-      "source_pages": [
-        41,
-        46
-      ],
-      "confidence": 0.96,
-      "flags": [
-        "geometry_synthesized",
-        "monster_custom:human fighter 2",
-        "monster_custom:human fighter 1",
-        "treasure_unparsed:Each human fighter has 1d6 gp"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/79",
-      "source_pages": [
-        41,
-        46
-      ],
-      "confidence": 0.96,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/80",
-      "source_pages": [
-        41,
-        46
-      ],
-      "confidence": 0.93,
+      "confidence": 0.77,
       "flags": [
         "geometry_synthesized",
         "connection_ambiguous:not connected to the entrance in the extracted graph"
@@ -1404,35 +1127,348 @@
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/81",
+      "id": "lizard-man-lair/1/56",
       "source_pages": [
-        42,
-        46
+        34,
+        38
       ],
-      "confidence": 0.92,
+      "confidence": 0.9,
       "flags": [
         "geometry_synthesized",
-        "connection_ambiguous:not connected to the entrance in the extracted graph",
-        "treasure_unparsed:1d6 weeks of rations during the growing season, though most spoil in a week or two unless preserved"
+        "monster_custom:giant gecko lizard",
+        "connection_ambiguous:not connected to the entrance in the extracted graph"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/82",
+      "id": "lizard-man-lair/1/57",
       "source_pages": [
-        42,
-        46
+        34,
+        38
       ],
-      "confidence": 0.94,
+      "confidence": 0.86,
+      "flags": [
+        "geometry_synthesized",
+        "connection_ambiguous:not connected to the entrance in the extracted graph"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/58",
+      "source_pages": [
+        34,
+        38
+      ],
+      "confidence": 0.89,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:door 58–59 map-read door; prose states no mechanism — adopted",
+        "treasure_unparsed:Each bugbear carries 1d6 gp."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/59",
+      "source_pages": [
+        34,
+        38
+      ],
+      "confidence": 0.85,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 59–62 map-proposed (door); prose states no connection — adopted"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/60",
+      "source_pages": [
+        34,
+        38
+      ],
+      "confidence": 0.93,
       "flags": [
         "geometry_synthesized"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/83",
+      "id": "bugbear-lair/1/61",
       "source_pages": [
-        42,
+        34,
+        38
+      ],
+      "confidence": 0.86,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 61–62 prose-stated; the map shows no adjacency — kept",
+        "treasure_unparsed:Each bugbear has 1d6 gp on its person."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/62",
+      "source_pages": [
+        34,
+        38
+      ],
+      "confidence": 0.84,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:door 62–63 prose-stated secret_door; the map shows none — kept",
+        "map_disputed:edge 62–64 map-proposed; prose states no connection — adopted"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/63",
+      "source_pages": [
+        35,
+        38
+      ],
+      "confidence": 0.81,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 63–64 prose-stated; the map shows no adjacency — kept",
+        "map_disputed:edge 63–65 prose-stated; the map shows no adjacency — kept"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/64",
+      "source_pages": [
+        35,
+        38
+      ],
+      "confidence": 0.79,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 64–65 map-proposed (door); prose states no connection — adopted",
+        "map_disputed:edge 64–68 prose-stated; the map shows no adjacency — kept",
+        "treasure_unparsed:Shield +1",
+        "treasure_unparsed:Potion of Gaseous Form",
+        "treasure_unparsed:Potion of Healing"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/65",
+      "source_pages": [
+        35,
+        38
+      ],
+      "confidence": 0.8,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 65–66 map-proposed (door); prose states no connection — adopted",
+        "map_disputed:edge 65–67 map-proposed (door); prose states no connection — adopted",
+        "treasure_unparsed:Each bugbear has 3d6 gp on his person."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/66",
+      "source_pages": [
+        35,
+        38
+      ],
+      "confidence": 0.74,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 66–68 prose-stated; the map shows no adjacency — kept",
+        "map_disputed:edge 66–67 prose-stated; the map shows no adjacency — kept",
+        "treasure_unparsed:Each bugbear has 1d6 gp on its person."
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/67",
+      "source_pages": [
+        35,
+        38
+      ],
+      "confidence": 0.86,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 67–68 map-proposed (door); prose states no connection — adopted"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "bugbear-lair/1/68",
+      "source_pages": [
+        35,
+        38
+      ],
+      "confidence": 0.76,
+      "flags": [
+        "geometry_synthesized",
+        "monster_custom:bugbear chief",
+        "connection_ambiguous:no target stated",
+        "treasure_unparsed:Each individual has 1d6 gp on its person.",
+        "treasure_unparsed:Key to the locked door to the west",
+        "treasure_unparsed:Key to the treasure room (64)"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "gnoll-lair/1/69",
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.79,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:door 69–70 prose-stated door; the map shows none — kept",
+        "map_disputed:edge 69–75 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge 69–71 prose-stated; the map shows no adjacency — kept",
+        "map_disputed:edge 69–72 prose-stated; the map shows no adjacency — kept"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "gnoll-lair/1/70",
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.79,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 70–71 map-proposed (door); prose states no connection — adopted",
+        "map_disputed:edge 70–72 prose-stated; the map shows no adjacency — kept",
+        "treasure_unparsed:Each gnoll has 1d6 ep"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "gnoll-lair/1/71",
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.74,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:door 71–72 prose-stated door; the map shows none — kept",
+        "treasure_unparsed:Each gnoll has 1d6 ep"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "gnoll-lair/1/72",
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.71,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:door 72–73 map-read door; prose states no mechanism — adopted",
+        "map_disputed:edge 72–74 prose-stated; the map shows no adjacency — kept",
+        "treasure_unparsed:Each gnoll has 1d6 ep"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "gnoll-lair/1/73",
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.84,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 73–74 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge 73–treasure-hoard map-proposed (door); prose states no connection — adopted"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "gnoll-lair/1/74",
+      "source_pages": [
+        36
+      ],
+      "confidence": 0.79,
+      "flags": [
+        "geometry_synthesized",
+        "monster_custom:gnoll leader",
+        "resolution_suspect:gnoll females → gnoll, printed AC 15 read as 4 [15] vs 5 [14]",
+        "map_disputed:edge 74–treasure-hoard prose-stated; the map shows no adjacency — kept",
+        "map_disputed:edge 74–75 prose-stated; the map shows no adjacency — kept",
+        "treasure_unparsed:Battle Axe +1",
+        "treasure_unparsed:Two keys tied together that open the Treasure Hoard and room 75"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "gnoll-lair/1/treasure-hoard",
+      "source_pages": [
+        37
+      ],
+      "confidence": 0.91,
+      "flags": [
+        "geometry_synthesized",
+        "resolution_suspect:giant black widow spider → black_widow, printed AC 14 read as 5 [14] vs 6 [13]",
+        "treasure_unparsed:Assorted goods including food",
+        "treasure_unparsed:About 6 bolts of raw cloth, each worth perhaps 1 to 5 gp",
+        "treasure_unparsed:Other boxed items"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "gnoll-lair/1/75",
+      "source_pages": [
+        37
+      ],
+      "confidence": 0.88,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 75–76 map-proposed; prose states no connection — adopted"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "gnoll-lair/1/76",
+      "source_pages": [
+        37
+      ],
+      "confidence": 0.87,
+      "flags": [
+        "geometry_synthesized",
+        "treasure_unparsed:The gnoll guard has 1d6 ep"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/77",
+      "source_pages": [
+        41,
+        46
+      ],
+      "confidence": 0.92,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/78",
+      "source_pages": [
+        41,
+        46
+      ],
+      "confidence": 0.95,
+      "flags": [
+        "geometry_synthesized",
+        "monster_custom:human fighter 2",
+        "monster_custom:human fighter 1",
+        "resolution_suspect:giant black widow spider → black_widow, printed AC 14 read as 5 [14] vs 6 [13]",
+        "map_disputed:edge 78–79 map-proposed; prose states no connection — adopted",
+        "treasure_unparsed:Each human fighter has 1d6 gp"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/79",
+      "source_pages": [
+        41,
         46
       ],
       "confidence": 0.95,
@@ -1442,91 +1478,258 @@
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/84",
+      "id": "roslof-manor/1/80",
+      "source_pages": [
+        41,
+        46
+      ],
+      "confidence": 0.89,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 80–84 map-proposed; prose states no connection — adopted"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/81",
       "source_pages": [
         42,
         46
       ],
-      "confidence": 0.96,
+      "confidence": 0.91,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 81–84 map-proposed; prose states no connection — adopted",
+        "treasure_unparsed:During the growing season, 1d6 weeks of rations can be gathered here, though most spoil within a week or two unless preserved"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/82",
+      "source_pages": [
+        42,
+        46
+      ],
+      "confidence": 0.91,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:door 82–93 prose-stated door; the map shows none — kept"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/83",
+      "source_pages": [
+        42,
+        46
+      ],
+      "confidence": 0.85,
       "flags": [
         "geometry_synthesized"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/85",
+      "id": "roslof-manor/1/84",
+      "source_pages": [
+        42,
+        46
+      ],
+      "confidence": 0.84,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:door 84–85 prose-stated door; the map shows none — kept"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/85",
       "source_pages": [
         42,
         43,
         46
       ],
-      "confidence": 0.95,
+      "confidence": 0.9,
       "flags": [
         "geometry_synthesized",
         "monster_custom:fighters",
         "monster_custom:human fighter 2",
-        "monster_custom:human fighter 1"
+        "monster_custom:human fighter 1",
+        "map_disputed:door 85–87 map-read door; prose states no mechanism — adopted",
+        "map_disputed:edge 85–96 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge 85–88 prose-stated; the map shows no adjacency — kept"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/86",
+      "id": "roslof-manor/1/86",
       "source_pages": [
         43,
         46
       ],
-      "confidence": 0.93,
+      "confidence": 0.82,
       "flags": [
-        "geometry_synthesized"
+        "geometry_synthesized",
+        "map_disputed:door 86–90 prose-stated door; the map shows none — kept",
+        "map_disputed:edge 86–91 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge 86–92 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge 86–87 prose-stated; the map shows no adjacency — kept"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/87",
+      "id": "roslof-manor/1/87",
       "source_pages": [
         43,
         46
       ],
-      "confidence": 0.9,
+      "confidence": 0.84,
       "flags": [
-        "geometry_synthesized"
+        "geometry_synthesized",
+        "map_disputed:edge 87–89 prose-stated; the map shows no adjacency — kept"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/88",
+      "id": "roslof-manor/1/88",
       "source_pages": [
         43,
         46
       ],
-      "confidence": 0.94,
+      "confidence": 0.87,
       "flags": [
         "geometry_synthesized",
         "monster_custom:human fighter 2",
         "monster_custom:human fighter 1",
-        "treasure_unparsed:Each occupant has 2d6 gp on him"
+        "treasure_unparsed:Each man has 2d6 gp on him"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/89",
+      "id": "roslof-manor/1/89",
       "source_pages": [
         43,
         46
       ],
-      "confidence": 0.94,
+      "confidence": 0.84,
       "flags": [
         "geometry_synthesized",
         "monster_custom:human fighter 1",
-        "treasure_unparsed:Each occupant has 2d6 gp on him"
+        "map_disputed:edge 89–95 map-proposed; prose states no connection — adopted",
+        "map_disputed:edge 89–97 map-proposed; prose states no connection — adopted",
+        "treasure_unparsed:Each man has 2d6 gp on him"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/90",
+      "id": "roslof-manor/1/90",
       "source_pages": [
         44,
         46
+      ],
+      "confidence": 0.78,
+      "flags": [
+        "geometry_synthesized",
+        "connection_ambiguous:no target stated"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/91",
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.84,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 91–94 map-proposed (door); prose states no connection — adopted"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/92",
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.84,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:door 92–93 prose-stated door; the map shows none — kept"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/93",
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.74,
+      "flags": [
+        "geometry_synthesized",
+        "map_disputed:edge 93–95 map-proposed (door); prose states no connection — adopted"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/94",
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.8,
+      "flags": [
+        "geometry_synthesized",
+        "monster_custom:human fighter 1",
+        "map_disputed:edge 94–95 prose-stated; the map shows no adjacency — kept"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/95",
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.73,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/96",
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.73,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/1/97",
+      "source_pages": [
+        44,
+        46
+      ],
+      "confidence": 0.8,
+      "flags": [
+        "geometry_synthesized",
+        "monster_custom:human fighter 1",
+        "treasure_unparsed:Each man has 2d6 gp on him"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/2/98",
+      "source_pages": [
+        44,
+        47
       ],
       "confidence": 0.92,
       "flags": [
@@ -1535,106 +1738,7 @@
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/1/91",
-      "source_pages": [
-        44,
-        46
-      ],
-      "confidence": 0.93,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/92",
-      "source_pages": [
-        44,
-        46
-      ],
-      "confidence": 0.9,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/93",
-      "source_pages": [
-        44,
-        46
-      ],
-      "confidence": 0.9,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/94",
-      "source_pages": [
-        44,
-        46
-      ],
-      "confidence": 0.9,
-      "flags": [
-        "geometry_synthesized",
-        "monster_custom:human fighter 1"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/95",
-      "source_pages": [
-        44,
-        46
-      ],
-      "confidence": 0.8,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/96",
-      "source_pages": [
-        44,
-        46
-      ],
-      "confidence": 0.8,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/1/97",
-      "source_pages": [
-        44,
-        46
-      ],
-      "confidence": 0.92,
-      "flags": [
-        "geometry_synthesized",
-        "monster_custom:human fighter 1",
-        "treasure_unparsed:Each occupant has 2d6 gp on him"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/2/98",
-      "source_pages": [
-        44,
-        47
-      ],
-      "confidence": 0.91,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/2/99",
+      "id": "roslof-manor/2/99",
       "source_pages": [
         44,
         47
@@ -1642,30 +1746,32 @@
       "confidence": 0.94,
       "flags": [
         "geometry_synthesized",
+        "map_disputed:edge 99–100 map-proposed (door); prose states no connection — adopted",
         "treasure_unparsed:Five gems worth 50 gp each"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/2/100",
+      "id": "roslof-manor/2/100",
       "source_pages": [
         44,
         47
       ],
-      "confidence": 0.96,
+      "confidence": 0.86,
       "flags": [
         "geometry_synthesized",
+        "resolution_suspect:python → rock_python, printed AC 14 read as 5 [14] vs 6 [13]",
         "treasure_unparsed:A sack under the bed containing ten gems worth 50 gp each"
       ],
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/2/101",
+      "id": "roslof-manor/2/101",
       "source_pages": [
         44,
         47
       ],
-      "confidence": 0.95,
+      "confidence": 0.87,
       "flags": [
         "geometry_synthesized",
         "treasure_unparsed:Three silver holy symbols worth 25 gp each"
@@ -1673,13 +1779,13 @@
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/2/102",
+      "id": "roslof-manor/2/102",
       "source_pages": [
         44,
         45,
         47
       ],
-      "confidence": 0.93,
+      "confidence": 0.9,
       "flags": [
         "geometry_synthesized",
         "treasure_unparsed:Three necklaces of gold and silver worth 50 gp each"
@@ -1687,7 +1793,19 @@
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/2/103",
+      "id": "roslof-manor/2/103",
+      "source_pages": [
+        45,
+        47
+      ],
+      "confidence": 0.94,
+      "flags": [
+        "geometry_synthesized"
+      ],
+      "overridden": []
+    },
+    {
+      "id": "roslof-manor/2/104",
       "source_pages": [
         45,
         47
@@ -1699,7 +1817,7 @@
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/2/104",
+      "id": "roslof-manor/2/105",
       "source_pages": [
         45,
         47
@@ -1711,29 +1829,17 @@
       "overridden": []
     },
     {
-      "id": "the-abandoned-manor/2/105",
+      "id": "roslof-manor/2/106",
       "source_pages": [
         45,
         47
       ],
-      "confidence": 0.95,
-      "flags": [
-        "geometry_synthesized"
-      ],
-      "overridden": []
-    },
-    {
-      "id": "the-abandoned-manor/2/106",
-      "source_pages": [
-        45,
-        47
-      ],
-      "confidence": 0.97,
+      "confidence": 0.94,
       "flags": [
         "geometry_synthesized",
         "monster_custom:human magic-user 4",
         "monster_custom:human cleric 3",
-        "treasure_unparsed:Magic-user's spell book containing the spells he knows",
+        "treasure_unparsed:Magic-user's spell book",
         "treasure_unparsed:Wand of Magic Missiles (11 charges)",
         "treasure_unparsed:Ring of Protection +1",
         "treasure_unparsed:Cloak of Displacement",
@@ -1747,9 +1853,54 @@
     }
   ],
   "monsters": {
-    "resolved": 55,
+    "resolved": 54,
     "unresolved": [],
     "custom": [
+      {
+        "id": "bandit_cronies",
+        "name": "bandit cronies",
+        "source_pages": [
+          29
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "hit_dice",
+          "movement",
+          "treasure"
+        ]
+      },
+      {
+        "id": "bandit_leader",
+        "name": "bandit leader",
+        "source_pages": [
+          29
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "hit_dice",
+          "movement",
+          "treasure"
+        ]
+      },
+      {
+        "id": "bugbear_chief",
+        "name": "bugbear chief",
+        "source_pages": [
+          35
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "movement",
+          "number_appearing",
+          "thac0",
+          "treasure"
+        ]
+      },
       {
         "id": "elven_thief",
         "name": "elven thief",
@@ -1788,13 +1939,61 @@
         "id": "giant_gecko_lizard",
         "name": "giant gecko lizard",
         "source_pages": [
-          15,
           32,
-          34
+          34,
+          15
         ],
         "derived": [
           "ac",
           "alignment",
+          "attacks",
+          "movement",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "gnoll_leader",
+        "name": "gnoll leader",
+        "source_pages": [
+          36
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "movement",
+          "number_appearing",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "goblin_king",
+        "name": "goblin king",
+        "source_pages": [
+          28
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "movement",
+          "number_appearing",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "hobgoblin_chief",
+        "name": "hobgoblin chief",
+        "source_pages": [
+          26
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
           "movement",
           "thac0",
           "treasure"
@@ -1866,11 +2065,73 @@
         ]
       },
       {
+        "id": "kobold_chief",
+        "name": "kobold chief",
+        "source_pages": [
+          32
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "movement",
+          "number_appearing",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "lizard_man_leader",
+        "name": "lizard man leader",
+        "source_pages": [
+          33
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "movement",
+          "number_appearing",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "orc_chief",
+        "name": "orc chief",
+        "source_pages": [
+          23
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "movement",
+          "number_appearing",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
         "id": "orc_war_leader",
         "name": "orc war leader",
         "source_pages": [
-          15,
-          25
+          25,
+          15
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "movement",
+          "number_appearing",
+          "thac0",
+          "treasure"
+        ]
+      },
+      {
+        "id": "orc_warden",
+        "name": "orc warden",
+        "source_pages": [
+          23
         ],
         "derived": [
           "ac",
@@ -1895,15 +2156,100 @@
           "thac0",
           "treasure"
         ]
+      },
+      {
+        "id": "young_lizard_men",
+        "name": "young lizard men",
+        "source_pages": [
+          33
+        ],
+        "derived": [
+          "ac",
+          "alignment",
+          "attacks",
+          "movement",
+          "thac0",
+          "treasure"
+        ]
       }
     ],
-    "vetoed": []
+    "vetoed": [
+      {
+        "name": "bandit cronies",
+        "vetoed_template_id": "bandit",
+        "detail": "bandit cronies → bandit, printed HD 2 vs 1"
+      },
+      {
+        "name": "bandit leader",
+        "vetoed_template_id": "bandit",
+        "detail": "bandit leader → bandit, printed HD 4 vs 1"
+      },
+      {
+        "name": "bugbear chief",
+        "vetoed_template_id": "bugbear",
+        "detail": "bugbear chief → bugbear, printed HD 6 vs 3"
+      },
+      {
+        "name": "gnoll leader",
+        "vetoed_template_id": "gnoll",
+        "detail": "gnoll leader → gnoll, printed HD 6 vs 2"
+      },
+      {
+        "name": "goblin king",
+        "vetoed_template_id": "goblin",
+        "detail": "goblin king → goblin, printed HD 5 vs 1"
+      },
+      {
+        "name": "hobgoblin chief",
+        "vetoed_template_id": "hobgoblin",
+        "detail": "hobgoblin chief → hobgoblin, printed HD 5 vs 1"
+      },
+      {
+        "name": "kobold chief",
+        "vetoed_template_id": "kobold",
+        "detail": "kobold chief → kobold, printed HD 2 vs 1"
+      },
+      {
+        "name": "lizard man leader",
+        "vetoed_template_id": "lizard_man",
+        "detail": "lizard man leader → lizard_man, printed HD 3 vs 2"
+      },
+      {
+        "name": "orc chief",
+        "vetoed_template_id": "orc",
+        "detail": "orc chief → orc, printed HD 4 vs 1"
+      },
+      {
+        "name": "orc warden",
+        "vetoed_template_id": "orc",
+        "detail": "orc warden → orc, printed HD 2 vs 1"
+      },
+      {
+        "name": "young lizard men",
+        "vetoed_template_id": "lizard_man",
+        "detail": "young lizard men → lizard_man, printed HD 1 vs 2"
+      }
+    ]
   },
   "usage": {
     "input_tokens": 0,
     "output_tokens": 0
   },
   "flags": [
+    "survey_disputed:census keys 'crypt' level 1 as '8'-'8'; survey spans 'crypt'-'crypt'",
+    "survey_disputed:survey names 'orc-lair-a'; census does not",
+    "survey_disputed:survey names 'orc-lair-b'; census does not",
+    "survey_disputed:survey names 'hobgoblin-lair'; census does not",
+    "survey_disputed:survey names 'abandoned-crypts'; census does not",
+    "survey_disputed:survey names 'goblin-lair'; census does not",
+    "survey_disputed:survey names 'bandit-lair'; census does not",
+    "survey_disputed:survey names 'kobold-lair'; census does not",
+    "survey_disputed:survey names 'lizard-man-lair'; census does not",
+    "survey_disputed:survey names 'bugbear-lair'; census does not",
+    "survey_disputed:survey names 'gnoll-lair'; census does not",
+    "survey_disputed:survey names 'roslof-manor'; census does not",
+    "survey_disputed:census names 'the-caves'; survey does not",
+    "survey_disputed:census names 'the-abandoned-manor'; survey does not",
     "low_confidence:town name unstated"
   ],
   "findings": []

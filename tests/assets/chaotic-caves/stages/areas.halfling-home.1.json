@@ -5,32 +5,33 @@
   "areas": [
     {
       "key": "h1",
-      "description": "A large, round green front door to the halfling burrow. It is locked, but old and rotten, and can be easily knocked in.",
+      "description": "A large, round green front door to the halfling home.",
       "encounters": [],
       "trap": null,
       "treasure": [],
-      "features": [
-        "large round green door",
-        "locked but rotten and easy to knock in"
-      ],
+      "features": [],
       "connections": [
         {
           "to_key": "h2",
-          "direction": "west"
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
         }
       ],
       "source_pages": [
         16,
         21
       ],
-      "confidence": 0.98
+      "confidence": 0.95
     },
     {
       "key": "h2",
-      "description": "The main living room. A fireplace is set in the south wall and a round window about 4 feet in diameter is in the north wall. There is no furniture. The stink of death fills the room. A long-dead mauled body in rotten leather armor lies in the center; it carries a silver dagger in a belt sheath, 2 vials of holy water, 1 Potion of Healing, and a leather pouch with 3 cp. A tentacle worm lurks in the dark and scuttles to sounds in adjacent rooms, such as the front door being knocked in.",
+      "description": "The main living room. It has a fireplace in the south wall and a round window about 4 feet in diameter in the north. There is no furniture. The room smells of death. A long-dead mauled body in rotten leather armor lies in the center; it carries a silver dagger in a belt sheath, 2 vials of holy water, 1 Potion of Healing, and a leather pouch with 3 cp. A tentacle worm lurks here and scuttles toward sounds in adjacent rooms, such as the front door being knocked in.",
       "encounters": [
         {
-          "monster": "Tentacle Worm",
+          "monster": "tentacle worm",
           "count_fixed": 1,
           "count_dice": null,
           "count_note": null
@@ -38,58 +39,41 @@
       ],
       "trap": null,
       "treasure": [
-        "An old ornate jewelry box hidden in a small secret niche in the fireplace contains 100 gp, a gem worth 250 gp, and a large silver hat pin that was once magical but is not any longer.",
-        "On the long-dead body: a silver dagger, 2 vials of holy water, 1 Potion of Healing, and a leather pouch with 3 cp."
+        "Old ornate jewelry box hidden in a small secret niche in the fireplace containing 100 gp, a gem worth 250 gp, and a large silver hat pin that was once magical but is no longer",
+        "Silver dagger",
+        "2 vials of holy water",
+        "1 Potion of Healing",
+        "3 cp"
       ],
       "features": [
-        "fireplace in south wall",
-        "round window in north wall",
-        "small secret niche in fireplace found by searching for loose stones",
-        "long-dead mauled body in center of room"
+        "Fireplace in south wall",
+        "Round window in north wall",
+        "Small secret niche in the fireplace"
       ],
       "connections": [
         {
           "to_key": "h1",
-          "direction": "east"
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
         },
         {
           "to_key": "h3",
-          "direction": "west"
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "h5",
-          "direction": "south"
-        }
-      ],
-      "source_pages": [
-        16,
-        21
-      ],
-      "confidence": 0.97
-    },
-    {
-      "key": "h3",
-      "description": "A 15 x 17 foot dining room with two round windows in the north wall. The color of the floor and shapes in the dust indicate that tables and chairs were once placed in the light of the windows.",
-      "encounters": [],
-      "trap": null,
-      "treasure": [],
-      "features": [
-        "15 x 17 foot room",
-        "two round windows in north wall",
-        "dust marks showing where tables and chairs once stood"
-      ],
-      "connections": [
-        {
-          "to_key": "h2",
-          "direction": "east"
-        },
-        {
-          "to_key": "h4",
-          "direction": "west"
-        },
-        {
-          "to_key": "h6",
-          "direction": "south"
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
@@ -99,32 +83,81 @@
       "confidence": 0.96
     },
     {
-      "key": "h4",
-      "description": "A kitchen with a stone stove against the north wall and a chimney going out the roof with a flue about 1 foot square. There are no other furnishings. A round window about 4 feet in diameter is in the northwest corner; the glass is broken out. A pool of slimy green water runs down the sill of the window to the floor. It looks exactly like a green slime monster but is not one.",
+      "key": "h3",
+      "description": "A 15 by 17 foot dining room with two round windows in the north wall. Dust and floor discoloration show where tables and chairs once stood in the window light.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [
-        "stone stove against north wall",
-        "chimney to roof with 1-foot-square flue",
-        "round window in northwest corner with broken glass",
-        "pool of slimy green water that resembles green slime but is harmless"
+        "Two round windows in the north wall"
       ],
       "connections": [
         {
-          "to_key": "h3",
-          "direction": "east"
+          "to_key": "h2",
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
-          "to_key": "h8",
-          "direction": "south"
+          "to_key": "h4",
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "h10",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         16,
         21
       ],
-      "confidence": 0.97
+      "confidence": 0.95
+    },
+    {
+      "key": "h4",
+      "description": "A kitchen with a stone stove against the north wall and a chimney through the roof with a flue about 1 foot square. There are no other furnishings. A round window about 4 feet in diameter is in the northwest corner; its glass is broken out. A pool of slimy green water runs down the sill to the floor, looking exactly like a green slime monster but actually harmless.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Stone stove against north wall",
+        "Chimney with flue about 1 foot square",
+        "Round window in northwest corner with broken glass",
+        "Pool of harmless slimy green water on sill and floor"
+      ],
+      "connections": [
+        {
+          "to_key": "h3",
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "h8",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        16,
+        21
+      ],
+      "confidence": 0.95
     },
     {
       "key": "h5",
@@ -133,23 +166,31 @@
       "trap": null,
       "treasure": [],
       "features": [
-        "round window about 4 feet in diameter in south wall"
+        "Round window in south wall"
       ],
       "connections": [
         {
           "to_key": "h2",
-          "direction": "north"
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "h6",
-          "direction": "west"
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         16,
         21
       ],
-      "confidence": 0.95
+      "confidence": 0.92
     },
     {
       "key": "h6",
@@ -158,27 +199,31 @@
       "trap": null,
       "treasure": [],
       "features": [
-        "round window about 4 feet in diameter in south wall"
+        "Round window in south wall"
       ],
       "connections": [
         {
-          "to_key": "h3",
-          "direction": "north"
-        },
-        {
           "to_key": "h5",
-          "direction": "east"
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "h7",
-          "direction": "west"
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         16,
         21
       ],
-      "confidence": 0.95
+      "confidence": 0.92
     },
     {
       "key": "h7",
@@ -187,55 +232,66 @@
       "trap": null,
       "treasure": [],
       "features": [
-        "round window about 4 feet in diameter in southwest corner"
+        "Round window in southwest corner"
       ],
       "connections": [
         {
-          "to_key": "h8",
-          "direction": "north"
+          "to_key": "h6",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
-          "to_key": "h6",
-          "direction": "east"
+          "to_key": "h8",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         16,
         21
       ],
-      "confidence": 0.95
+      "confidence": 0.92
     },
     {
       "key": "h8",
-      "description": "A simple round back door about 5 feet high with old, peeling red paint. It is barred from the inside, old, and easily knocked in.",
+      "description": "A simple round back door about 5 feet high with old, peeling red paint. It is barred from the inside and is old and easily knocked in.",
       "encounters": [],
       "trap": null,
       "treasure": [],
-      "features": [
-        "simple round door about 5 feet high",
-        "old peeling red paint",
-        "barred from inside",
-        "old and easy to knock in"
-      ],
+      "features": [],
       "connections": [
         {
           "to_key": "h4",
-          "direction": "north"
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "h7",
-          "direction": "south"
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         17,
         21
       ],
-      "confidence": 0.98
+      "confidence": 0.91
     },
     {
       "key": "h9",
-      "description": "An old tree house occupied by fire beetles. They will scuttle or jump down to attack. The tree house is a simple square about 20 feet up from the ground and perhaps 6 feet from floor to ceiling.",
+      "description": "An old tree house, a simple square platform about 20 feet up from the ground and perhaps 6 feet from floor to ceiling. Fire beetles have taken up residence here and scuttle or jump down to attack.",
       "encounters": [
         {
           "monster": "Giant Fire Beetles",
@@ -247,20 +303,19 @@
       "trap": null,
       "treasure": [],
       "features": [
-        "simple square tree house",
-        "about 20 feet above the ground",
-        "about 6 feet floor to ceiling"
+        "Tree house about 20 feet above ground",
+        "Interior about 6 feet from floor to ceiling"
       ],
       "connections": [],
       "source_pages": [
         17,
         21
       ],
-      "confidence": 0.95
+      "confidence": 0.96
     },
     {
       "key": "h10",
-      "description": "A shed north of the house entered by double doors into another mound. The floor is dirt, the wall frames are heavy stone blocks, and the ceiling is made of heavy wooden timbers. Round windows about 3 feet in diameter are in the east, north, and west walls; these have shutters but no glass. The north window is broken and smeared with splattered feces. Two empty pony stalls stand in the west end. The east end once held carts and storage. Several piles of what were once sacks of grain lie moldering, covered in a harmless yellow fungus. The dark, humid floor is covered in stinking feces. Stirges fly in and out through the broken north window.",
+      "description": "A shed north of the house entered through double doors in another mound. The floor is dirt, the wall frames are heavy stone blocks, and the ceiling is made of heavy wooden timbers. The east, north, and west walls have round windows about 3 feet in diameter with shutters instead of glass; the north window is broken and smeared with splattered feces. Two empty pony stalls stand at the west end. The east end once held carts and stored goods. Several piles of once-sacked grain lie moldering under harmless yellow fungus. The floor is covered in stinking feces.",
       "encounters": [
         {
           "monster": "Stirges",
@@ -271,51 +326,64 @@
       ],
       "trap": null,
       "treasure": [
-        "Encrusted by droppings are 3d6 gp, 4d6 sp, and 5d6 cp."
+        "3d6 gp encrusted in droppings",
+        "4d6 sp encrusted in droppings",
+        "5d6 cp encrusted in droppings"
       ],
       "features": [
-        "double doors",
-        "dirt floor",
-        "heavy stone-block wall frames",
-        "heavy wooden timber ceiling",
-        "round shuttered windows in east, north, and west walls",
-        "broken north window smeared with feces",
-        "two empty pony stalls in west end",
-        "moldering grain sacks covered in harmless yellow fungus",
-        "floor covered in stinking feces"
-      ],
-      "connections": [],
-      "source_pages": [
-        17,
-        21
-      ],
-      "confidence": 0.97
-    },
-    {
-      "key": "h11",
-      "description": "A mound of earth unlike the other buildings, overgrown with brush and weeds. Square stones resting in loose earth near the main entrance hint that something is buried here. Digging into the mound for an hour or two reaches the buried house. Searching on top reveals the small one-foot-square chimney to the fireplace in H12. All windows and doors are buried. The two main doors are boarded shut with a great deal of lumber, apparently out of fear.",
-      "encounters": [],
-      "trap": null,
-      "treasure": [],
-      "features": [
-        "earth mound overgrown with brush and weeds",
-        "square stones near main entrance hint at burial",
-        "digging for an hour or two reaches the house",
-        "small one-foot-square chimney visible on top leading to H12 fireplace",
-        "all windows and doors buried",
-        "two main doors heavily boarded shut"
+        "Double doors",
+        "Dirt floor",
+        "Heavy stone-block wall frames",
+        "Heavy wooden timber ceiling",
+        "Round shuttered windows in east, north, and west walls",
+        "Broken north window smeared with feces",
+        "Two empty pony stalls",
+        "Moldering grain sacks covered in harmless yellow fungus"
       ],
       "connections": [
         {
-          "to_key": "h12",
-          "direction": "east"
+          "to_key": "h3",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         17,
         21
       ],
-      "confidence": 0.92
+      "confidence": 0.95
+    },
+    {
+      "key": "h11",
+      "description": "A mound of earth overgrown with brush and weeds, unlike the other buildings. Square stones in loose earth near the main entrance suggest something buried here. Digging for an hour or two will reach the buried house. Searching on top reveals the small one-foot-square chimney to the fireplace in H12. All windows and doors are buried. The two main doors are boarded shut with a great deal of lumber, apparently out of fear.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Overgrown mound with brush and weeds",
+        "Square stones near main entrance hint at buried structure",
+        "Small one-foot-square chimney to the fireplace in H12 visible on top",
+        "All windows and doors are buried",
+        "Two main doors are heavily boarded shut"
+      ],
+      "connections": [
+        {
+          "to_key": "h12",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        17,
+        21
+      ],
+      "confidence": 0.83
     },
     {
       "key": "h12",
@@ -331,28 +399,39 @@
       "trap": null,
       "treasure": [],
       "features": [
-        "brick fireplace in northwest corner",
-        "four cloth-swaddled humanoid shapes on floor"
+        "Brick fireplace in northwest corner"
       ],
       "connections": [
         {
           "to_key": "h11",
-          "direction": "west"
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "h13",
-          "direction": "south"
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "h15",
-          "direction": "east"
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         17,
         21
       ],
-      "confidence": 0.96
+      "confidence": 0.93
     },
     {
       "key": "h13",
@@ -361,32 +440,40 @@
       "trap": null,
       "treasure": [],
       "features": [
-        "two cozy chairs",
-        "couch",
-        "table",
-        "six wooden chairs",
-        "cupboards",
-        "stove"
+        "Two cozy chairs",
+        "Couch",
+        "Table",
+        "Six wooden chairs",
+        "Cupboards",
+        "Stove"
       ],
       "connections": [
         {
           "to_key": "h12",
-          "direction": "north"
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "h14",
-          "direction": "east"
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         17,
         21
       ],
-      "confidence": 0.95
+      "confidence": 0.93
     },
     {
       "key": "h14",
-      "description": "The master bedroom. Besides a bed and dresser, it features a writing table. Sitting behind it is a figure in tattered clothes, with exposed features putrid and ragged from wounds and age. This zombie attacks intruders with a flail (as war hammer), growling in hatred of anything living. On the desk are several sheets of old paper scrawled with many different and poorly composed poems to \"Kylenne My Lady Love\" mixed with the name \"Tyrok the Indefatigable.\" The writer was obviously very disturbed and quite evil. The zombie has a massive hole in its back as if it died from a particularly brutal sword wound.",
+      "description": "The master bedroom contains a bed, dresser, and writing table. A zombie in tattered clothes sits behind the table; its exposed features are putrid and ragged from wounds and age. It attacks intruders with a flail used as a war hammer, growling in hatred of the living. The zombie has a massive hole in its back as if killed by a particularly brutal sword wound. Several sheets of old paper on the desk are covered with many different badly composed poems to \"Kylenne My Lady Love\" mixed with the name \"Tyrok the Indefatigable.\" The writer was obviously disturbed and evil.",
       "encounters": [
         {
           "monster": "Zombie",
@@ -397,51 +484,30 @@
       ],
       "trap": null,
       "treasure": [
-        "A necklace with gems worth 500 gp lies on the writing desk."
+        "Necklace with gems worth 500 gp"
       ],
       "features": [
-        "bed",
-        "dresser",
-        "writing table",
-        "old papers with poems to \"Kylenne My Lady Love\" and the name \"Tyrok the Indefatigable\"",
-        "zombie's back has a massive hole from a brutal sword wound"
+        "Bed",
+        "Dresser",
+        "Writing table",
+        "Old papers with poems to \"Kylenne My Lady Love\" and the name \"Tyrok the Indefatigable\""
       ],
       "connections": [
         {
           "to_key": "h13",
-          "direction": "west"
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "h15",
-          "direction": "north"
-        }
-      ],
-      "source_pages": [
-        17,
-        21
-      ],
-      "confidence": 0.97
-    },
-    {
-      "key": "h15",
-      "description": "A guest room with a bed, table, small dresser, and a few other furnishings still present.",
-      "encounters": [],
-      "trap": null,
-      "treasure": [],
-      "features": [
-        "bed",
-        "table",
-        "small dresser",
-        "other furnishings"
-      ],
-      "connections": [
-        {
-          "to_key": "h12",
-          "direction": "west"
-        },
-        {
-          "to_key": "h14",
-          "direction": "south"
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
@@ -449,6 +515,42 @@
         21
       ],
       "confidence": 0.95
+    },
+    {
+      "key": "h15",
+      "description": "A guest room containing a bed, table, small dresser, and a few other furnishings.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Bed",
+        "Table",
+        "Small dresser",
+        "Other furnishings"
+      ],
+      "connections": [
+        {
+          "to_key": "h12",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "h14",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        17,
+        21
+      ],
+      "confidence": 0.93
     }
   ]
 }

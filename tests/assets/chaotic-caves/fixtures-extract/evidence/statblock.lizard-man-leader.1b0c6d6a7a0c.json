@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "fingerprint": "1b0c6d6a7a0cf30423e933cdf417aa443513e56cca1aa946b3aeeab2b0b47e47",
+  "tag": "statblock.lizard-man-leader",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"lizard man leader\" from the pages below.\n"
+      },
+      {
+        "text": "[page 33]\nThe Chaotic Caves The Caves\n52. COMMON ROOM: The residence of three\nmales; they are unarmored.\n3 Lizard Men: AC 12, HD 2, #At 1 spear, \nDam 1d6+1, Mv 30', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n53. LARDER (FOOD STORAGE): These two\nchambers are separated from each other and\nthe hallway by reed walls some 3 feet high.\nThe pool of water in the westward one is 2\nfeet deep and contains fish, eels, crawdads,\nand other such creatures, while the other has\nturtles, lizards, and rabbits.\n54. MAIN HAREM: The leader of the lizard men\n(wearing armor of tough hide and bone) resides\nhere with two prime female mates who are\nstatistically indistinguishable from males.\nThere are six young. Other than the leader, all\nare unarmored. The leader has a 100 gp gem\non a thong around his neck which marks him\nas dominant, rather than the 25 gp gem of the\nothers.\nHe also has a leather sack with a drawstring\nhidden in a hole in the center of the north wall,\ncovered over by mud. It contains 20 x 25 gp\ngems, 20 x 10 gp gems, 123 gp, 911 sp, and\n345 cp.\nTwo hollow tree trunks about 1 foot in\ndiameter rise up through the roof and exit\nabove, providing ventilation. The lizard men\nare very crafty and if cornered here they can\ndig out through the ceiling, taking perhaps an\nhour or less to make their escape.\nA fire smolders in one corner, over which\nseveral large rats are slowly smoking. Smoked\nmeats, some vegetables, and other items are\npiled beside them. Several large and well\u0002made hard-baked clay pots and jars are also\nhere. There are hides and furs stacked along\none wall (the most valuable of which are three\nfurs worth 50 gp each). There is also firewood,\ngrasses, and leaves for bedding and fires.\nNote: The author is keeping this module kid\u0002friendly; for adults, the GM might decorate the\nplace with the bones of humans. These lizard\nfolk are not intended to be sweet and friendly.\nHanging almost casually on a peg on a wall is a\nreed whistle (a Whistle of Summoning\nAnimals). When blown, it summons a normal\ncreature for the general area: the GM must\ndecide which one (if there are only smallish\nanimals, it can summon several). It will\noverride their nature for 2d6 turns during\nwhich time they will serve the user to the best\nof their ability (they cannot speak or otherwise\nbehave except by their natural resources, but\nwill understand the user's intentions quite\nclearly). Unless abused, they leave once the\ncharm wears off. Once the whistle has been\nblown three times it loses all of its magic.\nLizard Man Leader: AC 15, HD 3, #At 1 spear, \nDam 1d6+2, Mv 20', Sv F3, ML 11, XP 145\nHP 12 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐\n2 Female Lizard Men: AC 12, HD 2, #At 1 spear, \nDam 1d6+1, Mv 30', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n6 Young Lizard Men: AC 11, HD 1, #At 1 spear, \nDam 1d6, Mv 30', Sv F1, ML 10, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n31"
+      },
+      {
+        "sha256": "6cd399af281730fc8f2aa418e3255166e47416eadc6fe236627363c38096f794",
+        "bytes": 499004
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "3",
+      "class_level": null,
+      "hp": 12,
+      "attacks": [
+        "1 spear"
+      ],
+      "movement": "20'",
+      "saves": "Sv F3",
+      "morale": 11,
+      "alignment": null,
+      "xp": 145,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        33
+      ]
+    },
+    "usage": {
+      "input_tokens": 3581,
+      "output_tokens": 101
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

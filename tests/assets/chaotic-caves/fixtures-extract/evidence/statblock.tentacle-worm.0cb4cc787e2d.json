@@ -176,14 +176,14 @@
       "xp": 175,
       "number_appearing": null,
       "special": [],
-      "confidence": 0.99,
+      "confidence": 0.98,
       "source_pages": [
         16
       ]
     },
     "usage": {
-      "input_tokens": 3854,
-      "output_tokens": 106
+      "input_tokens": 3852,
+      "output_tokens": 105
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

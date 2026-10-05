@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "fingerprint": "eb8713aadb4af7fd8007e4f5c78fe546a027c56ac27157de34f9cbf42522e9e9",
+  "tag": "statblock.goblin-king",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"goblin king\" from the pages below.\n"
+      },
+      {
+        "text": "[page 28]\nThe Caves The Chaotic Caves\n27. COMMON ROOM: The entrance to this room\nis covered by crude curtains made from\nrawhide and cheap cloth. Inside are seven\ngoblins (they do not have armor) resting on\nsimple but well-made wooden furniture:\nstools, tables, cots, and bedding of common\nfurs. Each has 1d6 cp. \n7 Goblins: AC 11, HD 1-1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 7, XP 25 ea.\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐\n28. TRAP: This pit trap is 10 feet deep and\nvictims take 1d6 damage from falling. The\ncovering is cleverly made and tactics like trying\nto tap for a hollow floor require a standard\ntrap-finding check to see if a faint noise is\nheard, for example.\n29. GOBLIN PRIEST: This old goblin serves as\nthe spiritual adviser for the chief and tribe. He\nis wise, but is also petty and cruel, misguiding\nanyone for his own profit. In his room is a\nPotion of Healing and Scroll of Cure Light\nWounds. He cannot use the scroll, as he is not\nreally a cleric. He wears a silver amulet\nrepresenting a goblin god on a thong around his\nneck (value around 50 gp from a collector). He\ndoes not have armor.\nGoblin: AC 11, HD 1-1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 7, XP 25\nHP 3 ☐☐☐\n30. COMMON ROOM/STORE ROOM: Some 11\ngoblins reside here (they do not have armor).\nEach has 1d6 cp. \n11 Goblins: AC 11, HD 1-1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 7, XP 25 ea.\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐\nIn niches in the southeast wall are six beautiful\nstatues about 1' tall each. They are carved\nfrom rare wood and worth about 25 gp each.\nLarge wicker baskets are stacked along the\nback wall, each filled with wheat grain, flour,\nvegetables, dried meats and other items.\n31. GOBLIN CHIEF ROOM: The goblin chief and\nthree other goblins inhabit this room. The\nchief wields a Shortsword +1. The north,\nsouth, and east walls are covered by curtains\nassembled from a hodgepodge of bed linens,\ntapestries, and some hides.\nUnder an overturned bucket in the northeast\ncorner behind the curtains is a bag with 131 gp,\n456 sp, and 872 cp. In the southeast corner, a\nhole was dug out and a very clever covering\nmade which is hard to find (make a “find\nsecret door” check or the equivalent for a\nsearch). Buried in it is a simple wooden box\ncontaining another 472 gp, 178 sp, and 1,234 cp.\nGoblin King: AC 15, HD 5-5, \n#At 1 shortsword +1, Dam 1d6+2, Mv 10', Sv F5, \nML 9, XP 360\nHP 18 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n3 Goblins: AC 14, HD 1-1, #At 1 shortsword, \nDam 1d6, Mv 20', Sv F1, ML 9 (7 if king is dead \nor leaves), XP 25 ea.\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐\n26"
+      },
+      {
+        "sha256": "987e9d90a8679b06666b52d422bc8edf7136660a1a212a7300ccd6e877c8dc35",
+        "bytes": 589471
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "5-5",
+      "class_level": null,
+      "hp": 18,
+      "attacks": [
+        "1 shortsword +1"
+      ],
+      "movement": "10'",
+      "saves": "Sv F5",
+      "morale": 9,
+      "alignment": null,
+      "xp": 360,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        28
+      ]
+    },
+    "usage": {
+      "input_tokens": 2672,
+      "output_tokens": 106
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

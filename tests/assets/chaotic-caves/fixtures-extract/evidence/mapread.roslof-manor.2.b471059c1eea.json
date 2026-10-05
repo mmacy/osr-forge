@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "fingerprint": "b471059c1eea90765f7ae65ad2a34b698626329b55772c073c26771a73f8827c",
+  "tag": "mapread.roslof-manor.2",
+  "request": {
+    "system": "You read one dungeon level's printed map from a tabletop adventure module. The user message names the dungeon and level and lists the level's keyed areas in printed order, then interleaves each map page's extracted text (each headed by a [page N] marker) with that page's image — the map is in the images; read them.\n\nRules:\n- Propose adjacency only between the provided printed keys. Two keyed areas are adjacent when the map joins them directly by a door, opening, or passage, or through unkeyed passage in consecutive order along it.\n- Report a door only where the map marks one; use \"secret_door\" only where the map's legend marks the door secret. \"none\" means the map joins the pair with no door marked.\n- \"entrance\" is the keyed area holding the way into the level from outside, only where the map labels it (an entrance arrow, a labeled stair from the surface, a marked cave mouth). Answer null when the map labels none.\n- Propose nothing that cannot be read: keys the map does not show, adjacencies you cannot trace, or an entrance the map does not label are omissions, never guesses.\n",
+    "parts": [
+      {
+        "text": "Read the level map for \"Roslof Manor\", level 2. The level's keyed areas, in printed order:\n- 98\n- 99\n- 100\n- 101\n- 102\n- 103\n- 104\n- 105\n- 106\n"
+      },
+      {
+        "text": "[page 47]\nThe Chaotic Caves The Abandoned Manor\n45"
+      },
+      {
+        "sha256": "dace089732121d4f012e0ca1ef072792fce4e1c6faf36957bd88904efe5b9e72",
+        "bytes": 75390
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "adjacencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "b": {
+                "type": "string"
+              },
+              "door": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "door",
+                  "secret_door"
+                ]
+              }
+            },
+            "required": [
+              "a",
+              "b",
+              "door"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "entrance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "adjacencies",
+        "entrance"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "adjacencies": [
+        {
+          "a": "98",
+          "b": "99",
+          "door": "door"
+        },
+        {
+          "a": "98",
+          "b": "102",
+          "door": "door"
+        },
+        {
+          "a": "99",
+          "b": "100",
+          "door": "door"
+        },
+        {
+          "a": "100",
+          "b": "101",
+          "door": "door"
+        },
+        {
+          "a": "102",
+          "b": "103",
+          "door": "door"
+        },
+        {
+          "a": "103",
+          "b": "104",
+          "door": "door"
+        },
+        {
+          "a": "105",
+          "b": "98",
+          "door": "door"
+        },
+        {
+          "a": "106",
+          "b": "98",
+          "door": "door"
+        }
+      ],
+      "entrance": null
+    },
+    "usage": {
+      "input_tokens": 1320,
+      "output_tokens": 121
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

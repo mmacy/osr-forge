@@ -33,11 +33,12 @@ whose request digests embed module text (also licensed):
 - `fixtures-extract/` — extraction recordings, classified by directory:
   `replay/` holds the excerpt survey, first-content-batch, and monsters
   resolution fixtures recorded over committed assets (replayed in tests with
-  zero network); `evidence/` holds the full 48-page milestone run's fixtures
-  and the phase 7 stat-block transcription fixtures (no replay promise —
-  their requests reference uncommitted workdir renders).
+  zero network); `evidence/` holds the full 48-page milestone run's fixtures:
+  survey, census, content, monsters, stat-block, and map-reading requests
+  (no replay promise, because most of their requests reference uncommitted
+  workdir renders).
 - `stages/` — the stage caches (`survey.json`, `areas.<dungeon>.<level>.json`,
-  `monsters.json`, and phase 7's `statblocks.json`) the recording sessions
+  `monsters.json`, `statblocks.json`, and `mapread.json`) the recording sessions
   produced; the credibility-floor test gates them. Their text derives from
   the module's licensed text. `statblocks.json` is evidence-grade — its
   producing requests embed uncommitted page renders — and is consumed

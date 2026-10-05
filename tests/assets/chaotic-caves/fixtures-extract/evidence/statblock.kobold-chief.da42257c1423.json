@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "fingerprint": "da42257c1423253ccb0d58235bf804a290b0cf81cd7f3344d5106429674108a8",
+  "tag": "statblock.kobold-chief",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"kobold chief\" from the pages below.\n"
+      },
+      {
+        "text": "[page 32]\nThe Caves The Chaotic Caves\n48. CHIEF'S ROOM: The kobold chief, two\nbodyguards, and four normal kobolds live here.\nThe chief has the key to the store room at #43.\nThe chief wields a silver-bladed hand-axe\nworth about 40 to 50 gp and has a pouch\naround his neck with six 100 gp gems in it.\nEach bodyguard has a golden arm-band on one\narm worth 50 gp. There is a large clay urn in\nback with a wooden lid tied on by rough fiber\nrope, inside which are 306 gp, 312 sp, and\n108 cp.\nKobold Chief: AC 13, HD 2, #At 1 shortsword, \nDam 1d6, Mv 20', Sv F2, ML 7, XP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\n2 Kobold Bodyguards: AC 13, HD 1, \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv F1, ML 8 \n(7 if chief is defeated or leaves the area), \nXP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 Kobolds: AC 13, HD ½ (1d4 HP), \n#At 1 tiny sword, Dam 1d4, Mv 20', Sv NM, ML 7\n(6 if chief and bodyguards are defeated or \nleave the area), XP 10 ea.\nHP 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐\n49. ESCAPE ROUTE: As shown on the map, a\npit trap with stakes (2d6 damage) is some 10'\nor 20' from the entranceway: it is covered by a\npretty good false floor, although a careful\nsearch should have a high chance of finding it.\nThe outside exit is in the middle of the woods\nand has been covered by living brush and\ndebris such that it is hard to find.\nScuttling in the brush just outside the entrance\nare seven giant centipedes, attacking anyone\nwho comes near:\n7 Giant Centipedes: AC 11, HD ½ (1d4 HP), \n#At 1 bite, Dam poison, Mv 40', Sv NM, ML 7, \nXP 10 ea.\nHP 2 ☐☐ 3 ☐☐☐ 2 ☐☐ 3 ☐☐☐\n1 ☐ 2 ☐☐ 4 ☐☐☐☐\nH. LIZARD MAN LAIR\nThe lizard man lair is located in a swampy area\nformed where a stream slows down, spreads\nout, and pools in this area. The tunnels of the\nlair are wet and muddy, with water dripping\ndown from the ceiling to form small pools.\nGnarled tree roots grow through the ceiling and\nwalls. The inner chambers are 10' tall and the\nconnecting passages are low (6' or so).\nDECORATION: Each of the lizard men wears a\n25 gp gem on a leather thong around its neck\nas a tribal identifier, and is painted in garish\nred colors.\nSTREAM: The stream is cool and clean, running\nnorthwest to southeast. It has pools up to ten\nfeet deep, shallow places less than a foot\ndeep, and is easily crossed by finding a shallow\nplace. In some places it is overgrown with\nreeds. The bank can rise to a height of 10' or\n20' and is occasionally flat. Normal inhabitants\ninclude crayfish, fish, frogs, beavers, ducks,\nand other animals coming to drink.\n50. NORTH ENTRANCE: Two totem poles flank\nthe rough entrance that has been clawed into\nthe hard, rocky ground. Each is capped with\nthe bleached skull of a bear and feathers.\nThree lizard men (wearing tough hide and bone\narmor) and a giant gecko lizard lounge some\ntwenty feet inside, warding off any intruders.\nThe tunnel slopes down sharply from the\nopening to the first chamber, dropping some\n30' in elevation. There are several boulders\nthere which can be rolled into the hallway and\npacked with mud to prevent flooding.\n3 Lizard Men: AC 15, HD 2, #At 1 spear, \nDam 1d6+1, Mv 20', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\nGiant Gecko Lizard: AC 15, HD 3+1, #At 1 bite, \nDam 1d8, Mv 40', Sv F2, ML 7, XP 145\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n51. EMPTY CHAMBER: An empty chamber,\nstacked with firewood, dry grass for tinder, and\nrocks.\n30"
+      },
+      {
+        "sha256": "d5cbfd47e4e6259b375c22b2fd6de8a78276758f8b185e14b0204e6651f7ddf2",
+        "bytes": 488586
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "13",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2",
+      "class_level": null,
+      "hp": 8,
+      "attacks": [
+        "1 shortsword, Dam 1d6"
+      ],
+      "movement": "20'",
+      "saves": "F2",
+      "morale": 7,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        32
+      ]
+    },
+    "usage": {
+      "input_tokens": 3757,
+      "output_tokens": 106
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

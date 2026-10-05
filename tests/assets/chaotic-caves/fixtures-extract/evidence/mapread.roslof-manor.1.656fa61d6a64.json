@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "fingerprint": "656fa61d6a64f203bd198f3d1f9d674f0a6d916c6684b97045f6cf3bf2c07f5f",
+  "tag": "mapread.roslof-manor.1",
+  "request": {
+    "system": "You read one dungeon level's printed map from a tabletop adventure module. The user message names the dungeon and level and lists the level's keyed areas in printed order, then interleaves each map page's extracted text (each headed by a [page N] marker) with that page's image — the map is in the images; read them.\n\nRules:\n- Propose adjacency only between the provided printed keys. Two keyed areas are adjacent when the map joins them directly by a door, opening, or passage, or through unkeyed passage in consecutive order along it.\n- Report a door only where the map marks one; use \"secret_door\" only where the map's legend marks the door secret. \"none\" means the map joins the pair with no door marked.\n- \"entrance\" is the keyed area holding the way into the level from outside, only where the map labels it (an entrance arrow, a labeled stair from the surface, a marked cave mouth). Answer null when the map labels none.\n- Propose nothing that cannot be read: keys the map does not show, adjacencies you cannot trace, or an entrance the map does not label are omissions, never guesses.\n",
+    "parts": [
+      {
+        "text": "Read the level map for \"Roslof Manor\", level 1. The level's keyed areas, in printed order:\n- 77\n- 78\n- 79\n- 80\n- 81\n- 82\n- 83\n- 84\n- 85\n- 86\n- 87\n- 88\n- 89\n- 90\n- 91\n- 92\n- 93\n- 94\n- 95\n- 96\n- 97\n"
+      },
+      {
+        "text": "[page 46]\nThe Abandoned Manor The Chaotic Caves\n44"
+      },
+      {
+        "sha256": "c1adda4c85801fc9305eb1d78da18464da69a15b2004ca6d3cf65c3ee86a5148",
+        "bytes": 453582
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "adjacencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "b": {
+                "type": "string"
+              },
+              "door": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "door",
+                  "secret_door"
+                ]
+              }
+            },
+            "required": [
+              "a",
+              "b",
+              "door"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "entrance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "adjacencies",
+        "entrance"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "adjacencies": [
+        {
+          "a": "77",
+          "b": "78",
+          "door": "none"
+        },
+        {
+          "a": "77",
+          "b": "79",
+          "door": "none"
+        },
+        {
+          "a": "77",
+          "b": "83",
+          "door": "none"
+        },
+        {
+          "a": "78",
+          "b": "79",
+          "door": "none"
+        },
+        {
+          "a": "80",
+          "b": "84",
+          "door": "none"
+        },
+        {
+          "a": "81",
+          "b": "84",
+          "door": "none"
+        },
+        {
+          "a": "82",
+          "b": "93",
+          "door": "none"
+        },
+        {
+          "a": "83",
+          "b": "84",
+          "door": "none"
+        },
+        {
+          "a": "84",
+          "b": "85",
+          "door": "none"
+        },
+        {
+          "a": "85",
+          "b": "86",
+          "door": "none"
+        },
+        {
+          "a": "85",
+          "b": "87",
+          "door": "door"
+        },
+        {
+          "a": "85",
+          "b": "96",
+          "door": "none"
+        },
+        {
+          "a": "86",
+          "b": "90",
+          "door": "none"
+        },
+        {
+          "a": "86",
+          "b": "91",
+          "door": "none"
+        },
+        {
+          "a": "86",
+          "b": "92",
+          "door": "none"
+        },
+        {
+          "a": "87",
+          "b": "88",
+          "door": "none"
+        },
+        {
+          "a": "88",
+          "b": "89",
+          "door": "door"
+        },
+        {
+          "a": "88",
+          "b": "95",
+          "door": "door"
+        },
+        {
+          "a": "88",
+          "b": "97",
+          "door": "door"
+        },
+        {
+          "a": "89",
+          "b": "93",
+          "door": "door"
+        },
+        {
+          "a": "89",
+          "b": "95",
+          "door": "none"
+        },
+        {
+          "a": "89",
+          "b": "97",
+          "door": "none"
+        },
+        {
+          "a": "90",
+          "b": "91",
+          "door": "door"
+        },
+        {
+          "a": "90",
+          "b": "96",
+          "door": "door"
+        },
+        {
+          "a": "91",
+          "b": "92",
+          "door": "door"
+        },
+        {
+          "a": "91",
+          "b": "94",
+          "door": "door"
+        },
+        {
+          "a": "92",
+          "b": "93",
+          "door": "none"
+        },
+        {
+          "a": "92",
+          "b": "94",
+          "door": "door"
+        },
+        {
+          "a": "93",
+          "b": "95",
+          "door": "door"
+        },
+        {
+          "a": "94",
+          "b": "96",
+          "door": "door"
+        },
+        {
+          "a": "95",
+          "b": "97",
+          "door": "door"
+        },
+        {
+          "a": "96",
+          "b": "97",
+          "door": "door"
+        }
+      ],
+      "entrance": "77"
+    },
+    "usage": {
+      "input_tokens": 1368,
+      "output_tokens": 409
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

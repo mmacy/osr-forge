@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "hobgoblin-lair",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "entrance",
+      "description": "Twin entrances lead into the first chamber, where five hobgoblins are bunked on guard duty. At A is a wide underground stream used as a moat. Wooden planks about 15' long, used to cross it, are stored on the opposite side. A loud ox horn hangs on a peg and can be blown to attract someone to come put planks across; the hobgoblins in room 17 are tasked with this job. If intruders spend too long debating or making elaborate crossing plans, two hobgoblins from room 17 may appear. In the northwest corner at C is a crude hide painted to resemble stone, used for ambushes by hiding behind it and rushing out once intruders enter.",
+      "encounters": [
+        {
+          "monster": "hobgoblin",
+          "count_fixed": 5,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each hobgoblin has 1d6 sp."
+      ],
+      "features": [
+        "Wide underground stream used as a moat",
+        "Wooden planks about 15' long stored on the far side for crossing",
+        "Loud ox horn on a peg to summon hobgoblins from room 17 to lay the planks",
+        "Crude stone-painted hide in the northwest corner used for ambushes"
+      ],
+      "connections": [
+        {
+          "to_key": "17",
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        25,
+        38
+      ],
+      "confidence": 0.85
+    },
+    {
+      "key": "16",
+      "description": "A 20' high hallway supported by three sets of pillars. The hobgoblins have rigged thin wires along the floor between the center two pillars.",
+      "encounters": [],
+      "trap": "Thin floor wires trigger a heavy stone-headed mallet swinging down from behind the pillars; it attacks as a 2 HD creature and deals 1d8 damage on a hit. A moment later a net covered in bells drops across the hall between the two pillars. Anyone caught is tangled for 1d6 rounds, and struggling causes the bells to ring loudly, likely alerting hobgoblins from room 17.",
+      "treasure": [],
+      "features": [
+        "Three sets of pillars",
+        "20' high ceiling",
+        "Bell-covered net spanning the hall between the center pillars"
+      ],
+      "connections": [
+        {
+          "to_key": "17",
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "17",
+      "description": "Six hobgoblins bunk here. They are not wearing armor but will don it if given time. The room has been fixed up, and what were once going to be platforms for caskets are now used as benches and tables. Three fancy elaborate red funeral shrouds with thin gold threading and black details are being used as hammocks.",
+      "encounters": [
+        {
+          "monster": "hobgoblin",
+          "count_fixed": 6,
+          "count_dice": null,
+          "count_note": "AC 14 armored, 11 unarmored; movement 30' armored or 40' unarmored"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each hobgoblin has 1d6 sp.",
+        "Three funeral shrouds used as hammocks, worth 50 gp each"
+      ],
+      "features": [
+        "Former casket platforms repurposed as benches and tables",
+        "Three elaborate red funeral-shroud hammocks with thin gold threading and black details"
+      ],
+      "connections": [
+        {
+          "to_key": "entrance",
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "16",
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "18",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        },
+        {
+          "to_key": "19",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.75
+    },
+    {
+      "key": "18",
+      "description": "Usually this room is locked, though not very well. A thief could pick either door with ease, and the doors can be knocked in easily. The chief in room 21 has the key. It is full of odds and ends and minor plunder: clothing, sacks of grains and potatoes, hanging dried meats, perhaps some hanging 'fresh meat' in the form of slain foes, and mining tools such as picks, chisels, and hammers.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Stored clothing",
+        "Sacks of grain and potatoes",
+        "Hanging dried meats",
+        "Possibly hanging slain foes used as 'fresh meat'",
+        "Mining tools including picks, chisels, and hammers"
+      ],
+      "connections": [
+        {
+          "to_key": "17",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        },
+        {
+          "to_key": "20",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.8
+    },
+    {
+      "key": "19",
+      "description": "This room has been taken over by a skilled and tough hobgoblin who lives in luxury. On the wall are a short bow and two quivers of arrows, along with other items. He carries the key to this room on a string made of hair on his belt.",
+      "encounters": [
+        {
+          "monster": "hobgoblin",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "sub-leader; HD 3; armed with scimitar or short bow"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "300 ep in one belt pouch",
+        "300 gp in another belt pouch"
+      ],
+      "features": [
+        "Short bow on the wall",
+        "Two quivers of arrows on the wall",
+        "Luxurious living arrangements"
+      ],
+      "connections": [
+        {
+          "to_key": "17",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        },
+        {
+          "to_key": "21",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.77
+    },
+    {
+      "key": "20",
+      "description": "The hobgoblins here have piled up rubble in the hallway and stockpiled holy water to fend off the ghouls to the west.",
+      "encounters": [
+        {
+          "monster": "hobgoblin",
+          "count_fixed": 4,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Each hobgoblin has 1d6 sp.",
+        "Six vials of holy water"
+      ],
+      "features": [
+        "Rubble piled up in the hallway as a defensive barrier"
+      ],
+      "connections": [
+        {
+          "to_key": "18",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        },
+        {
+          "to_key": "Abandoned Crypts",
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.67
+    },
+    {
+      "key": "21",
+      "description": "This chamber contains the hobgoblin chief and three bodyguards. The chief has the key to the store room at 18. There is a plain bed, chairs, tables, and other furnishings here.",
+      "encounters": [
+        {
+          "monster": "hobgoblin chief",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "hobgoblin",
+          "count_fixed": 3,
+          "count_dice": null,
+          "count_note": "bodyguards; morale 9 while chief is present"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Potion of Stone to Flesh (1 use)",
+        "Bag tied to the foot of the bed containing 600 gp, 1,200 sp, and 1,800 cp"
+      ],
+      "features": [
+        "Plain bed",
+        "Chairs",
+        "Tables",
+        "Other furnishings"
+      ],
+      "connections": [
+        {
+          "to_key": "19",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        26,
+        38
+      ],
+      "confidence": 0.76
+    }
+  ]
+}

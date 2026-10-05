@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="234" height="320" viewBox="0 0 234 320">
+<text x="12" y="16" font-family="monospace" font-size="12" fill="#333333">kobold-lair level 1</text>
+<text x="42" y="41" font-family="monospace" font-size="8" text-anchor="middle" fill="#888888">0</text>
+<text x="66" y="41" font-family="monospace" font-size="8" text-anchor="middle" fill="#888888">1</text>
+<text x="90" y="41" font-family="monospace" font-size="8" text-anchor="middle" fill="#888888">2</text>
+<text x="114" y="41" font-family="monospace" font-size="8" text-anchor="middle" fill="#888888">3</text>
+<text x="138" y="41" font-family="monospace" font-size="8" text-anchor="middle" fill="#888888">4</text>
+<text x="162" y="41" font-family="monospace" font-size="8" text-anchor="middle" fill="#888888">5</text>
+<text x="186" y="41" font-family="monospace" font-size="8" text-anchor="middle" fill="#888888">6</text>
+<text x="210" y="41" font-family="monospace" font-size="8" text-anchor="middle" fill="#888888">7</text>
+<text x="26" y="59" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">0</text>
+<text x="26" y="83" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">1</text>
+<text x="26" y="107" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">2</text>
+<text x="26" y="131" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">3</text>
+<text x="26" y="155" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">4</text>
+<text x="26" y="179" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">5</text>
+<text x="26" y="203" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">6</text>
+<text x="26" y="227" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">7</text>
+<text x="26" y="251" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">8</text>
+<text x="26" y="275" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">9</text>
+<text x="26" y="299" font-family="monospace" font-size="8" text-anchor="end" fill="#888888">10</text>
+<rect x="30" y="44" width="24" height="24" fill="#ddd4c0"/>
+<rect x="54" y="44" width="24" height="24" fill="#ddd4c0"/>
+<rect x="30" y="68" width="24" height="24" fill="#ddd4c0"/>
+<rect x="54" y="68" width="24" height="24" fill="#ddd4c0"/>
+<rect x="102" y="44" width="24" height="24" fill="#ddd4c0"/>
+<rect x="126" y="44" width="24" height="24" fill="#ddd4c0"/>
+<rect x="102" y="68" width="24" height="24" fill="#ddd4c0"/>
+<rect x="126" y="68" width="24" height="24" fill="#ddd4c0"/>
+<rect x="174" y="44" width="24" height="24" fill="#ddd4c0"/>
+<rect x="198" y="44" width="24" height="24" fill="#ddd4c0"/>
+<rect x="174" y="68" width="24" height="24" fill="#ddd4c0"/>
+<rect x="198" y="68" width="24" height="24" fill="#ddd4c0"/>
+<rect x="174" y="116" width="24" height="24" fill="#ddd4c0"/>
+<rect x="198" y="116" width="24" height="24" fill="#ddd4c0"/>
+<rect x="174" y="140" width="24" height="24" fill="#ddd4c0"/>
+<rect x="198" y="140" width="24" height="24" fill="#ddd4c0"/>
+<rect x="174" y="188" width="24" height="24" fill="#ddd4c0"/>
+<rect x="198" y="188" width="24" height="24" fill="#ddd4c0"/>
+<rect x="174" y="212" width="24" height="24" fill="#ddd4c0"/>
+<rect x="198" y="212" width="24" height="24" fill="#ddd4c0"/>
+<rect x="102" y="188" width="24" height="24" fill="#ddd4c0"/>
+<rect x="126" y="188" width="24" height="24" fill="#ddd4c0"/>
+<rect x="102" y="212" width="24" height="24" fill="#ddd4c0"/>
+<rect x="126" y="212" width="24" height="24" fill="#ddd4c0"/>
+<rect x="102" y="260" width="24" height="24" fill="#ddd4c0"/>
+<rect x="126" y="260" width="24" height="24" fill="#ddd4c0"/>
+<rect x="102" y="284" width="24" height="24" fill="#ddd4c0"/>
+<rect x="126" y="284" width="24" height="24" fill="#ddd4c0"/>
+<rect x="78" y="44" width="24" height="24" fill="#efe9dc"/>
+<rect x="150" y="44" width="24" height="24" fill="#efe9dc"/>
+<rect x="174" y="92" width="24" height="24" fill="#efe9dc"/>
+<rect x="174" y="164" width="24" height="24" fill="#efe9dc"/>
+<rect x="150" y="188" width="24" height="24" fill="#efe9dc"/>
+<rect x="102" y="236" width="24" height="24" fill="#efe9dc"/>
+<line x1="30" y1="44" x2="30" y2="68" stroke="#333333" stroke-width="2"/>
+<line x1="30" y1="44" x2="54" y2="44" stroke="#333333" stroke-width="2"/>
+<line x1="30" y1="68" x2="30" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="30" y1="92" x2="54" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="54" y1="44" x2="78" y2="44" stroke="#333333" stroke-width="2"/>
+<line x1="54" y1="92" x2="78" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="78" y1="44" x2="102" y2="44" stroke="#333333" stroke-width="2"/>
+<line x1="78" y1="68" x2="78" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="78" y1="68" x2="102" y2="68" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="44" x2="126" y2="44" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="68" x2="102" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="92" x2="126" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="188" x2="102" y2="212" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="188" x2="126" y2="188" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="212" x2="102" y2="236" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="236" x2="102" y2="260" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="260" x2="102" y2="284" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="284" x2="102" y2="308" stroke="#333333" stroke-width="2"/>
+<line x1="102" y1="308" x2="126" y2="308" stroke="#333333" stroke-width="2"/>
+<line x1="126" y1="44" x2="150" y2="44" stroke="#333333" stroke-width="2"/>
+<line x1="126" y1="92" x2="150" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="126" y1="188" x2="150" y2="188" stroke="#333333" stroke-width="2"/>
+<line x1="126" y1="236" x2="126" y2="260" stroke="#333333" stroke-width="2"/>
+<line x1="126" y1="236" x2="150" y2="236" stroke="#333333" stroke-width="2"/>
+<line x1="126" y1="260" x2="150" y2="260" stroke="#333333" stroke-width="2"/>
+<line x1="126" y1="308" x2="150" y2="308" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="44" x2="174" y2="44" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="68" x2="150" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="68" x2="174" y2="68" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="188" x2="174" y2="188" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="212" x2="150" y2="236" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="212" x2="174" y2="212" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="260" x2="150" y2="284" stroke="#333333" stroke-width="2"/>
+<line x1="150" y1="284" x2="150" y2="308" stroke="#333333" stroke-width="2"/>
+<line x1="174" y1="44" x2="198" y2="44" stroke="#333333" stroke-width="2"/>
+<line x1="174" y1="68" x2="174" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="174" y1="92" x2="174" y2="116" stroke="#333333" stroke-width="2"/>
+<line x1="174" y1="116" x2="174" y2="140" stroke="#333333" stroke-width="2"/>
+<line x1="174" y1="140" x2="174" y2="164" stroke="#333333" stroke-width="2"/>
+<line x1="174" y1="164" x2="174" y2="188" stroke="#333333" stroke-width="2"/>
+<line x1="174" y1="212" x2="174" y2="236" stroke="#333333" stroke-width="2"/>
+<line x1="174" y1="236" x2="198" y2="236" stroke="#333333" stroke-width="2"/>
+<line x1="198" y1="44" x2="222" y2="44" stroke="#333333" stroke-width="2"/>
+<line x1="198" y1="92" x2="198" y2="116" stroke="#333333" stroke-width="2"/>
+<line x1="198" y1="92" x2="222" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="198" y1="116" x2="222" y2="116" stroke="#333333" stroke-width="2"/>
+<line x1="198" y1="164" x2="198" y2="188" stroke="#333333" stroke-width="2"/>
+<line x1="198" y1="164" x2="222" y2="164" stroke="#333333" stroke-width="2"/>
+<line x1="198" y1="188" x2="222" y2="188" stroke="#333333" stroke-width="2"/>
+<line x1="198" y1="236" x2="222" y2="236" stroke="#333333" stroke-width="2"/>
+<line x1="222" y1="44" x2="222" y2="68" stroke="#333333" stroke-width="2"/>
+<line x1="222" y1="68" x2="222" y2="92" stroke="#333333" stroke-width="2"/>
+<line x1="222" y1="116" x2="222" y2="140" stroke="#333333" stroke-width="2"/>
+<line x1="222" y1="140" x2="222" y2="164" stroke="#333333" stroke-width="2"/>
+<line x1="222" y1="188" x2="222" y2="212" stroke="#333333" stroke-width="2"/>
+<line x1="222" y1="212" x2="222" y2="236" stroke="#333333" stroke-width="2"/>
+<rect x="147" y="50" width="6" height="12" fill="#8b5a2b"/>
+<rect x="180" y="89" width="12" height="6" fill="#8b5a2b"/>
+<rect x="171" y="194" width="6" height="12" fill="none" stroke="#8b5a2b" stroke-width="2"/>
+<circle cx="42" cy="56" r="7" fill="none" stroke="#1a7f37" stroke-width="2"/>
+<text x="33" y="54" font-family="monospace" font-size="8" paint-order="stroke" stroke="#efe9dc" stroke-width="2" fill="#333333">43</text>
+<text x="105" y="54" font-family="monospace" font-size="8" paint-order="stroke" stroke="#efe9dc" stroke-width="2" fill="#333333">44</text>
+<text x="177" y="54" font-family="monospace" font-size="8" paint-order="stroke" stroke="#efe9dc" stroke-width="2" fill="#333333">45</text>
+<text x="177" y="126" font-family="monospace" font-size="8" paint-order="stroke" stroke="#efe9dc" stroke-width="2" fill="#333333">46</text>
+<text x="177" y="198" font-family="monospace" font-size="8" paint-order="stroke" stroke="#efe9dc" stroke-width="2" fill="#333333">47</text>
+<text x="105" y="198" font-family="monospace" font-size="8" paint-order="stroke" stroke="#efe9dc" stroke-width="2" fill="#333333">48</text>
+<text x="105" y="270" font-family="monospace" font-size="8" paint-order="stroke" stroke="#efe9dc" stroke-width="2" fill="#333333">49</text>
+</svg>

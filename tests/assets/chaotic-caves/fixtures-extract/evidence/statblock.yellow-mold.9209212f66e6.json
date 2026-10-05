@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "fingerprint": "9209212f66e635b9fa742757f9cf6e26617fe0ab9ae6d33a449cebb5b33bc362",
+  "tag": "statblock.yellow-mold",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"yellow mold\" from the pages below.\n"
+      },
+      {
+        "text": "[page 34]\nThe Caves The Chaotic Caves\n55. COMMON ROOM: Three males are busy\nhere, readying simple bamboo gigs for a fish\u0002and-frog hunt.\n3 Lizard Men: AC 12, HD 2, #At 1 spear, \nDam 1d6+1, Mv 30', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n56. GUARD POST: Three lizard men (wearing\ntough hide and bone armor) and a giant gecko\nlizard on a thick fiber rope lurk in the dark\nhere, keeping intruders (including animals) out.\nThe tunnel slopes down sharply from the\nopening to here, dropping some 30'. There are\nseveral boulders here which can be rolled into\nthe hallway and packed with mud to prevent\nflooding.\n3 Lizard Men: AC 15, HD 2, #At 1 spear, \nDam 1d6+1, Mv 20', Sv F2, ML 11, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\nGiant Gecko Lizard: AC 15, HD 3+1, #At 1 bite, \nDam 1d8, Mv 40', Sv F2, ML 7, XP 145\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n57. SOUTH ENTRANCE: This entrance opens\ninto the bank of the stream, which is some 20\nfeet high here. It is flanked by two 9-foot\ntotem poles (featuring crude animals and\nlizards) capped by bear skulls and feathers.\nI. BUGBEAR LAIR\nThese bugbears are planning a takeover of the\nregion. For now they are biding their time and\nwaiting for an opportunity. Heavy wooden\nbeams support the ceilings of the halls of their\nlair, tunneled from the loose, rocky earth by\nskilled hands. Most ceilings are 15 feet high.\n58. ENTRANCE: Two bugbears with pole arms\nstand outside the entranceway, one on each\nside. Another is in the niche inside. Each\ncarries 1d6 gp.\n3 Bugbears: AC 15, HD 3+1, #At 1 polearm, \nDam 1d10+1, Mv 30', Sv F3, ML 9, XP 145 ea.\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n59. SWINGING ARM TRAP: Both ends of this\nhall are protected by a trap. A swinging frame\nset with sharp, hard wooden spikes slashes out\nwhen a pressure plate is stepped on, attacking\nas a 2 HD monster and doing 2d6 points of\ndamage to each person hit. Each person in\nfront might be hit.\n60. STORE ROOM: The door to this room is\nopen. Just inside is a tarp hanging down to\nprevent light from getting in or out, or so it\nmight seem. The tarp has been carefully\ncultured with a yellow mold on the west side\nsuch that anyone pushing brusquely through\nwill cause it to release spores. The bugbears\ntypically use a pole to carefully lift the tarp\naside from a distance. The room contains\ncrates of food, bags of meat, three 50-foot\nsections of rope, a dozen iron spikes and other\nitems.\nYellow Mold: AC Can always be hit, HD 2*, \n#At Spores, Dam All within 10 feet of the mold \nwill be affected by the spores and must save \nvs. Death Ray or take 1d8 points of damage per\nround for 6 rounds, Mv 0, Sv NM, ML N/A, \nXP 100\nHP 8 ☐☐☐☐☐ ☐☐☐\n61. COMMON ROOM: Three bugbears reside\nhere. Each has 1d6 gp on its person. The east\nwall is decorated with three long strips of\ncheap paper scattered with bugbear \"chicken\u0002tracks\" (writing). They are prayer scrolls\npleading for success in battle and many\nenemies to feast on. \n3 Bugbears: AC 15, HD 3+1, #At 1 scimitar, \nDam 1d8+1, Mv 30', Sv F3, ML 9, XP 145 ea.\nHP 13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n13 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\n62. EMPTY COMMON ROOM: This room has\nbenches and tables stacked on the north wall\nand bunks and boxes on the south wall. It is\nempty.\n32"
+      },
+      {
+        "sha256": "7a1ad5f707ccbcead52cdf69d1893f2dc837adcea981d53a60bb89aff2763662",
+        "bytes": 483989
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "Can always be hit",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2*",
+      "class_level": null,
+      "hp": 8,
+      "attacks": [
+        "Spores"
+      ],
+      "movement": "0",
+      "saves": "NM",
+      "morale": null,
+      "alignment": null,
+      "xp": 100,
+      "number_appearing": null,
+      "special": [
+        "All within 10 feet of the mold will be affected by the spores and must save vs. Death Ray or take 1d8 points of damage per round for 6 rounds"
+      ],
+      "confidence": 0.95,
+      "source_pages": [
+        34
+      ]
+    },
+    "usage": {
+      "input_tokens": 3862,
+      "output_tokens": 138
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

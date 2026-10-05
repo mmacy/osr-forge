@@ -8,22 +8,22 @@
       "veto_detail": null
     },
     "bandit cronies": {
-      "template_id": "bandit",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "bandit",
+      "veto_detail": "bandit cronies → bandit, printed HD 2 vs 1"
     },
     "bandit leader": {
-      "template_id": "bandit",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "bandit",
+      "veto_detail": "bandit leader → bandit, printed HD 4 vs 1"
     },
     "bugbear chief": {
-      "template_id": "bugbear",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "bugbear",
+      "veto_detail": "bugbear chief → bugbear, printed HD 6 vs 3"
     },
     "bugbears": {
       "template_id": "bugbear",
@@ -122,10 +122,10 @@
       "veto_detail": null
     },
     "gnoll leader": {
-      "template_id": "gnoll",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "gnoll",
+      "veto_detail": "gnoll leader → gnoll, printed HD 6 vs 2"
     },
     "goblin": {
       "template_id": "goblin",
@@ -134,10 +134,10 @@
       "veto_detail": null
     },
     "goblin king": {
-      "template_id": "goblin",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "goblin",
+      "veto_detail": "goblin king → goblin, printed HD 5 vs 1"
     },
     "gray jelly": {
       "template_id": "grey_ooze",
@@ -152,16 +152,10 @@
       "veto_detail": null
     },
     "hobgoblin chief": {
-      "template_id": "hobgoblin",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
-    },
-    "hobgoblins": {
-      "template_id": "hobgoblin",
-      "method": "exact",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "hobgoblin",
+      "veto_detail": "hobgoblin chief → hobgoblin, printed HD 5 vs 1"
     },
     "human cleric 3": {
       "template_id": null,
@@ -187,12 +181,6 @@
       "vetoed_template_id": null,
       "veto_detail": null
     },
-    "kobold": {
-      "template_id": "kobold",
-      "method": "exact",
-      "vetoed_template_id": null,
-      "veto_detail": null
-    },
     "kobold bodyguards": {
       "template_id": "kobold",
       "method": "llm",
@@ -200,16 +188,22 @@
       "veto_detail": null
     },
     "kobold chief": {
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "kobold",
+      "veto_detail": "kobold chief → kobold, printed HD 2 vs 1"
+    },
+    "kobolds": {
       "template_id": "kobold",
-      "method": "llm",
+      "method": "exact",
       "vetoed_template_id": null,
       "veto_detail": null
     },
     "lizard man leader": {
-      "template_id": "lizard_man",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "lizard_man",
+      "veto_detail": "lizard man leader → lizard_man, printed HD 3 vs 2"
     },
     "lizard men": {
       "template_id": "lizard_man",
@@ -242,10 +236,10 @@
       "veto_detail": null
     },
     "orc chief": {
-      "template_id": "orc",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "orc",
+      "veto_detail": "orc chief → orc, printed HD 4 vs 1"
     },
     "orc war leader": {
       "template_id": null,
@@ -254,10 +248,10 @@
       "veto_detail": null
     },
     "orc warden": {
-      "template_id": "orc",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "orc",
+      "veto_detail": "orc warden → orc, printed HD 2 vs 1"
     },
     "owlbear": {
       "template_id": "owl_bear",
@@ -314,10 +308,10 @@
       "veto_detail": null
     },
     "young lizard men": {
-      "template_id": "lizard_man",
-      "method": "llm",
-      "vetoed_template_id": null,
-      "veto_detail": null
+      "template_id": null,
+      "method": "unresolved",
+      "vetoed_template_id": "lizard_man",
+      "veto_detail": "young lizard men → lizard_man, printed HD 1 vs 2"
     },
     "zombie": {
       "template_id": "zombie",
