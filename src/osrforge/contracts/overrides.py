@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Annotated, Any, cast
 
 import yaml
+from osrlib.crawl.adventure import PartySpec
 from osrlib.crawl.dungeon import (
     AreaTreasureSpec,
     Edge,
@@ -222,13 +223,22 @@ class TownOverride(BaseModel):
 
 
 class ModuleOverride(BaseModel):
-    """Replace adventure metadata fields: name, description, hooks."""
+    """Replace adventure metadata fields: name, description, hooks, party."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     name: str | None = None
     description: str | None = None
     hooks: tuple[str, ...] | None = None
+    party: PartySpec | None = None
+    """Replace the party the module is written for, whole. Absent leaves the
+    survey's party, a mapping replaces it with this
+    [`PartySpec`][osrlib.crawl.adventure.PartySpec], and an explicit `null`
+    clears it, so the draft's `Adventure.party` is `None`. A mapping
+    `PartySpec` rejects (`max_level` below `min_level`, `max_size` below
+    `min_size`, a value below 1) fails at overrides load. Fields left out of
+    the mapping take `PartySpec`'s defaults rather than the survey's values:
+    `min_size` and `max_size` become `None`."""
     reason: Reason
 
 

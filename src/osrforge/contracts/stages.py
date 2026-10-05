@@ -23,6 +23,7 @@ extractions produce differing caches.
 import re
 from typing import Literal, get_args
 
+from osrlib.crawl.adventure import PartySpec
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from osrforge.versioning import SCHEMA_VERSION
@@ -229,6 +230,16 @@ class SurveyIndex(BaseModel):
 
     hooks: tuple[str, ...]
     """The module's stated adventure hooks."""
+
+    party: PartySpec | None = None
+    """The party the module is written for, as it prints it on its cover or in
+    its introduction ("for 6 to 8 characters of levels 1 to 3"), or `None`
+    when it states none. [`normalize_party`][osrforge.survey.normalize_party]
+    produces it from the survey's answer, and assembly copies it onto
+    [`Adventure.party`][osrlib.crawl.adventure.Adventure.party] unless a
+    `module:` override replaces it. Defaulted, like `description`, so survey
+    caches written before the field existed still load and assemble with no
+    party."""
 
     town: TownInfo
     """The town or home base."""

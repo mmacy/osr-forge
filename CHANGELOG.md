@@ -48,6 +48,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   doorless pair flags `connection_ambiguous:edge to <key> not routed`
   instead of staying silent. This reshapes existing synthesized geometry
   even with no map cache present (deliberately; previews and goldens moved).
+- osr-forge requires osrlib 1.8 or later. A draft's `adventure.json` is stamped `schema_version` 3 and carries the keys osrlib added since 1.2 at their defaults, including `party: null`.
 
 ### The correction loop
 

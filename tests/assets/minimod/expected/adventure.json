@@ -1,13 +1,14 @@
 {
   "kind": "adventure",
-  "schema_version": 2,
-  "engine_version": "1.2.0",
+  "schema_version": 3,
+  "engine_version": "1.8.0",
   "payload": {
     "name": "The Root Cellar of Old Wenna",
     "description": "A one-evening dungeon crawl for characters of level 1.",
     "hooks": [
       "Old Wenna's farmhouse burned down a generation ago, but her famous root cellar survives beneath the ruin, and lately things have been crawling out of it at night."
     ],
+    "party": null,
     "town": {
       "name": "Wennadale",
       "description": "A village of forty souls.",
@@ -189,7 +190,8 @@
                   "kind": "normal",
                   "stuck": true,
                   "locked": false,
-                  "starts_open": false
+                  "starts_open": false,
+                  "requires": null
                 }
               },
               "5,9:north": {
@@ -286,7 +288,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -295,6 +298,7 @@
                     "description": "Broken steps descending from the surface",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -311,6 +315,7 @@
                     "description": "Rubble nest",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -389,7 +394,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -398,6 +404,7 @@
                     "description": "Rotted bins",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -442,6 +449,7 @@
                     "description": "Ruined press",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -458,6 +466,7 @@
                     "description": "Loose flagstone under the press bed",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -474,6 +483,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -527,7 +537,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -536,6 +547,7 @@
                     "description": "Ankle-deep seep water",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -552,6 +564,7 @@
                     "description": "Ceiling beams",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -618,7 +631,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -627,6 +641,7 @@
                     "description": "Shelves stocked with preserves",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -661,7 +676,8 @@
                   ],
                   "alignment": null,
                   "aware": false,
-                  "stance": null
+                  "stance": null,
+                  "hoard": true
                 },
                 "features": [
                   {
@@ -670,6 +686,7 @@
                     "description": "Ladder access",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -686,6 +703,7 @@
                     "description": "Heap of grain sacks",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 0,
@@ -702,6 +720,7 @@
                     "description": "",
                     "cell": null,
                     "item_ids": [],
+                    "magic_item_ids": [],
                     "coins": {
                       "pp": 0,
                       "gp": 200,
@@ -730,11 +749,15 @@
             "entrance": [
               1,
               0
-            ]
+            ],
+            "guidance": ""
           }
         ]
       }
     ],
-    "monsters": []
+    "monsters": [],
+    "items": [],
+    "triggers": [],
+    "quests": []
   }
 }
