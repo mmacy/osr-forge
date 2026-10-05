@@ -39,6 +39,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   area's cached confidence below the pinned 0.6 floor).
 - `estimate` prices the census and the widened stat-block pass; the CLI
   table gains a census line.
+- The survey reads the party a module is written for from its cover or introduction: the character levels and, when the module prints it, the number of characters. The survey writes the reading to `survey.json` as `party`, or `null` when the module states no levels, and assembly copies it to the draft's `Adventure.party`. The survey drops a reading with a reversed range instead of failing.
 
 ### Changed
 
@@ -69,6 +70,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   coordinates geometry overrides use, and `previews/index.html` pairs each
   level's synthesized map with the module's own map-page renders for
   side-by-side comparison.
+- A `module:` entry in `overrides.yaml` accepts a `party` field, which sets the draft's `Adventure.party`: the character levels and party size the module is written for. A mapping replaces the survey's reading in full, so a size you leave out is unset. `party: null` clears the party. A reversed range, like `max_level` below `min_level`, is an error when osr-forge loads the file.
 
 ### Evals
 

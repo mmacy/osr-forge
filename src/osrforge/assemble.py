@@ -1241,7 +1241,9 @@ def resolve_party(index: SurveyIndex, override: ModuleOverride | None) -> PartyS
         # None
         ```
     """
-    raise NotImplementedError("chunk: assemble-party")
+    if override is None or "party" not in override.model_fields_set:
+        return index.party
+    return override.party
 
 
 def build_draft(
@@ -1411,7 +1413,13 @@ def build_draft(
         )
     )
     adventure = Adventure(
-        name=name, description=description, hooks=hooks, town=town, dungeons=tuple(dungeons), monsters=bundled
+        name=name,
+        description=description,
+        hooks=hooks,
+        party=resolve_party(index, plan.module),
+        town=town,
+        dungeons=tuple(dungeons),
+        monsters=bundled,
     )
     return DraftResult(
         adventure=adventure,
