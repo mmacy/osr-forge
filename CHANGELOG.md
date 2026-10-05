@@ -69,6 +69,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   coordinates geometry overrides use, and `previews/index.html` pairs each
   level's synthesized map with the module's own map-page renders for
   side-by-side comparison.
+- A `module:` entry in `overrides.yaml` accepts a `party` field, which sets the draft's `Adventure.party`: the character levels and party size the module is written for. A mapping replaces the survey's reading in full, so a size you leave out is unset. `party: null` clears the party. A reversed range, like `max_level` below `min_level`, is an error when osr-forge loads the file.
 
 ### Evals
 
