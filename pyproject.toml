@@ -1,6 +1,6 @@
 [project]
 name = "osr-forge"
-version = "0.1.0"
+version = "0.2.0"
 description = "Convert tabletop adventure module PDFs into playable osrlib Adventure documents."
 readme = "README.md"
 license = "MIT"
