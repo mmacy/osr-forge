@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-05
+
 ### Added
 
 - The map-reading stage (`mapread`, between `monsters` and `assemble`): one
@@ -184,5 +186,6 @@ additive-only within a schema version.
   tool files in the artifacts), fresh-venv install smoke on both OSes, and
   PyPI trusted publishing.
 
-[Unreleased]: https://github.com/mmacy/osr-forge/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mmacy/osr-forge/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mmacy/osr-forge/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mmacy/osr-forge/releases/tag/v0.1.0
