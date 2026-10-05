@@ -1,0 +1,683 @@
+{
+  "schema_version": 1,
+  "map_reading": "read",
+  "levels": [
+    {
+      "dungeon_id": "halfling-home",
+      "level_number": 1,
+      "map_pages": [
+        21
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "H1",
+          "b": "H2",
+          "door": "door"
+        },
+        {
+          "a": "H2",
+          "b": "H3",
+          "door": "none"
+        },
+        {
+          "a": "H2",
+          "b": "H5",
+          "door": "door"
+        },
+        {
+          "a": "H3",
+          "b": "H4",
+          "door": "door"
+        },
+        {
+          "a": "H3",
+          "b": "H5",
+          "door": "door"
+        },
+        {
+          "a": "H4",
+          "b": "H8",
+          "door": "door"
+        },
+        {
+          "a": "H5",
+          "b": "H6",
+          "door": "door"
+        },
+        {
+          "a": "H6",
+          "b": "H7",
+          "door": "door"
+        },
+        {
+          "a": "H7",
+          "b": "H8",
+          "door": "door"
+        },
+        {
+          "a": "H11",
+          "b": "H12",
+          "door": "door"
+        },
+        {
+          "a": "H11",
+          "b": "H13",
+          "door": "door"
+        },
+        {
+          "a": "H12",
+          "b": "H15",
+          "door": "door"
+        },
+        {
+          "a": "H13",
+          "b": "H14",
+          "door": "door"
+        },
+        {
+          "a": "H14",
+          "b": "H15",
+          "door": "door"
+        }
+      ],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "cave-of-horrors",
+      "level_number": 1,
+      "map_pages": [
+        21
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "C1",
+          "b": "C2",
+          "door": "none"
+        },
+        {
+          "a": "C1",
+          "b": "C3",
+          "door": "none"
+        },
+        {
+          "a": "C2",
+          "b": "C3",
+          "door": "none"
+        },
+        {
+          "a": "C2",
+          "b": "C6",
+          "door": "none"
+        },
+        {
+          "a": "C2",
+          "b": "C8",
+          "door": "none"
+        },
+        {
+          "a": "C3",
+          "b": "C4",
+          "door": "none"
+        },
+        {
+          "a": "C3",
+          "b": "C9",
+          "door": "none"
+        },
+        {
+          "a": "C4",
+          "b": "C5",
+          "door": "none"
+        },
+        {
+          "a": "C5",
+          "b": "C7",
+          "door": "none"
+        },
+        {
+          "a": "C6",
+          "b": "C7",
+          "door": "none"
+        },
+        {
+          "a": "C6",
+          "b": "C8",
+          "door": "none"
+        },
+        {
+          "a": "C8",
+          "b": "C9",
+          "door": "none"
+        },
+        {
+          "a": "C8",
+          "b": "C10",
+          "door": "none"
+        },
+        {
+          "a": "C9",
+          "b": "C10",
+          "door": "none"
+        },
+        {
+          "a": "C10",
+          "b": "C11",
+          "door": "none"
+        }
+      ],
+      "entrance_key": "C1"
+    },
+    {
+      "dungeon_id": "crypt",
+      "level_number": 1,
+      "map_pages": [],
+      "status": "unread",
+      "unread_reason": "no_map_pages",
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "orc-lair-a",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "unread",
+      "unread_reason": "empty_reading",
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "orc-lair-b",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "unread",
+      "unread_reason": "empty_reading",
+      "proposals": [],
+      "entrance_key": "Entrance"
+    },
+    {
+      "dungeon_id": "hobgoblin-lair",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "Entrance",
+          "b": "16",
+          "door": "none"
+        },
+        {
+          "a": "16",
+          "b": "17",
+          "door": "none"
+        },
+        {
+          "a": "17",
+          "b": "18",
+          "door": "none"
+        },
+        {
+          "a": "18",
+          "b": "19",
+          "door": "none"
+        },
+        {
+          "a": "19",
+          "b": "20",
+          "door": "none"
+        },
+        {
+          "a": "20",
+          "b": "21",
+          "door": "none"
+        }
+      ],
+      "entrance_key": "Entrance"
+    },
+    {
+      "dungeon_id": "abandoned-crypts",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "22",
+          "b": "23",
+          "door": "none"
+        },
+        {
+          "a": "23",
+          "b": "24",
+          "door": "none"
+        },
+        {
+          "a": "24",
+          "b": "25",
+          "door": "none"
+        }
+      ],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "goblin-lair",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "26",
+          "b": "27",
+          "door": "none"
+        },
+        {
+          "a": "27",
+          "b": "28",
+          "door": "none"
+        },
+        {
+          "a": "28",
+          "b": "29",
+          "door": "none"
+        },
+        {
+          "a": "29",
+          "b": "30",
+          "door": "none"
+        },
+        {
+          "a": "30",
+          "b": "31",
+          "door": "none"
+        }
+      ],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "bandit-lair",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "unread",
+      "unread_reason": "empty_reading",
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "kobold-lair",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "unread",
+      "unread_reason": "empty_reading",
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "lizard-man-lair",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "unread",
+      "unread_reason": "empty_reading",
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "bugbear-lair",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "58",
+          "b": "59",
+          "door": "door"
+        },
+        {
+          "a": "59",
+          "b": "60",
+          "door": "door"
+        },
+        {
+          "a": "59",
+          "b": "61",
+          "door": "none"
+        },
+        {
+          "a": "59",
+          "b": "62",
+          "door": "door"
+        },
+        {
+          "a": "62",
+          "b": "63",
+          "door": "none"
+        },
+        {
+          "a": "62",
+          "b": "64",
+          "door": "none"
+        },
+        {
+          "a": "64",
+          "b": "65",
+          "door": "door"
+        },
+        {
+          "a": "65",
+          "b": "66",
+          "door": "door"
+        },
+        {
+          "a": "65",
+          "b": "67",
+          "door": "door"
+        },
+        {
+          "a": "67",
+          "b": "68",
+          "door": "door"
+        }
+      ],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "gnoll-lair",
+      "level_number": 1,
+      "map_pages": [
+        38
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "69",
+          "b": "70",
+          "door": "none"
+        },
+        {
+          "a": "69",
+          "b": "75",
+          "door": "none"
+        },
+        {
+          "a": "70",
+          "b": "71",
+          "door": "door"
+        },
+        {
+          "a": "71",
+          "b": "72",
+          "door": "none"
+        },
+        {
+          "a": "72",
+          "b": "73",
+          "door": "door"
+        },
+        {
+          "a": "73",
+          "b": "74",
+          "door": "none"
+        },
+        {
+          "a": "73",
+          "b": "Treasure Hoard",
+          "door": "door"
+        },
+        {
+          "a": "75",
+          "b": "76",
+          "door": "none"
+        }
+      ],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "roslof-manor",
+      "level_number": 1,
+      "map_pages": [
+        46
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "77",
+          "b": "78",
+          "door": "none"
+        },
+        {
+          "a": "77",
+          "b": "79",
+          "door": "none"
+        },
+        {
+          "a": "77",
+          "b": "83",
+          "door": "none"
+        },
+        {
+          "a": "78",
+          "b": "79",
+          "door": "none"
+        },
+        {
+          "a": "80",
+          "b": "84",
+          "door": "none"
+        },
+        {
+          "a": "81",
+          "b": "84",
+          "door": "none"
+        },
+        {
+          "a": "82",
+          "b": "93",
+          "door": "none"
+        },
+        {
+          "a": "83",
+          "b": "84",
+          "door": "none"
+        },
+        {
+          "a": "84",
+          "b": "85",
+          "door": "none"
+        },
+        {
+          "a": "85",
+          "b": "86",
+          "door": "none"
+        },
+        {
+          "a": "85",
+          "b": "87",
+          "door": "door"
+        },
+        {
+          "a": "85",
+          "b": "96",
+          "door": "none"
+        },
+        {
+          "a": "86",
+          "b": "90",
+          "door": "none"
+        },
+        {
+          "a": "86",
+          "b": "91",
+          "door": "none"
+        },
+        {
+          "a": "86",
+          "b": "92",
+          "door": "none"
+        },
+        {
+          "a": "87",
+          "b": "88",
+          "door": "none"
+        },
+        {
+          "a": "88",
+          "b": "89",
+          "door": "door"
+        },
+        {
+          "a": "88",
+          "b": "95",
+          "door": "door"
+        },
+        {
+          "a": "88",
+          "b": "97",
+          "door": "door"
+        },
+        {
+          "a": "89",
+          "b": "93",
+          "door": "door"
+        },
+        {
+          "a": "89",
+          "b": "95",
+          "door": "none"
+        },
+        {
+          "a": "89",
+          "b": "97",
+          "door": "none"
+        },
+        {
+          "a": "90",
+          "b": "91",
+          "door": "door"
+        },
+        {
+          "a": "90",
+          "b": "96",
+          "door": "door"
+        },
+        {
+          "a": "91",
+          "b": "92",
+          "door": "door"
+        },
+        {
+          "a": "91",
+          "b": "94",
+          "door": "door"
+        },
+        {
+          "a": "92",
+          "b": "93",
+          "door": "none"
+        },
+        {
+          "a": "92",
+          "b": "94",
+          "door": "door"
+        },
+        {
+          "a": "93",
+          "b": "95",
+          "door": "door"
+        },
+        {
+          "a": "94",
+          "b": "96",
+          "door": "door"
+        },
+        {
+          "a": "95",
+          "b": "97",
+          "door": "door"
+        },
+        {
+          "a": "96",
+          "b": "97",
+          "door": "door"
+        }
+      ],
+      "entrance_key": "77"
+    },
+    {
+      "dungeon_id": "roslof-manor",
+      "level_number": 2,
+      "map_pages": [
+        47
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "98",
+          "b": "99",
+          "door": "door"
+        },
+        {
+          "a": "98",
+          "b": "102",
+          "door": "door"
+        },
+        {
+          "a": "99",
+          "b": "100",
+          "door": "door"
+        },
+        {
+          "a": "100",
+          "b": "101",
+          "door": "door"
+        },
+        {
+          "a": "102",
+          "b": "103",
+          "door": "door"
+        },
+        {
+          "a": "103",
+          "b": "104",
+          "door": "door"
+        },
+        {
+          "a": "105",
+          "b": "98",
+          "door": "door"
+        },
+        {
+          "a": "106",
+          "b": "98",
+          "door": "door"
+        }
+      ],
+      "entrance_key": null
+    }
+  ]
+}

@@ -218,14 +218,14 @@
       "xp": 25,
       "number_appearing": "6",
       "special": [],
-      "confidence": 0.71,
+      "confidence": 0.69,
       "source_pages": [
         41
       ]
     },
     "usage": {
-      "input_tokens": 16289,
-      "output_tokens": 106
+      "input_tokens": 16281,
+      "output_tokens": 105
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

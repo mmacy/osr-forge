@@ -5,20 +5,19 @@
   "areas": [
     {
       "key": "c1",
-      "description": "The cave entrance shows signs of occupation. Bones litter the grassy area outside, and large ogre-sized footprints can be found in muddy or soft ground nearby. Deep enough inside to avoid sunlight, five thin cords are strung across the floor about 2 feet apart and 1–2 inches above the ground, covered by dust and hard to detect without close inspection.",
+      "description": "The cave entrance opens into crudely carved, cold, dark winding tunnels. Bones litter the grassy area outside, and large ogre-sized footprints can be found in muddy areas or soft soil. Deep enough inside the entryway to avoid sunlight are five thin cords strung across the width of the floor about 2' apart and an inch or two above the ground, covered by dust and hard to detect without close inspection. Some spikes on the released frame are covered in fresh blood and fur.",
       "encounters": [],
-      "trap": "If the cords are tripped, they release a broad frame pulled back against the east wall. It is 8 feet high and wide, lined with sharp wooden spikes, strikes as a 2 HD monster, and deals 2d6 damage on a hit. Some spikes are covered in fresh blood and fur.",
+      "trap": "Five thin trip-cords release a broad frame pulled back against the east wall; it is 8' high and wide, lined with sharp wooden spikes, strikes as a 2 HD monster, and does 2d6 damage on a hit.",
       "treasure": [],
-      "features": [
-        "Bones outside the entrance",
-        "Large ogre-sized footprints near the entrance",
-        "Five dust-covered trip cords across the floor",
-        "Broad spiked frame concealed against the east wall"
-      ],
+      "features": [],
       "connections": [
         {
           "to_key": "c2",
-          "direction": "north"
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
@@ -29,7 +28,7 @@
     },
     {
       "key": "c2",
-      "description": "An ogre is here, munching on the corpse of a bear. It may be bribed into helping the party if offered at least 200 gp, but it is incredibly dense, self-interested, easily bored, and may attack intruders or lead allies in circles. It rarely stays with even an agreeable party for more than 1d6 days. The lair is furnished with hides, piles of leaves, and a few tree trunks used as benches and similar furniture. The ogre carries a large knobby club and a crude hide pouch on its belt.",
+      "description": "An ogre is here, munching on the corpse of a bear. It might be bribed into helping the PCs if offered at least 200 gp, but it is incredibly dense and self-interested; it may attack intruders or lead a party in circles. It gets bored quickly and rarely stays with even an agreeable party for more than 1d6 days. The lair is furnished with hides, piles of leaves, and a few tree trunks used as benches. The ogre wields a large, knobby club.",
       "encounters": [
         {
           "monster": "ogre",
@@ -43,41 +42,57 @@
         "231 cp in the ogre's crude hide pouch"
       ],
       "features": [
-        "Bear corpse",
-        "Hides and piles of leaves used as furnishings",
+        "Hides",
+        "Piles of leaves",
         "Tree trunks used as benches",
-        "Natural stone steps in the southwest hall descending 10 feet"
+        "Natural stone steps in the southwest hall descending 10'"
       ],
       "connections": [
         {
           "to_key": "c1",
-          "direction": "south"
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c3",
-          "direction": "south"
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "c4",
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c6",
-          "direction": "north"
-        },
-        {
-          "to_key": "c8",
-          "direction": "east"
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         18,
         21
       ],
-      "confidence": 0.93
+      "confidence": 0.87
     },
     {
       "key": "c3",
-      "description": "Bones litter this wide, 3-foot-deep pool. The ogre sometimes throws body parts into it to watch the gray jelly devour them. A plant-fiber cord is tied to a heavy rock at the pool's edge; the cord has prickly spines along its length to keep the ooze away from it, and a heavy glass bottle is tied to the other end in the pool.",
+      "description": "Bones litter this wide, 3'-deep pool. The ogre occasionally takes body parts and throws them in to watch the gray jelly inside devour them. A plant-fiber cord is tied to a heavy rock on the edge of the pool; prickly spines along its length keep the ooze away from it. Tied to the other end is a heavy glass bottle that the ogre has thrown into the pool.",
       "encounters": [
         {
-          "monster": "Gray Jelly",
+          "monster": "gray jelly",
           "count_fixed": 1,
           "count_dice": null,
           "count_note": null
@@ -88,115 +103,153 @@
         "A heavy glass bottle in the pool containing 23 pp and 42 gp"
       ],
       "features": [
-        "Wide 3-foot-deep pool",
-        "Bones scattered around the pool",
-        "Plant-fiber retrieval cord with prickly spines",
-        "Heavy rock anchoring the cord"
+        "Wide 3'-deep pool",
+        "Plant-fiber cord with prickly spines tied to a heavy rock"
       ],
       "connections": [
         {
           "to_key": "c1",
-          "direction": "south"
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c2",
-          "direction": "north"
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c4",
-          "direction": "west"
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c8",
-          "direction": "east"
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         19,
         21
       ],
-      "confidence": 0.94
+      "confidence": 0.86
     },
     {
       "key": "c4",
-      "description": "Rough natural steps go down sharply about 20 feet in elevation to the north. They are coated in harmless slime.",
+      "description": "Rough natural steps go down sharply some 20' in elevation to the north. They are coated in harmless slime.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [
-        "Rough natural steps descending 20 feet",
+        "Rough natural steps descending 20' to the north",
         "Harmless slime coating the steps"
       ],
       "connections": [
         {
           "to_key": "c3",
-          "direction": "east"
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c5",
-          "direction": "north"
+          "direction": "north",
+          "via": "stairs",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         19,
         21
       ],
-      "confidence": 0.95
+      "confidence": 0.93
     },
     {
       "key": "c5",
-      "description": "Rough natural steps descend sharply about 20 feet in elevation to the north. Slime and pebbles coat them.",
+      "description": "Rough natural steps descend sharply some 20' in elevation to the north. Slime and pebbles coat them.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [
-        "Rough natural steps descending 20 feet",
+        "Rough natural steps descending 20' to the north",
         "Slime and pebbles coating the steps"
       ],
       "connections": [
         {
           "to_key": "c4",
-          "direction": "south"
+          "direction": "south",
+          "via": "stairs",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c7",
-          "direction": "north"
+          "direction": "north",
+          "via": "stairs",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         19,
         21
       ],
-      "confidence": 0.95
+      "confidence": 0.93
     },
     {
       "key": "c6",
-      "description": "This passage is a slope descending 30 feet.",
+      "description": "This slope goes down 30'.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [
-        "Slope descending 30 feet"
+        "A slope descending 30'"
       ],
       "connections": [
         {
           "to_key": "c2",
-          "direction": "south"
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c8",
-          "direction": "east"
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         19,
         21
       ],
-      "confidence": 0.85
+      "confidence": 0.72
     },
     {
       "key": "c7",
-      "description": "A long, narrow hole in the ceiling winds up about 30 feet to the forest floor above. Around noon, dim light shines down through it. The ground is cluttered with feces and leaves, with worms wriggling in the leaves. Buried under the muck is a wooden chest containing the ogre's valuables from room C2.",
+      "description": "A long, narrow hole in the ceiling winds up some 30' to the forest floor above. Around noon light comes down in a dull glow through it. The ground is cluttered with feces and leaves, with worms wiggling in the leaves. Buried under the muck is a wooden chest holding the ogre's valuables from room C2.",
       "encounters": [
         {
           "monster": "Stirges",
@@ -213,23 +266,27 @@
         "848 sp"
       ],
       "features": [
-        "Long narrow ceiling hole to the forest floor 30 feet above",
-        "Dim noon light from above",
-        "Ground covered in feces and leaves",
+        "Long narrow ceiling hole winding 30' up to the forest floor above",
+        "Dull noon light filtering down",
+        "Ground cluttered with feces and leaves",
         "Worms in the leaves",
-        "Buried wooden chest"
+        "Wooden chest buried under the muck"
       ],
       "connections": [
         {
           "to_key": "c5",
-          "direction": "south"
+          "direction": "south",
+          "via": "stairs",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         19,
         21
       ],
-      "confidence": 0.95
+      "confidence": 0.88
     },
     {
       "key": "c8",
@@ -242,68 +299,76 @@
       ],
       "features": [
         "Smashed-in door",
-        "Room carved by human hands",
+        "Human-carved room",
         "Table",
         "Chairs",
-        "Single skeletal figure seated at the far end of the table"
+        "Single skeletal figure seated in a chair at the far end of the table"
       ],
       "connections": [
         {
-          "to_key": "c2",
-          "direction": "west"
-        },
-        {
           "to_key": "c6",
-          "direction": "west"
-        },
-        {
-          "to_key": "c3",
-          "direction": "west"
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c9",
-          "direction": "south"
-        },
-        {
-          "to_key": "c10",
-          "direction": "east"
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c11",
-          "direction": "north"
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         19,
         21
       ],
-      "confidence": 0.88
+      "confidence": 0.84
     },
     {
       "key": "c9",
-      "description": "This section of hallway has a fragile ceiling that can collapse onto intruders.",
+      "description": "Noise and movement from the party will cause part of the fragile ceiling to collapse atop the first two or three party members. The collapse blocks the hallway and requires a half-hour's work to clear.",
       "encounters": [],
-      "trap": "Noise and movement from the party cause part of the fragile ceiling to collapse atop the first two or three party members. Each is attacked by a 2 HD monster and takes 1d6 damage if hit; make the attack as a 4 HD monster if they do not have a helmet. The collapse blocks the hallway and requires a half-hour's work to clear.",
+      "trap": "A cave-in triggered by party noise and movement collapses part of the fragile ceiling onto the first two or three party members; each is attacked as by a 2 HD monster for 1d6 damage on a hit, or as a 4 HD monster if not wearing a helmet.",
       "treasure": [],
       "features": [
         "Fragile ceiling",
-        "Hallway can be blocked by cave-in rubble"
+        "Collapsed rubble blocks the hallway until cleared with a half-hour's work"
       ],
       "connections": [
         {
           "to_key": "c8",
-          "direction": "north"
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c10",
-          "direction": "east"
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         19,
         21
       ],
-      "confidence": 0.94
+      "confidence": 0.85
     },
     {
       "key": "c10",
@@ -319,32 +384,36 @@
       "trap": null,
       "treasure": [],
       "features": [
-        "Fungus-covered floor and walls",
-        "Moss-covered floor and walls"
+        "Fungus covering the floor and walls",
+        "Moss covering the floor and walls"
       ],
       "connections": [
         {
-          "to_key": "c8",
-          "direction": "west"
-        },
-        {
           "to_key": "c9",
-          "direction": "south"
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c11",
-          "direction": "north"
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         19,
         21
       ],
-      "confidence": 0.94
+      "confidence": 0.84
     },
     {
       "key": "c11",
-      "description": "A clear pool of water with a frog, a few small fish, and crayfish fills much of this chamber. Under the mud and muck at the bottom is a bone tube, and there is also a rotten pouch. A rough iron ladder leads up into the ceiling through a tight 3-foot-wide hole and exits in the woods 30 feet overhead.",
+      "description": "A clear pool of water with a frog, a few small fish, and crayfish fills much of this chamber. Under the mud and muck at the bottom is a bone tube, and there is also a rotten pouch there. A rough iron ladder leads up into the ceiling through a tight hole 3' wide and exits in the woods 30' overhead.",
       "encounters": [
         {
           "monster": "Sea Snake",
@@ -356,34 +425,36 @@
       "trap": null,
       "treasure": [
         "A bone tube containing a Clerical Scroll of Cure Light Wounds",
-        "A rotten pouch with 500 sp"
+        "A rotten pouch containing 500 sp"
       ],
       "features": [
-        "Clear pool of water",
-        "Frog, small fish, and crayfish in the pool",
-        "Mud and muck at the bottom",
-        "Rough iron ladder",
-        "Tight 3-foot-wide hole leading to the woods 30 feet above"
+        "Clear pool filling much of the chamber",
+        "A frog, small fish, and crayfish in the pool",
+        "Rough iron ladder leading up through a tight 3'-wide hole"
       ],
       "connections": [
         {
           "to_key": "c8",
-          "direction": "south"
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         },
         {
           "to_key": "c10",
-          "direction": "south"
-        },
-        {
-          "to_key": "woods",
-          "direction": "up"
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [
         19,
         21
       ],
-      "confidence": 0.95
+      "confidence": 0.86
     }
   ]
 }

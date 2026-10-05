@@ -195,7 +195,7 @@
   "response": {
     "data": {
       "found": true,
-      "ac": "15",
+      "ac": "15, F2, #At 1 weapon, Dam 1d8 (1d8+1 for one for longword +1), Mv 20', Sv F2, ML 8, XP 75 ea.",
       "ac_notation": "ascending",
       "thac0": null,
       "hit_dice": null,
@@ -210,17 +210,15 @@
       "alignment": null,
       "xp": 75,
       "number_appearing": "3",
-      "special": [
-        "Dam 1d8 (1d8+1 for one for longword +1)"
-      ],
-      "confidence": 0.88,
+      "special": [],
+      "confidence": 0.76,
       "source_pages": [
         43
       ]
     },
     "usage": {
-      "input_tokens": 14288,
-      "output_tokens": 120
+      "input_tokens": 14281,
+      "output_tokens": 145
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

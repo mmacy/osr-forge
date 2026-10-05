@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "fingerprint": "66b8986fb066bf003248213408704f8ddb7dd037bf7ddb21476e02abc424198c",
+  "tag": "statblock.bandit-cronies",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"bandit cronies\" from the pages below.\n"
+      },
+      {
+        "text": "[page 29]\nThe Chaotic Caves The Caves\nF. BANDIT LAIR\nThis lair has two entrances: see locations #32\nand #42 on the map. Both are out of sight\nfrom each other in the woods. The denizens of\nthis lair are bandits. They might try to trick an\nadventuring party with clever guises (like\nposing as soldiers sent to help clear-cut the\nmonsters), but they will ambush and attack if\nthey get a chance. They are allies to those in\nthe abandoned mansion fort (see Part Two),\nbut unless interrogated or something odd\nhappens, they will not give that away.\n32. EAST ENTRANCE: Four humans and a dwarf\nstand guard here; on hot days they take cover\njust inside the cave entrance. They each have\na crossbow and a case of bolts which are\ntraded out as the guard changes. Each has\n1d6+6 sp on their person. At night, a dozen\ntorches will be kept just inside the entrance\nalong with a covered bowl of hot coals.\nBandit, Dwarf Fighter 1: AC 13, AB +1, \n#At 1 shortsword or 1 light crossbow, Dam 1d6, \nMv 30', Sv F1D, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐\n4 Bandits, Human Fighter 1: AC 13, AB +1, \n#At 1 shortsword or 1 light crossbow, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n33. COMMON ROOM: Six human fighters are\nbunked here, amid furniture that is light and\neasy to break down and move, but not very\nsturdy. Each has 1d6+6 sp on their person.\nThe room is lit by two common oil lamps\n(wooden bowls with a notch for a wick). Oil is\nbrought in with a wooden cup when needed.\n6 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n34. LOCKED STORE ROOM: The door to this\nroom is heavy and locked; knocking it in will\ntake some time. The deputy to the leader (in\nroom #41) usually has the key. This room\ncontains provisions and loot from raids. A well\nhas been driven down for water, and barrels of\nbeer, bags of grains, vegetables, and other\nsundries can be found. A large clay jug holds\neight gallons of lantern oil and there are three\ndozen torches. \n35. COMMON ROOM: Six bandits reside here.\nEach has 1d6+6 sp on his or her person. The\nroom is lit by two common oil lamps (wooden\nbowls with a notch for a wick). Oil is brought\nin with a wooden cup when needed. \n6 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n36. LEADER'S ROOM: The bandit leader (a\nfighter) is here. He wields a longsword +1,\nwears chainmail +1, and is carrying a shield.\nTwo of his main cronies are also here, each\nwearing normal chain mail. The three of them\nare sitting at a table looking at a map of the\ngeneral area with notes about best prospects\nfor ambushing traders. This room features a\nlantern on a swinging hook and a gallon of\nlantern oil in a wooden jar. The lantern has a\ncontinual light spell cast inside it; it is kept\nfueled in case it is dispelled or countered by a\ncontinual darkness spell. The captain has the\nkey to the storage room at #40.\nUnder the table is a locked strong box\ncontaining 500 gp, 1,000 sp, and 2,000 cp. The\ncaptain has the key to it stuffed in one boot.\nHe has a ring of keys that go to the dungeon\ndoors at #38 on his belt.\nBandit Leader, Human Fighter 4: AC 16 (17), \nAB +3 (+4 with magic longsword), \n#At 1 longsword +1, Dam 1d8+1, Mv 30', Sv F4, \nML 8, XP 240\nHP 16 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐\n2 Bandit Cronies, Human Fighter 2: AC 15, \nAB +2, #At 1 shortsword, Dam 1d6, Mv 20', \nSv F2, ML 8, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n27"
+      },
+      {
+        "sha256": "a321ba52d68467cbd1b808359f837068e3f457dcfb571cbce6dd30e2a01782c9",
+        "bytes": 519082
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": "+2",
+      "hit_dice": null,
+      "class_level": "Human Fighter 2",
+      "hp": 8,
+      "attacks": [
+        "1 shortsword, Dam 1d6"
+      ],
+      "movement": "20'",
+      "saves": "Sv F2",
+      "morale": 8,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": "2",
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        29
+      ]
+    },
+    "usage": {
+      "input_tokens": 3878,
+      "output_tokens": 110
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

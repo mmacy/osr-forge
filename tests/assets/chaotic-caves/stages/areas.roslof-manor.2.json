@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "roslof-manor",
+  "level_number": 2,
+  "areas": [
+    {
+      "key": "98",
+      "description": "Stairway on the upper floor with a safety railing along the side. The stairs descend 20' to the ground floor at area #85. Ceilings on this floor are about 10' high.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Safety railing along the stairway"
+      ],
+      "connections": [
+        {
+          "to_key": "85",
+          "direction": "down",
+          "via": "stairs",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "99",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "102",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "105",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "106",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        44,
+        47
+      ],
+      "confidence": 0.92
+    },
+    {
+      "key": "99",
+      "description": "Guest room serving as the residence of the female fighter and one of the male fighters met coming down the stairs in area #85. Furnished with a makeshift bed, table, chairs, and similar basics.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [
+        "A locked casket containing 345 gp",
+        "Five gems worth 50 gp each"
+      ],
+      "features": [
+        "Makeshift bed",
+        "Table",
+        "Chairs",
+        "Locked casket with a crude lock intended mainly to show tampering"
+      ],
+      "connections": [
+        {
+          "to_key": "98",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        44,
+        47
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "100",
+      "description": "Guest room occupied by one of the three fighters encountered on the stairs in area #85. Furnished with a makeshift bed, table, chairs, and such. A sack of valuables is hidden under the bed, and the room's owner keeps a pet snake there to guard it; it may immediately grab and pull under anyone who investigates unwisely.",
+      "encounters": [
+        {
+          "monster": "python",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": "Pet snake guarding the sack under the bed"
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "A sack under the bed containing ten gems worth 50 gp each",
+        "198 gp",
+        "31 sp"
+      ],
+      "features": [
+        "Makeshift bed",
+        "Table",
+        "Chairs",
+        "Hidden sack under the bed"
+      ],
+      "connections": [
+        {
+          "to_key": "101",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        44,
+        47
+      ],
+      "confidence": 0.86
+    },
+    {
+      "key": "101",
+      "description": "Guest room now used by one of the clerics as a private room; see area #106. It has makeshift furnishings including a bed, table, chairs, and similar basics. On a chest of drawers are religious items arranged in worshipful fashion around an evil golden icon.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [
+        "Three silver holy symbols worth 25 gp each",
+        "A golden icon of an evil demonic being worth 100 gp"
+      ],
+      "features": [
+        "Makeshift bed",
+        "Table",
+        "Chairs",
+        "Chest of drawers",
+        "Religious display arranged on the chest of drawers"
+      ],
+      "connections": [
+        {
+          "to_key": "100",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        44,
+        47
+      ],
+      "confidence": 0.87
+    },
+    {
+      "key": "102",
+      "description": "Guest room claimed by one of the clerics as a private room; see area #106. It contains shabby, slapped-together furniture: bed, table, chairs, and such. A painting of horrors and stark terror hangs on one wall; it has little general value, though a good church might pay for it in order to destroy it or use it as an instructional example of evil. Beneath it hang looted religious valuables.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [
+        "A holy symbol with several gems, valued at 250 gp",
+        "Three necklaces of gold and silver worth 50 gp each",
+        "A painting of horrors and stark terror that a church of good nature might buy for about 100 gp"
+      ],
+      "features": [
+        "Shabby bed",
+        "Table",
+        "Chairs",
+        "Painting of horrors and stark terror hung on the wall"
+      ],
+      "connections": [
+        {
+          "to_key": "98",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "103",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        44,
+        45,
+        47
+      ],
+      "confidence": 0.9
+    },
+    {
+      "key": "103",
+      "description": "Guest room now used by the Magic-User as a private room; see area #106. Furnishings are unremarkable: makeshift bed, table, chairs, and such. The beginnings of an alchemical laboratory for making potions are here, but it is incomplete.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Makeshift bed",
+        "Table",
+        "Chairs",
+        "Incomplete alchemical laboratory for making potions"
+      ],
+      "connections": [
+        {
+          "to_key": "102",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "104",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        45,
+        47
+      ],
+      "confidence": 0.94
+    },
+    {
+      "key": "104",
+      "description": "Guest room used as storage for various items kept for future use.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Stored tables",
+        "Stored bedding",
+        "Miscellaneous stored items"
+      ],
+      "connections": [
+        {
+          "to_key": "103",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        45,
+        47
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "105",
+      "description": "Former bedroom and nursery for children. The double doors to this room hang open. A few old toys and cribs lie scattered about under dust.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Double doors hanging open",
+        "Old toys scattered about",
+        "Cribs",
+        "Dust-covered nursery"
+      ],
+      "connections": [
+        {
+          "to_key": "98",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        45,
+        47
+      ],
+      "confidence": 0.95
+    },
+    {
+      "key": "106",
+      "description": "Lavish, very large former master room now serving as the headquarters and treasury of the band. The door is shut, and voices can be heard inside. Three humans are leaning over a map on a table, planning to use monsters to carve out their own empire; they attack intruders unless the intruders surrender. Several gaslights fed from natural gas taps illuminate the room. Furnishings are sparse because the old ones were looted long ago: a large round table, some chairs, and a desk. The nearby spell book of the magic-user contains the spells he knows.",
+      "encounters": [
+        {
+          "monster": "Human Magic-User 4",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "Human Cleric 3",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": "A small bell hung from a rod on the inside near the top of the door jingles if the door is not opened carefully. The magic-user's spell book has a needle trap in the cover; save vs. Poison or die.",
+      "treasure": [
+        "Magic-user's spell book",
+        "Wand of Magic Missiles (11 charges)",
+        "Ring of Protection +1",
+        "Cloak of Displacement",
+        "Scroll of magic missile",
+        "Scroll of sleep",
+        "2 Potions of Healing",
+        "Potion of Healing",
+        "Potion of Invisibility",
+        "One chest with 1,230 gp, 456 sp, and 983 cp",
+        "One chest with 456 gp, 1,234 sp, and 491 pp"
+      ],
+      "features": [
+        "Door with a warning bell hung inside near the top",
+        "Several gaslights fed from natural gas taps",
+        "Large round table",
+        "Chairs",
+        "Desk",
+        "Map on the table",
+        "Two large chests holding war funds"
+      ],
+      "connections": [
+        {
+          "to_key": "98",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        45,
+        47
+      ],
+      "confidence": 0.94
+    }
+  ]
+}

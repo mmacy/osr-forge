@@ -24,15 +24,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from osrlib.data import load_monsters
 
 from osrforge.assemble import assemble
 from osrforge.check import check
 from osrforge.contracts.report import ExtractionReport
 from osrforge.contracts.run import RunMeta, Stage, StageStatus, TokenUsage
-from osrforge.monsters import monsters
+from osrforge.contracts.stages import MonsterResolutions, StatBlocks
+from osrforge.monsters import monsters, stat_block_veto
 from osrforge.providers.fixtures import FixtureProvider
 from osrforge.settings import ConversionSettings
-from osrforge.workdir import Workdir
+from osrforge.workdir import Workdir, write_json_artifact
 
 JN1 = Path(__file__).parent / "assets" / "chaotic-caves"
 PAGE_COUNT = 48
@@ -78,12 +80,24 @@ def test_monsters_fixture_replays_byte_equal_to_the_committed_cache(tmp_path: Pa
     # renders the asset directory doesn't commit, so only the text-only
     # resolution exchange carries the replay promise. The committed
     # `statblocks.json` is evidence-grade and untouched here (the off run
-    # writes its own echo into the fabricated workdir only).
+    # writes its own echo into the fabricated workdir only). The recorded run
+    # ran the pass, so its veto flipped picks in the committed cache; the
+    # test applies the same veto over the committed blocks to the replayed
+    # resolutions, which is the step the stage runs after the pass.
     workdir = jn1_workdir(
         tmp_path / "jn1.forge", monsters_completed=False, settings=ConversionSettings(custom_monsters="off")
     )
     provider = FixtureProvider(JN1 / "fixtures-extract" / "replay")
-    monsters(workdir, provider)
+    replayed = monsters(workdir, provider)
+    blocks = StatBlocks.model_validate_json((JN1 / "stages" / "statblocks.json").read_text(encoding="utf-8")).blocks
+    templates = {template.id: template for template in load_monsters().monsters}
+    resolutions = dict(replayed.resolutions)
+    for name, entry in sorted(resolutions.items()):
+        if entry.method in ("llm", "fuzzy") and entry.template_id is not None:
+            vetoed = stat_block_veto(name, blocks.get(name), templates[entry.template_id])
+            if vetoed is not None:
+                resolutions[name] = vetoed
+    write_json_artifact(workdir.monsters_json, MonsterResolutions(resolutions=resolutions))
     assert workdir.monsters_json.read_bytes() == (JN1 / "stages" / "monsters.json").read_bytes()
 
 

@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "fingerprint": "5ca8bba60662e5526fbb9b4422acac79e2b6a95f20753525da6fca248a140cb1",
+  "tag": "statblock.giant-black-widow-spider",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"giant black widow spider\" from the pages below.\n"
+      },
+      {
+        "text": "[page 37]\nThe Chaotic Caves The Caves\nTREASURE HOARD: The door is trapped by a\nheavy flint axe-head on a strong wooden bar\nthat swings down (it attacks as 3 HD monster,\ndoing 1d8+2 points of damage if it hits). \nThe leader keeps a giant black widow spider\nhere, feeding it rats and kobolds as needed,\nand cleaning up after it. It lurks overhead in\nwebs which are so covered by dust that they\nappear to be the ceiling, about 10' up (the\nactual ceiling is 15' high). It had a bad\nexperience with the ax trap and avoids it.\nA strong chest holds 639 gp, 533 sp, and 617\ncp. Other boxes hold assorted goods including\nfood, raw cloth in bolts (about 6, each worth\nperhaps 1 to 5 gp), and other items.\nGiant Black Widow Spider: AC 14, HD 3*, \n#At 1 bite, Dam 2d6 + poison, Mv 20' 40' web, \nSv F3, ML 8, XP 175\nHP 12 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐\n75. STOREROOM. The door is locked and the\ngnoll leader in room #74 has the key. Barrels,\nboxes, and bags are crammed into this store\nroom. Most contain food or cheap ale.\n76. DUNGEON: A gnoll is on guard with the key\n(it has 1d6 ep). Captives being kept for ransom\nare held here. The cell \"doors\" are made of\nthick wooden bars with an inch gap between\neach and have iron hinges and locks. The locks\nare not high quality and a Thief would have a\nhigh chance of picking them. There are no\nprisoners here now.\nCell \"a\" is a common cell. Cell \"b\" is for\nanyone they wish to segregate. Area \"c\" is\nreached by climbing rough-cut steps some 10'\nup. It contains a torture area, chopping block,\nhand axe, wooden rack, several wooden \"saw\nhorses\", and other items. A pile of coal lies\nbeside an iron brazier and with it are crude\niron pokers of various types.\nGnoll: AC 15, HD 2, #At 1 heavy sword, \nDam 2d4, Mv 30', Sv F2, ML 8, XP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\n35"
+      },
+      {
+        "sha256": "3f51fa42ed347783a969a6b9a6005bccf1f5e79c5bcf00dc4f6e5aca2a15fb82",
+        "bytes": 744056
+      },
+      {
+        "text": "[page 41]\nThe Chaotic Caves The Abandoned Manor\nMAP K – MANOR FORT GROUND\n77. GATEWAY FLANKED BY TOWERS: A\ncorroded brass plaque over the gates reads\n\"Roslof Manor.\" The old wooden gates have\nbeen torn aside, battered down long ago in a\nforgotten fight which led to the manor being\nabandoned. Recently (within the last few\ndays) someone has taken out the stronger\ntimbers and much of the metal hardware. The\nrest is laid out as a pattern, as if plans are\nbeing made to replace them.\nThe area has been cleaned up somewhat for\neasy access. Hoof prints and wagon tracks\npoint in and out on the soft earth, amid badly\u0002broken paving stones.\n78. WEST GATE TOWER: This tower is three\nstories high (counting the roof as the fourth),\nbut the top floors have collapsed inward,\nleaving only the bottom one. It is a simple\nhollow tube with a steep stairway that would\nprovide access to each floor if they were still\nintact. Arrow slits are every 10 feet, positioned\nwhere they can face out. The entrance door\nhas a lock but is not kept locked; a heavy bar\nis kept beside it to fit into brackets on the\nframe.\nThis is a guard post for human fighters wearing\nscarlet cloaks, red-enameled helmets, and\nchain mail. Each has 1d6 gp. They are busy\ndealing with a giant black widow spider that\njust crawled into the rubble of the tower\noverhead. It might come scuttling down the\nwall to attack the PCs!\nHuman Fighter 2: AC 15, AB +2, #At 1 \nlongsword, Dam 1d8 (1d8+1 for one for sword \n+1), Mv 20', Sv F2, ML 8, XP 75\nHP 8 ☐☐☐☐☐ ☐☐☐\n6 Human Fighter 1: AC 15, AB +1, #At 1 spear, \nDam 1d6, Mv 20', Sv F1, ML 8, XP 25 ea.\nHP 6 ☐☐☐☐☐ ☐ 4 ☐☐☐☐\n5 ☐☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nGiant Black Widow Spider: AC 14, HD 3*, \n#At 1 bite, Dam 2d6 + poison, Mv 20' 40' web, \nSv F3, ML 8, XP 175\nHP 12 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐\n79. EAST GATE TOWER: As #78 except It has\nbeen badly damaged and is not safe to use; no\nhumans are found here. The door has a lock,\nbut it has been broken off its hinges and leans\naskew in the frame, wedged in place by heavy\nwooden pegs.\nThe lower floor is occupied by giant\ncentipedes, crawling amid rubble. The rubble\nof the next floor is overrun with giant rats\nscurrying amid broken furniture and various\nskeletal remains (harmless). \n9 Giant Centipedes: AC 11, HD ½ (1d4 HP), \n#At 1 bite, Dam poison, Mv 40', Sv NM, ML 7, \nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n9 Giant Rats: AC 13, HD ½ (1d4 HP), #At 1 bite, \nDam 1d4+disease, Mv 40' swim 20', Sv F1, ML 8,\nXP 10 ea.\nHP 2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n2 ☐☐ 2 ☐☐ 2 ☐☐\n80. STABLES: These stables are in ruins from\nneglect. There was once a smithy, small\ncottages, hay storage, wagon storage, rooms\nfor grooms, and so on. The structures have\ncollapsed, leaving a maze of darkness and ruin.\nSoot and burned timbers, the signs of ancient\nfires, are everywhere. New weeds are growing\nthrough the rubbish.\nA giant weasel is sparring with three giant\nshrews that have killed a pack of giant rats and\nare going to feast on them. If they smell fresh\nmeat, they will attack it instead.\nGiant Weasel: AC 17, HD 5, #At 1 bite + hold, \nDam 2d4 bite + 2d4/round hold (rending), \nMv 50', Sv F5, ML 8, XP 360\nHP 22 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐\n☐☐\n3 Giant Shrews: AC 16, HD 1, #At 2 bites, \nDam 1d6 bite, Mv 60', Sv F2, ML 10, XP 25 ea.\nHP 5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐\n39"
+      },
+      {
+        "sha256": "448aa67cfd14d9a07a7b42f6cd336e83ce60aa4d1e4577563418005542abb462",
+        "bytes": 496727
+      },
+      {
+        "text": "[page 46]\nThe Abandoned Manor The Chaotic Caves\n44"
+      },
+      {
+        "sha256": "c1adda4c85801fc9305eb1d78da18464da69a15b2004ca6d3cf65c3ee86a5148",
+        "bytes": 453582
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "14",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "3*",
+      "class_level": null,
+      "hp": 12,
+      "attacks": [
+        "1 bite"
+      ],
+      "movement": "20' 40' web",
+      "saves": "Sv F3",
+      "morale": 8,
+      "alignment": null,
+      "xp": 175,
+      "number_appearing": null,
+      "special": [
+        "poison"
+      ],
+      "confidence": 0.99,
+      "source_pages": [
+        37,
+        41
+      ]
+    },
+    "usage": {
+      "input_tokens": 5359,
+      "output_tokens": 114
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "kobold-lair",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "43",
+      "description": "Nine kobolds hunker nervously here. South of them is a locked storeroom; the chief in room 48 has the key. The storeroom contains dried meat, pickled vegetables in clay jars, and other supplies.",
+      "encounters": [
+        {
+          "monster": "kobolds",
+          "count_fixed": 9,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Locked storeroom to the south containing dried meat, pickled vegetables in clay jars, and other supplies"
+      ],
+      "connections": [
+        {
+          "to_key": "44",
+          "direction": "east",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": null,
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        31
+      ],
+      "confidence": 0.91
+    },
+    {
+      "key": "44",
+      "description": "Seven kobolds lounge on benches and chairs around tables. None have armor.",
+      "encounters": [
+        {
+          "monster": "kobolds",
+          "count_fixed": 7,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Benches",
+        "Chairs",
+        "Tables"
+      ],
+      "connections": [
+        {
+          "to_key": "43",
+          "direction": "west",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "45",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        31
+      ],
+      "confidence": 0.82
+    },
+    {
+      "key": "45",
+      "description": "The doors to this room are made of flimsy wooden poles lashed together; they can be kicked in or heard through easily. A number of the kobolds inside keep normal rats as pets, though they eat their pets now and then. None of the kobolds have armor.",
+      "encounters": [
+        {
+          "monster": "kobolds",
+          "count_fixed": 12,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Flimsy pole-lashed doors that can be kicked in or heard through easily",
+        "Normal rats kept as pets"
+      ],
+      "connections": [
+        {
+          "to_key": "44",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "46",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        31
+      ],
+      "confidence": 0.81
+    },
+    {
+      "key": "46",
+      "description": "The door to this room is rickety and easily kicked in or listened through. The kobolds inside do not have armor. Ordinary rats and mice scurry among the litter; some are being cooked on a fire.",
+      "encounters": [
+        {
+          "monster": "kobolds",
+          "count_fixed": 9,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Rickety door that is easily kicked in or listened through",
+        "Litter",
+        "Fire with some rats and mice being cooked"
+      ],
+      "connections": [
+        {
+          "to_key": "45",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "47",
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        31
+      ],
+      "confidence": 0.79
+    },
+    {
+      "key": "47",
+      "description": "This open chamber is decorated with old metal helmets, clothing hung on wooden frames like scarecrows, and other items. These are all mementos of opponents defeated in battle. Most are unimpressive, and some are kobold-sized. A well-hidden secret door in the center of the west wall opens by taking a careful grip on one side and pulling; only the chief knows it is there.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [
+        "Old metal helmets",
+        "Clothing hung on wooden frames like scarecrows",
+        "Other battle mementos and trophies"
+      ],
+      "connections": [
+        {
+          "to_key": "46",
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "48",
+          "direction": "west",
+          "via": "secret_door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        31,
+        38
+      ],
+      "confidence": 0.87
+    },
+    {
+      "key": "48",
+      "description": "The kobold chief, two bodyguards, and four normal kobolds live here. The chief has the key to the storeroom at 43.",
+      "encounters": [
+        {
+          "monster": "Kobold Chief",
+          "count_fixed": 1,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "Kobold Bodyguards",
+          "count_fixed": 2,
+          "count_dice": null,
+          "count_note": null
+        },
+        {
+          "monster": "kobolds",
+          "count_fixed": 4,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": null,
+      "treasure": [
+        "Silver-bladed hand-axe worth about 40 to 50 gp",
+        "Pouch with six 100 gp gems",
+        "Two golden arm-bands worth 50 gp each",
+        "Large clay urn containing 306 gp, 312 sp, and 108 cp"
+      ],
+      "features": [
+        "Large clay urn in back with a wooden lid tied on by rough fiber rope"
+      ],
+      "connections": [
+        {
+          "to_key": "47",
+          "direction": "east",
+          "via": "secret_door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "49",
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        32,
+        38
+      ],
+      "confidence": 0.87
+    },
+    {
+      "key": "49",
+      "description": "As shown on the map, a pit trap with stakes lies about 10 or 20 feet from the entranceway, covered by a pretty good false floor, though a careful search should have a high chance of finding it. The outside exit is in the middle of the woods and has been covered by living brush and debris so that it is hard to find. Scuttling in the brush just outside the entrance are seven giant centipedes that attack anyone who comes near.",
+      "encounters": [
+        {
+          "monster": "Giant Centipedes",
+          "count_fixed": 7,
+          "count_dice": null,
+          "count_note": null
+        }
+      ],
+      "trap": "Pit trap with stakes about 10 or 20 feet from the entranceway, hidden by a false floor; falling in causes 2d6 damage.",
+      "treasure": [],
+      "features": [
+        "Concealed outside exit in the middle of the woods, hidden by living brush and debris"
+      ],
+      "connections": [
+        {
+          "to_key": "48",
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": null,
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        32,
+        38
+      ],
+      "confidence": 0.8
+    }
+  ]
+}

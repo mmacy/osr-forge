@@ -10,9 +10,10 @@ monsters:
   "gray jelly":
     template_id: grey_ooze
     reason: >-
-      The module's stat block (p. 19: AC 12, HD 3*, Dam 2d8, Mv 1') matches
-      Grey Ooze (HD 3*, 2d8, near-immobile), not the LLM's Ochre Jelly pick
-      (HD 5*, 2d6).
+      The module's stat block (p. 17: AC 12, HD 3*, Dam 2d8, Mv 1') matches
+      Grey Ooze (HD 3*, 2d8, near-immobile), not Ochre Jelly (HD 5*, 2d6).
+      The recorded LLM pick is already Grey Ooze; this entry keeps it there
+      if a re-record picks Ochre Jelly, as the phase 3 recording did.
   "tentacle worm":
     template_id: carcass_crawler
     reason: >-
@@ -62,7 +63,7 @@ monsters:
       never does.
 
 areas:
-  the-abandoned-manor/1/95:
+  roslof-manor/1/95:
     description: >-
       Servant quarters, enlarged by tearing down the inner partitions, now
       occupied in part by foot troops, most of whom are eating or elsewhere.
@@ -70,8 +71,8 @@ areas:
     reason: >-
       Map-only key: the printed entry (p. 42) is the shared "94 to 97.
       SERVANT QUARTERS" text; the extraction emitted a thin extrapolation at
-      0.8 confidence. Replaced with the printed shared text.
-  the-abandoned-manor/1/96:
+      0.73 confidence. Replaced with the printed shared text.
+  roslof-manor/1/96:
     description: >-
       Servant quarters, enlarged by tearing down the inner partitions, now
       occupied in part by foot troops, most of whom are eating or elsewhere.
@@ -79,35 +80,16 @@ areas:
     reason: >-
       Map-only key: the printed entry (p. 42) is the shared "94 to 97.
       SERVANT QUARTERS" text; the extraction emitted a thin extrapolation at
-      0.8 confidence. Replaced with the printed shared text.
+      0.73 confidence. Replaced with the printed shared text.
 
 geometry:
   halfling-home/1:
-    areas:
-      h2:
-        # The printed living room (map p. 19, 1 square = 5') spans the width
-        # of the burrow under H3/H4 — five 10' cells by two.
-        cells: [[3, 9], [4, 9], [5, 9], [6, 9], [7, 9], [3, 10], [4, 10], [5, 10], [6, 10], [7, 10]]
-      h3:
-        # The 15' x 17' dining room (p. 14) sits north of the living room's
-        # west half on the printed map, not west of it in a chain.
-        cells: [[5, 7], [6, 7], [5, 8], [6, 8]]
     edges:
-      # h3's interior and its opening south into h2.
-      "6,7:west": { kind: open }
-      "6,8:west": { kind: open }
-      "5,8:north": { kind: open }
-      "6,8:north": { kind: open }
-      "5,9:north": { kind: open }
-      # h2's second row, opened where the old corridor never ran.
-      "5,10:west": { kind: open }
-      "6,10:west": { kind: open }
-      "5,10:north": { kind: open }
       # The round green front door (H1, p. 14): "locked, but is old and
-      # rotten, and can be easily knocked in" — a stuck door in play (no key
-      # exists anywhere; forcing is the module's own remedy).
-      "8,9:east": { kind: door, door: { stuck: true } }
+      # rotten, and can be easily knocked in". In play that is a stuck door:
+      # no key exists anywhere, and forcing is the module's own remedy.
+      "12,9:west": { kind: door, door: { stuck: true } }
     reason: >-
-      Match the printed halfling-home map (p. 19): H2 is the wide living
-      room, H3 the dining room north of it, and the front door at H1 is
-      knock-in-able, not open.
+      The front door at H1 (p. 14) is locked but rotten and easily knocked
+      in. In play that is a stuck door the party can force, not a lock that
+      only a thief can pick, which is how the draft placed it.

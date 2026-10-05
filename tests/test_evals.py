@@ -2896,31 +2896,33 @@ def test_jn1_pinned_baseline_over_the_committed_caches(tmp_path: Path):
     assert metrics.encounters.count_denominator == 100
     assert metrics.encounters.count_matched == 99
     assert metrics.encounters.count_accuracy == 0.99
-    # The phase 7 monsters re-record (null-hardened prompt) moved one LLM
-    # answer: gray jelly now resolves grey_ooze — agreeing with the truth and
-    # with the phase 3 correction session's remap — where the old recording
-    # picked ochre_jelly.
+    # Gray jelly resolves grey_ooze, agreeing with the truth and with the
+    # phase 3 correction session's remap. The one miss the stat-block veto
+    # adds is young lizard men: its printed block reads HD 1, so the veto
+    # flips the LLM's lizard_man pick (HD 2), and the truth asserts
+    # lizard_man.
     assert metrics.encounters.resolution_denominator == 85
-    assert metrics.encounters.resolution_matched == 75
-    assert metrics.encounters.resolution_accuracy == 0.8824
+    assert metrics.encounters.resolution_matched == 74
+    assert metrics.encounters.resolution_accuracy == 0.8706
     # The phase 7 truth edits assert emission on all 15 name-matched
     # template-omitted encounters, moving them out of non_srd into the custom
-    # pair. Four match against the committed caches — the names the tiers
-    # left unresolved with usable transcribed blocks (elven thief, human
-    # cleric 3, human magic-user 4, orc war leader); the eleven misses are
-    # bespoke variants the recorded LLM pass resolved to SRD picks, which is
-    # the phase 5 wrong-pick asymmetry made visible on its own metric.
+    # pair. All 15 match against the committed caches. The bespoke variants
+    # the LLM pass resolves to SRD picks (the chiefs, leaders, and wardens)
+    # are vetoed by their printed Hit Dice, so their own blocks emit.
     assert metrics.encounters.custom_denominator == 15
-    assert metrics.encounters.custom_matched == 4
-    assert metrics.encounters.custom_accuracy == 0.2667
+    assert metrics.encounters.custom_matched == 15
+    assert metrics.encounters.custom_accuracy == 1.0
     assert metrics.encounters.non_srd == 0
 
+    # The committed caches carry `mapread.json`, so the edge and entrance
+    # families score the reconciled fact set: the map reading adds edges to
+    # the prose's.
     assert metrics.connections.truth_edges == 39
-    assert metrics.connections.extracted_edges == 51
-    assert metrics.connections.true_positives == 30
-    assert metrics.connections.precision == 0.5882
-    assert metrics.connections.recall == 0.7692
-    assert metrics.connections.f1 == 0.6666
+    assert metrics.connections.extracted_edges == 62
+    assert metrics.connections.true_positives == 32
+    assert metrics.connections.precision == 0.5161
+    assert metrics.connections.recall == 0.8205
+    assert metrics.connections.f1 == 0.6336
 
     assert metrics.treasure.presence_denominator == 137
     assert metrics.treasure.presence_matched == 130
@@ -2930,20 +2932,19 @@ def test_jn1_pinned_baseline_over_the_committed_caches(tmp_path: Path):
     # The phase 9 families, blessed over the committed test caches against the
     # phase 9 truth pass (the existing four families above are byte-identical
     # to their pre-phase-9 values — the truth-key freeze makes any movement
-    # there a scorer bug by construction). The committed test caches predate
-    # phase 6's door extraction, so every via is `passage` and the door family
-    # reads zero extracted doors — recall 0.0 with an empty-denominator
-    # precision is the honest pin for these caches, not a defect.
+    # there a scorer bug by construction). The committed caches were recorded
+    # after phase 6's door extraction, so the door family reads extracted
+    # doors.
     assert metrics.encounters.precision_denominator == 107
     assert metrics.encounters.precision_matched == 100
     assert metrics.encounters.precision == 0.9346
     assert metrics.doors.truth_doors == 21
-    assert metrics.doors.extracted_doors == 0
-    assert metrics.doors.true_positives == 0
-    assert metrics.doors.recall == 0.0
-    assert metrics.doors.precision is None
-    assert metrics.doors.kind_accuracy is None
-    assert metrics.doors.locked_accuracy is None
+    assert metrics.doors.extracted_doors == 25
+    assert metrics.doors.true_positives == 13
+    assert metrics.doors.recall == 0.619
+    assert metrics.doors.precision == 0.52
+    assert metrics.doors.kind_accuracy == 1.0
+    assert metrics.doors.locked_accuracy == 0.8462
     assert metrics.transitions.asserted_dungeons == 14
     assert metrics.transitions.truth_transitions == 1
     assert metrics.transitions.extracted_transitions == 1

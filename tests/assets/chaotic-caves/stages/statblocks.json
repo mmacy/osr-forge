@@ -2,6 +2,94 @@
   "schema_version": 1,
   "custom_monsters": "emit",
   "blocks": {
+    "bandit cronies": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": "+2",
+      "hit_dice": null,
+      "class_level": "Human Fighter 2",
+      "hp": 8,
+      "attacks": [
+        "1 shortsword, Dam 1d6"
+      ],
+      "movement": "20'",
+      "saves": "Sv F2",
+      "morale": 8,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": "2",
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        29
+      ]
+    },
+    "bandit leader": {
+      "ac": "16 (17)",
+      "ac_notation": "ascending",
+      "thac0": "+3 (+4 with magic longsword)",
+      "hit_dice": null,
+      "class_level": "Human Fighter 4",
+      "hp": 16,
+      "attacks": [
+        "1 longsword +1"
+      ],
+      "movement": "30'",
+      "saves": "F4",
+      "morale": 8,
+      "alignment": null,
+      "xp": 240,
+      "number_appearing": "1",
+      "special": [],
+      "confidence": 0.97,
+      "source_pages": [
+        29
+      ]
+    },
+    "bugbear chief": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "6+6",
+      "class_level": null,
+      "hp": 33,
+      "attacks": [
+        "1 scimitar"
+      ],
+      "movement": "30'",
+      "saves": "Sv F6",
+      "morale": 10,
+      "alignment": null,
+      "xp": 500,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        35
+      ]
+    },
+    "dwarf fighter": {
+      "ac": "13",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": null,
+      "class_level": "Dwarf Fighter 1",
+      "hp": 4,
+      "attacks": [
+        "1 shortsword or 1 light crossbow, Dam 1d6"
+      ],
+      "movement": "30'",
+      "saves": "F1D",
+      "morale": 8,
+      "alignment": null,
+      "xp": 25,
+      "number_appearing": "1",
+      "special": [],
+      "confidence": 0.95,
+      "source_pages": [
+        29
+      ]
+    },
     "elven thief": {
       "ac": "14 due to dexterity",
       "ac_notation": "ascending",
@@ -20,13 +108,35 @@
       "xp": 145,
       "number_appearing": null,
       "special": [],
-      "confidence": 0.98,
+      "confidence": 0.99,
       "source_pages": [
         30
       ]
     },
+    "female lizard men": {
+      "ac": "12",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2",
+      "class_level": null,
+      "hp": 8,
+      "attacks": [
+        "1 spear, Dam 1d6+1"
+      ],
+      "movement": "30'",
+      "saves": "Sv F2",
+      "morale": 11,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": "2",
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        33
+      ]
+    },
     "fighters": {
-      "ac": "15",
+      "ac": "15, F2, #At 1 weapon, Dam 1d8 (1d8+1 for one for longword +1), Mv 20', Sv F2, ML 8, XP 75 ea.",
       "ac_notation": "ascending",
       "thac0": null,
       "hit_dice": null,
@@ -41,12 +151,79 @@
       "alignment": null,
       "xp": 75,
       "number_appearing": "3",
-      "special": [
-        "Dam 1d8 (1d8+1 for one for longword +1)"
-      ],
-      "confidence": 0.88,
+      "special": [],
+      "confidence": 0.76,
       "source_pages": [
         43
+      ]
+    },
+    "giant black widow spider": {
+      "ac": "14",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "3*",
+      "class_level": null,
+      "hp": 12,
+      "attacks": [
+        "1 bite"
+      ],
+      "movement": "20' 40' web",
+      "saves": "Sv F3",
+      "morale": 8,
+      "alignment": null,
+      "xp": 175,
+      "number_appearing": null,
+      "special": [
+        "poison"
+      ],
+      "confidence": 0.99,
+      "source_pages": [
+        37,
+        41
+      ]
+    },
+    "giant cave locust": {
+      "ac": "16",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2**",
+      "class_level": null,
+      "hp": 9,
+      "attacks": [
+        "1 bite or 1 bump or 1 spit, Dam 1d2 bite, 1d4* bump, or save vs Poison or be unable to move or act for 3d6 rounds from spit"
+      ],
+      "movement": "20' Fly 60' (15')",
+      "saves": "Sv F2",
+      "morale": 5,
+      "alignment": null,
+      "xp": 125,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        19
+      ]
+    },
+    "giant fire beetles": {
+      "ac": "16",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "1+2",
+      "class_level": null,
+      "hp": 7,
+      "attacks": [
+        "1 bite"
+      ],
+      "movement": "40'",
+      "saves": "Sv F1",
+      "morale": 7,
+      "alignment": null,
+      "xp": 25,
+      "number_appearing": "3",
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        17
       ]
     },
     "giant gecko lizard": {
@@ -57,7 +234,7 @@
       "class_level": null,
       "hp": 13,
       "attacks": [
-        "1 bite, Dam 1d8"
+        "1 bite"
       ],
       "movement": "40'",
       "saves": "Sv F2",
@@ -68,11 +245,121 @@
       "special": [
         "Mv 40' (special)"
       ],
-      "confidence": 0.97,
+      "confidence": 0.96,
       "source_pages": [
-        15,
         32,
-        34
+        34,
+        15
+      ]
+    },
+    "gnoll females": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2",
+      "class_level": null,
+      "hp": 8,
+      "attacks": [
+        "1 heavy sword, Dam 2d4"
+      ],
+      "movement": "30'",
+      "saves": "F2",
+      "morale": 8,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": "2",
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        36
+      ]
+    },
+    "gnoll leader": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "6",
+      "class_level": null,
+      "hp": 27,
+      "attacks": [
+        "1 battle axe +1"
+      ],
+      "movement": "30'",
+      "saves": "Sv F6",
+      "morale": 8,
+      "alignment": null,
+      "xp": 500,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        36
+      ]
+    },
+    "goblin king": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "5-5",
+      "class_level": null,
+      "hp": 18,
+      "attacks": [
+        "1 shortsword +1"
+      ],
+      "movement": "10'",
+      "saves": "Sv F5",
+      "morale": 9,
+      "alignment": null,
+      "xp": 360,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        28
+      ]
+    },
+    "gray jelly": {
+      "ac": "12",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "3*",
+      "class_level": null,
+      "hp": 14,
+      "attacks": [
+        "1 pseudopod, Dam 2d8"
+      ],
+      "movement": "1'",
+      "saves": "Sv F3",
+      "morale": 12,
+      "alignment": null,
+      "xp": 175,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        19
+      ]
+    },
+    "hobgoblin chief": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "5",
+      "class_level": null,
+      "hp": 25,
+      "attacks": [
+        "1 scimitar"
+      ],
+      "movement": "20'",
+      "saves": "Sv F5",
+      "morale": 8,
+      "alignment": null,
+      "xp": 360,
+      "number_appearing": "1",
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        26
       ]
     },
     "human cleric 3": {
@@ -86,7 +373,7 @@
         "1 mace, Dam 1d8+1",
         "1 mace, Dam 1d8-1"
       ],
-      "movement": "20'",
+      "movement": "20'; 10'",
       "saves": "Sv C3",
       "morale": 9,
       "alignment": null,
@@ -98,11 +385,11 @@
         "Magic Items: 2 Potions of Healing",
         "STR 15 (+1)",
         "wearing plate mail and wielding mace and shield",
+        "STR 8 (-1), CHA 7 (-1)",
         "Spells: 1st level – cure light wounds, light",
-        "Magic Items: Potion of Healing, Potion of Invisibility",
-        "STR 8 (-1), CHA 7 (-1)"
+        "Magic Items: Potion of Healing, Potion of Invisibility"
       ],
-      "confidence": 0.8,
+      "confidence": 0.98,
       "source_pages": [
         45
       ]
@@ -124,7 +411,7 @@
       "xp": 25,
       "number_appearing": "6",
       "special": [],
-      "confidence": 0.71,
+      "confidence": 0.69,
       "source_pages": [
         41
       ]
@@ -146,7 +433,7 @@
       "xp": 75,
       "number_appearing": null,
       "special": [],
-      "confidence": 0.96,
+      "confidence": 0.89,
       "source_pages": [
         41,
         43,
@@ -157,7 +444,7 @@
     "human magic-user 4": {
       "ac": "15",
       "ac_notation": "ascending",
-      "thac0": "AB +2",
+      "thac0": "+2",
       "hit_dice": null,
       "class_level": "Human Magic-User 4",
       "hp": 10,
@@ -173,12 +460,103 @@
       "special": [
         "Spells: 1st level – sleep, magic missile; 2nd level – detect invisible, web",
         "Magic Items: Wand of Magic Missiles (11 charges), Ring of Protection +1, Cloak of Displacement",
-        "Scrolls: magic missile, sleep",
-        "STR 8 (-1), DEX 15 (+1)"
+        "Scrolls: magic missile, sleep"
+      ],
+      "confidence": 0.99,
+      "source_pages": [
+        45
+      ]
+    },
+    "kobold bodyguards": {
+      "ac": "13",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "1",
+      "class_level": null,
+      "hp": 4,
+      "attacks": [
+        "1 tiny sword, Dam 1d4"
+      ],
+      "movement": "20'",
+      "saves": "Sv F1",
+      "morale": 8,
+      "alignment": null,
+      "xp": 25,
+      "number_appearing": "2",
+      "special": [
+        "ML 8 (7 if chief is defeated or leaves the area)"
       ],
       "confidence": 0.98,
       "source_pages": [
-        45
+        32
+      ]
+    },
+    "kobold chief": {
+      "ac": "13",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2",
+      "class_level": null,
+      "hp": 8,
+      "attacks": [
+        "1 shortsword, Dam 1d6"
+      ],
+      "movement": "20'",
+      "saves": "F2",
+      "morale": 7,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        32
+      ]
+    },
+    "lizard man leader": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "3",
+      "class_level": null,
+      "hp": 12,
+      "attacks": [
+        "1 spear"
+      ],
+      "movement": "20'",
+      "saves": "Sv F3",
+      "morale": 11,
+      "alignment": null,
+      "xp": 145,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        33
+      ]
+    },
+    "orc chief": {
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "4",
+      "class_level": null,
+      "hp": 18,
+      "attacks": [
+        "1 longsword"
+      ],
+      "movement": "20'",
+      "saves": "Sv F4",
+      "morale": 8,
+      "alignment": null,
+      "xp": 240,
+      "number_appearing": null,
+      "special": [
+        "Dam 1d8+1 due to Strength"
+      ],
+      "confidence": 0.98,
+      "source_pages": [
+        23
       ]
     },
     "orc war leader": {
@@ -192,16 +570,61 @@
         "1 longsword, Dam 1d8+1"
       ],
       "movement": "30'",
+      "saves": "F2",
+      "morale": 9,
+      "alignment": null,
+      "xp": 75,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        25,
+        15
+      ]
+    },
+    "orc warden": {
+      "ac": "14",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2",
+      "class_level": null,
+      "hp": 10,
+      "attacks": [
+        "1 longsword, Dam 1d8+1 for strength"
+      ],
+      "movement": "30'",
       "saves": "Sv F2",
       "morale": 8,
       "alignment": null,
       "xp": 75,
       "number_appearing": null,
       "special": [],
-      "confidence": 0.95,
+      "confidence": 0.99,
       "source_pages": [
-        15,
-        25
+        23
+      ]
+    },
+    "python": {
+      "ac": "14",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "5*",
+      "class_level": null,
+      "hp": 20,
+      "attacks": [
+        "1 bite",
+        "1 constrict"
+      ],
+      "movement": "30'",
+      "saves": "Sv F5",
+      "morale": 8,
+      "alignment": null,
+      "xp": 405,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        44
       ]
     },
     "tentacle worm": {
@@ -221,9 +644,55 @@
       "xp": 175,
       "number_appearing": null,
       "special": [],
-      "confidence": 0.99,
+      "confidence": 0.98,
       "source_pages": [
         16
+      ]
+    },
+    "yellow mold": {
+      "ac": "Can always be hit",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2*",
+      "class_level": null,
+      "hp": 8,
+      "attacks": [
+        "Spores"
+      ],
+      "movement": "0",
+      "saves": "NM",
+      "morale": null,
+      "alignment": null,
+      "xp": 100,
+      "number_appearing": null,
+      "special": [
+        "All within 10 feet of the mold will be affected by the spores and must save vs. Death Ray or take 1d8 points of damage per round for 6 rounds"
+      ],
+      "confidence": 0.95,
+      "source_pages": [
+        34
+      ]
+    },
+    "young lizard men": {
+      "ac": "11",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "1",
+      "class_level": null,
+      "hp": 4,
+      "attacks": [
+        "1 spear"
+      ],
+      "movement": "30'",
+      "saves": "Sv F1",
+      "morale": 10,
+      "alignment": null,
+      "xp": 25,
+      "number_appearing": "6",
+      "special": [],
+      "confidence": 0.99,
+      "source_pages": [
+        33
       ]
     }
   }

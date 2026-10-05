@@ -162,7 +162,7 @@
       "found": true,
       "ac": "15",
       "ac_notation": "ascending",
-      "thac0": "AB +2",
+      "thac0": "+2",
       "hit_dice": null,
       "class_level": "Human Magic-User 4",
       "hp": 10,
@@ -178,17 +178,16 @@
       "special": [
         "Spells: 1st level – sleep, magic missile; 2nd level – detect invisible, web",
         "Magic Items: Wand of Magic Missiles (11 charges), Ring of Protection +1, Cloak of Displacement",
-        "Scrolls: magic missile, sleep",
-        "STR 8 (-1), DEX 15 (+1)"
+        "Scrolls: magic missile, sleep"
       ],
-      "confidence": 0.98,
+      "confidence": 0.99,
       "source_pages": [
         45
       ]
     },
     "usage": {
-      "input_tokens": 3433,
-      "output_tokens": 191
+      "input_tokens": 3431,
+      "output_tokens": 174
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

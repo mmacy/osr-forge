@@ -181,7 +181,7 @@
       "class_level": null,
       "hp": 13,
       "attacks": [
-        "1 bite, Dam 1d8"
+        "1 bite"
       ],
       "movement": "40'",
       "saves": "Sv F2",
@@ -192,16 +192,16 @@
       "special": [
         "Mv 40' (special)"
       ],
-      "confidence": 0.97,
+      "confidence": 0.96,
       "source_pages": [
-        15,
         32,
-        34
+        34,
+        15
       ]
     },
     "usage": {
-      "input_tokens": 8110,
-      "output_tokens": 125
+      "input_tokens": 8106,
+      "output_tokens": 118
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

@@ -177,21 +177,21 @@
         "1 longsword, Dam 1d8+1"
       ],
       "movement": "30'",
-      "saves": "Sv F2",
-      "morale": 8,
+      "saves": "F2",
+      "morale": 9,
       "alignment": null,
       "xp": 75,
       "number_appearing": null,
       "special": [],
-      "confidence": 0.95,
+      "confidence": 0.98,
       "source_pages": [
-        15,
-        25
+        25,
+        15
       ]
     },
     "usage": {
-      "input_tokens": 6044,
-      "output_tokens": 113
+      "input_tokens": 6041,
+      "output_tokens": 111
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

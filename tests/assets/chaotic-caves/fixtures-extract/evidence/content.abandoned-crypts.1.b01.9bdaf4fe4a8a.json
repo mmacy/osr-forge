@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "fingerprint": "9bdaf4fe4a8ab0ef68fd3856a477dfa85ac6b00b419ba60929189a41b2551227",
+  "tag": "content.abandoned-crypts.1.b01",
+  "request": {
+    "system": "You extract keyed dungeon areas from tabletop adventure module pages. The user message names the areas to extract, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image. Return one entry per named area, using exactly the canonical keys given.\n\nRules:\n- \"encounters\" are the area's hostile or monstrous inhabitants with stat blocks. Ordinary townsfolk and named NPCs without a creature type are not encounters — they belong in the description. Use the creature type as printed (\"goblin\"), putting proper names (\"Snagg\") in the description. Wandering-monster tables are not keyed encounters.\n- Encounter counts: put a plain number in \"count_fixed\" and dice notation like \"2d4\" in \"count_dice\"; anything the module says about count that fits neither (rates, conditions, ranges) goes in \"count_note\". Leave unused count fields null.\n- \"trap\" describes the area's trap, null when it has none. \"features\" lists notable fixtures a referee should know about (altars, pools, levers); \"treasure\" lists the area's treasure as printed. A secret door that conceals a way to another keyed area is a connection with via \"secret_door\", not a feature; a secret door concealing no keyed connection (a false closet) stays a feature.\n- \"connections\": derive each connection's \"direction\" from the level map when the text is silent; use \"unknown\" only when neither the text nor the map says. \"via\" is the connection's stated mechanism — a door, secret door, stairs, trapdoor, or chute — \"passage\" when the text names none, \"other\" for anything else; \"door_stuck\" and \"door_locked\" record the door conditions the text states.\n- Connection targets: prefer \"to_key\" — the connected area's canonical key when it appears in the area list, otherwise its printed label. When the text states only a level, not a keyed area (\"stairs descend to the second level\"), leave \"to_key\" null and put the level number in \"to_level\".\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you extracted that area.\n",
+    "parts": [
+      {
+        "text": "Extract the keyed areas listed below from dungeon \"Abandoned Crypts\" (id: abandoned-crypts), level 1.\nAreas to extract (canonical key | printed key | name | expected pages):\n- 22 | printed key \"22\" | Ghouls | pages 27\n- 23 | printed key \"23\" | Skeletons | pages 27\n- 24 | printed key \"24\" | Zombies | pages 27\n- 25 | printed key \"25\" | Skeletons | pages 27\nThis level's map is on page 38.\n"
+      },
+      {
+        "text": "[page 27]\nThe Chaotic Caves The Caves\n22. GHOULS: Three ghouls lurk here trying to\nget through the rubble to the hobgoblins in\n#20. They are not interested in skeletons or\nzombies as a possible food source.\n3 Ghouls: AC 14, HD 2*, #At 2 claws, 1 bite, \nDam 1d4 claw, 1d4 bite, all plus paralysis, \nMv 30', Sv F2, ML 9, XP 100 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n9 ☐☐☐☐☐ ☐☐☐☐\n9 ☐☐☐☐☐ ☐☐☐☐\n23. SKELETONS: This space contains six\nskeletons (three on the east and three on the\nwest). They stand like guards stiff at\nattention, and attack intruders on sight. The\narea is cluttered by broken coffins. The\nrubbish contains a silver dagger, 30 gp, and 21\npp.\n6 Skeletons: AC 13 (½ damage from edged \nweapons, 1 point only from arrows or bolts), \nHD 1, #At 1 spear, Dam 1d6, Mv 40', Sv F1, \nML 12, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n24. ZOMBIES: Zombies wait patiently here,\nunder orders to attack and destroy any\nintruders. The area contains empty (old and\nrotten) or smashed coffins. Amid the splinters\nof what appears to have been an ornate\ncabinet are six intact vials of holy water and\n56 gp.\n4 Zombies: AC 12 (½ damage from blunt \nweapons, 1 point only from arrows or bolts), \nHD 2, #At 1 bludgeon, Dam 1d8, Mv 20', Sv F2, \nML 12, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n25. SKELETONS: The skeletons posted here\nattack on sight.\nThe outward facing walls are lined by crypt\nspaces (3 high, 3 wide per 10' section); many\nare empty. Those with anything in them have\nthe remains of poor people and (in total) little\nmore than 26 gp and 49 sp. Hanging out the\ngaping square of one (in plain sight) is a\nnecklace with gems worth 750 gp; the original\nowners will be so glad to have it recovered (as\na sentimental heirloom) that they will pay\n1,000 gp for it, if they are tracked down.\n6 Skeletons: AC 13 (½ damage from edged \nweapons, 1 point only from arrows or bolts), \nHD 1, #At 1 weapon, Dam 1d6, Mv 40', Sv F1, \nML 12, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nE. GOBLIN LAIR\nThese goblins are living the simple life and\nserving as spear fodder for the stronger tribes,\nwho aren't above recruiting them (by force) for\nbattles. Their crudely tunneled-out warren is\ndark and dank. Many halls are 6' to 8' wide\nand just as high.\n26. GUARD POST: Six goblins hunker here,\nready to fight intruders. Each has 1d6 cp. They\ncontrol a net trap which they can drop by\njerking on a rope (it covers the trap area\nmarked on the map at the entrance). Entangled\nopponents will be easily subdued, but can get\nfree in 1d6 rounds if they are left alone. The\nGM should use common sense and an easily\u0002managed die roll to see if any character is\ntrapped. Any who are foolish enough to walk\nright under the net will almost certainly be\ntrapped. More so, the goblins have slings and\nwill pelt anyone who steps out to try to undo\nthe net.\n6 Goblins: AC 14, HD 1-1, #At 1 shortsword or \n1 sling, Dam 1d6 shortsword, 1d4 sling, Mv 20', \nSv F1, ML 7, XP 25 ea.\nHP 3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n3 ☐☐☐ 3 ☐☐☐\n25"
+      },
+      {
+        "sha256": "6c6d457dce28505a2177959a1742c0f4a2aed08f328b5990f7f143baa0f06cb2",
+        "bytes": 451312
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "enum": [
+                  "22",
+                  "23",
+                  "24",
+                  "25"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "encounters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "monster": {
+                      "type": "string"
+                    },
+                    "count_fixed": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "count_dice": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^([1-9][0-9]{0,2})?d(2|3|4|6|8|10|12|20|100)([+-](0|[1-9][0-9]{0,5}))?$"
+                    },
+                    "count_note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "monster",
+                    "count_fixed",
+                    "count_dice",
+                    "count_note"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "trap": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "treasure": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "connections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "to_key": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "to_level": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "north",
+                        "south",
+                        "east",
+                        "west",
+                        "up",
+                        "down",
+                        "unknown"
+                      ]
+                    },
+                    "via": {
+                      "type": "string",
+                      "enum": [
+                        "passage",
+                        "door",
+                        "secret_door",
+                        "stairs",
+                        "trapdoor",
+                        "chute",
+                        "other"
+                      ]
+                    },
+                    "door_stuck": {
+                      "type": "boolean"
+                    },
+                    "door_locked": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "to_key",
+                    "to_level",
+                    "direction",
+                    "via",
+                    "door_stuck",
+                    "door_locked"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "source_pages": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                }
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "encounters",
+              "trap",
+              "treasure",
+              "features",
+              "connections",
+              "source_pages",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "areas"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "areas": [
+        {
+          "key": "22",
+          "description": "Three ghouls lurk here trying to get through the rubble to the hobgoblins in #20. They are not interested in skeletons or zombies as a possible food source.",
+          "encounters": [
+            {
+              "monster": "ghouls",
+              "count_fixed": 3,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [],
+          "features": [
+            "Rubble blocking access toward area 20"
+          ],
+          "connections": [
+            {
+              "to_key": "20",
+              "to_level": null,
+              "direction": "east",
+              "via": "passage",
+              "door_stuck": false,
+              "door_locked": false
+            }
+          ],
+          "source_pages": [
+            27,
+            38
+          ],
+          "confidence": 0.88
+        },
+        {
+          "key": "23",
+          "description": "Six skeletons, three on the east and three on the west, stand like guards stiff at attention and attack intruders on sight.",
+          "encounters": [
+            {
+              "monster": "skeletons",
+              "count_fixed": 6,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "silver dagger",
+            "30 gp",
+            "21 pp"
+          ],
+          "features": [
+            "Broken coffins clutter the area"
+          ],
+          "connections": [],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.73
+        },
+        {
+          "key": "24",
+          "description": "Zombies wait patiently here under orders to attack and destroy any intruders.",
+          "encounters": [
+            {
+              "monster": "zombies",
+              "count_fixed": 4,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "six intact vials of holy water",
+            "56 gp"
+          ],
+          "features": [
+            "Empty old and rotten coffins",
+            "Smashed coffins",
+            "Splinters of what appears to have been an ornate cabinet"
+          ],
+          "connections": [],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.73
+        },
+        {
+          "key": "25",
+          "description": "The skeletons posted here attack on sight. The outward-facing walls are lined by crypt spaces (3 high, 3 wide per 10' section); many are empty. Those with anything in them have the remains of poor people. Hanging out the gaping square of one crypt space in plain sight is a necklace with gems worth 750 gp; the original owners will be so glad to have it recovered as a sentimental heirloom that they will pay 1,000 gp for it, if they are tracked down.",
+          "encounters": [
+            {
+              "monster": "skeletons",
+              "count_fixed": 6,
+              "count_dice": null,
+              "count_note": null
+            }
+          ],
+          "trap": null,
+          "treasure": [
+            "26 gp",
+            "49 sp",
+            "necklace with gems worth 750 gp",
+            "original owners will pay 1,000 gp for the recovered necklace if tracked down"
+          ],
+          "features": [
+            "Outward-facing walls lined by crypt spaces, 3 high and 3 wide per 10' section",
+            "Many crypt spaces are empty",
+            "Some crypt spaces contain the remains of poor people"
+          ],
+          "connections": [],
+          "source_pages": [
+            27
+          ],
+          "confidence": 0.75
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 3909,
+      "output_tokens": 600
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

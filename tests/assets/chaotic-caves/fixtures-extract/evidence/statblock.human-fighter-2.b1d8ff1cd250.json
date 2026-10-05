@@ -211,7 +211,7 @@
       "xp": 75,
       "number_appearing": null,
       "special": [],
-      "confidence": 0.96,
+      "confidence": 0.89,
       "source_pages": [
         41,
         43,
@@ -220,8 +220,8 @@
       ]
     },
     "usage": {
-      "input_tokens": 14341,
-      "output_tokens": 113
+      "input_tokens": 14334,
+      "output_tokens": 112
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

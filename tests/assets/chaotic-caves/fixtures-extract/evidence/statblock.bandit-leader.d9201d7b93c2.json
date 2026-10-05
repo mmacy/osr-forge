@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "fingerprint": "d9201d7b93c262030016cd436996c74a1a0957e07ed4edceaa659e8cb326e36b",
+  "tag": "statblock.bandit-leader",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"bandit leader\" from the pages below.\n"
+      },
+      {
+        "text": "[page 29]\nThe Chaotic Caves The Caves\nF. BANDIT LAIR\nThis lair has two entrances: see locations #32\nand #42 on the map. Both are out of sight\nfrom each other in the woods. The denizens of\nthis lair are bandits. They might try to trick an\nadventuring party with clever guises (like\nposing as soldiers sent to help clear-cut the\nmonsters), but they will ambush and attack if\nthey get a chance. They are allies to those in\nthe abandoned mansion fort (see Part Two),\nbut unless interrogated or something odd\nhappens, they will not give that away.\n32. EAST ENTRANCE: Four humans and a dwarf\nstand guard here; on hot days they take cover\njust inside the cave entrance. They each have\na crossbow and a case of bolts which are\ntraded out as the guard changes. Each has\n1d6+6 sp on their person. At night, a dozen\ntorches will be kept just inside the entrance\nalong with a covered bowl of hot coals.\nBandit, Dwarf Fighter 1: AC 13, AB +1, \n#At 1 shortsword or 1 light crossbow, Dam 1d6, \nMv 30', Sv F1D, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐\n4 Bandits, Human Fighter 1: AC 13, AB +1, \n#At 1 shortsword or 1 light crossbow, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n33. COMMON ROOM: Six human fighters are\nbunked here, amid furniture that is light and\neasy to break down and move, but not very\nsturdy. Each has 1d6+6 sp on their person.\nThe room is lit by two common oil lamps\n(wooden bowls with a notch for a wick). Oil is\nbrought in with a wooden cup when needed.\n6 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n34. LOCKED STORE ROOM: The door to this\nroom is heavy and locked; knocking it in will\ntake some time. The deputy to the leader (in\nroom #41) usually has the key. This room\ncontains provisions and loot from raids. A well\nhas been driven down for water, and barrels of\nbeer, bags of grains, vegetables, and other\nsundries can be found. A large clay jug holds\neight gallons of lantern oil and there are three\ndozen torches. \n35. COMMON ROOM: Six bandits reside here.\nEach has 1d6+6 sp on his or her person. The\nroom is lit by two common oil lamps (wooden\nbowls with a notch for a wick). Oil is brought\nin with a wooden cup when needed. \n6 Bandits: AC 13, F 1, #At 1 shortsword, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n36. LEADER'S ROOM: The bandit leader (a\nfighter) is here. He wields a longsword +1,\nwears chainmail +1, and is carrying a shield.\nTwo of his main cronies are also here, each\nwearing normal chain mail. The three of them\nare sitting at a table looking at a map of the\ngeneral area with notes about best prospects\nfor ambushing traders. This room features a\nlantern on a swinging hook and a gallon of\nlantern oil in a wooden jar. The lantern has a\ncontinual light spell cast inside it; it is kept\nfueled in case it is dispelled or countered by a\ncontinual darkness spell. The captain has the\nkey to the storage room at #40.\nUnder the table is a locked strong box\ncontaining 500 gp, 1,000 sp, and 2,000 cp. The\ncaptain has the key to it stuffed in one boot.\nHe has a ring of keys that go to the dungeon\ndoors at #38 on his belt.\nBandit Leader, Human Fighter 4: AC 16 (17), \nAB +3 (+4 with magic longsword), \n#At 1 longsword +1, Dam 1d8+1, Mv 30', Sv F4, \nML 8, XP 240\nHP 16 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐\n2 Bandit Cronies, Human Fighter 2: AC 15, \nAB +2, #At 1 shortsword, Dam 1d6, Mv 20', \nSv F2, ML 8, XP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 8 ☐☐☐☐☐ ☐☐☐\n27"
+      },
+      {
+        "sha256": "a321ba52d68467cbd1b808359f837068e3f457dcfb571cbce6dd30e2a01782c9",
+        "bytes": 519082
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      },
+      {
+        "text": "[page 16]\nThe Town and Surroundings The Chaotic Caves\nAll of the horses and wagons belong to the\nmerchants inside. If rescued, the owners will\nbe grateful and offer a 500 gp reward, which is\nmost of the money they have with them. They\nwere moving their small household when\nambushed. \nIf the PCs kill or rob the merchants, there is a\ngood chance they will later be recognized and\nreported as bandits if they keep the wagons\nand horses and remain in the area.\nThe horses are detailed in case they become a\ntarget.\nBandit Leader, Human Fighter 2: AC 15, AB +2, \n#At 1 shortsword, Dam 1d6, Mv 20', Sv F2, ML 8,\nXP 75\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n9 Bandits, Human Fighter 1: AC 13, AB +1, \n#At 1 shortsword, Dam 1d6, Mv 30', Sv F1, ML 8,\nXP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐ 4 ☐☐☐☐\n2 Dogs: AC 14, HD 1+1, #At 1 bite, Dam 1d4 + \nhold, Mv 50', Sv F1, ML 9, XP 25 ea.\nHP 6 ☐☐☐☐☐ ☐ 4 ☐☐☐☐\n6 Riding Horses: AC 13, HD 2, #At 2 hooves, \nDam 1d4 hoof, Mv 80' (10'), Sv F2, ML 7, \nXP 75 ea.\nHP 8 ☐☐☐☐☐ ☐☐☐ 7 ☐☐☐☐☐ ☐☐\n6 ☐☐☐☐☐ ☐ 6 ☐☐☐☐☐ ☐\n5 ☐☐☐☐☐ 4 ☐☐☐☐\n3. HALFLING HOME (See the Miscellaneous\nMaps): The party comes across what was once\na Halfling farm and orchard. From all evidence,\nthis was abandoned decades ago. It is now\ngrown over with brush, weeds, and trees. The\nmain buildings are built like a burrow, with\nonly the round front door and round windows\n(shown as circles on the maps) exposed. The\nrest is buried underneath a dozen feet of earth.\nThe ceilings are uniformly 6 feet high. The\nfloors and walls are stone; the ceilings are\nmade of and held up by heavy timbers.\nCobwebs and dirt clutter all the inner rooms.\nOnly the windows provide light inside. The\nwindows are filthy from decades of neglect.\nThey are composed of multiple panes of glass\nwith wooden framework, but exact details are\nleft to the GM's imagination.\nH1. FRONT DOOR: A large, round green door\ngreets visitors. The door is locked, but is old\nand rotten, and can be easily knocked in.\nH2. LIVING ROOM: The main living room, with a\nfireplace in the south wall and a round window\nabout 4' in diameter in the north. There is no\nfurniture here. Searching the fireplace for\nloose stones will reveal a small, secret niche\n(about 1' squared) off to one side which\ncontains an old, ornate jewelry box. Inside are\n100 gp, a gem worth 250 gp, and a large silver\nhat pin that was once magical but is not any\nlonger.\nThe stink of death is here. A long-dead body\nclad in old, rotten leather armor lies mauled in\nthe center of the room. It has a silver dagger\nin a belt sheath, 2 vials of holy water, 1 Potion\nof Healing, and a leather pouch with 3 cp.\nA tentacle worm lurks in the dark, scuttling to\nany sounds that occur in adjacent rooms, such\nas the sound of the front door being knocked\nin.\nTentacle Worm: AC 13, HD 3*, #At 6 tentacles, \nDam paralysis, Mv 40', Sv F3, ML 9, XP 175\nHP 12 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐\nH3. DINING ROOM: This 15 x 17 foot room has\ntwo round windows in the north wall. The\ncolor of the floor and shapes in the dust\nindicate that tables and chairs were once\nplaced in the light of the windows.\nH4. KITCHEN: A stone stove rests against the\nnorth wall with a chimney going out the roof\n(with a flue about 1 foot square). There are no\nother furnishings. A round window about 4\nfeet in diameter is in the northwest corner (the\nglass is broken out). A pool of slimy green\nwater is running down the sill of the window to\nthe floor (it looks exactly like a green slime\nmonster but is not one).\nH5, H6, H7. BEDROOMS: Empty of even\nfurniture. Each has a round window about 4' in\ndiameter in the south wall (in the southwest\ncorner of H7).\n14"
+      },
+      {
+        "sha256": "61198487e9f4ca07389f05e00a2ee4ba4576581741bbff3aedf00d90988b3d2d",
+        "bytes": 508458
+      },
+      {
+        "text": "[page 30]\nThe Caves The Chaotic Caves\n37. STABLES: The bandits keep their animals\nhidden here, taking them out to browse during\nthe day. The dotted lines are wooden fences,\nwith gates where needed. \nIn the stalls are two riding horses, two mules,\nand two cows. A wagon, two saddles and\nbridles, and two sets of saddle bags can be\nfound in one corner. The wagon also holds\nseveral large bags of grain, buckets, and other\nitems.\n38. DUNGEON: This is a holding area for\ncaptives and anyone the captain wants to\nthrow into irons. The captain currently has the\nkeys with him in room #36. The contents of\nthe cells are as follows:\nCell \"a\" has three merchants. They are\nnoncombatants and (if rescued and returned to\ntown) one offers a necklace with gems worth\n100 gp, while the other two offer 100 gp each.\nCell \"b\" is empty.\nCell \"c\" contains a recalcitrant bandit, who was\nput here for pilfering and bad-mouthing\neveryone. She knows no boundaries and will\nattempt to get into anyone's good graces\n(posing as the guard of a merchant), only to\nsteal what she can and run off. She has no\narmor and no weapon.\nBandit: AC 11, HD 1, #At 1 fist, Dam 1d3, Mv 40', \nSv F1, ML 8, XP 25\nHP 4 ☐☐☐☐\nCell \"d\" holds three jars of good wine, two jars\nof cheap wine, and a dozen bottles of ale in a\nbox.\nCell \"e\" is empty.\n39. GUARD POST: Three men are always posted\nhere to guard the main loot, with strict\ninstructions as to who to let in. Each has 1d6 +\n6 sp on their person. A common oil lamp\n(wooden bowl with wick) provides light.\n3 Bandits: AC 13, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐\n40. TREASURE ROOM: The best loot is stored\nhere behind a strong, locked door. The bandit\ncaptain in #36 keeps the key. The contents are\nas follows:\n• 10 silver cups worth 10 gp each (100 gp\ntotal)\n• 10 silver plates worth 25 gp each\n(finely engraved and decorated) (250\ngp total)\n• 10 forks and 10 spoons of silver worth\n5 gp each (100 gp value)\n• 1 dress worth 250 gp\n• 3 dresses worth 100 gp each\n41. BANDIT LIEUTENANT: These quarters are\nshared by the bandit leader's deputy and\ncronies (usually the cronies are with the\nleader, see room #36). The lieutenant is an\nElven Thief wearing leather armor and carrying\na dagger and shortsword. A shortbow and\nquiver of arrows is hung on a peg by the door.\nThe main room has tables, couches, and\nfurnishings and items for normal living. The\nthree back rooms (41a, 41b, and 41c, labeled for\nthe GM's convenience) contain beds and other\nitems for personal use. All furniture here is\ncrude and hand made from materials found in\nthe immediate area, not brought by the\nbandits. Each room has a plain oil lamp\n(wooden bowl with notch for wick) and the\nmain room has a wooden jug with a quart of\noil.\nElven Thief 3: AC 14 due to dexterity, \n#At 1 shortsword or 1 shortbow, Dam 1d6, \nMv 30', Sv E-T3, ML 8, XP 145\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n28"
+      },
+      {
+        "sha256": "c2577d0670e6f8b1234be959cfa5b65e17c1dbb195ed68c37cd04187bfbc380e",
+        "bytes": 432319
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "16 (17)",
+      "ac_notation": "ascending",
+      "thac0": "+3 (+4 with magic longsword)",
+      "hit_dice": null,
+      "class_level": "Human Fighter 4",
+      "hp": 16,
+      "attacks": [
+        "1 longsword +1"
+      ],
+      "movement": "30'",
+      "saves": "F4",
+      "morale": 8,
+      "alignment": null,
+      "xp": 240,
+      "number_appearing": "1",
+      "special": [],
+      "confidence": 0.97,
+      "source_pages": [
+        29
+      ]
+    },
+    "usage": {
+      "input_tokens": 7844,
+      "output_tokens": 115
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

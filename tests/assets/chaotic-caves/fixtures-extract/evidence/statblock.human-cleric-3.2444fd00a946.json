@@ -170,7 +170,7 @@
         "1 mace, Dam 1d8+1",
         "1 mace, Dam 1d8-1"
       ],
-      "movement": "20'",
+      "movement": "20'; 10'",
       "saves": "Sv C3",
       "morale": 9,
       "alignment": null,
@@ -182,18 +182,18 @@
         "Magic Items: 2 Potions of Healing",
         "STR 15 (+1)",
         "wearing plate mail and wielding mace and shield",
+        "STR 8 (-1), CHA 7 (-1)",
         "Spells: 1st level – cure light wounds, light",
-        "Magic Items: Potion of Healing, Potion of Invisibility",
-        "STR 8 (-1), CHA 7 (-1)"
+        "Magic Items: Potion of Healing, Potion of Invisibility"
       ],
-      "confidence": 0.8,
+      "confidence": 0.98,
       "source_pages": [
         45
       ]
     },
     "usage": {
-      "input_tokens": 3433,
-      "output_tokens": 220
+      "input_tokens": 3431,
+      "output_tokens": 222
     },
     "model_id": "gpt-5.4-2026-03-05"
   }

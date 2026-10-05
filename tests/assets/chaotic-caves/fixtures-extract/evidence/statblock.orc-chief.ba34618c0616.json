@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "fingerprint": "ba34618c0616a91d189b460583bbf69036c1721cb505199b3869b2990803d640",
+  "tag": "statblock.orc-chief",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"orc chief\" from the pages below.\n"
+      },
+      {
+        "text": "[page 23]\nThe Chaotic Caves The Caves\n(potatoes, etc.) and hanging meat (12 – 72\npounds each of veggies and meat).\n8 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4. WOLF PEN. Both ends of this area are\nblocked by a wooden fence spanning the\ncomplete width and height of the halls; in the\ncenter of each is a wooden gate about 3' wide\nand 6' high, lashed shut by rope. Inside are\nthree wolves. They are usually alert and will\nset up a clamorous barking and howling if they\nhear or smell careless parties, resulting in a\nchance of attracting orcs to see what is going\non (use the wandering orc concept explained at\nthe start of the lair for the chance and number\nof orcs). Make a \"hear noise\" roll to see if the\njailers in #5 below hear and investigate as well.\nThe soft earthen floor of the room is littered\nwith wooden bowls full of water, bones, and\noffal, but nothing else.\n3 Wolves: AC 13, HD 2, #At 1 bite, Dam 1d6, \nMv 60', Sv F2, ML 8, XP 75 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n8 ☐☐☐☐☐ ☐☐☐\n7 ☐☐☐☐☐ ☐☐\n5. DOOR TO JAIL: Behind this door are the\nquarters for the big, sweaty orc who serves as\nthe warden of the jail (and also chief torturer)\nand two assistants. The key to the jail door is\nusually hung on a hide cord on the wall. Crude\nfurniture and various simple wooden or stone\ninterrogation devices fill the room. The warden\nhas 1d6 gp and the other two orcs 1d6 sp.\nOrc Warden: AC 14, HD 2, #At 1 longsword, \nDam 1d8+1 for strength, Mv 30', Sv F2, ML 8, \nXP 75\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n2 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐ \nJAIL AREA: The locked door to the east opens\ninto the jail, where anyone captured will be\nheld. Currently there is a merchant who is a\nnormal man (bedraggled and missing a finger,\nwhich was sent off with a ransom note). If\nsaved, he will give the party what he has at his\nhome (100 gp; it is obvious the orcs think he's\nricher than he is). \nMerchant: AC 11, HD ½ (1d4 HP), #At 1 fist, \nDam 1d3, Mv 40', Sv NM, ML 7, XP 10\nHP 3 ☐☐☐\n6. CHIEF'S ROOM: The strong, shrewd leader of\nthe orcs resides here, sitting on a large,\nheavily-built throne when judging court. The\nsub-room to the south contains a bed and\nother personal furniture. His pets are also\nhere: a mountain lion and two wolves. The\ntawny cat wears a collar with gems (100 gp\nvalue for the gems) that is connected to a\nstrong steel chain. The chain is usually\nattached to a steel hoop on the base of the\nthrone; the chain can be released quickly. The\nwolves wear ordinary heavy leather collars, and\nare usually chained to the wall beside the door.\nUsually there are four orcs: two are here on\npermanent duty and two more to serve as\nmessengers and go-fers. The chief has the key\nto the west temple door (see room #9).\nOrc Chief: AC 15, HD 4, #At 1 longsword, \nDam 1d8+1 due to Strength, Mv 20', Sv F4, \nML 8, XP 240\nHP 18 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\nMountain Lion: AC 14, HD 3+2, #At 2 claws, \n1 bite, Dam 1d4 claw, 1d6 bite, Mv 50', Sv F3, \nML 8, XP 145\nHP 14 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐\n2 Wolves: AC 13, HD 2, #At 1 bite, Dam 1d6, \nMv 60', Sv F2, ML 8, XP 75 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n9 ☐☐☐☐☐ ☐☐☐☐\n4 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n21"
+      },
+      {
+        "sha256": "9ea8edd51f2e7e20d4072b0b9df8fdc6fbe298466631c35b22350a87e4c7983e",
+        "bytes": 454797
+      },
+      {
+        "text": "[page 24]\nThe Caves The Chaotic Caves\nThe throne is the treasure chest. There is a\nsilk pillow on it which is worth 200 gp. Under\nthe flip-up seat is: 671 gp, 1,235 sp, and 785 cp.\nA stoppered flask in a padded jar contains a\nPotion of Passwall – which replicates the\neffect of the 5th-level Magic-User spell of that\nname when poured onto an appropriate\nsurface.\n7. COMMON ROOM/GUARD ROOM: Several orcs\nare housed here as a guard post against those\nin lair B. Each has 1d6 sp. The room is\ncluttered with crude furniture and common\nfoods stuffs, some in bags, some in the form of\ndried meats hanging on strings.\n4 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n8. POOLS: These pools of water are fed by\nunderground springs. They provide a year\u0002round source of fresh water. They are 6' deep\nand clean, but otherwise not unusual.\n9. SHARED HALLWAY: At each end of this\nhallway is a heavy, thick wooden door bound\nby strong steel bands, with crafty and heavy\nlocks. Each of the orc chiefs (rooms #6 and\n#13) has the key to the opposite side. They\nmust cooperate to enter the temple.\nSet here as temple guards, the orcs on either\nside have been fighting so savagely for the\naffections of the god in the temple that a high\npriest had the doors locked. She gave the keys\nto the chiefs, with the admonishment that any\nfurther monkey business was not going to be\ntolerated. \n10. ORC TEMPLE: This temple was carefully\ncut from the living stone and is well\u0002maintained. The four pillars are fluted and\nornate; the floor is tiled with polished green\nand red marble. The ceiling sweeps up some\n20' high. On a dais some 6' above the floor is\nthe statue of a vindictive, evil orc god. It is\ncarved from a single shining piece of black\nbasalt, standing 12' high. It has two red gems\nfor eyes (each worth 250 gp). Steps are not\nprovided for getting atop the dais; no one is\nsupposed to stand on it.\nB. ORC LAIR\nThese orcs share (with those at lair A above)\nthe duty of guarding the local orc temple from\nintruders. They have a cruel sense of humor.\nThere is a 1-2 on 1d6 chance per hour (6 turns)\nthat the player characters will encounter 1d6\norcs while exploring the caves.\n1d6 Wandering Orcs: AC 14, HD 1, #At 1 spear, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nENTRANCE: Four orcs are immediately inside in\nthe first chamber, along with a hobgoblin that\nwent looking for greener pastures and latched\nonto the orcs. Each has 1d6 sp.\n4 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\nHobgoblin: AC 14, HD 1, #At 1 scimitar, Dam 1d8,\nMv 30', Sv F1, ML 8, XP 25\nHP 5 ☐☐☐☐☐\n11. SECRET SAFE ROOM: Only the orc chief in\nroom #13 knows of this secret room. Both of\nthe secret doors that enter into it are so well\u0002hidden that even close scrutiny has a low\nchance of finding them. Each is also trapped\nin two ways: when opened without disarming\nthe traps, (1) a bladder of gas will release,\ncausing anyone within 10' to make a save vs.\nPoison or fall asleep for 1d6 hours. And (2) an\nalarm bangs away loudly for a minute in the\norc chiefs quarters. Stashed in the main\nchamber is a sword, a pouch with 25 gp, food,\nand flint and steel, a skin of water, a cot, and a\ncloak.\n12. GUARD POST: Two orcs with spears and\nhand axes stand on guard duty at this door.\nEach has 1d6 sp. The short corridor between it\nand the next room provides a buffer zone in\ncase of attack.\n2 Orcs: AC 14, HD 1, #At 1 spear or 1 hand axe, \nDam 1d6, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n22"
+      },
+      {
+        "sha256": "b0e7046e6fe09505fb8ec6167965e960ee2fb19b0f09abfe4cccd98a9ca69b91",
+        "bytes": 528515
+      },
+      {
+        "text": "[page 25]\nThe Chaotic Caves The Caves\n13. CHIEF'S QUARTERS: The wily orc chief\nresides here. A war leader and a couple of\ncommon orcs are also usually found here.\nThe chief has a key that opens the eastern\ntemple door at room #9 attached to a necklace\nof long pencil-thin gold bars (value 100 gp).\nTreasure is housed in a locked chest with a gas\ntrap inside it. The trap is released when it is\nopened, unless some long pencil-sized object\nis inserted into a hole in back (the chief's\nnecklace is used for this). The gas will affect a\n10' area around the chest (save vs. Poison or\ndie; alternately the GM may substitute a\nsimilarly-nasty effect of his or her own\ndevising). In the chest are 800 gp, 500 ep,\n700 sp, and a Potion of Healing.\nThis room contains various bits of stout\nwooden furniture. Under a heavy chair in the\nnortheast corner is the alarm bell that rings if\neither of the trapped secret doors in room #11\nis opened without disarming it first.\nOrc Chief: AC 15, HD 4, #At 1 longsword, \nDam 1d8+2, Mv 20', Sv F4, ML 9, XP 240\nHP 18 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐\nOrc War Leader: AC 14, HD 2, #At 1 longsword, \nDam 1d8+1, Mv 30', Sv F2, ML 9, XP 75\nHP 10 ☐☐☐☐☐ ☐☐☐☐☐\n2 Orcs: AC 14, HD 1, #At 1 longsword, Dam 1d8, \nMv 30', Sv F1, ML 8 (9 while chief and/or leader\nare present), XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n14. COMMON ROOM: This trash-littered room\nhouses nine orcs. They are currently throwing\nrocks at one who is standing against a wall.\nSeveral others are bruised. The game is to see\nwho can take the most beating before\nflinching. Each has 1d6 sp.\n9 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 3 ☐☐☐\n4 ☐☐☐☐ 3 ☐☐☐\n4 ☐☐☐☐ 2 ☐☐\n4 ☐☐☐☐\n15. COMMON ROOM: This room houses seven\norcs. It is cluttered by miscellaneous debris\nthat they have torn up and discarded, as well\nas firewood and stone circles for cooking.\nHidden in a hole in the northeast corner\n(covered by a stack of fireplace rocks and a\nfoot of earth) is a bag with 10 pp and 400 sp.\n7 Orcs: AC 14, HD 1, #At 1 spear, Dam 1d6, \nMv 30', Sv F1, ML 8, XP 25 ea.\nHP 4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐ 4 ☐☐☐☐\n4 ☐☐☐☐\nC. HOBGOBLIN LAIR\nThese hobgoblins have taken over what was\ngoing to be an expansion of the funeral crypt at\nD and are renovating it. The interior is a\nmixture of smooth stone where the original\ncarvers completed their work, rough unfinished\nwork where they left off, and some work by\nthe hobgoblins.\nENTRANCE: Twin entrances lead into the first\nchamber where five hobgoblins are bunked on\nguard duty. Each has 1d6 sp.\nAt \"A\" is a wide underground stream being\nused as a moat. Wooden planks about 15' long\n(used to cross it) are stored on the opposite\nside. A loud horn (from an ox) hangs on a peg\nand can be blown to attract someone to come\nput planks across (the hobgoblins at #17 are\ntasked for the job). Other methods can be\nused to cross it; if the players engage in a\nlengthy debate or over-elaborate plan to cross,\nroll 1d6 and on a 5 or 6 two hobgoblins from\n#17 appear to interrupt.\nIn the northwest corner at \"C\" is a crude hide\npainted to resemble stone used for laying\nambushes (i.e. hiding behind the hide and\nletting people get inside the room, then rushing\nout to attack).\n5 Hobgoblins: AC 14, HD 1, #At 1 scimitar, \nDam 1d8, Mv 30', Sv F1, ML 8, XP 25 ea.\nHP 5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐ 5 ☐☐☐☐☐\n5 ☐☐☐☐☐\n23"
+      },
+      {
+        "sha256": "2b6f9df6ce935538fdd3d53f5c076f5d052e276d7eaeeb35407ac7b46732f0ed",
+        "bytes": 488590
+      },
+      {
+        "text": "[page 38]\nThe Caves The Chaotic Caves\n36"
+      },
+      {
+        "sha256": "5eaeb1cacc02daa08b5ce925ab2f4d999d1eac0b35e0101deb10ee6ec0dd8eef",
+        "bytes": 722052
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "15",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "4",
+      "class_level": null,
+      "hp": 18,
+      "attacks": [
+        "1 longsword"
+      ],
+      "movement": "20'",
+      "saves": "Sv F4",
+      "morale": 8,
+      "alignment": null,
+      "xp": 240,
+      "number_appearing": null,
+      "special": [
+        "Dam 1d8+1 due to Strength"
+      ],
+      "confidence": 0.98,
+      "source_pages": [
+        23
+      ]
+    },
+    "usage": {
+      "input_tokens": 8289,
+      "output_tokens": 111
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}

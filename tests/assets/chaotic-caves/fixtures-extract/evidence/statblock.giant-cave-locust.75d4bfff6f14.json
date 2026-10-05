@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "fingerprint": "75d4bfff6f14a1953eb45c26c24b5b3ed107257b1b3ecc910c3fbd0f287af83a",
+  "tag": "statblock.giant-cave-locust",
+  "request": {
+    "system": "You transcribe one creature's printed stat block from tabletop adventure module pages. The user message names the creature, then interleaves each page's extracted text (each headed by a [page N] marker) with that page's image — check the images too: tabular stat blocks often scramble in the extracted text.\n\nRules:\n- Transcribe, never convert. Copy each value as the page prints it, in its printed notation. Do not derive missing values, translate between editions or armour-class systems, or fill gaps from your own knowledge of any game. A value the pages don't print is null.\n- \"found\" is whether the pages print a stat block (or an inline stat line) for this creature. When false, leave every other field null or empty.\n- \"ac\" is the armour-class value exactly as printed; \"ac_notation\" classifies the printed system: \"descending\" (classic, lower is better), \"ascending\" (modern, higher is better), or \"dual\" (both printed, like \"5 [14]\").\n- A Hit Dice line as printed goes in \"hit_dice\" (\"3+1\", \"1-1\", \"½\", \"2d8\"); a class-and-level designation (\"F 3\", \"3rd-level cleric\", \"Thief 2\") goes in \"class_level\". Use whichever the block prints; both null means the block states neither.\n- \"thac0\" is the printed to-hit line, keeping its notation (\"17\", \"19 [+0]\", \"+2\").\n- \"attacks\" keeps one entry per printed attack line, with counts and damage as printed (\"2 claws (1d4 each)\", \"1 bite (1d6 + poison)\").\n- \"movement\" is the printed movement line (\"120' (40')\", \"Fly 180' (60')\", \"30 ft.\").\n- \"saves\" is the printed saving-throw line, whatever its form (\"D12 W13 P14 B15 S16 (2)\", \"save as F2\", \"Fort +2, Ref +4, Will +1\").\n- \"special\" keeps one entry per printed special-ability line or note.\n- \"number_appearing\" is the printed number-appearing value (\"1d6 (2d6)\", \"2-8\").\n- \"source_pages\" refer to the [page N] markers in this request, never to page numbers printed on the pages.\n- \"confidence\" is your self-assessment in [0, 1] of how faithfully you transcribed the block.\n",
+    "parts": [
+      {
+        "text": "Transcribe the printed stat block for the creature \"giant cave locust\" from the pages below.\n"
+      },
+      {
+        "text": "[page 19]\nThe Chaotic Caves The Town and Surroundings\nC3. GRAY JELLY'S POOL: Bones litter this wide,\n3'-deep pool. The ogre occasionally takes body\nparts and throws them in to watch the gray\njelly inside it devour them. A plant-fiber cord\nis tied to a heavy rock on the edge of the pool.\nThe cord has prickly spines along its length to\nkeep the ooze away from it. Tied to the other\nend is a heavy glass bottle that the ogre has\nthrown in the pool; it has 23 pp and 42 gp in it.\nGray Jelly: AC 12, HD 3*, #At 1 pseudopod, \nDam 2d8, Mv 1', Sv F3, ML 12, XP 175\nHP 14 ☐☐☐☐☐ ☐☐☐☐☐ ☐☐☐☐\nC4. STEPS: Rough natural steps go down\nsharply some 20' in elevation to the north.\nThey are coated in harmless slime.\nC5. STEPS: Rough natural steps descend\nsharply (some 20' in elevation) to the north.\nSlime and pebbles coat them.\nC6. SLOPE DOWN: This slope goes down 30'.\nC7. STIRGE ROOKERY: A long, narrow hole in\nthe ceiling winds up some 30' to the forest\nfloor above. Around noon light will come down\nin a dull glow through it. Hanging on the\nceiling here are a dozen or so stirges. About\n1d6 will attack the party each round. The\nground is cluttered with feces and leaves.\nWorms wiggle in the leaves. Buried under the\nmuck is a wooden chest with the ogre's (see\nroom C2) valuables: a Potion of Healing, a\nPotion of Clairvoyance, 124 gp, and 848 sp.\n12 Stirges: AC 13, HD 1*, #At 1 bite, Dam 1d4 + \n1d4/round blood drain, Mv 10' Fly 60', Sv F1, \nML 9, XP 37 ea.\nHP 7 ☐☐☐☐☐ ☐☐ 4 ☐☐☐☐\n6 ☐☐☐☐☐ ☐ 4 ☐☐☐☐\n5 ☐☐☐☐☐ 3 ☐☐☐\n5 ☐☐☐☐☐ 3 ☐☐☐\n4 ☐☐☐☐ 2 ☐☐\n4 ☐☐☐☐ 1 ☐\nC8. ORNATE ROOM: A smashed-in door opens\ninto a room carved out by human hands. It is\nfurnished with a table, chairs, and a single\nskeletal figure sitting in a chair at the far end\nof the table. On the table are 6 silver cups\n(worth 20 gp each) and a golden chalice with\ngems (worth 200 gp). The ogre, deathly afraid\nof the room, will make an evil-eye sign if\nanyone gets near this.\nC9. CAVE-IN TRAP: Noise and movement from\nthe party will cause part of the fragile ceiling\nto collapse atop the first two or three party\nmembers. Each will be attacked by a 2\nHD monster taking 1d6 points of damage if hit\n(make the attack as a 4 HD monster if they do\nnot have a helmet). The collapse will block the\nhallway, requiring a half-hour's work to clear it.\nC10. CAVE CRICKETS: Fungus and moss cover\nthe floor and walls of this room. Cave locusts\nprowl here and will jump wildly if spooked.\n6 Giant Cave Locust: AC 16, HD 2**, #At 1 bite \nor 1 bump or 1 spit, Dam 1d2 bite, 1d4* bump, \nor save vs Poison or be unable to move or act \nfor 3d6 rounds from spit, Mv 20' Fly 60' (15'), \nSv F2, ML 5, XP 125 ea.\nHP 9 ☐☐☐☐☐ ☐☐☐☐ 6 ☐☐☐☐☐ ☐\n9 ☐☐☐☐☐ ☐☐☐☐ 5 ☐☐☐☐☐\n8 ☐☐☐☐☐ ☐☐☐ 5 ☐☐☐☐☐\nC11. POOL OF WATER: A clear pool of water\nwith a frog, a few small fish, and crayfish fills\nmuch of this chamber. Under the mud and\nmuck of the bottom is a bone tube with a\nClerical Scroll of Cure Light Wounds. There is\nalso a rotten pouch with 500 sp and a sea\nsnake curled up to strike anyone probing\naround. A rough iron ladder leads up into the\nceiling. It goes up through a tight hole (3'\nwide) and exits in the woods 30' overhead.\nSea Snake: AC 14, HD 3*, #At 1 bite, Dam 1 + \npoison (save at -4), Mv 10' Swim 30', Sv F3, \nML 7, XP 175\nHP 9 ☐☐☐☐☐ ☐☐☐☐\n17"
+      },
+      {
+        "sha256": "8f410ebc0344fd23ca300a8bc7b3b8d0a440e4e86be1a1ab00103eb7e377bdaa",
+        "bytes": 470029
+      },
+      {
+        "text": "[page 21]\nThe Chaotic Caves The Town and Surroundings\nMiscellaneous Maps\n19"
+      },
+      {
+        "sha256": "3102a1d0e21bee9266e7ff4a219892e6084adbabe09e0c7885609fed4154aeba",
+        "bytes": 212238
+      }
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "ac": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ac_notation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "descending",
+            "ascending",
+            "dual",
+            null
+          ]
+        },
+        "thac0": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hit_dice": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "class_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "attacks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "movement": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "saves": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "morale": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2,
+          "maximum": 12
+        },
+        "alignment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "xp": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "number_appearing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "special": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source_pages": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "ac",
+        "ac_notation",
+        "thac0",
+        "hit_dice",
+        "class_level",
+        "hp",
+        "attacks",
+        "movement",
+        "saves",
+        "morale",
+        "alignment",
+        "xp",
+        "number_appearing",
+        "special",
+        "confidence",
+        "source_pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "response": {
+    "data": {
+      "found": true,
+      "ac": "16",
+      "ac_notation": "ascending",
+      "thac0": null,
+      "hit_dice": "2**",
+      "class_level": null,
+      "hp": 9,
+      "attacks": [
+        "1 bite or 1 bump or 1 spit, Dam 1d2 bite, 1d4* bump, or save vs Poison or be unable to move or act for 3d6 rounds from spit"
+      ],
+      "movement": "20' Fly 60' (15')",
+      "saves": "Sv F2",
+      "morale": 5,
+      "alignment": null,
+      "xp": 125,
+      "number_appearing": null,
+      "special": [],
+      "confidence": 0.98,
+      "source_pages": [
+        19
+      ]
+    },
+    "usage": {
+      "input_tokens": 3848,
+      "output_tokens": 153
+    },
+    "model_id": "gpt-5.4-2026-03-05"
+  }
+}
