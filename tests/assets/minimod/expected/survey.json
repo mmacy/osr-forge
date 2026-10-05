@@ -5,6 +5,7 @@
   "hooks": [
     "Old Wenna's farmhouse burned down a generation ago, but her famous root cellar survives beneath the ruin, and lately things have been crawling out of it at night."
   ],
+  "party": null,
   "town": {
     "name": "Wennadale",
     "description": "A village of forty souls.",

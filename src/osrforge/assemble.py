@@ -45,7 +45,7 @@ from osrlib.core.monsters import (
     TreasureRef,
 )
 from osrlib.core.tables import EncounterTable, MonsterEncounterEntry, monster_save_band_label, monster_xp, thac0_for_hd
-from osrlib.crawl.adventure import Adventure, TownSpec, validate_adventure
+from osrlib.crawl.adventure import Adventure, PartySpec, TownSpec, validate_adventure
 from osrlib.crawl.dungeon import (
     AreaSpec,
     AreaTreasureSpec,
@@ -116,6 +116,7 @@ __all__ = [
     "parse_treasure",
     "render_previews",
     "resolution_suspects",
+    "resolve_party",
     "usable_stat_block",
 ]
 
@@ -1190,6 +1191,59 @@ def _tombstone(address: str, survey_pages: tuple[int, ...], content: AreaContent
     )
 
 
+def resolve_party(index: SurveyIndex, override: ModuleOverride | None) -> PartySpec | None:
+    """Return the party the draft's [`Adventure.party`][osrlib.crawl.adventure.Adventure.party] gets.
+
+    [`build_draft`][osrforge.assemble.build_draft] calls this with the survey
+    cache and the plan's `module:` override. When the override has no
+    `party` field, or there is no override, the result is the survey's
+    [`SurveyIndex.party`][osrforge.contracts.stages.SurveyIndex.party]. When
+    the override sets `party`, its value replaces the survey's whole: a
+    [`PartySpec`][osrlib.crawl.adventure.PartySpec] is used as given, and an
+    explicit `null` gives `None` even when the survey found a party. A
+    `module:` override that sets only `party` counts as taking effect, so
+    [`plan_overrides`][osrforge.overrides.plan_overrides] accepts it. No flag
+    records a defaulted or missing party: `None` is the honest reading of a
+    module that states none.
+
+    Args:
+        index: The survey cache.
+        override: The plan's `module:` override, or `None` when the
+            correction file has none.
+
+    Returns:
+        The party for the draft, or `None` when neither the survey nor the
+        override supplies one.
+
+    Examples:
+        ```python
+        from osrlib.crawl.adventure import PartySpec
+
+        from osrforge.assemble import resolve_party
+        from osrforge.contracts.overrides import ModuleOverride
+        from osrforge.contracts.stages import SurveyDungeon, SurveyIndex, SurveyLevel, TownInfo
+
+        index = SurveyIndex(
+            title="The Barrow",
+            hooks=(),
+            party=PartySpec(min_level=1, max_level=3),
+            town=TownInfo(name="Riverton", description=""),
+            dungeons=(
+                SurveyDungeon(
+                    id="barrow", name="The Barrow", levels=(SurveyLevel(number=1, map_pages=(), areas=()),)
+                ),
+            ),
+            monster_names=(),
+        )
+        print(resolve_party(index, None))
+        # min_level=1 max_level=3 min_size=None max_size=None
+        print(resolve_party(index, ModuleOverride(party=None, reason="The module states no party.")))
+        # None
+        ```
+    """
+    raise NotImplementedError("chunk: assemble-party")
+
+
 def build_draft(
     index: SurveyIndex,
     levels: tuple[LevelContent, ...],
@@ -1201,6 +1255,10 @@ def build_draft(
     suspects: Mapping[str, str] | None = None,
 ) -> DraftResult:
     """Build the draft adventure and per-area reports from validated caches plus overrides — pure.
+
+    The draft's `Adventure.party` is
+    [`resolve_party`][osrforge.assemble.resolve_party] of `index` and the
+    plan's `module:` override.
 
     Args:
         index: The survey cache.

@@ -1,7 +1,7 @@
 """Stage 1: the survey pass — one structured-output request over the whole module, or chunked page windows.
 
-The survey identifies title, hooks, town info, dungeons, levels, keyed areas
-with page locations, and every monster name — the index that plans the content
+The survey identifies title, hooks, the party the module is written for, town
+info, dungeons, levels, keyed areas with page locations, and every monster name — the index that plans the content
 passes. Normalization to canonical ids and keys happens here, at the source:
 `contracts/report.py` pins the address grammar, and the content stage's cache
 filenames and per-batch key enums need canonical forms before content runs.
@@ -29,8 +29,10 @@ eval sweep — see [the re-record rule][the-re-record-rule] before changing one.
 import copy
 import re
 import unicodedata
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, cast
+
+from osrlib.crawl.adventure import PartySpec
 
 from osrforge.contracts.run import Stage
 from osrforge.contracts.stages import (
@@ -50,6 +52,7 @@ from osrforge.workdir import Workdir, track_stage, write_json_artifact
 __all__ = [
     "CENSUS_SCHEMA",
     "CENSUS_SYSTEM",
+    "PARTY_SCHEMA",
     "SURVEY_SCHEMA",
     "SURVEY_SYSTEM",
     "build_census_request",
@@ -61,6 +64,7 @@ __all__ = [
     "filter_index_to_pages",
     "merge_census_answers",
     "merge_survey_answers",
+    "normalize_party",
     "normalize_survey",
     "survey",
     "survey_windows",
@@ -157,7 +161,33 @@ SURVEY_SCHEMA: dict[str, object] = {
 Two deliberate changes from the probe-era schema: no model-supplied dungeon `id`
 (canonical ids are osr-forge's construct, derived by slugging `name`), and
 `map_pages` added per level (feeds the content stage's direction extraction).
-The schema is a fraction of the largest probe-proven schema budget.
+The schema is a fraction of the largest probe-proven schema budget. Its
+required `party` property is [`PARTY_SCHEMA`][osrforge.survey.PARTY_SCHEMA].
+"""
+
+PARTY_SCHEMA: dict[str, object] = {
+    "type": ["object", "null"],
+    "properties": {
+        "min_level": {"type": "integer", "minimum": 1},
+        "max_level": {"type": "integer", "minimum": 1},
+        "min_size": {"type": ["integer", "null"], "minimum": 1},
+        "max_size": {"type": ["integer", "null"], "minimum": 1},
+    },
+    "required": ["min_level", "max_level", "min_size", "max_size"],
+    "additionalProperties": False,
+}
+"""The survey answer's `party` property: the party the module says it's written for.
+
+The model answers `null` when the module states no party, and otherwise the
+printed character levels and, when printed, the number of characters ("for 6
+to 8 characters of levels 1 to 3" is `{"min_level": 1, "max_level": 3,
+"min_size": 6, "max_size": 8}`). A single printed level fills both level
+fields, and an unstated size leaves both size fields `null`. The fields are
+the fields of [`PartySpec`][osrlib.crawl.adventure.PartySpec], with the same
+lower bound of 1. The schema can't express `PartySpec`'s ordering rule (max
+not below min), so [`normalize_party`][osrforge.survey.normalize_party]
+applies it. [`SURVEY_SCHEMA`][osrforge.survey.SURVEY_SCHEMA] lists `party` as
+a required property, so every answer carries the key.
 """
 
 
@@ -352,7 +382,11 @@ def merge_survey_answers(answers: Sequence[dict[str, Any]]) -> dict[str, Any]:
     order (`town` as a unit: first entry with a non-empty name, else first
     with a non-empty description, else empty — `services` riding with the
     chosen entry); `hooks` concatenate deduplicated by exact string;
-    `monster_names` union in first-seen order.
+    `monster_names` union in first-seen order. `party` takes the first
+    non-null occurrence in window order, whole: its four fields are never
+    combined across windows, for the same reason the town joins as a unit. An
+    answer with no `party` key counts as `null`, and the merged answer always
+    has the key, `null` when no window states a party.
 
     Args:
         answers: The windows' raw answers in window order, each already
@@ -475,6 +509,8 @@ def normalize_survey(raw: dict[str, Any], page_count: int) -> SurveyIndex:
     original key wherever the canonical form differs; the human-facing `name`
     is never touched. A dungeon the model gave zero levels is dropped —
     unreachable through a conforming provider (the schema requires one).
+    `party` is [`normalize_party`][osrforge.survey.normalize_party] of the
+    answer's `party` value, and an answer with no `party` key gives `None`.
 
     Args:
         raw: The model's answer, already validated against
@@ -518,6 +554,42 @@ def normalize_survey(raw: dict[str, Any], page_count: int) -> SurveyIndex:
         dungeons=dungeons,
         monster_names=tuple(cast(list[str], raw["monster_names"])),
     )
+
+
+def normalize_party(raw: Mapping[str, Any] | None) -> PartySpec | None:
+    """Turn the survey answer's `party` value into a [`PartySpec`][osrlib.crawl.adventure.PartySpec], or `None`.
+
+    [`normalize_survey`][osrforge.survey.normalize_survey] calls this to fill
+    [`SurveyIndex.party`][osrforge.contracts.stages.SurveyIndex.party]. A
+    `null` answer means the module states no party. A mapping becomes a
+    `PartySpec` with the same four fields. A mapping that `PartySpec` rejects
+    also gives `None` instead of failing the stage: `max_level` below
+    `min_level`, `max_size` below `min_size`, or a value below 1. The
+    survey's schema can't express the ordering rule, and an unreadable party
+    reading isn't a reason to lose the rest of the survey. The same rejected
+    reading on a correction-file entry does fail, at overrides load.
+
+    Args:
+        raw: The `party` value of a survey answer validated against
+            [`SURVEY_SCHEMA`][osrforge.survey.SURVEY_SCHEMA], or of a merged
+            answer from
+            [`merge_survey_answers`][osrforge.survey.merge_survey_answers].
+
+    Returns:
+        The party, or `None` when the answer is `null` or `PartySpec` rejects it.
+
+    Examples:
+        ```python
+        from osrforge.survey import normalize_party
+
+        party = normalize_party({"min_level": 1, "max_level": 3, "min_size": 6, "max_size": 8})
+        print(party)
+        # min_level=1 max_level=3 min_size=6 max_size=8
+        print(normalize_party({"min_level": 3, "max_level": 1, "min_size": None, "max_size": None}))
+        # None
+        ```
+    """
+    raise NotImplementedError("chunk: survey-party")
 
 
 def filter_index_to_pages(index: SurveyIndex, page_numbers: Iterable[int]) -> SurveyIndex:
