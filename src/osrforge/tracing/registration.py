@@ -299,8 +299,9 @@ def align_halves(first: Path, first_fit: RegionFit, second: Path, second_fit: Re
     half's grid reaches its right image edge, and where the second half's
     first grid line lies from its left image edge. The row shift's fraction
     comes from the two grids' phases at the fold, and its whole rows from the
-    ink of the first half's last cell and a half against the second half's
-    first cell and a half, over every whole-row shift.
+    ink within a cell and a half of the fold on each side, measured from the
+    image edges: the first half's strip against the second half's, over every
+    whole-row shift.
 
     Args:
         first: The first half's image file.
