@@ -167,6 +167,8 @@ class World:
         regions = {region.id: region for region in truth.regions}
         grids: list[Grid] = []
         for panel in truth.panels:
+            if any(regions[part.region].verdict != "registered" for part in panel.regions):
+                continue
             north = truth.north_in_force(panel.regions[0].region)
             grids.append(Grid(panel, regions, north, 0))
         grids.sort(key=lambda grid: grid.frame_top())

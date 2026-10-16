@@ -785,6 +785,8 @@ class Resolver:
 
         # Unprinted keys: the entrance key, then the others.
         for level_id in self.level_order:
+            if self.levels[level_id].verdict != "traced":
+                continue
             printed = {p.key.key for p in self.placed if p.key.level == level_id}
             for key in self.keys[level_id]:
                 if key.key in printed:
@@ -1705,17 +1707,32 @@ class Resolver:
             locked_doors=locked,
         )
 
+    def fallback_reason(self, level_id: LevelId) -> str:
+        """Why a level with no registered panel fell back: the reason of the first region on its survey map pages.
+
+        The conventions give no text for a fallback level's `reason`, so this is the region's own reason, or
+        `no map page` when the survey lists no page with a region.
+        """
+        pages: tuple[int, ...] = ()
+        for dungeon in self.survey.dungeons:
+            for level in dungeon.levels:
+                if (dungeon.id, level.number) == level_id:
+                    pages = level.map_pages
+        for page in pages:
+            for region in self.reading.regions:
+                if region.page == page and region.reason:
+                    return region.reason
+        return "no map page"
+
     # ----- the run -----
 
     def run(self) -> GeometryTruth:
         """Apply the rules in their order and return the resolved document."""
-        for state in self.levels.values():
-            grids = [grid for grid in state.grids if all(region.verdict == "registered" for region in grid.regions)]
-            if not grids:
-                reasons = [region.reason for grid in state.grids for region in grid.regions if region.reason]
-                state.verdict = "fallback"
-                state.reason = reasons[0] if reasons else "no map page"
-            state.grids = grids
+        for level_id, state in self.levels.items():
+            if state.grids:
+                continue
+            state.verdict = "fallback"
+            state.reason = self.fallback_reason(level_id)
         self.world.mark_open_ground()
         self.read_marks()
         self.partition(keys_only_on_floor=True)
