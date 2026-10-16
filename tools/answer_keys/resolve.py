@@ -1461,23 +1461,21 @@ class Resolver:
                     if target is None:
                         continue
                     target_level, target_key = target
-                    if target_level == level_id:
+                    if target_level == level_id or self.levels[target_level].verdict != "traced":
+                        continue
+                    if target_key is None:
+                        raise ConventionGap(
+                            f"connection from {level_id}/{area.key} names only level {target_level}: no target area"
+                        )
+                    if not self.area_of(target_level, target_key):
+                        continue
+                    if self.passages_make(level_id, area.key, target_level, target_key):
                         continue
                     if connection.via not in LINK_VIAS:
                         raise ConventionGap(
                             f"connection from {level_id}/{area.key} to {target} by {connection.via!r}: "
                             "no transition kind for it"
                         )
-                    if target_key is None:
-                        raise ConventionGap(
-                            f"connection from {level_id}/{area.key} names only level {target_level}: no target area"
-                        )
-                    if self.levels[target_level].verdict != "traced":
-                        continue
-                    if not self.area_of(target_level, target_key):
-                        continue
-                    if self.passages_make(level_id, area.key, target_level, target_key):
-                        continue
                     identity = (
                         frozenset({(level_id, area.key), (target_level, target_key)}),
                         LINK_VIAS[connection.via],
@@ -1627,6 +1625,10 @@ class Resolver:
             _origin, rotation = state.placements[wcell[0]]
             panel_side = rotate_side(side, (360 - rotation) % 360)
             override = state.overrides.get((wcell, panel_side))
+            if override is None:
+                across = world.across(wcell, panel_side)
+                if across is not None:
+                    override = state.overrides.get((across, OPPOSITE[panel_side]))
             if override is not None:
                 return override
             if wcell in state.synth_cells:
