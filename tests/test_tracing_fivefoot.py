@@ -13,8 +13,6 @@ from osrforge.tracing.fivefoot import WallMove, convert_five_foot
 from osrforge.tracing.truth import EdgeGrids, Mark, Outline, Panel, PanelRegion, Symbol
 from tracing_support import five_foot_pair
 
-pytestmark = pytest.mark.xfail(reason="chunk: five-foot", strict=True)
-
 
 def panel(cells: tuple[str, ...], vertical: tuple[str, ...], horizontal: tuple[str, ...], **extra: object) -> Panel:
     return Panel(
