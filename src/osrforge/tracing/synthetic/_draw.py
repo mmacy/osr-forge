@@ -359,11 +359,12 @@ def _symbol(pen: Pen, plan: Plan, index: int) -> None:
         if plan.cell(outward) == "#" and plan.cell(cell) != "#":
             outward = cell
         direction = (outward[0] - cell[0], outward[1] - cell[1])
-        for end, toward in ((a, -1.0), (b, 1.0)):
-            along = (b[0] - a[0], b[1] - a[1])
+        middle = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
+        along = (b[0] - a[0], b[1] - a[1])
+        for toward in (-1.0, 1.0):
             centre = (
-                end[0] + along[0] * 0.32 * toward + direction[0] * 0.12,
-                end[1] + along[1] * 0.32 * toward + direction[1] * 0.12,
+                middle[0] + along[0] * 0.9 * toward + direction[0] * 0.4,
+                middle[1] + along[1] * 0.9 * toward + direction[1] * 0.4,
             )
             pen.canvas.disc(pen.px(centre), 0.12 * pen.pitch)
         return

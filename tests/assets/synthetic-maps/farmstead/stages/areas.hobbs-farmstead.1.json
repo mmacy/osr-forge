@@ -54,6 +54,32 @@
         1
       ],
       "confidence": 1.0
+    },
+    {
+      "key": "5",
+      "description": "Tools hang on the walls of a small shed.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "6",
+      "description": "Hams hang from the rafters.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
     }
   ]
 }

@@ -4,7 +4,6 @@
   "features": [
     "key_off_floor",
     "key_printed_twice",
-    "keys_stacked",
     "key_with_leader_line",
     "letter_alone",
     "letter_under_two_keys",

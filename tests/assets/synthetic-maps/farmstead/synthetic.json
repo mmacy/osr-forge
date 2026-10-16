@@ -4,6 +4,7 @@
   "features": [
     "farmstead_open_ground",
     "tree_house_no_door",
+    "keys_stacked",
     "moated_house_bridge",
     "key_at_rear_door",
     "windows",

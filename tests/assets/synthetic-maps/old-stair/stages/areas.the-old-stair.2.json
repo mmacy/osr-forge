@@ -18,6 +18,14 @@
           "door_stuck": false,
           "door_locked": false,
           "to_level": null
+        },
+        {
+          "to_key": "2",
+          "direction": "up",
+          "via": "stairs",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
         }
       ],
       "source_pages": [

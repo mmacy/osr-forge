@@ -108,6 +108,24 @@
         "22,17"
        ],
        "synthesized": false
+      },
+      "5": {
+       "cells": [
+        "4,13",
+        "5,13",
+        "4,14",
+        "5,14"
+       ],
+       "synthesized": false
+      },
+      "6": {
+       "cells": [
+        "8,13",
+        "9,13",
+        "8,14",
+        "9,14"
+       ],
+       "synthesized": false
       }
      },
      "cells": [
@@ -151,9 +169,9 @@
        "-oooooooooooooooooooooooooooo-",
        "-oooooooooooooooooooooooooooo-",
        "-oooooooooooooooooooooooooooo-",
-       "-oooooooooooooooooooooooooooo-",
+       "-ooodwoowdooooooooooooooooooo-",
        "-oooooooooooooooooowwdwoooooo-",
-       "-oooooooooooooooooooooooooooo-",
+       "-ooowwoowwooooooooooooooooooo-",
        "-oooooooooooooooooooooooooooo-",
        "-oooooooooooooooooooooooooooo-",
        "-oooooooooooooooooowdwwoooooo-",
@@ -178,8 +196,8 @@
        "-ooooooooooooooooooooooooooooo-",
        "-ooooooooooooooooooooooooooooo-",
        "-ooooooooooooooooooooooooooooo-",
-       "-ooooooooooooooooooooooooooooo-",
-       "-oooooooooooooooooowooowoooooo-",
+       "-ooowowowowooooooooooooooooooo-",
+       "-ooowowowowoooooooowooowoooooo-",
        "-oooooooooooooooooowooowoooooo-",
        "-oooooooooooooooooowooowoooooo-",
        "-oooooooooooooooooowooowoooooo-",
@@ -209,6 +227,24 @@
        "area": "1",
        "cell": "6,6",
        "label": "1",
+       "moved": false
+      },
+      {
+       "area": "5",
+       "cell": "5,13",
+       "label": "5",
+       "moved": true
+      },
+      {
+       "area": "6",
+       "cell": "8,13",
+       "label": "6",
+       "moved": true
+      },
+      {
+       "area": "5",
+       "cell": "4,14",
+       "label": "5",
        "moved": false
       },
       {
@@ -291,9 +327,9 @@
      "oooooooooooooooooooooooooooo",
      "oooooooooooooooooooooooooooo",
      "oooooooooooooooooooooooooooo",
-     "oooooooooooooooooooooooooooo",
+     "ooodwoowdooooooooooooooooooo",
      "oooooooooooooooooowwdwoooooo",
-     "oooooooooooooooooooooooooooo",
+     "ooowwoowwooooooooooooooooooo",
      "oooooooooooooooooooooooooooo",
      "oooooooooooooooooooooooooooo",
      "oooooooooooooooooowdwwoooooo",
@@ -316,8 +352,8 @@
      "ooooooooooooooooooooooooooooo",
      "ooooooooooooooooooooooooooooo",
      "ooooooooooooooooooooooooooooo",
-     "ooooooooooooooooooooooooooooo",
-     "oooooooooooooooooowooowoooooo",
+     "ooowowowowooooooooooooooooooo",
+     "ooowowowowoooooooowooowoooooo",
      "oooooooooooooooooowooowoooooo",
      "oooooooooooooooooowooowoooooo",
      "oooooooooooooooooowooowoooooo",
@@ -341,6 +377,14 @@
     {
      "cell": "5,5",
      "text": "1"
+    },
+    {
+     "cell": "5,12",
+     "text": "5/6"
+    },
+    {
+     "cell": "3,13",
+     "text": "5"
     },
     {
      "cell": "20,13",

@@ -107,7 +107,7 @@ def warrens() -> MapSpec:
     sketch.room("r3", 15, 8, 2, 2).edge((14, 9), "east", "d").mark("3", (17, 7))
     sketch.run("b", (15, 10), (19, 10), (19, 6)).edge((14, 10), "east", "d")
     sketch.room("r5", 18, 2, 5, 4).edge((19, 6), "north", "d").mark("B/5", (20, 3))
-    sketch.room("r6", 23, 3, 1, 2).edge((22, 3), "east", "d").mark("6", (25, 1), leader_to=(23, 3))
+    sketch.room("r6", 23, 3, 1, 2).edge((22, 3), "east", "d").mark("6", (23, 1), leader_to=(23, 3))
     sketch.room("r7", 3, 3, 5, 4).edge((5, 6), "south", "d").mark("7", (4, 4)).mark("c", (6, 5))
     sketch.room("r8", 8, 1, 5, 3).edge((7, 3), "east", "d").mark("8", (9, 2)).mark("e", (11, 2))
     sketch.room("r9", 13, 12, 6, 4).edge((13, 11), "south", "d").mark("9", (16, 13))
@@ -132,7 +132,6 @@ def warrens() -> MapSpec:
         features=(
             "key_off_floor",
             "key_printed_twice",
-            "keys_stacked",
             "key_with_leader_line",
             "letter_alone",
             "letter_under_two_keys",
@@ -199,13 +198,21 @@ def ravine_lair() -> MapSpec:
 
 def cave_entrance() -> MapSpec:
     """A cave whose entrance chamber lies inside a cave mouth, under a key the map doesn't print."""
-    sketch = Sketch(20, 13)
-    sketch.room("chamber", 0, 5, 4, 3).edge((0, 6), "west", "o").symbol("cave_mouth", edge=((0, 6), "west"))
-    sketch.run("p", (4, 6), (7, 6)).edge((3, 6), "east", "d").edge((7, 6), "east", "d")
-    sketch.room("r2", 8, 4, 5, 5).mark("2", (10, 6))
-    sketch.room("r3", 13, 4, 4, 5).edge((12, 6), "east", "l").mark("3", (15, 6))
-    sketch.room("r4", 13, 9, 4, 3).edge((15, 8), "south", "s").mark("4", (14, 10))
-    sketch.outline((0, 0, 20, 13))
+    sketch = Sketch(22, 13)
+    sketch.room("hillside", 0, 0, 3, 13)
+    for y in range(13):
+        sketch.edge((0, y), "west", "o")
+    for x in range(3):
+        sketch.edge((x, 0), "north", "o").edge((x, 12), "south", "o")
+    sketch.room("chamber", 4, 5, 4, 3).run("chamber", (3, 6)).edge((3, 6), "west", "o")
+    sketch.symbol("cave_mouth", edge=((3, 6), "west"))
+    sketch.run("p", (8, 6), (11, 6)).edge((7, 6), "east", "d").edge((11, 6), "east", "d")
+    sketch.room("r2", 12, 4, 5, 5).mark("2", (14, 6))
+    sketch.room("r3", 17, 4, 4, 5).edge((16, 6), "east", "l").mark("3", (19, 6))
+    sketch.room("r4", 17, 9, 4, 3).edge((19, 8), "south", "s").mark("4", (18, 10))
+    sketch.outline((3, 0, 19, 13))
+    sketch.ornament("track", (0.1, 9.6), (1.2, 8.4), (2.2, 6.6), (2.9, 6.5))
+    sketch.ornament("contour", (0.2, 2.6), (1.4, 3.4), (2.8, 3.0))
     plan = sketch.build()
     region, panel = _single("cave-entrance", "The hollow hill", plan, "tsr_blue", ("cave_mouth", "locked_door"))
     areas = (
@@ -228,7 +235,7 @@ def cave_entrance() -> MapSpec:
         dungeon=dungeon,
         regions=(region,),
         panels=(panel,),
-        damage=(DamageSite(change="key_moved", dungeon="the-hollow-hill", level=1, label="3", to_cell="10,5"),),
+        damage=(DamageSite(change="key_moved", dungeon="the-hollow-hill", level=1, label="3", to_cell="13,5"),),
     )
 
 
@@ -269,7 +276,10 @@ def old_stair() -> MapSpec:
     )
     second = (
         AreaSpec(
-            "3", "Lower hall", "The two flights from the landing arrive at either end of this hall, above a dark pool."
+            "3",
+            "Lower hall",
+            "The two flights from the landing arrive at either end of this hall, above a dark pool.",
+            links=(AreaConnection(to_key="2", direction="up", via="stairs"),),
         ),
         AreaSpec("4", "Side room", "A heap of broken crates."),
     )
@@ -303,6 +313,8 @@ def farmstead() -> MapSpec:
     sketch.edges("n", ((3, 4), "west"), ((3, 5), "west"), ((6, 3), "north"))
     sketch.room("barn", 12, 2, 6, 5).edge((14, 6), "south", "d").edge((13, 3), "east", "w").mark("2", (14, 4))
     sketch.room("tree", 21, 3, 2, 2).mark("3", (21, 3)).ornament("tree", (22.0, 4.0), size=1.6)
+    sketch.room("shed", 3, 12, 2, 2).edge((3, 12), "north", "d").mark("5", (3, 13))
+    sketch.room("smokehouse", 7, 12, 2, 2).edge((8, 12), "north", "d").mark("5/6", (5, 12))
     sketch.water(16, 11, 8, 8).room("island", 17, 12, 6, 6).room("moated", 18, 13, 4, 4)
     sketch.edge((19, 16), "south", "d").edge((20, 13), "north", "d").mark("4", (20, 13), edge="north")
     sketch.symbol("bridge", (19, 18), run="ns")
@@ -313,9 +325,9 @@ def farmstead() -> MapSpec:
     sketch.outline((0, 0, 28, 22)).ground((0, 0, 28, 22), (17, 12, 6, 6))
     sketch.ornament("stream", (0.1, 9.4), (6.0, 10.2), (11.0, 9.6), (17.0, 9.9), (23.0, 9.3), (27.9, 9.7))
     sketch.ornament("track", (19.5, 21.9), (19.5, 20.6), (19.5, 19.1))
-    sketch.ornament("track", (5.5, 8.1), (6.5, 11.2), (11.0, 12.0), (14.5, 9.5), (14.5, 7.1))
-    sketch.ornament("contour", (0.2, 14.0), (4.0, 15.2), (8.0, 14.4), (13.6, 16.0))
-    sketch.ornament("contour", (0.2, 18.2), (5.0, 19.6), (10.0, 18.6), (14.6, 21.8))
+    sketch.ornament("track", (5.5, 8.1), (6.0, 10.6), (10.0, 11.0), (14.5, 9.5), (14.5, 7.1))
+    sketch.ornament("contour", (0.2, 16.0), (4.0, 17.2), (8.0, 16.4), (13.6, 18.0))
+    sketch.ornament("contour", (0.2, 19.2), (5.0, 20.4), (10.0, 19.6), (14.6, 21.8))
     plan = sketch.build()
     region, panel = _single("farmstead", "Hobb's farmstead", plan, "black_white", ("bridge",))
     areas = (
@@ -323,6 +335,8 @@ def farmstead() -> MapSpec:
         AreaSpec("2", "Barn", "Stalls line the barn's west wall."),
         AreaSpec("3", "Tree house", "A platform with a roof sits in the branches of an old oak."),
         AreaSpec("4", "Moated house", "A narrow house stands on an island inside a moat."),
+        AreaSpec("5", "Shed", "Tools hang on the walls of a small shed."),
+        AreaSpec("6", "Smokehouse", "Hams hang from the rafters."),
     )
     dungeon = DungeonSpec("hobbs-farmstead", "Hobb's farmstead", (LevelSpec(1, areas, ("farmstead",)),))
     return MapSpec(
@@ -331,6 +345,7 @@ def farmstead() -> MapSpec:
         features=(
             "farmstead_open_ground",
             "tree_house_no_door",
+            "keys_stacked",
             "moated_house_bridge",
             "key_at_rear_door",
             "windows",

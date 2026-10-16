@@ -331,6 +331,7 @@ class LevelRules:
             if self.enclosed[index] and not any(cell in self.ground for cell in space)
         ]
         self.runs: list[list[Cell]] = self._narrow_runs()
+        self.structures: list[list[int]] = self._structures()
         self.mouths: dict[EdgeId, Symbol] = {
             edge: symbol for symbol, _cells, edge in board.symbols if symbol.kind == "cave_mouth" and edge is not None
         }
@@ -380,6 +381,31 @@ class LevelRules:
             if chosen >= 0:
                 ground |= {cell for cell in self.spaces[chosen] if cell in inside}
         return ground
+
+    def _structures(self) -> list[list[int]]:
+        """The walled structures, each as the indices of its walled rooms: rooms joined by doors with no corridor."""
+        parent = {index: index for index in self.walled}
+
+        def find(index: int) -> int:
+            while parent[index] != index:
+                index = parent[index]
+            return index
+
+        for index in self.walled:
+            for cell in self.spaces[index]:
+                for side in SIDES:
+                    other = self.space_of.get(neighbour(cell, side))
+                    if (
+                        other is not None
+                        and other != index
+                        and other in parent
+                        and self.board.letter(cell, side) in DOORS
+                    ):
+                        parent[find(index)] = find(other)
+        groups: dict[int, list[int]] = {}
+        for index in self.walled:
+            groups.setdefault(find(index), []).append(index)
+        return list(groups.values())
 
     def _narrow_runs(self) -> list[list[Cell]]:
         board = self.board
@@ -499,12 +525,7 @@ class LevelRules:
     def labels(self, mark: Mark) -> list[tuple[str, str]]:
         """A mark's labels, each with what it is: `key`, `suffix`, or `letter`."""
         text = mark.text
-        if "/" in text:
-            if text.lower() in self.keys or text.replace("/", "").lower() in self.keys:
-                raise DesignError(f"stacked mark {text!r} matches a key as a whole, which this generator doesn't use")
-            parts = text.split("/")
-        else:
-            parts = [text]
+        parts = [text] if text.lower() in self.keys else text.split("/")
         found: list[tuple[str, str]] = []
         for part in parts:
             if part.lower() in self.keys:
@@ -526,6 +547,7 @@ class LevelRules:
         board = self.board
         placed: list[Placed] = []
         letters: list[tuple[str, Cell]] = []
+        on_ground: list[tuple[str, str, Cell]] = []
         settled = [cell for cell in self.walkable if cell not in self.ground and cell not in self.crossing]
         for mark, cell, edge, leader in board.marks:
             for label, kind in self.labels(mark):
@@ -533,8 +555,20 @@ class LevelRules:
                     letters.append((label, cell))
                     continue
                 key = label.lower() if kind == "key" else label[:-1].lower()
+                if leader is None and edge is None and cell in self.ground:
+                    on_ground.append((label, key, cell))
+                    continue
                 target = self._place(cell, edge, leader, settled)
                 placed.append(Placed(label=label, key=key, cell=target, moved=target != cell))
+        taken: dict[int, str] = {}
+        for label, key, cell in on_ground:
+            index = self._structure_for(key, cell, placed)
+            if taken.setdefault(index, key) != key:
+                raise DesignError("two keys on open ground take one structure, and their order would decide it")
+            if len(self.structures[index]) > 1:
+                raise DesignError("a key on open ground taking a structure of several rooms isn't resolved here")
+            target = self.nearest_floor(cell, self.spaces[self.structures[index][0]])
+            placed.append(Placed(label=label, key=key, cell=target, moved=target != cell))
         dungeon_words = {word.lower() for word in re.split(r"[^0-9A-Za-z]+", self.spec.dungeon.name) if word}
         for label, cell in letters:
             if board.outside(cell) or label.lower() in dungeon_words:
@@ -556,12 +590,32 @@ class LevelRules:
             placed.append(Placed(label=label, key=namers[0], cell=cell, moved=False))
         return placed
 
+    def _structure_for(self, key: str, cell: Cell, placed: list[Placed]) -> int:
+        """The walled structure a key on open ground takes, as Keys and areas says.
+
+        A structure with a cell within two cells of the key's cell that has no
+        other key qualifies, and the nearest by Chebyshev distance wins. Keys on
+        open ground don't count as other keys, since their own order would
+        decide between them.
+        """
+        ranked: list[tuple[int, int]] = []
+        for index, rooms in enumerate(self.structures):
+            cells = [room_cell for room in rooms for room_cell in self.spaces[room]]
+            if any(item.cell in cells and item.key != key for item in placed):
+                continue
+            distance = min(chebyshev(cell, other) for other in cells)
+            if distance <= 2:
+                ranked.append((distance, index))
+        ranked.sort()
+        if not ranked:
+            raise DesignError(f"key {key!r} on open ground has no structure to take, which isn't resolved here")
+        if len(ranked) > 1 and ranked[0][0] == ranked[1][0]:
+            raise DesignError(f"key {key!r} on open ground is equally near two structures")
+        return ranked[0][1]
+
     def _place(self, cell: Cell, edge: EdgeId | None, leader: Cell | None, settled: list[Cell]) -> Cell:
         board = self.board
-        on_rock = not (board.floor(cell) or board.water(cell))
         if leader is not None:
-            if not on_rock or self.nearest_floor(cell, settled) != leader:
-                raise DesignError(f"the leader line from {cell} doesn't run from rock to the nearest floor cell")
             return leader
         if edge is not None:
             if board.edges.get(edge, "-") not in DOORS:
@@ -570,8 +624,6 @@ class LevelRules:
                 raise DesignError(f"a key printed on the inner door {edge} isn't resolved by this generator")
             return self.nearest_floor(cell, settled)
         if board.floor(cell) and cell in board.owned:
-            if cell in self.ground:
-                raise DesignError(f"a key printed on open ground at {cell} isn't resolved by this generator")
             return cell
         if board.water(cell) and cell in board.owned:
             return cell
@@ -597,8 +649,9 @@ class LevelRules:
 
         One key takes every cell. Several keys divide the cells by walking
         distance across the whole space, printed open lines counting as walls
-        for the walk, and a cell at the same distance from two keys goes to the
-        key whose placed cell is first in north-then-west order.
+        for the walk. A cell at the same distance from two keys goes to the key
+        whose placed cell is first in north-then-west order, and of two keys
+        placed on one cell, to the earlier in survey order.
 
         Args:
             cells: The cells to give out.
@@ -611,15 +664,14 @@ class LevelRules:
         keys = {key for key, _cell in sources}
         if len(keys) == 1:
             return dict.fromkeys(cells, next(iter(keys)))
-        best: dict[Cell, tuple[int, tuple[int, int], str]] = {}
+        survey = [area.key for area in self.level.areas]
+        best: dict[Cell, tuple[int, tuple[int, int], int]] = {}
         for key, start in sources:
             for cell, distance in _floor_bfs(self.board, [start], "o", space).items():
-                rank = (distance, cell_order(start), key)
-                if cell in best and best[cell][:2] == rank[:2] and best[cell][2] != key:
-                    raise DesignError(f"cell {cell} is equally near keys {best[cell][2]} and {key} on one cell")
+                rank = (distance, cell_order(start), survey.index(key))
                 if cell not in best or rank < best[cell]:
                     best[cell] = rank
-        return {cell: rank[2] for cell, rank in best.items() if cell in cells}
+        return {cell: survey[rank[2]] for cell, rank in best.items() if cell in cells}
 
     def areas(self, placed: list[Placed]) -> tuple[dict[Cell, str], dict[EdgeId, str]]:
         """Work out the areas, in the order Keys and areas lists its rules, and the doors they synthesize.
@@ -667,9 +719,6 @@ class LevelRules:
                 take(run, keys.pop())
             elif len(run) >= 3:
                 take(run, None)
-        for item in placed:
-            if item.cell in self.ground:
-                raise DesignError(f"key {item.label!r} stands on open ground")
         for space in self.spaces:
             rest = set(space) - claim.keys()
             sources = [(item.key, item.cell) for item in placed if item.cell in rest]
@@ -799,25 +848,10 @@ class LevelRules:
 
     def _synthesized_doors(self, claim: dict[Cell, str | None], placed: list[Placed]) -> dict[EdgeId, str]:
         board = self.board
-        parent = {index: index for index in self.walled}
-
-        def find(index: int) -> int:
-            while parent[index] != index:
-                index = parent[index]
-            return index
-
-        for index in self.walled:
-            for cell in self.spaces[index]:
-                for side in SIDES:
-                    other = self.space_of.get(neighbour(cell, side))
-                    if other is not None and other != index and other in parent and board.letter(cell, side) in DOORS:
-                        parent[find(index)] = find(other)
-        groups: dict[int, list[Cell]] = {}
-        for index in self.walled:
-            groups.setdefault(find(index), []).extend(self.spaces[index])
         doors: dict[EdgeId, str] = {}
         first = next((area.key for area in self.level.areas if any(item.key == area.key for item in placed)), None)
-        for cells in groups.values():
+        for rooms in self.structures:
+            cells = [cell for room in rooms for cell in self.spaces[room]]
             members = set(cells)
             if not any(claim.get(cell) is not None for cell in cells):
                 continue
@@ -1074,15 +1108,23 @@ def _ends(level: Resolved, key: str, directions: tuple[str | None, ...]) -> list
 def link_levels(levels: list[Resolved]) -> None:
     """Realize each prose link to another level as transitions, as Links says.
 
+    A connection and its reverse between the same two areas by the same means
+    are one link, made from the connection that comes first in survey order.
+
     Args:
         levels: The dungeon's resolved levels, in survey order.
     """
+    made: set[tuple[frozenset[tuple[int, str]], str]] = set()
     for level in levels:
         for area in level.spec.areas:
             for link in area.links:
                 target, key = _target(levels, level, link)
                 if target is level:
                     continue
+                ends = frozenset({(level.spec.number, area.key), (target.spec.number, key)})
+                if (ends, link.via) in made:
+                    continue
+                made.add((ends, link.via))
                 way = "down" if target.spec.number > level.spec.number else "up"
                 back = "up" if way == "down" else "down"
                 starts = _ends(level, area.key, (way, None))
