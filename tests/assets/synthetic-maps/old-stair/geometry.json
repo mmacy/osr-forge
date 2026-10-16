@@ -161,6 +161,7 @@
        "moved": false
       }
      ],
+     "locked_doors": [],
      "number": 1,
      "panels": [
       {
@@ -310,6 +311,7 @@
        "moved": false
       }
      ],
+     "locked_doors": [],
      "number": 2,
      "panels": [
       {
