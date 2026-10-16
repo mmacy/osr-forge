@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import anthropic
+import httpx2
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, SecretStr
 
@@ -70,6 +71,12 @@ _MAX_THREADS = 8
 """The most requests `read_all` has in flight at once."""
 
 _FAILED_STOP_REASONS = frozenset({"max_tokens", "refusal"})
+
+_MAX_IMAGE_EDGE = 2576
+"""The longest edge, in pixels, that the priced models read an image at; a longer image is scaled down."""
+
+_MAX_IMAGE_PIXELS = 3_750_000
+"""The most pixels the priced models read an image at; a larger image is scaled down."""
 
 
 class ModelPrices(BaseModel):
@@ -167,10 +174,14 @@ def estimate_input_tokens(request: ReadingRequest) -> int:
     The estimate is one token per UTF-8 byte of every text part, the system
     prompt, the retry's answer and fault, and the schema's compact JSON
     (sorted keys, compact separators), plus `ceil(width * height / 750)` for
-    each image, plus 64. A token is never shorter than a byte and the API
-    never charges an image more than that, so the estimate is an upper bound
-    on what the answer's usage reports, and the over-reservation is small
-    beside `max_tokens` at the output price.
+    each image, plus 64. An image is counted at the size the API reads it:
+    an image longer than 2,576 pixels on its long edge, or larger than 3.75
+    megapixels, is scaled down to fit both limits with its proportions kept,
+    and each side of the scaled size is rounded up. A token is never shorter
+    than a byte, and the API charges an image about one token per 784 pixels
+    of that size (about 4,784 tokens at the limit), so the estimate is an
+    upper bound on what the answer's usage reports, and the
+    over-reservation is small beside `max_tokens` at the output price.
 
     Args:
         request: The request.
@@ -185,7 +196,7 @@ def estimate_input_tokens(request: ReadingRequest) -> int:
         if isinstance(part, TextPart):
             texts.append(part.text)
         else:
-            width, height = _image_size(part)
+            width, height = _read_size(*_image_size(part))
             image_tokens += -(-(width * height) // 750)
     if request.retry is not None:
         texts.extend((request.retry.answer, request.retry.fault))
@@ -198,6 +209,12 @@ def _image_size(part: ImagePart) -> tuple[int, int]:
             return image.size
     except (OSError, ValueError) as error:
         raise ValueError(f"an image part isn't an image Pillow can read: {error}") from error
+
+
+def _read_size(width: int, height: int) -> tuple[int, int]:
+    """Return the size the API reads an image at, each side rounded up so the area stays an upper bound."""
+    scale = min(1.0, _MAX_IMAGE_EDGE / max(width, height), math.sqrt(_MAX_IMAGE_PIXELS / (width * height)))
+    return math.ceil(width * scale), math.ceil(height * scale)
 
 
 def _prices(model: str) -> ModelPrices:
@@ -256,14 +273,16 @@ class ClaudeProvider:
     """Claude over the Messages API, with the ledger and the cache discipline.
 
     The constructor performs no I/O. Transport policy: at most five attempts
-    per request, with bounded exponential backoff that honours `Retry-After`,
-    on 408, 409, 429, every 5xx, and connection failures. An error event
-    inside a stream is retried like a 5xx; the SDK raises it with the
-    stream's own status, which is 200. Any other 4xx, including an auth
-    failure, raises at once. The attempts share the request's one
-    reservation, settled once at the end. A malformed answer
-    isn't re-prompted here, because the tracing stage makes the one retry
-    with its own recording. No error message contains the API key.
+    per request, with exponential backoff bounded at 30 seconds, on 408,
+    409, 429, every 5xx, and connection failures, including a transport
+    failure while the stream is read. A `Retry-After` header sets the wait,
+    within the same bound. An error event inside a stream is retried like a
+    5xx; the SDK raises it with the stream's own status, which is 200. Any
+    other 4xx, including an auth failure, raises at once. The attempts share
+    the request's one reservation, settled once at the end, also when the
+    answer can't be read. A malformed answer isn't re-prompted here, because
+    the tracing stage makes the one retry with its own recording. No error
+    message contains the API key.
     """
 
     def __init__(
@@ -401,21 +420,21 @@ class ClaudeProvider:
         reservation = self._ledger.open_reserved(entry, worst_case_usd(model, request))
         try:
             message = self._send(request_body(request, model), kind.name, on_first_event)
-        except BaseException:
+            usage = _usage(message, kind.name)
+        except BaseException as error:
             # Nothing says what the attempts cost, so the worst case stays on the ledger.
-            self._ledger.settle(reservation, reservation.usd)
+            try:
+                self._ledger.settle(reservation, reservation.usd)
+            except Exception as settle_error:
+                error.add_note(
+                    f"settling its ledger reservation failed too, so the entry stays pending: {settle_error}"
+                )
             raise
-        usage = ReadingUsage(
-            input_tokens=message.usage.input_tokens or 0,
-            output_tokens=message.usage.output_tokens or 0,
-            cache_read_tokens=message.usage.cache_read_input_tokens or 0,
-            cache_write_tokens=message.usage.cache_creation_input_tokens or 0,
-        )
         self._ledger.settle(reservation, cost_usd(model, usage))
         return _answer(request, message, usage)
 
     def _send(self, body: dict[str, Any], kind: str, on_first_event: Callable[[], None] | None) -> Any:
-        last_error: anthropic.APIError | None = None
+        last_error: anthropic.APIError | httpx2.TransportError | None = None
         for attempt in range(_ATTEMPTS):
             delay = min(2.0**attempt, _MAX_BACKOFF_SECONDS)
             try:
@@ -426,7 +445,9 @@ class ClaudeProvider:
                             on_first_event = None
                             break
                     return stream.get_final_message()
-            except anthropic.APIConnectionError as error:
+            except (anthropic.APIConnectionError, httpx2.TransportError) as error:
+                # The SDK wraps a transport failure while it sends the request, but one while it reads the
+                # stream escapes as the httpx2 error itself.
                 last_error = error
             except anthropic.APIStatusError as error:
                 # The SDK raises an error event inside a stream with the stream's own status, which is below 400.
@@ -436,7 +457,7 @@ class ClaudeProvider:
                 last_error = error
                 retry_after = _retry_after_seconds(error)
                 if retry_after is not None:
-                    delay = retry_after
+                    delay = min(retry_after, _MAX_BACKOFF_SECONDS)
             except anthropic.APIError as error:
                 raise ProviderError(self._redact(f"the {kind!r} request failed: {error}")) from error
             if attempt + 1 < _ATTEMPTS:
@@ -473,6 +494,18 @@ def _retry_after_seconds(error: anthropic.APIStatusError) -> float | None:
                 target = target.replace(tzinfo=UTC)
             return max(0.0, (target - datetime.now(UTC)).total_seconds())
     return None
+
+
+def _usage(message: Any, kind: str) -> ReadingUsage:
+    usage = getattr(message, "usage", None)
+    if usage is None:
+        raise ProviderError(f"the answer to the {kind!r} request has no usage")
+    return ReadingUsage(
+        input_tokens=usage.input_tokens or 0,
+        output_tokens=usage.output_tokens or 0,
+        cache_read_tokens=usage.cache_read_input_tokens or 0,
+        cache_write_tokens=usage.cache_creation_input_tokens or 0,
+    )
 
 
 def _answer(request: ReadingRequest, message: Any, usage: ReadingUsage) -> ReadingResponse:
