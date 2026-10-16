@@ -471,7 +471,8 @@ class PageImage(BaseModel):
     """The image file, relative to the document's directory. The same file on two pages is one image printed twice."""
 
     hidden: bool = False
-    """True when a later image on the page covers most of this one, so the page doesn't show it."""
+    """True when one later image on the page covers more than half of this image's placement rectangle, the rule
+    `HIDDEN_COVERAGE` in `osrforge.tracing.images` states, so the page doesn't show it."""
 
 
 class Page(BaseModel):
@@ -489,7 +490,8 @@ class Page(BaseModel):
     """True when the `blank_page_renders` setting blanks this page."""
 
     spread_with: int | None = None
-    """The other page of a two-page spread that one image spans."""
+    """The other page of a two-page spread that one image spans. The spread image is listed in `images` on both
+    pages, and each page names the other here."""
 
 
 class Registration(BaseModel):
@@ -552,7 +554,7 @@ class Scale(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    feet: int | None
+    feet: int | None = None
     """Feet per square: 5 or 10 for a scale the stage accepts, `None` for any other."""
 
     printed: bool
