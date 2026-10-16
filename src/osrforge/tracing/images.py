@@ -94,26 +94,32 @@ def extract_map_images(
     skipped: nothing on it is read or matched. The rules then run in this
     order on each page's images, and then across pages:
 
-    1. **Hiding.** An image's placement rectangle is its axis-aligned bounds
-       in page coordinates, clipped to the page. For an image inside a form
-       object, the bounds are composed through each enclosing form's matrix
-       before clipping. An image is hidden, and left out, when one later
-       image on the same page covers more than
+    1. **Hiding.** An image's placement is the quadrilateral its unit square
+       maps to in page coordinates, through its own matrix and the matrix of
+       each form object it's inside. Its placement rectangle is that
+       quadrilateral's axis-aligned bounds, and its clipped rectangle is the
+       placement rectangle clipped to the page. An image whose clipped
+       rectangle has no area is off the page: it's never written, though it
+       keeps its place in the index count. An image is hidden, and left out,
+       when one later image on the same page overlaps more than
        [`HIDDEN_COVERAGE`][osrforge.tracing.images.HIDDEN_COVERAGE] of its
-       clipped rectangle, measured on the later image's clipped rectangle.
-       Each later image counts alone, never the union of several. The same
-       pixels drawn twice on one page, the second over the first, hide the
-       first this way, and the second is kept.
-    2. **Duplicates.** Among the images hiding left, those with the same
-       pixels on several listed pages are one image, listed once with every
-       such page, under the first page's name and index. An image hidden on
-       one page and shown alone on another is that other page's image. The
-       same pixels twice on one page, neither hidden, count once.
-    3. **Spreads.** A duplicate on exactly two consecutive pages whose
-       placements run off facing edges, the first page's off its right edge
-       and the second page's off its left edge, spans a spread. Identical
-       images on consecutive pages whose placements don't both run off those
-       edges are a plain duplicate.
+       clipped rectangle's area, the overlap being the intersection of the
+       two clipped rectangles. Each later image counts alone, never the
+       union of several. The same pixels drawn twice on one page, the second
+       over the first, hide the first this way, and the second is kept.
+    2. **Duplicates.** Two images have the same pixels when their pixels are
+       equal after conversion to RGB. Among the images hiding left, those
+       with the same pixels on several listed pages are one image, listed
+       once with every such page, under the first page's name and index. An
+       image hidden on one page and shown alone on another is that other
+       page's image. The same pixels twice on one page, neither hidden,
+       count once, under the lower index.
+    3. **Spreads.** A duplicate on exactly two consecutive pages spans a
+       spread when its placement rectangles run off facing edges, unclipped:
+       on the first page, some copy's rectangle runs off the right edge, and
+       on the second, some copy's runs off the left edge. Identical images
+       on consecutive pages whose placements don't both run off those edges
+       are a plain duplicate.
 
     Each kept image is written to `out_dir / file` as an RGB PNG. The
     directory is created if missing. The function overwrites each file it
