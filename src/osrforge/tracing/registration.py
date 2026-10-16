@@ -72,13 +72,15 @@ COVERAGE_TOLERANCE = 0.15
 COVERAGE_LINE_SHARE = 0.6
 """A cell is covered when ink lies under at least this share of each of its two fitted lines."""
 
-INK_MARGIN = 35.0
+INK_MARGIN = 20.0
 """How much darker than its local background a pixel must be to count as ink.
 
-The reference fit's value. On the synthetic TSR blue maps the blurred grid
-lines are 16 to 47 darker than the paper beside them, so the reference loses
-part of every line there, and the value the implementation settles on must
-keep the committed maps and the perturbed copies on their sides of the gate.
+The implementation sets this value. On the synthetic TSR blue maps the blurred
+grid lines are 16 to 47 darker than the paper beside them, so the reference
+fit's 35 loses part of every line there. A build from this contract passed
+every synthetic map at 20: at 15 fold-east fails, and at 25 old-stair-2 finds
+no region. Whatever the value, the committed maps and the perturbed copies
+must stay on their sides of the gate.
 """
 
 BACKGROUND_RADIUS = 6
@@ -122,14 +124,18 @@ class GateFigures(BaseModel):
     """The share of `detected_lines` that lie within `LINE_TOLERANCE` of the fitted line they're indexed to."""
 
     index_jumps: int = Field(ge=0)
-    """Pairs of neighbouring indexed lines in one band, with no detected line between them, whose index difference
-    isn't their distance in pitches rounded to a whole number. A grid with part of its lines shifted by half a
-    pitch, or a pitch taken as a fraction of the printed one, shows here or in the explained share."""
+    """Pairs of neighbouring indexed lines in one band, with no other indexed line between them, whose index
+    difference isn't their distance in pitches rounded to a whole number. Rejected lines between them don't
+    matter. The jumps catch a numbering that slips along a band: a fitted pitch wrong enough that the lattice
+    drifts a whole index across the band, so two printed lines one pitch apart take indices two apart where the
+    lattice crosses from one line to the next. A pitch taken as half the printed one passes both the jumps and
+    the share, because every printed line lies on that lattice and neighbours two indices apart are two pitches
+    apart. The coverage fails it: half the lattice's lines run over paper."""
 
     counted_cells: int = Field(ge=0)
-    """The cells of the fitted grid that hold ink and aren't fill: a cell with fewer ink pixels than three tenths
-    of a pitch is blank, and a cell with `FILL_DARKNESS` or darker over at least half its pixels is fill. Neither
-    is counted."""
+    """The cells of the fitted grid that hold ink and aren't fill. Ink is what `register_image` defines by
+    `INK_MARGIN`. A cell is blank when it holds fewer ink pixels, as a count, than three tenths of the mean pitch
+    in pixels, and fill when `FILL_DARKNESS` or darker covers at least half its pixels. Neither is counted."""
 
     covered_cells: int = Field(ge=0)
     """The counted cells whose west and north fitted lines each have ink within `COVERAGE_TOLERANCE` of a pitch
@@ -160,8 +166,12 @@ class RegionFit(BaseModel):
     line to its south line, so a title, a legend, or a compass outside the
     frame is no part of the region, and rock inside the frame is. Where no
     frame is drawn, the grid runs from the first printed grid line to the
-    last on each axis. A legend or a label inside the rectangle doesn't move
-    the fit.
+    last on each axis. On a side that the image edge cuts, the grid runs to
+    the outermost fitted line that lies no more than half a pitch outside the
+    image, so a cell at least half inside the image is part of the grid. A
+    legend or a label inside the rectangle doesn't move the fit. Regions are
+    disjoint, one per framed drawing: two candidate grids that reach the same
+    frame are one region.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -221,8 +231,9 @@ class HalfAlignment(BaseModel):
     rows: int
     """The row shift: the second half's row 0 lies this many rows south of the first half's row 0, as
     `HalfPair.rows` records it. The grid phase at the fold gives the fraction of a row, and the whole rows are the
-    shift at which the ink along the fold agrees best between the two halves. On a tie, the shift that puts matching
-    rows at the nearest heights on their two pages wins, and if that ties too, the shift north wins."""
+    shift at which the ink along the fold agrees best between the two halves. Two shifts tie when their
+    correlations lie within 0.01 of each other. On a tie, the shift that puts matching rows at the nearest heights
+    on their two pages wins, and if that ties too, the shift north wins."""
 
     columns: tuple[int, ...] = Field(min_length=OFFSET_CANDIDATES, max_length=OFFSET_CANDIDATES)
     """The candidate column offsets, consecutive and increasing."""

@@ -4,11 +4,10 @@ Every number here comes from the registration measurement's reference fit, run i
 committed Chaotic Caves, Monkey Isle, and minimod images, the synthetic maps, and perturbed copies of pages 47
 and 38. Each threshold has the measured figures beside it.
 
-The tests over the committed real images and the perturbed copies need only this chunk. The tests over the
-synthetic maps need the generator chunk that draws the map as well, and carry that chunk's name in their reason:
-synth-core for the maps that register and the two fold maps, synth-styles for the gridless and warped maps, and
-synth-joins for the halves with a gap at the fold and an offset. A test that needs a map stays marked until both
-chunks are merged.
+The tests over the committed real images, the perturbed copies, and synth-core's maps need only this chunk. The
+tests over maps that a later generator chunk draws carry that chunk's name in their reason as well: synth-styles
+for the gridless and warped maps, and synth-joins for the halves with a gap at the fold and an offset. A test
+that needs such a map stays marked until both chunks are merged.
 """
 
 import json
@@ -34,7 +33,6 @@ from osrforge.tracing.registration import (
 from osrforge.tracing.truth import GeometryTruth, Region, Registration
 
 CHUNK = "chunk: registration"
-WITH_CORE = "chunk: registration, chunk: synth-core"
 WITH_STYLES = "chunk: registration, chunk: synth-styles"
 WITH_JOINS = "chunk: registration, chunk: synth-joins"
 
@@ -58,8 +56,9 @@ grid on a synthetic one."""
 
 CORNER_TOLERANCE = LINE_TOLERANCE
 """Cells. A true corner that touches floor maps this close to a fitted corner. The reference fit gives 0.014 to
-0.073 on five synthetic maps and 0.128 on crypt at its ridge of 10 median peaks per pixel of bend, and 0.06 on
-crypt at a ridge of 0.1."""
+0.073 on five synthetic maps and 0.13 to 0.14 on crypt at its drift ridge of 10 median peaks per pixel of bend,
+which fails. A build from this contract gives 0.099 on crypt at a ridge of 3 and 0.059 at a ridge of 1. The ridge
+is the implementation's to set."""
 
 LINE_COUNT_FLOOR = 0.8
 """The least share of the reference fit's detected lines a fit must find on a real map, so a detector that sees
@@ -77,16 +76,20 @@ class RealMap:
 
 REAL_MAPS = [
     RealMap(CHAOTIC_CAVES / "p021.png", [((37, 26), (44.13, 44.12), 501), ((37, 23), (44.13, 44.11), 486)]),
-    RealMap(CHAOTIC_CAVES / "p038.png", [((58, 80), (30.65, 30.63), 1490)]),
-    RealMap(CHAOTIC_CAVES / "p046.png", [((32, 40), (60.85, 60.84), 607)]),
+    RealMap(CHAOTIC_CAVES / "p038.png", [((55, 78), (30.65, 30.63), 1483)]),
+    RealMap(CHAOTIC_CAVES / "p046.png", [((32, 37), (60.85, 60.84), 660)]),
     RealMap(CHAOTIC_CAVES / "p047.png", [((16, 16), (75.00, 75.00), 136)]),
     RealMap(MONKEY_ISLE / "p044.png", [((41, 47), (42.86, 42.87), 1011)]),
 ]
 """Page 21 holds Halfling Home at 5 feet and the Cave of Horrors at 10 feet, drawn at one pitch and split by a
-frame line. Page 38 is the ten lairs, page 46 the manor's ground floor with the grid under the legend's lower
-text, page 47 the manor's upper floor, and Monkey Isle page 44 Dragon Harbor, which the stage refuses for its
-scale after the reading but which registers. The detected lines count the rejected ones: 597 and 10 on page 46,
-1004 and 7 on page 44."""
+frame line. Page 38 is the ten lairs: it has no frame, its printed vertical lines run from x 28 to x 1719 with
+the legend to their right, and its horizontal lines from y 29 to y 2418, so the grid is 55 by 78 cells. Page 46
+is the manor's ground floor: its printed horizontal lines run from y 303 to y 2554, which is 37 rows, and its
+vertical lines reach one row higher, to about y 243, below the legend, so the tolerance of one line accepts a
+fit that takes that row. Page 47 is the manor's upper floor, and Monkey Isle page 44 Dragon Harbor, which the
+stage refuses for its scale after the reading but which registers. The grids and the detected lines are the
+reference fit's over rectangles drawn by the rule in `RegionFit`, and the detected lines count the rejected ones:
+1480 and 3 on page 38, 634 and 26 on page 46, 1004 and 7 on page 44."""
 
 
 def registered(fits: tuple[RegionFit, ...]) -> list[RegionFit]:
@@ -277,10 +280,12 @@ def test_a_stretch_registers_through_the_drift_correction(tmp_path: Path):
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
-def test_a_half_pitch_shift_fails_through_the_share(tmp_path: Path):
-    """Page 47 with its right 45% moved down half a pitch. The reference fit first takes 37.5 px as the pitch,
-    finds neighbouring lines two indices apart, refits at 75 px, rejects 41 of 179 lines, and reports a share of
-    0.703. No fit that spans the tear may pass."""
+def test_a_half_pitch_shift_fails_registration(tmp_path: Path):
+    """Page 47 with its right 45% moved down half a pitch. Two paths fail it. The reference fit first takes
+    37.5 px as the pitch, finds neighbouring lines two indices apart, refits at 75 px, rejects 41 of 179 lines,
+    and reports a share of 0.703. A fit that keeps the 37.5 px pitch passes the share and the jumps, because every
+    printed line lies on that lattice, and fails through the coverage, 0.476 in a build from this contract. Every
+    fit that spans the tear is unregistered either way."""
     rgb = load_rgb(CHAOTIC_CAVES / "p047.png")
     width = rgb.shape[1]
     tear = int(0.55 * width)
@@ -290,8 +295,7 @@ def test_a_half_pitch_shift_fails_through_the_share(tmp_path: Path):
     spanning = [fit for fit in fits if fit.rect[0] < tear - 75 and fit.rect[2] > tear + 75]
     assert spanning, [fit.rect for fit in fits]
     for fit in spanning:
-        assert fit.verdict == "unregistered"
-        assert fit.gate is None or fit.gate.explained_share < EXPLAINED_MINIMUM or fit.gate.index_jumps > 0
+        assert fit.verdict == "unregistered", fit.gate
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
@@ -305,6 +309,29 @@ def test_a_sine_warp_fails_through_the_coverage(tmp_path: Path):
     warped = shift_columns(rgb, 0.6 * 75.0 * np.sin(2 * np.pi * 2 * x))
     fits = register_image(save_rgb(tmp_path / "warp.png", warped))
     assert registered(fits) == [], [(fit.rect, fit.gate) for fit in fits]
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_two_drawings_at_two_pitches_are_two_regions(tmp_path: Path):
+    """Page 47 beside a copy of itself scaled by 0.6 with Lanczos, tops aligned, with 100 px of white between
+    them: two registered regions in page order, at 75 and 45 px."""
+    with Image.open(CHAOTIC_CAVES / "p047.png") as page:
+        big = page.convert("RGB")
+    small = big.resize((round(big.width * 0.6), round(big.height * 0.6)), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", (big.width + 100 + small.width, big.height), (255, 255, 255))
+    canvas.paste(big, (0, 0))
+    canvas.paste(small, (big.width + 100, 0))
+    path = tmp_path / "two-pitches.png"
+    canvas.save(path)
+    fits = register_image(path)
+    assert [fit.verdict for fit in fits] == ["registered", "registered"], [(fit.rect, fit.reason) for fit in fits]
+    assert fits[0].rect[0] < fits[1].rect[0]
+    assert fits[0].rect[2] <= big.width and fits[1].rect[0] >= big.width
+    for fit, pitch in zip(fits, (75.0, 45.0), strict=True):
+        check_gate(fit)
+        assert fit.pitch is not None
+        assert abs(fit.pitch[0] - pitch) <= PITCH_TOLERANCE * pitch, fit.pitch
+        assert abs(fit.pitch[1] - pitch) <= PITCH_TOLERANCE * pitch, fit.pitch
 
 
 class SyntheticMap:
@@ -380,9 +407,13 @@ def fit_for(fits: tuple[RegionFit, ...], region: Region) -> RegionFit:
     return holding[0]
 
 
-def check_against_truth(item: SyntheticMap, region: Region, fit: RegionFit) -> None:
+def check_against_truth(item: SyntheticMap, region: Region, fit: RegionFit) -> tuple[int, int]:
     """The fit's grid holds the true grid, extends at most `GRID_TOLERANCE` lines beyond it on each side, and puts
-    every true corner that touches floor within `CORNER_TOLERANCE` of a fitted corner, at one whole-line offset."""
+    every true corner that touches floor within `CORNER_TOLERANCE` of a fitted corner, at one whole-line offset.
+
+    Returns:
+        That offset `(di, dj)`: the true corner `(i, j)` is the fitted corner `(i + di, j + dj)`.
+    """
     assert region.registration is not None
     assert fit.registration is not None
     assert fit.pitch is not None
@@ -416,9 +447,10 @@ def check_against_truth(item: SyntheticMap, region: Region, fit: RegionFit) -> N
     true_pitch_y = (true.corners[-1][0][1] - true.corners[0][0][1]) / region.rows
     assert abs(fit.pitch[0] - true_pitch_x) <= SYNTHETIC_PITCH_TOLERANCE * true_pitch_x, fit.pitch
     assert abs(fit.pitch[1] - true_pitch_y) <= SYNTHETIC_PITCH_TOLERANCE * true_pitch_y, fit.pitch
+    return di, dj
 
 
-@pytest.mark.xfail(reason=WITH_CORE, strict=True)
+@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_every_synthetic_region_that_should_register_does():
     """Every registered region of the committed set, in both styles synth-core draws: the TSR blue JPEG maps with
     their bowed pitch, skew, blur, and grain, and the clean black and white PNG maps with hatched rock. The grid is
@@ -469,29 +501,53 @@ def halves_of(item: SyntheticMap, pair_index: int) -> tuple[Region, Region]:
     return first, second
 
 
-def align(item: SyntheticMap, pair_index: int) -> HalfAlignment:
-    first, second = halves_of(item, pair_index)
-    first_fit = fit_for(register_image(item.image(first)), first)
-    second_fit = fit_for(register_image(item.image(second)), second)
-    return align_halves(item.image(first), first_fit, item.image(second), second_fit)
+class Aligned:
+    """A half pair's alignment, with the answer's row shift and column offset translated into the fits' numbering.
+
+    A fit that `check_against_truth` accepts may start a line before the true grid and end a line after it, so
+    the answer's `rows` and `columns`, which count the true grids' lines, are translated through the two fits'
+    offsets: the second fit's row 0 lies `rows + dj1 - dj2` rows south of the first fit's row 0, and the second
+    fit's column 0 lies `columns + di1 - di2` columns past the first true grid's last column, which is the first
+    fit's column `first.columns + di1`, so the offset counted past the first fit's last column is
+    `columns + di1 - di2 + first.columns - first_fit.columns`.
+    """
+
+    def __init__(self, item: SyntheticMap, pair_index: int) -> None:
+        first, second = halves_of(item, pair_index)
+        first_fit = fit_for(register_image(item.image(first)), first)
+        second_fit = fit_for(register_image(item.image(second)), second)
+        di1, dj1 = check_against_truth(item, first, first_fit)
+        di2, dj2 = check_against_truth(item, second, second_fit)
+        assert first_fit.registration is not None
+        self.alignment = align_halves(item.image(first), first_fit, item.image(second), second_fit)
+        self.rows_shift = dj1 - dj2
+        self.columns_shift = di1 - di2 + first.columns - first_fit.registration.columns
+
+    def rows(self, true_rows: int) -> int:
+        return true_rows + self.rows_shift
+
+    def columns(self, true_columns: int) -> int:
+        return true_columns + self.columns_shift
 
 
-@pytest.mark.xfail(reason=WITH_CORE, strict=True)
+@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_fold_maps_align_their_rows_and_offer_the_true_offset():
     """fold-joined and fold-apart print the same drawing in two halves with no gap: the west half's grid reaches
     its right image edge at index 10.02 and the east half's first line lies at -0.5 px, so the candidates from
     the true grids are 0, 1, and 2 columns with gaps of 0.0, 1.0, and 2.0 cells. The ink along the fold agrees
-    best at a row shift of 0 (correlation 0.999, against 0.55 for a shift of one row either way)."""
+    best at a row shift of 0 (correlation 0.999, against 0.55 for a shift of one row either way). fold-apart's
+    answer keeps the halves apart and records no offset, but its drawing is the same, so its true offset is 0 too."""
     items = [item for item in synthetic_maps() if item.path.name in ("fold-joined", "fold-apart")]
     assert len(items) == 2, [item.path.name for item in items]
     for item in items:
         pair = item.truth.half_pairs[0]
-        alignment = align(item, 0)
-        assert alignment.rows == pair.rows, (item.path.name, alignment)
-        assert alignment.columns[0] == 0, (item.path.name, alignment)
-        assert abs(alignment.gaps[0]) <= GAP_TOLERANCE, (item.path.name, alignment)
-        if pair.joined:
-            assert pair.columns in alignment.columns
+        aligned = Aligned(item, 0)
+        alignment = aligned.alignment
+        assert alignment.rows == aligned.rows(pair.rows), (item.path.name, alignment, aligned.rows_shift)
+        true_offset = pair.columns if pair.columns is not None else 0
+        expected = aligned.columns(true_offset)
+        assert expected in alignment.columns, (item.path.name, alignment, aligned.columns_shift)
+        assert abs(alignment.gaps[alignment.columns.index(expected)]) <= GAP_TOLERANCE, (item.path.name, alignment)
 
 
 @pytest.mark.xfail(reason=WITH_JOINS, strict=True)
@@ -506,11 +562,13 @@ def test_halves_with_a_gap_at_the_fold_offer_the_true_offset():
     assert items, "no synthetic map beyond the fold maps has a half pair"
     for item in items:
         for index, pair in enumerate(item.truth.half_pairs):
-            alignment = align(item, index)
-            assert alignment.rows == pair.rows, (item.path.name, index, alignment)
-            if pair.joined:
-                assert pair.columns in alignment.columns, (item.path.name, index, alignment)
-                assert alignment.gaps[alignment.columns.index(pair.columns)] >= -GAP_TOLERANCE
+            aligned = Aligned(item, index)
+            alignment = aligned.alignment
+            assert alignment.rows == aligned.rows(pair.rows), (item.path.name, index, alignment, aligned.rows_shift)
+            if pair.columns is not None:
+                expected = aligned.columns(pair.columns)
+                assert expected in alignment.columns, (item.path.name, index, alignment, aligned.columns_shift)
+                assert alignment.gaps[alignment.columns.index(expected)] >= -GAP_TOLERANCE
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
