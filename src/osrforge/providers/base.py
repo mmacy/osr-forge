@@ -15,12 +15,14 @@ shared by all three.
 """
 
 import hashlib
+import io
 import json
 import re
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 import jsonschema
+from PIL import Image
 
 from osrforge.contracts.run import TokenUsage
 from osrforge.errors import SchemaValidationError
@@ -87,7 +89,15 @@ def pixel_digest(png: bytes) -> str:
     Raises:
         ValueError: If the bytes aren't an image Pillow can decode.
     """
-    raise NotImplementedError("chunk: claude-provider")
+    try:
+        with Image.open(io.BytesIO(png)) as image:
+            rgba = image.convert("RGBA")
+    except (OSError, ValueError, Image.DecompressionBombError) as error:
+        raise ValueError(f"not an image Pillow can decode: {error}") from error
+    width, height = rgba.size
+    digest = hashlib.sha256(f"{width}x{height}:".encode("ascii"))
+    digest.update(rgba.tobytes())
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True)
