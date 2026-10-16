@@ -1704,6 +1704,7 @@ class Resolver:
             edge_key(self.to_level(level_id, wcell), self.to_level_side(level_id, wcell, side))
             for wcell, side in self.locked[level_id]
             if wcell in floor
+            and panel_letter(self.to_level(level_id, wcell), self.to_level_side(level_id, wcell, side)) in DOORS
         )
         return Level(
             number=state.number,
