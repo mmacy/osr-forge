@@ -12,6 +12,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The tracing stage's provider roles: `ReadingProvider` (Claude, through the Messages API with `anthropic`, which joins the dependencies) and `DecisionProvider` (Clef), their recordings keyed on pixels, and the cost ledger with its stop (`osrforge.providers.reading`, `osrforge.providers.claude`, `osrforge.providers.decisions`, `osrforge.providers.ledger`). `run.json` gains `requests`, one record per tracing request with its cache reads and writes.
 - The Clef adapter (`osrforge.providers.clef`): one question per request to Clef on Workers AI, sent as PNG or re-encoded as JPEG when the body is large, charged to the Clef ledger, with the recordings that replay its answers and the drift check that resends a sample of them before a sweep.
 - The map images (`osrforge.tracing.images`): each image a map page embeds, extracted at native resolution into the workdir's `maps/` directory, with spreads and duplicates counted once, hidden images left out, and blanked pages skipped.
+- Grid registration (`osrforge.tracing.registration`): the fit of the printed grid to each framed drawing on a map image, judged by a three-part gate (the share of detected lines the fit explains, consistent line indices, and the coverage of the fitted grid by ink), and the row alignment and three candidate column offsets for the two halves of a map.
 
 ## [0.2.0] - 2026-10-05
 
