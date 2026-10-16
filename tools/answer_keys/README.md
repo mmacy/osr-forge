@@ -8,6 +8,7 @@ The tool has four parts:
 - `classify.py` measures each cell and each edge on that grid and decides its letter and a confidence. `styles.py` holds each style's thresholds, and `ink.py` turns the image into masks of ink, paper, and fill.
 - `run.py` reads the maps a spec file names and writes one reading file per map. `reading.py` is that file's format.
 - `score.py` scores a reading against a settled window, and `settle.py` helps a person settle one.
+- `resolve.py` is the reference resolution script. It turns a reading into levels and areas by the conventions, and `world.py` is the grid it walks.
 
 ## Run it
 
@@ -41,6 +42,22 @@ uv run python -m tools.answer_keys.score <readings dir> tools/answer_keys/settle
 The scorer follows the plan's scorer: cells right; edges right as passable or blocked, over the settled edges that touch floor or water; walls read as open, counted on their own; doors and secret doors found; the same with partly floor cells and the edges touching them left out; and the same with cells of outdoor ground left out.
 
 To settle a new window, `settle.py` crops it with the grid drawn on (`crop`), fills a sketch from the classifier's reading (`from-reading`), expands a sketch into a settled window (`expand`), and lists where the reading and the settled window differ, with a zoomed crop of each item (`diff`). The sketch's `checked` map records each item the person looked at with its crop's path, and `notes` says how the window was settled.
+
+## Resolve a reading
+
+An answer key records a settled reading: cells, edges, key marks, outlines, and symbols. Its areas, ownership, cuts between levels, entrances, and links follow from that reading by the rules in `docs/tracing-conventions.md`. `resolve.py` applies those rules and nothing else, so the resolution layer of every answer key comes from the same text the tracing stage's resolution function follows.
+
+`resolve(reading, survey, contents, mapread)` takes a geometry truth document, reads its pages, regions, panels, and half pairs, and returns the document with each dungeon's levels and entrance filled in, in canonical form. It needs the map's survey cache, its content caches by level, and its map-reading cache, which `load_caches` reads from a map directory's `stages/`. The rules run in the order the conventions give: cells and edges, the 5-foot conversion, the first partition, key placement, the final partition, areas and doors, panel placement, cuts and passages, entrances and links. Checks and repairs are the tracing stage's, so the script makes none.
+
+To compare the script's result with a committed synthetic answer:
+
+```text
+uv run python -m tools.answer_keys.resolve tests/assets/synthetic-maps/manor
+```
+
+It prints `exact`, or the fields of each level that differ and the cells behind each difference. `world.py` holds what the rules walk: every panel's cells and edges on one graph, the fold links between halves that stay apart, open spaces, open ground, walled rooms and structures, narrow runs, one-cell necks, and the walks that measure distances.
+
+Where the conventions give no answer for an input, the script raises `ConventionGap` with the case, so the gap is settled in the conventions and not in the code.
 
 ## The grid fit
 
@@ -87,4 +104,4 @@ The confidence of a blocked or open edge comes from how far the ink measure sits
 
 ## Tests
 
-`tests/` runs on the committed Chaotic Caves images: each map's grid fit has an rms residual under 0.05 cells, a largest residual under 0.1 cells, and every detected line within a tenth of a cell, each reading loads through the truth models, and each reading scores at least the floor named in the test against its settled window. `uv run pytest` runs them with the rest of osr-forge's tests.
+`tests/` runs on the committed Chaotic Caves images: each map's grid fit has an rms residual under 0.05 cells, a largest residual under 0.1 cells, and every detected line within a tenth of a cell, each reading loads through the truth models, and each reading scores at least the floor named in the test against its settled window. `test_resolve.py` resolves every committed synthetic map and compares the result with the map's answer in canonical form, with flags left out. `uv run pytest` runs them with the rest of osr-forge's tests.
