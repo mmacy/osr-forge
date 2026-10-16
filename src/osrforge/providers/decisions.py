@@ -16,7 +16,11 @@ replays a directory of recordings and
 [`RecordingDecisionProvider`][osrforge.providers.decisions.RecordingDecisionProvider]
 writes them. Clef has no version pin, so before a sweep the
 [`drift_check`][osrforge.providers.decisions.drift_check] sends a sample of
-recorded requests again and reports every answer that moved.
+recorded requests again and reports every answer that moved. A recording of
+a private corpus member's map may contain the module's picture, so those
+recordings live in the owner's private corpus directory and never in the
+repository; only the committed corpus members' and the synthetic maps'
+recordings are committed.
 """
 
 import re
@@ -28,17 +32,22 @@ from typing import Literal, Protocol, runtime_checkable
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 __all__ = [
+    "JPEG_QUALITY",
+    "JPEG_THRESHOLD_BYTES",
     "ClefModel",
     "DecisionProvider",
     "DecisionRequest",
     "DecisionResponse",
     "Drift",
+    "DriftKind",
     "ImageFormat",
     "RecordedDecisionProvider",
     "RecordingDecisionProvider",
     "drift_check",
     "drift_sample",
+    "encode_request",
     "recording_filename",
+    "request_body",
 ]
 
 ClefModel = Literal["clef", "clef-flash"]
@@ -48,6 +57,18 @@ ImageFormat = Literal["png", "jpeg"]
 """How a request's image was sent."""
 
 _TAG_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+
+JPEG_THRESHOLD_BYTES = 100_000
+"""A request body over this many bytes is rebuilt with its image as JPEG. Part of every key.
+
+Workers AI rejects bodies far smaller than its documented 13 MiB: the probe
+saw rejections from about 512 KiB. A 2 by 2 cell crop at 128 pixels per cell
+is about 32 KB as PNG and 20 KB as JPEG, so edge requests go as PNG and only
+the larger crops are re-encoded.
+"""
+
+JPEG_QUALITY = 90
+"""The JPEG quality a large crop is re-encoded at. Part of every key."""
 
 
 @dataclass(frozen=True)
@@ -91,10 +112,13 @@ class DecisionRequest:
 
         The key is the sha256 hex of the canonical JSON (sorted keys, compact
         separators, UTF-8) of the model, the tag, the image's
-        [`pixel_digest`][osrforge.providers.base.pixel_digest], the state,
-        the question, and the options as a list of `[id, description]`
-        pairs. The format the image was sent in isn't part of the key: the
-        same crop sent as PNG or as JPEG is the same request.
+        [`pixel_digest`][osrforge.providers.base.pixel_digest] (of the source
+        PNG, whatever format is sent), the state, the question, the options
+        as a list of `[id, description]` pairs, the format the image goes as
+        (what [`encode_request`][osrforge.providers.decisions.encode_request]
+        chooses), [`JPEG_QUALITY`][osrforge.providers.decisions.JPEG_QUALITY],
+        and [`JPEG_THRESHOLD_BYTES`][osrforge.providers.decisions.JPEG_THRESHOLD_BYTES],
+        so a change in how an image is sent changes the key.
 
         Returns:
             A 64-character sha256 hex digest.
@@ -177,6 +201,40 @@ class DecisionProvider(Protocol):
         ...
 
 
+def request_body(request: DecisionRequest, image_format: ImageFormat) -> bytes:
+    """Build the exact body for a request, with its image in the given format.
+
+    The body is the canonical JSON (sorted keys, compact separators, UTF-8)
+    of `{"model": request.model, "images": [{"content_type": "image/png" or
+    "image/jpeg", "base64": ...}], "state": request.state, "questions":
+    {request.tag: {"type": "choice", "instructions": request.question,
+    "criteria": {option id: description}}}}`. The JPEG is the PNG's pixels
+    saved by Pillow at [`JPEG_QUALITY`][osrforge.providers.decisions.JPEG_QUALITY].
+
+    Args:
+        request: The request.
+        image_format: How to send the image.
+
+    Returns:
+        The body bytes.
+    """
+    raise NotImplementedError("chunk: clef-provider")
+
+
+def encode_request(request: DecisionRequest) -> tuple[bytes, ImageFormat]:
+    """Return the body the provider sends: PNG, or JPEG when the PNG body is too large.
+
+    Args:
+        request: The request.
+
+    Returns:
+        The PNG body and `"png"` when that body is at most
+        [`JPEG_THRESHOLD_BYTES`][osrforge.providers.decisions.JPEG_THRESHOLD_BYTES]
+        long, else the JPEG body and `"jpeg"`.
+    """
+    raise NotImplementedError("chunk: clef-provider")
+
+
 def recording_filename(tag: str, key: str) -> str:
     """Return the filename a recording is stored under: `<tag>.<key[:12]>.json`.
 
@@ -255,19 +313,24 @@ class RecordingDecisionProvider:
         raise NotImplementedError("chunk: clef-provider")
 
 
+DriftKind = Literal["body", "choice", "probability"]
+"""What moved: the body sent, the top answer, or one option's probability."""
+
+
 @dataclass(frozen=True)
 class Drift:
-    """One recorded answer that the service no longer gives.
+    """One way a recorded answer no longer holds.
 
     Attributes:
         tag: The request's tag.
         key: The recording key.
-        reason: What moved: the body, the top answer, or a probability, with
-            the recorded and the new values.
+        kind: What moved.
+        reason: The recorded and the new values, in words.
     """
 
     tag: str
     key: str
+    kind: DriftKind
     reason: str
 
 
@@ -280,20 +343,25 @@ def drift_check(
     """Send recorded requests again and report every answer that moved.
 
     Each request is sent through `provider`, and its answer is compared with
-    the recording under the request's key. The answer drifted when the body
-    the provider sent doesn't have the recording's `body_sha256` (so the
-    request wasn't resent exactly), when the top answer changed, or when any
-    option's probability moved by more than `tolerance`. A sweep stops when
-    this returns anything.
+    the recording under the request's key. A body drift is reported when the
+    body the provider sent doesn't have the recording's `body_sha256`, so
+    the request wasn't resent exactly. The probabilities are compared
+    whether or not the body matched: a choice drift when the top answer
+    changed, and a probability drift when any option's probability moved by
+    more than `tolerance`. One request can yield several drifts. A sweep
+    stops when this returns anything.
 
     Args:
         recordings: The recordings directory.
         provider: The live provider.
-        requests: The sample to resend, each with a recording.
+        requests: The sample to resend, each with a recording, as
+            [`drift_sample`][osrforge.providers.decisions.drift_sample]
+            chooses them.
         tolerance: How far a probability may move.
 
     Returns:
-        The drifts, in the requests' order; empty when nothing moved.
+        The drifts, in the requests' order and then body, choice,
+        probability; empty when nothing moved.
 
     Raises:
         FixtureMissError: If a request has no recording.
@@ -301,20 +369,24 @@ def drift_check(
     raise NotImplementedError("chunk: clef-provider")
 
 
-def drift_sample(recordings: Path, size: int = 50) -> tuple[str, ...]:
-    """Choose the recordings the drift check resends.
+def drift_sample(recordings: Path, requests: Sequence[DecisionRequest], size: int = 50) -> tuple[DecisionRequest, ...]:
+    """Choose the requests the drift check resends from those that have recordings.
 
-    Half of the sample (rounded down) is the recordings with the smallest
-    margins, where the top answer led the next by the least, because those
-    are the answers a changed model moves first. The rest are taken at even
-    intervals through the remaining recordings in key order. When the
-    directory holds at most `size` recordings, the sample is all of them.
+    A recording holds no image, so the caller supplies the requests: the
+    sweep's planned requests, which it builds from the maps. Among those
+    with a recording, half of the sample (rounded down) is the ones whose
+    recorded margins are smallest, where the top answer led the next by the
+    least, because those are the answers a changed model moves first. The
+    rest are taken at even intervals through the remaining recorded
+    requests in key order. When at most `size` requests have recordings, the
+    sample is all of them.
 
     Args:
         recordings: The recordings directory.
+        requests: The requests to choose from.
         size: The sample size.
 
     Returns:
-        The chosen recordings' keys, sorted.
+        The chosen requests, sorted by key.
     """
     raise NotImplementedError("chunk: clef-provider")

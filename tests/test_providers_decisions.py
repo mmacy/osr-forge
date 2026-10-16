@@ -1,7 +1,8 @@
 """The decision provider: request keys, the Clef adapter, its recordings, and the drift check.
 
 No test here calls the service. The Clef adapter runs against a fake transport, and the live check that proves one
-request is answered and charged is `tools/live/clef_check.py`.
+request is answered and charged is `tools/live/clef_check.py`. This chunk starts after the Claude provider chunk is
+implemented: it uses `pixel_digest`, the ledger, and the errors that chunk builds.
 """
 
 import base64
@@ -16,21 +17,20 @@ import pytest
 from PIL import Image
 from pydantic import SecretStr, ValidationError
 
-from osrforge.errors import FixtureMissError, LedgerStopError, ProviderError
+from osrforge.errors import ClefAuthError, FixtureMissError, LedgerStopError, ProviderError
+from osrforge.providers import decisions
 from osrforge.providers.base import pixel_digest
 from osrforge.providers.clef import (
-    JPEG_THRESHOLD_BYTES,
     PRICE_PER_TOKEN,
     ClefProvider,
     ClefSettings,
     cost_usd,
-    encode_request,
     estimate_cost,
     estimate_tokens,
-    request_body,
     wrangler_token,
 )
 from osrforge.providers.decisions import (
+    JPEG_THRESHOLD_BYTES,
     DecisionProvider,
     DecisionRequest,
     DecisionResponse,
@@ -39,7 +39,9 @@ from osrforge.providers.decisions import (
     RecordingDecisionProvider,
     drift_check,
     drift_sample,
+    encode_request,
     recording_filename,
+    request_body,
 )
 
 CHUNK = "chunk: clef-provider"
@@ -124,7 +126,7 @@ def test_response_derives_choice_confidence_and_margin():
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
-def test_key_hashes_pixels_and_every_parameter_but_not_the_format():
+def test_key_hashes_pixels_every_parameter_and_how_the_image_is_sent(monkeypatch: pytest.MonkeyPatch):
     key = make_request().key()
     assert len(key) == 64 and all(c in "0123456789abcdef" for c in key)
     assert make_request(image=reencoded(CROP)).key() == key
@@ -140,6 +142,17 @@ def test_key_hashes_pixels_and_every_parameter_but_not_the_format():
     for name, other in variants.items():
         assert other != key, name
     assert len(set(variants.values())) == len(variants)
+
+    # How the image is sent is part of the key, read from the module's constants when the key is computed.
+    large = make_request(image=png_bytes(3, (512, 512), noisy=True))
+    large_key = large.key()
+    monkeypatch.setattr(decisions, "JPEG_QUALITY", 75)
+    assert large.key() != large_key
+    assert make_request().key() != key
+    monkeypatch.setattr(decisions, "JPEG_QUALITY", 90)
+    monkeypatch.setattr(decisions, "JPEG_THRESHOLD_BYTES", 10_000_000)
+    assert large.key() != large_key
+    assert make_request().key() != key
 
 
 # ---------------------------------------------------------------- the body, the format, and the prices
@@ -181,21 +194,31 @@ def test_a_small_crop_goes_as_png_and_a_large_body_is_rebuilt_as_jpeg():
         assert jpeg.format == "JPEG" and jpeg.size == (512, 512)
 
 
+def probe_estimate(width: int, height: int, state: str, questions: dict) -> int:
+    """The probe's formula (`~/.re-pod/map-plan/clef/probe/scripts/clef.py`, `image_tokens_est` and `estimate`)."""
+    image = math.ceil(width / 32) * math.ceil(height / 32)
+    if width * height < 65536:
+        image = max(image, 64) * 2
+    image += 4
+    return math.ceil(image + len(json.dumps(state)) / 2 + len(json.dumps(questions)) / 1.5 + 200)
+
+
 @pytest.mark.xfail(reason=CHUNK, strict=True)
-def test_the_estimate_is_above_a_measured_request_and_not_absurdly_so():
-    """The probe's one-edge requests on a 256 by 256 crop cost 303 to 308 input tokens."""
+def test_the_estimate_follows_the_probe_formula():
+    """The probe's one-edge requests on a 256 by 256 crop cost 303 to 308 input tokens, under this estimate."""
     request = make_request()
+    questions = json.loads(request_body(request, "png"))["questions"]
     tokens = estimate_tokens(request)
-    text = STATE + QUESTION + json.dumps(dict(OPTIONS), sort_keys=True, separators=(",", ":"))
-    assert tokens == 64 + 4 + math.ceil(len(text.encode("utf-8")) / 2) + 200
+    assert tokens == probe_estimate(256, 256, STATE, questions)
     assert 308 <= tokens <= 4 * 308
     assert estimate_cost(request) == pytest.approx(tokens * PRICE_PER_TOKEN["clef"] * 1.5)
     assert estimate_cost(make_request(model="clef-flash")) == pytest.approx(
         tokens * PRICE_PER_TOKEN["clef-flash"] * 1.5
     )
-    big = estimate_tokens(make_request(image=png_bytes(3, (1056, 864))))
-    assert big == math.ceil(1056 / 32) * math.ceil(864 / 32) + 4 + math.ceil(len(text.encode("utf-8")) / 2) + 200
+    assert estimate_tokens(make_request(image=png_bytes(3, (1056, 864)))) == probe_estimate(1056, 864, STATE, questions)
+    assert estimate_tokens(make_request(image=png_bytes(3, (128, 128)))) == probe_estimate(128, 128, STATE, questions)
     assert cost_usd("clef", 308) == pytest.approx(308 * 0.240e-6)
+    assert cost_usd("clef-flash", 300, 8) == pytest.approx(308 * 0.090e-6)
     with pytest.raises(ProviderError):
         cost_usd("jev", 1)
 
@@ -204,7 +227,7 @@ def test_the_estimate_is_above_a_measured_request_and_not_absurdly_so():
 
 
 def envelope(
-    probabilities: Mapping[str, float] = PROBABILITIES, model: str = "clef", tokens: int = 308
+    probabilities: Mapping[str, float] = PROBABILITIES, model: str = "clef", tokens: int = 308, output: int = 0
 ) -> tuple[int, bytes]:
     top = max(probabilities, key=lambda option: probabilities[option])
     result = {
@@ -212,7 +235,7 @@ def envelope(
         "answers": {
             "edge": {"type": "choice", "choice": top, "probabilities": dict(probabilities), "confidence": 0.87}
         },
-        "usage": {"input_tokens": tokens, "output_tokens": 0},
+        "usage": {"input_tokens": tokens, "output_tokens": output},
     }
     return 200, json.dumps({"result": result, "success": True, "errors": [], "messages": []}).encode("utf-8")
 
@@ -269,7 +292,7 @@ def provider(
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_decide_posts_the_body_and_returns_the_probabilities_charged_to_the_ledger(tmp_path: Path):
-    decider, transport, path = provider(tmp_path, [envelope(), envelope(tokens=310)])
+    decider, transport, path = provider(tmp_path, [envelope(), envelope(tokens=310, output=5)])
     response = decider.decide(make_request())
     assert response.probabilities == PROBABILITIES
     assert response.choice == "door"
@@ -293,7 +316,7 @@ def test_decide_posts_the_body_and_returns_the_probabilities_charged_to_the_ledg
         "date": "2026-10-15",
         "what": "osrforge test run",
         "requests": 2,
-        "usd": pytest.approx(cost_usd("clef", 308) + cost_usd("clef", 310)),
+        "usd": pytest.approx(cost_usd("clef", 308) + cost_usd("clef", 310, 5)),
     }
     assert ledger["spent_usd"] == pytest.approx(0.168562 + entry["usd"])
     assert "pending" not in entry
@@ -346,9 +369,15 @@ def test_rate_limits_and_connection_failures_are_retried_and_auth_failures_are_n
     assert len(transport.calls) == 4
 
     decider, transport, _ = provider(tmp_path, [(401, b'{"errors":[{"message":"unauthorized"}]}')])
+    with pytest.raises(ClefAuthError) as auth:
+        decider.decide(make_request())
+    assert len(transport.calls) == 1 and "401" in str(auth.value) and "wrangler login" in str(auth.value)
+    assert TOKEN not in str(auth.value)
+
+    decider, transport, _ = provider(tmp_path, [(403, b"forbidden")])
     with pytest.raises(ProviderError) as excinfo:
         decider.decide(make_request())
-    assert len(transport.calls) == 1 and "401" in str(excinfo.value)
+    assert len(transport.calls) == 1 and "403" in str(excinfo.value)
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
@@ -508,7 +537,7 @@ def test_the_drift_check_stops_on_one_deliberately_altered_recording(tmp_path: P
     assert len(drifts) == 1
     drift = drifts[0]
     assert isinstance(drift, Drift)
-    assert (drift.tag, drift.key) == ("edge", requests[1].key())
+    assert (drift.tag, drift.key, drift.kind) == ("edge", requests[1].key(), "probability")
     assert "0.05" in drift.reason
 
 
@@ -523,13 +552,18 @@ def test_the_drift_check_tolerates_small_moves_and_catches_a_changed_top_answer_
     flipped = {"door": 0.44, "open": 0.46, "secret_door": 0.05, "wall": 0.05}
     alter(tmp_path, requests[2], probabilities=flipped)
     drifts = drift_check(tmp_path, StubDecider(answers), requests)
-    assert [d.key for d in drifts] == [requests[2].key()]
+    assert [(d.key, d.kind) for d in drifts] == [(requests[2].key(), "choice")]
     assert "door" in drifts[0].reason and "open" in drifts[0].reason
 
+    # A body that no longer hashes to the recording's is its own kind of drift, and the probabilities are still
+    # compared: here they match, so the body drift stands alone.
     alter(tmp_path, requests[2], probabilities=answers[requests[2].key()].probabilities, body_sha256="00" * 32)
     drifts = drift_check(tmp_path, StubDecider(answers), requests)
-    assert [d.key for d in drifts] == [requests[2].key()]
-    assert "body" in drifts[0].reason
+    assert [(d.key, d.kind) for d in drifts] == [(requests[2].key(), "body")]
+
+    alter(tmp_path, requests[2], probabilities=flipped, body_sha256="00" * 32)
+    drifts = drift_check(tmp_path, StubDecider(answers), requests)
+    assert [(d.key, d.kind) for d in drifts] == [(requests[2].key(), "body"), (requests[2].key(), "choice")]
 
     with pytest.raises(FixtureMissError):
         drift_check(tmp_path, StubDecider(answers), [make_request(image=png_bytes(99))])
@@ -548,9 +582,14 @@ def test_the_drift_sample_favours_small_margins_and_is_deterministic(tmp_path: P
     for request in requests:
         recorder.decide(request)
 
-    sample = drift_sample(tmp_path, size=20)
-    assert len(sample) == 20 and sample == tuple(sorted(sample))
+    unrecorded = [make_request(image=png_bytes(900 + i)) for i in range(5)]
+    candidates = unrecorded + requests
+    sample = drift_sample(tmp_path, candidates, size=20)
+    keys = [request.key() for request in sample]
+    assert len(sample) == 20 and keys == sorted(keys)
+    assert not {request.key() for request in unrecorded} & set(keys)
     smallest = {requests[i].key() for i in range(10)}
-    assert smallest <= set(sample)
-    assert drift_sample(tmp_path, size=20) == sample
-    assert len(drift_sample(tmp_path, size=100)) == 60
+    assert smallest <= set(keys)
+    assert drift_sample(tmp_path, candidates, size=20) == sample
+    assert len(drift_sample(tmp_path, candidates, size=100)) == 60
+    assert drift_sample(tmp_path, unrecorded, size=20) == ()
