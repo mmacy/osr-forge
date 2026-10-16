@@ -11,6 +11,8 @@ my-module.forge/
 ├── pages/
 │   ├── 0001.png          # page renders (default 150 DPI)
 │   └── 0001.txt          # page text layers (empty for scanned modules)
+├── maps/
+│   └── p0038-0.png       # the images the map pages embed, at native resolution
 ├── stages/               # cached extraction-stage outputs
 │   ├── survey.json
 │   ├── areas.<dungeon>.<level>.json
@@ -26,7 +28,11 @@ my-module.forge/
 ```
 
 There is no geometry cache: geometry is deterministic and recomputed inside
-every assembly.
+every assembly. `maps/` holds the images the tracing stage reads a printed
+map from: each image a map page embeds, at the resolution the PDF stores it
+at, named for the first page it appears on and its index on that page. An
+image that spans a two-page spread, or that is printed on two pages, is one
+file.
 
 ## `adventure.json`
 

@@ -10,10 +10,8 @@ out in the docstrings so a reader can check them against the rule.
 import pytest
 
 from osrforge.tracing.fivefoot import WallMove, convert_five_foot
-from osrforge.tracing.truth import EdgeGrids, Mark, Outline, Panel, PanelRegion
+from osrforge.tracing.truth import EdgeGrids, Mark, Outline, Panel, PanelRegion, Symbol
 from tracing_support import five_foot_pair
-
-pytestmark = pytest.mark.xfail(reason="chunk: five-foot", strict=True)
 
 
 def panel(cells: tuple[str, ...], vertical: tuple[str, ...], horizontal: tuple[str, ...], **extra: object) -> Panel:
@@ -141,3 +139,284 @@ def test_marks_symbols_and_outlines_convert_to_containing_cells():
     assert result.panel.outlines == (Outline(dungeon="tiny", level=1, rects=((0, 0, 2, 1),), seeds=("1,0",)),)
     assert result.panel.scale_feet == 10
     assert result.panel.regions == ten.panels[0].regions
+
+
+def test_mark_on_an_unmoved_off_grid_segment_goes_to_its_floor_square_side():
+    """Ruling A. A locked door on vertical line 1 at row 0 lies between floor (0,0) and water (1,0).
+
+    Blocked segments: `ox = 0` lines x = 0 and 2 hold 1 + 2 = 3 against 2 on
+    x = 1; `oy = 0` lines y = 0 and 2 hold 2 + 1 = 3 against 1 on y = 1. Phase
+    (0, 0), one cell of 2 floor, 1 water, and 1 rock squares, so floor and
+    partly floor. The door's segment isn't between two floor squares, so it
+    isn't a run and doesn't move, and line 1 isn't a 10-foot line. Its floor
+    square is (0,0), in cell (0,0), and the segment faces east from it, so the
+    mark's edge is 0,0:east, not the west side it was named from.
+    """
+    result = convert_five_foot(
+        panel(
+            (".~", "#."),
+            ("wlw", "-wd"),
+            ("ww", "dp", "-w"),
+            partial=("0,1",),
+            marks=(Mark(text="D", cell="1,0", edge="1,0:west"),),
+        )
+    )
+    assert result.phase == (0, 0)
+    assert result.moves == ()
+    assert result.panel.cells == (".",)
+    assert result.panel.edges == EdgeGrids(vertical=("wd",), horizontal=("w", "w"))
+    assert result.panel.partial == ("0,0",)
+    assert result.panel.marks == (Mark(text="D", cell="0,0", edge="0,0:east"),)
+
+
+def test_a_move_is_ruled_out_when_a_room_would_lose_a_cell_it_had():
+    """Ruling B. Three one-square rooms, (1,0), (0,1), and (1,1), with rock at (0,0).
+
+    Phase (0, 0): vertical lines 0 and 2 hold 3 against 2, horizontal lines 0
+    and 2 hold 3 against 2. One cell covers all four squares. The runs are the
+    window on horizontal line 1 at column 1, midpoint (1.5, 1), and the door
+    on vertical line 1 at row 1, midpoint (1, 1.5), so the window moves first.
+    No room has a cell before that move, so rule 1 rules nothing out, there
+    is no narrow run, and rule 3 compares 1 square with 1, so rule 4 sends it
+    south to line 2. Square (1,1) joins room (1,0), which now owns the cell.
+    For the door, east would give (1,1) to room (0,1) and room (1,0) would
+    lose its cell, so east is ruled out, and west, which gives (0,1) to room
+    (1,0), is left. The door's letter and its mark go to line 0. The west
+    edge reads - and d, so d; the north frame reads - and n, so n; line 2
+    reads w and n, so n.
+    """
+    result = convert_five_foot(
+        panel(
+            ("#.", ".."),
+            ("-ww", "wdw"),
+            ("-n", "wn", "ww"),
+            partial=("0,0", "1,1"),
+            marks=(Mark(text="1", cell="0,1"), Mark(text="D", cell="1,1", edge="1,1:west")),
+        )
+    )
+    assert result.phase == (0, 0)
+    assert result.panel.cells == (".",)
+    assert result.panel.edges == EdgeGrids(vertical=("dw",), horizontal=("n", "n"))
+    assert result.moves == (
+        WallMove(axis="horizontal", line=1, moved_to=2, start=1, end=2),
+        WallMove(axis="vertical", line=1, moved_to=0, start=1, end=2),
+    )
+    assert sorted(result.panel.marks, key=lambda mark: mark.text) == [
+        Mark(text="1", cell="0,0"),
+        Mark(text="D", cell="0,0", edge="0,0:west"),
+    ]
+    assert result.panel.partial == ("0,0",)
+
+
+def test_a_room_may_give_up_a_cell_while_it_keeps_another():
+    """Rule 1 counts cells: a room that keeps a cell may give up another.
+
+    Phase (0, 0): vertical lines 0, 2, and 4 hold 2 + 0 + 1 = 3 blocked segments
+    against 0 + 2 = 2 on lines 1 and 3, and horizontal lines 0 and 2 hold 3 + 4 = 7
+    against 1 on line 1. Square (3,1) is walled on every side, with a window on
+    the east frame, so it is walled room R2. The other six squares join through
+    open sides and the printed line, and the door on the west frame closes them,
+    so they are walled room R1. Cell (0,0) has four R1 squares and cell (1,0) has
+    R1 squares (2,0) and (2,1), so R1 has both cells and R2 has none.
+
+    The one run is the wall on vertical line 3 at row 1, between (2,1) and (3,1).
+    East gives (3,1) to R1, and R1 keeps both cells. West gives (2,1) to R2, so
+    cell (1,0) becomes R2's, but R1 still has cell (0,0), and R2 had no cell to
+    lose. Rule 1 leaves both directions, and so does rule 2, since the 2 by 3
+    block of R1 squares is joined and has no narrow run. Rule 3 moves the run
+    toward R1, six squares against one, so west to line 2. A cell-by-cell rule
+    would rule west out and move it east, giving vertical edges d, o, w.
+
+    Line 2 then reads o and w, so w. Line 0 reads w and d, so d. Line 4 reads -
+    and n, so n. The north frame reads w and n, so n, then w and -, so w. Both
+    cells are partly floor: (0,0) holds partly-floor square (0,0), and (1,0)
+    mixes rock (3,0) with floor. The door mark stays on the frame line 0.
+    """
+    result = convert_five_foot(
+        panel(
+            ("...#", "...."),
+            ("woow-", "doown"),
+            ("wnw-", "opow", "wwww"),
+            partial=("0,0", "2,1"),
+            marks=(Mark(text="1", cell="1,1"), Mark(text="D", cell="0,1", edge="0,1:west")),
+        )
+    )
+    assert result.phase == (0, 0)
+    assert result.panel.cells == ("..",)
+    assert result.panel.edges == EdgeGrids(vertical=("dwn",), horizontal=("nw", "ww"))
+    assert result.moves == (WallMove(axis="vertical", line=3, moved_to=2, start=1, end=2),)
+    assert result.panel.partial == ("0,0", "1,0")
+    assert sorted(result.panel.marks, key=lambda mark: mark.text) == [
+        Mark(text="1", cell="0,0"),
+        Mark(text="D", cell="0,0", edge="0,0:west"),
+    ]
+
+
+def test_a_block_is_joined_when_its_squares_connect_through_three_passable_edges():
+    """Ruling C. A 2 by 3 room whose inner edges are o, p, o down the middle and s, o and o, d across.
+
+    Phase: vertical lines 0 and 2 hold 6 against 0 on line 1; horizontal lines
+    0 and 2 hold 2 + 1 = 3, lines 1 and 3 hold 1 + 2 = 3, and the tie goes to
+    `oy = 0`. Both 2 by 2 blocks have three passable inner edges, so their
+    squares are connected and they are joined blocks, and the room has no
+    narrow run. The one run is the secret door on horizontal line 1 at column
+    0. The room keeps both of its cells either way, rule 2 has no run to
+    break, and rule 3 compares the same 6 squares with themselves, so rule 4
+    sends it south to line 2, where s comes before the d beside it. The mark
+    on the door goes with it to 0,0:south, and the cave mouth on the frame
+    keeps its side. The cell of rows 2 and 3 covers two squares off the grid,
+    so it is partly floor.
+    """
+    result = convert_five_foot(
+        panel(
+            ("..", "..", ".."),
+            ("wod", "wpw", "wow"),
+            ("ww", "so", "od", "ww"),
+            marks=(
+                Mark(text="1", cell="0,2"),
+                Mark(text="2", cell="1,1"),
+                Mark(text="D", cell="0,1", edge="0,1:north"),
+            ),
+            symbols=(Symbol(kind="cave_mouth", edge="0,0:west"),),
+        )
+    )
+    assert result.phase == (0, 0)
+    assert result.panel.cells == (".", ".")
+    assert result.panel.edges == EdgeGrids(vertical=("wd", "ww"), horizontal=("w", "s", "w"))
+    assert result.moves == (WallMove(axis="horizontal", line=1, moved_to=2, start=0, end=1),)
+    assert sorted(result.panel.marks, key=lambda mark: mark.text) == [
+        Mark(text="1", cell="0,1"),
+        Mark(text="2", cell="0,0"),
+        Mark(text="D", cell="0,0", edge="0,0:south"),
+    ]
+    assert result.panel.symbols == (Symbol(kind="cave_mouth", edge="0,0:west"),)
+    assert result.panel.partial == ("0,1",)
+
+
+def test_runs_with_one_midpoint_move_horizontal_first():
+    """Ruling D. Four one-square spaces, every inner side blocked, with (0,0) open ground.
+
+    Phase (0, 0): every line holds 2 blocked segments, and the frame lines
+    give phase 0 four against two on each axis. The open-ground rectangle
+    (0,0,1,1) holds only square (0,0), so its space is open ground and the
+    other three are walled rooms. The vertical run (s, n on line 1) and the
+    horizontal run (l, w on line 1) share the midpoint (1, 1), so the
+    horizontal run goes first. No room has a cell, rule 3 compares 1 + 1
+    squares with 1 + 1, and rule 4 sends it south to line 2. Row 1 joins the
+    north: (0,1) joins the open ground and (1,1) joins room (1,0), which owns
+    the cell. For the vertical run, east would take column 1 from room (1,0),
+    so west is left. Line 0 takes s and n, so s; line 2 reads w and n, so n;
+    horizontal line 2 takes l and w, so l. With the vertical run first the
+    letters would be n and s across and l and w down.
+    """
+    result = convert_five_foot(
+        panel(
+            ("..", ".."),
+            ("nsw", "wnn"),
+            ("ww", "lw", "ww"),
+            partial=("0,1", "1,0", "1,1"),
+            marks=(Mark(text="1", cell="1,0"), Mark(text="2", cell="0,0"), Mark(text="3", cell="0,1", leader_to="1,0")),
+            outlines=(
+                Outline(dungeon="d", level=1, rects=((0, 0, 2, 2),), seeds=("0,1",), open_ground=((0, 0, 1, 1),)),
+            ),
+        )
+    )
+    assert result.phase == (0, 0)
+    assert result.panel.cells == (".",)
+    assert result.panel.edges == EdgeGrids(vertical=("sn",), horizontal=("w", "l"))
+    assert result.moves == (
+        WallMove(axis="horizontal", line=1, moved_to=2, start=0, end=2),
+        WallMove(axis="vertical", line=1, moved_to=0, start=0, end=2),
+    )
+    assert sorted(result.panel.marks, key=lambda mark: mark.text) == [
+        Mark(text="1", cell="0,0"),
+        Mark(text="2", cell="0,0"),
+        Mark(text="3", cell="0,0", leader_to="0,0"),
+    ]
+    assert result.panel.partial == ("0,0",)
+
+
+def test_a_move_is_ruled_out_when_a_segment_would_land_inside_a_narrow_run():
+    """Ruling E. Four rooms: (0,0), (1,0), and (0,1) alone, and (1,1) with (2,1), which is a narrow run.
+
+    Phase (0, 0): vertical lines 0 and 2 hold 3 and lines 1 and 3 hold 3, so
+    the tie goes to `ox = 0`; horizontal lines 0 and 2 hold 5 against 3. The
+    runs on vertical line 1 (d, s) and horizontal line 1 (s, w) share the
+    midpoint (1, 1), so the horizontal run goes first. No room has a cell,
+    and rule 3 compares 1 + 1 squares north with 1 + 2 south, so it moves
+    south to line 2, and row 1 joins the north. Now rooms (0,0) and (1,0)
+    each hold two squares of the one full cell, and for the vertical run
+    either direction takes that cell from one of them, so rule 1 rules both
+    out. Moving east would land the s on vertical line 2 at row 1, between
+    (1,1) and (2,1), the narrow run's consecutive squares, so rule 2 rules
+    east out and west is left. Line 0 takes d and s, so s. The edge on line 2
+    reads w and o, but the run's cells (1,1) and (2,1) are consecutive, so it
+    is forced passable, and the east cell is floor for the same reason though
+    it holds one floor square. That cell belongs to no walled room, so no wall
+    is kept between the cells.
+    """
+    result = convert_five_foot(
+        panel(
+            ("..#", "..."),
+            ("wdw-", "wsow"),
+            ("dw-", "swn", "dww"),
+            partial=("0,0", "0,1"),
+            marks=(Mark(text="1", cell="1,0", leader_to="2,1"),),
+        )
+    )
+    assert result.phase == (0, 0)
+    assert result.panel.cells == ("..",)
+    assert result.panel.edges == EdgeGrids(vertical=("sow",), horizontal=("dw", "sw"))
+    assert result.moves == (
+        WallMove(axis="horizontal", line=1, moved_to=2, start=0, end=2),
+        WallMove(axis="vertical", line=1, moved_to=0, start=0, end=2),
+    )
+    assert result.panel.marks == (Mark(text="1", cell="0,0", leader_to="1,0"),)
+    assert result.panel.partial == ("0,0", "1,0")
+
+
+def test_open_ground_is_the_space_with_the_most_squares_in_its_rectangle():
+    """The open-ground rule. Room A is square (0,0). Space B is (1,0) and (1,1), joined by a printed line.
+
+    B is enclosed (its west side at row 1 is a locked door), and the
+    open-ground rectangle (1,0,1,2) is column 1, where B has 2 squares and A
+    none, so B is open ground and not a walled room. Phase (0, 0): vertical
+    lines 0 and 2 hold 4 against 2, horizontal lines 0 and 2 hold 4 against
+    1. The one run is the wall on vertical line 1 at row 0. A has one square
+    and no cell, and B isn't a room, so rule 1 rules nothing out; B's squares
+    join across a printed line, so there is no narrow run; rule 3 compares
+    A's 1 square with B's 2 and moves the run east to line 2. If B counted as
+    a walled room it would own the cell and the run would go west. The door
+    mark on 1,1:west sits between water and floor on a segment that doesn't
+    move, so it goes to the floor square's cell on the side the segment faces
+    from (1,1): 0,0:west. The cell is partly floor and a cave cell.
+    """
+    result = convert_five_foot(
+        panel(
+            ("..", "~."),
+            ("www", "wlw"),
+            ("ww", "wp", "dw"),
+            cave=("0,1", "1,0"),
+            marks=(
+                Mark(text="1", cell="1,0"),
+                Mark(text="2", cell="1,0"),
+                Mark(text="3", cell="0,0", leader_to="0,0"),
+                Mark(text="D", cell="1,1", edge="1,1:west"),
+            ),
+            outlines=(
+                Outline(dungeon="d", level=1, rects=((0, 0, 2, 2),), seeds=("0,0",), open_ground=((1, 0, 1, 2),)),
+            ),
+        )
+    )
+    assert result.phase == (0, 0)
+    assert result.panel.cells == (".",)
+    assert result.panel.edges == EdgeGrids(vertical=("ww",), horizontal=("w", "d"))
+    assert result.moves == (WallMove(axis="vertical", line=1, moved_to=2, start=0, end=1),)
+    assert sorted(result.panel.marks, key=lambda mark: mark.text) == [
+        Mark(text="1", cell="0,0"),
+        Mark(text="2", cell="0,0"),
+        Mark(text="3", cell="0,0", leader_to="0,0"),
+        Mark(text="D", cell="0,0", edge="0,0:west"),
+    ]
+    assert result.panel.partial == ("0,0",)
+    assert result.panel.cave == ("0,0",)

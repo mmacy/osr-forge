@@ -56,6 +56,8 @@ my-module.forge/
 ├── pages/
 │   ├── 0001.png
 │   └── 0001.txt
+├── maps/                 # the images the map pages embed, at native resolution, one PNG each
+│   └── p0038-0.png
 ├── stages/               # cached raw stage outputs — the LLM's actual answers
 │   ├── survey.json
 │   ├── areas.<dungeon>.<level>.json
@@ -71,6 +73,8 @@ my-module.forge/
 ```
 
 Host apps archive the whole workdir (osr-web stores it in Blob Storage) to get debuggability and stage-level re-runs for free. (There is no geometry cache: geometry is deterministic and recomputed inside every assembly.)
+
+`maps/` holds what the tracing stage's first step extracts (`osrforge.tracing.images`): every image a map page embeds, read with pypdfium2 at the resolution the PDF stores it at, named `p<page>-<index>.png` for the first page it appears on and its index among that page's image objects. One image that spans a two-page spread is one map, the same image on two pages counts once, an image that a later image on the page covers by more than half is left out because the page shows the later one, and a page the `blank_page_renders` setting blanks is skipped. The stage's cost ledgers stay outside the workdir.
 
 ## Model provider interfaces
 
