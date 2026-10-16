@@ -552,7 +552,7 @@ class Scale(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    feet: int | None
+    feet: int | None = None
     """Feet per square: 5 or 10 for a scale the stage accepts, `None` for any other."""
 
     printed: bool
