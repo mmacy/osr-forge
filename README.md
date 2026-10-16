@@ -85,7 +85,7 @@ The Azure AI Foundry adapter reads its connection from `OSRFORGE_FOUNDRY_*` envi
 | `OSRFORGE_FOUNDRY_DEPLOYMENT` | The model deployment name | yes |
 | `OSRFORGE_FOUNDRY_API_KEY` | The API key. Omit to use Entra ID via `DefaultAzureCredential`, which needs the `osr-forge[entra]` extra | no |
 
-The tracing stage's Claude provider reads `ANTHROPIC_API_KEY` and `OSRFORGE_CLAUDE_LEDGER` (required), and `OSRFORGE_CLAUDE_MODEL` and `OSRFORGE_CLAUDE_LEDGER_STOP` (optional). See [the provider setup guide](https://mmacy.github.io/osr-forge/guides/provider-setup/).
+The tracing stage's Claude provider reads `ANTHROPIC_API_KEY` and `OSRFORGE_CLAUDE_LEDGER` (required), and `OSRFORGE_CLAUDE_MODEL` and `OSRFORGE_CLAUDE_LEDGER_STOP` (optional). Its Clef provider reads `OSRFORGE_CLEF_ACCOUNT_ID` and `OSRFORGE_CLEF_LEDGER` (required), and `OSRFORGE_CLEF_TOKEN` and `OSRFORGE_CLEF_LEDGER_STOP` (optional), taking the token from your wrangler login when the variable is unset. See [the provider setup guide](https://mmacy.github.io/osr-forge/guides/provider-setup/).
 
 ## Licensing
 

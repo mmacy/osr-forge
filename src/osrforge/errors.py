@@ -7,6 +7,7 @@ additively as the package does.
 """
 
 __all__ = [
+    "ClefAuthError",
     "ExtractionError",
     "FixtureMissError",
     "LedgerStopError",
@@ -88,3 +89,7 @@ class LedgerStopError(ProviderError):
 
 class StaleRecordingError(ProviderError):
     """A recording's key matches the request, but its stored body isn't the body the current code builds."""
+
+
+class ClefAuthError(ProviderError):
+    """Workers AI refused the token (401). The message tells the user to run `wrangler login`; nothing refreshes it."""
