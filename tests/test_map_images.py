@@ -38,8 +38,6 @@ import pytest
 import yaml
 from PIL import Image
 
-pytestmark = pytest.mark.xfail(reason="chunk: map-images")
-
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "tests" / "assets"
 CORPUS = ROOT / "tools" / "eval" / "corpus"

@@ -1,0 +1,62 @@
+{
+  "source_sha256": "37e6325ad0ebd52077aedb9f7f247511709d80bb8a25e4dd8c95da83d2730240",
+  "images": [
+    {
+      "file": "p021.png",
+      "page": 21,
+      "image": 0,
+      "width": 1634,
+      "height": 2210,
+      "sha256": "1e6d0f4d177fd9323f3a0b9344421b0d359005e4661a0d3781fa6fe40d806e71",
+      "levels": [
+        ["Halfling Home", 1],
+        ["Cave of Horrors", 1]
+      ]
+    },
+    {
+      "file": "p038.png",
+      "page": 38,
+      "image": 0,
+      "width": 1874,
+      "height": 2450,
+      "sha256": "99fe15413946e56f2462ca79c76540289960c187f9da01bc33d867b12737a655",
+      "levels": [
+        ["A. Orc Lair", 1],
+        ["B. Orc Lair", 1],
+        ["C. Hobgoblin Lair", 1],
+        ["D. Abandoned Crypts", 1],
+        ["E. Goblin Lair", 1],
+        ["F. Bandit Lair", 1],
+        ["G. Kobold Lair", 1],
+        ["H. Lizard Man Lair", 1],
+        ["I. Bugbear Lair", 1],
+        ["J. Gnoll Lair", 1]
+      ]
+    },
+    {
+      "file": "p046.png",
+      "page": 46,
+      "image": 0,
+      "width": 1947,
+      "height": 2596,
+      "sha256": "8bdc014f90c8d130df612c9e7c895045be4405fe7aea3df170f308c394529d53",
+      "levels": [
+        ["The Abandoned Manor", 1]
+      ]
+    },
+    {
+      "file": "p047.png",
+      "page": 47,
+      "image": 0,
+      "width": 1188,
+      "height": 1470,
+      "sha256": "c03e8a5fe5f9a9801a1a5ab6bf193a144c8ffe57a561538f482d09429c6c8be5",
+      "levels": [
+        ["The Abandoned Manor", 2]
+      ]
+    }
+  ],
+  "no_map": [
+    ["Crypt", 1]
+  ]
+}

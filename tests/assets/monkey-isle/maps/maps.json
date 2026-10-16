@@ -1,0 +1,73 @@
+{
+  "source_sha256": "6b4223b6fe2a93e530d7acc729c8c8604cd31d0c135be30558dd57096d737b84",
+  "images": [
+    {
+      "file": "p039.png",
+      "page": 39,
+      "image": 0,
+      "width": 1668,
+      "height": 2078,
+      "sha256": "ffc5914f548f0ccdd2c1f83668484dac0289e3e95e3c6d7ebab40e3b185304a9",
+      "levels": [
+        ["Human Sacrifice", 1]
+      ]
+    },
+    {
+      "file": "p040.png",
+      "page": 40,
+      "image": 0,
+      "width": 1590,
+      "height": 2436,
+      "sha256": "3d1048323383e9ad8f1d32e1860461a256fe1f685bd57ee6ffddd12884aaa85d",
+      "levels": [
+        ["Reed Marsh Temple", 1],
+        ["Reed Marsh Temple", 2]
+      ]
+    },
+    {
+      "file": "p041.png",
+      "page": 41,
+      "image": 0,
+      "width": 2025,
+      "height": 1850,
+      "sha256": "5785d540f0cfd8631d97baa54b60bbe6f60a2bd0db1029772f0ceecc17028c69",
+      "levels": [
+        ["Lake Side Temple", 1]
+      ]
+    },
+    {
+      "file": "p042.png",
+      "page": 42,
+      "image": 0,
+      "width": 1608,
+      "height": 1680,
+      "sha256": "a9aface9bc3bd1e8721645b24d493e5a50bc370236cde5e73e90c930eb7b7324",
+      "levels": [
+        ["Temple Complex with Simians", 1]
+      ]
+    },
+    {
+      "file": "p043.png",
+      "page": 43,
+      "image": 0,
+      "width": 1953,
+      "height": 2356,
+      "sha256": "a936a38c7f37de783c1228107f42c712b35d207c873f42f3953181cc00310b42",
+      "levels": [
+        ["Underwater Exploration", 1]
+      ]
+    },
+    {
+      "file": "p044.png",
+      "page": 44,
+      "image": 0,
+      "width": 1800,
+      "height": 2229,
+      "sha256": "4cc43870db3fdad8e91c70e7bbfe42e53ca90604809eeea7df30f6e1d9029a53",
+      "levels": [
+        ["Dragon Harbor", 1]
+      ]
+    }
+  ],
+  "no_map": []
+}

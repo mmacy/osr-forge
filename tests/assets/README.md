@@ -86,3 +86,7 @@ uv run tools/extract/run_extraction.py goldens \
 The uncorrected `expected/` goldens regenerate with the same command minus
 `--overrides` (their `report.json` is the post-assemble report; the runner
 handles the difference).
+
+## monkey-isle/
+
+*JN2 The Monkey Isle*, the eval corpus's held-out member. The directory contains the module's map images and their manifest, `maps/maps.json`. See `monkey-isle/README.md` for provenance, license, and the committed layout.
