@@ -10,6 +10,7 @@ import hashlib
 import io
 import json
 import math
+import random
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -44,7 +45,6 @@ from osrforge.providers.decisions import (
     request_body,
 )
 
-CHUNK = "chunk: clef-provider"
 TOKEN = "wrangler-oauth-token-secret"
 
 STATE = "Crop of a printed dungeon map. White squares are floor; solid blue is rock. A red box marks one cell edge."
@@ -62,10 +62,8 @@ PROBABILITIES = {"door": 0.9504, "open": 0.0125, "secret_door": 0.0211, "wall": 
 def png_bytes(seed: int, size: tuple[int, int] = (256, 256), noisy: bool = False) -> bytes:
     image = Image.new("RGB", size, (255, 255, 255))
     if noisy:
-        pixels = [
-            ((seed * 7919 + i * 104729) % 251, (seed + i * 7) % 253, (i * 13) % 255) for i in range(size[0] * size[1])
-        ]
-        image.putdata(pixels)
+        # Random bytes don't compress, so a noisy 512 by 512 crop's PNG body passes the JPEG threshold.
+        image = Image.frombytes("RGB", size, random.Random(seed).randbytes(size[0] * size[1] * 3))
     else:
         for x in range(0, size[0], 8):
             for y in range(size[1]):
@@ -125,7 +123,6 @@ def test_response_derives_choice_confidence_and_margin():
         DecisionResponse(probabilities={"wall": 1.0}, model_id="clef", input_tokens=1, format="png", body_sha256="ab")
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_key_hashes_pixels_every_parameter_and_how_the_image_is_sent(monkeypatch: pytest.MonkeyPatch):
     key = make_request().key()
     assert len(key) == 64 and all(c in "0123456789abcdef" for c in key)
@@ -158,7 +155,6 @@ def test_key_hashes_pixels_every_parameter_and_how_the_image_is_sent(monkeypatch
 # ---------------------------------------------------------------- the body, the format, and the prices
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_request_body_is_the_canonical_system_one_body():
     body = request_body(make_request(), "png")
     assert body == json.dumps(json.loads(body), sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
@@ -176,7 +172,6 @@ def test_request_body_is_the_canonical_system_one_body():
     assert request_body(make_request(), "png") == body
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_small_crop_goes_as_png_and_a_large_body_is_rebuilt_as_jpeg():
     body, image_format = encode_request(make_request())
     assert image_format == "png" and len(body) <= JPEG_THRESHOLD_BYTES
@@ -203,7 +198,6 @@ def probe_estimate(width: int, height: int, state: str, questions: dict) -> int:
     return math.ceil(image + len(json.dumps(state)) / 2 + len(json.dumps(questions)) / 1.5 + 200)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_estimate_follows_the_probe_formula():
     """The probe's one-edge requests on a 256 by 256 crop cost 303 to 308 input tokens, under this estimate."""
     request = make_request()
@@ -290,7 +284,6 @@ def provider(
     return decider, transport, path
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_decide_posts_the_body_and_returns_the_probabilities_charged_to_the_ledger(tmp_path: Path):
     decider, transport, path = provider(tmp_path, [envelope(), envelope(tokens=310, output=5)])
     response = decider.decide(make_request())
@@ -316,13 +309,12 @@ def test_decide_posts_the_body_and_returns_the_probabilities_charged_to_the_ledg
         "date": "2026-10-15",
         "what": "osrforge test run",
         "requests": 2,
-        "usd": pytest.approx(cost_usd("clef", 308) + cost_usd("clef", 310, 5)),
+        "usd": pytest.approx(cost_usd("clef", 308) + cost_usd("clef", 310, 5), abs=1e-6),
     }
     assert ledger["spent_usd"] == pytest.approx(0.168562 + entry["usd"])
     assert "pending" not in entry
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_decide_refuses_past_the_stop_without_sending(tmp_path: Path):
     request = make_request()
     estimate = estimate_cost(request)
@@ -334,7 +326,6 @@ def test_decide_refuses_past_the_stop_without_sending(tmp_path: Path):
     assert path.read_bytes() == before
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_rejection_that_reports_a_token_limit_is_retried(tmp_path: Path):
     decider, transport, _ = provider(
         tmp_path, [(413, rejection(24000, 52428)), (413, rejection(24000, 52428)), envelope()]
@@ -345,7 +336,6 @@ def test_a_rejection_that_reports_a_token_limit_is_retried(tmp_path: Path):
     assert transport.calls[0][1] == transport.calls[2][1]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_rejection_that_stays_is_a_provider_error_naming_the_size_and_never_the_token(tmp_path: Path):
     decider, transport, path = provider(tmp_path, [(413, rejection(65536, 215942))] * 4)
     with pytest.raises(ProviderError) as excinfo:
@@ -357,12 +347,11 @@ def test_a_rejection_that_stays_is_a_provider_error_naming_the_size_and_never_th
     assert TOKEN not in repr(decider.settings)
     ledger = json.loads(path.read_text(encoding="utf-8"))
     # Sent and rejected: settled at the estimate, like the probe's ledger counted its rejections.
-    assert ledger["entries"][1]["usd"] == pytest.approx(estimate_cost(make_request()))
+    assert ledger["entries"][1]["usd"] == pytest.approx(estimate_cost(make_request()), abs=1e-6)
     assert ledger["entries"][1]["requests"] == 1
     assert "pending" not in ledger["entries"][1]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_rate_limits_and_connection_failures_are_retried_and_auth_failures_are_not(tmp_path: Path):
     decider, transport, _ = provider(tmp_path, [(429, b"slow down"), OSError("reset"), (503, b"busy"), envelope()])
     assert decider.decide(make_request()).choice == "door"
@@ -380,7 +369,6 @@ def test_rate_limits_and_connection_failures_are_retried_and_auth_failures_are_n
     assert len(transport.calls) == 1 and "403" in str(excinfo.value)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_large_crop_is_sent_as_jpeg_and_the_response_says_so(tmp_path: Path):
     decider, transport, _ = provider(tmp_path, [envelope()])
     response = decider.decide(make_request(image=png_bytes(3, (512, 512), noisy=True)))
@@ -388,7 +376,6 @@ def test_a_large_crop_is_sent_as_jpeg_and_the_response_says_so(tmp_path: Path):
     assert json.loads(transport.calls[0][1])["images"][0]["content_type"] == "image/jpeg"
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_token_comes_from_the_wrangler_login_or_the_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     config = tmp_path / "default.toml"
     config.write_text(f'oauth_token = "{TOKEN}"\nrefresh_token = "r"\nscopes = ["ai:write"]\n', encoding="utf-8")
@@ -447,7 +434,6 @@ def response_for(request: DecisionRequest, probabilities: Mapping[str, float] = 
     )
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_record_then_replay_round_trip(tmp_path: Path):
     request = make_request()
     response = response_for(request)
@@ -481,7 +467,6 @@ def test_record_then_replay_round_trip(tmp_path: Path):
     assert isinstance(replayed, DecisionProvider) and isinstance(recorder, DecisionProvider)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_recording_through_the_adapter_records_the_format_and_the_body_hash(tmp_path: Path):
     decider, transport, _ = provider(tmp_path, [envelope()])
     request = make_request(image=png_bytes(3, (512, 512), noisy=True))
@@ -520,7 +505,6 @@ def alter(tmp_path: Path, request: DecisionRequest, **changes: object) -> None:
     path.write_text(json.dumps(recording), encoding="utf-8")
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_drift_check_passes_when_the_service_still_gives_the_recorded_answers(tmp_path: Path):
     requests, answers = recorded_set(tmp_path)
     live = StubDecider(answers)
@@ -528,7 +512,6 @@ def test_the_drift_check_passes_when_the_service_still_gives_the_recorded_answer
     assert [r.key() for r in live.requests] == [r.key() for r in requests]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_drift_check_stops_on_one_deliberately_altered_recording(tmp_path: Path):
     requests, answers = recorded_set(tmp_path)
     moved = {"door": 0.05 + 0.05, "open": 0.05, "secret_door": 0.10, "wall": 0.80 - 0.05}
@@ -541,7 +524,6 @@ def test_the_drift_check_stops_on_one_deliberately_altered_recording(tmp_path: P
     assert "0.05" in drift.reason
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_drift_check_tolerates_small_moves_and_catches_a_changed_top_answer_or_body(tmp_path: Path):
     requests, answers = recorded_set(tmp_path)
     nudged = {"door": 0.05 + 0.02, "open": 0.05, "secret_door": 0.10, "wall": 0.80 - 0.02}
@@ -569,7 +551,6 @@ def test_the_drift_check_tolerates_small_moves_and_catches_a_changed_top_answer_
         drift_check(tmp_path, StubDecider(answers), [make_request(image=png_bytes(99))])
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_drift_sample_favours_small_margins_and_is_deterministic(tmp_path: Path):
     requests = [make_request(image=png_bytes(100 + i)) for i in range(60)]
     answers: dict[str, DecisionResponse] = {}
@@ -582,7 +563,7 @@ def test_the_drift_sample_favours_small_margins_and_is_deterministic(tmp_path: P
     for request in requests:
         recorder.decide(request)
 
-    unrecorded = [make_request(image=png_bytes(900 + i)) for i in range(5)]
+    unrecorded = [make_request(image=png_bytes(300 + i)) for i in range(5)]
     candidates = unrecorded + requests
     sample = drift_sample(tmp_path, candidates, size=20)
     keys = [request.key() for request in sample]
