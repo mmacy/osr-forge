@@ -68,6 +68,7 @@ __all__ = [
     "Symbol",
     "SymbolKind",
     "Transition",
+    "canonical_form",
     "cell_key",
     "edge_key",
     "load_geometry_truth",
@@ -137,8 +138,10 @@ SymbolKind = Literal[
 """The symbol vocabulary: what a map symbol or a legend entry can be.
 
 `cave_mouth` stands on an edge. `footing` marks steps, footings, or bars drawn
-on one bank of water. `locked_door` is a legend entry only: a locked door on
-the map is the edge letter `l`.
+on one bank of water, and two footings facing each other across water make a
+crossing. `steps` is steps inside a level and never makes a crossing.
+`locked_door` is a legend entry only: a locked door on the map is the edge
+letter `l`.
 """
 
 SYMBOL_KINDS: tuple[str, ...] = get_args(SymbolKind)
@@ -565,7 +568,9 @@ class Compass(BaseModel):
     The level grid takes the map's north: panel placement turns each panel by
     the quarter turn that puts `north` at the top. A printed compass that isn't
     on a quarter turn records its `angle`, and `north` is the nearest quarter
-    turn, which the report flags.
+    turn, which the report flags. Exactly halfway, the lower multiple of 90
+    degrees wins, counting the top as 360 at 315 degrees: 45 is `top` and 315
+    is `left`.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -683,13 +688,25 @@ class Mark(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     text: str
-    """The mark's text as printed. Marks stacked one above the other are one mark."""
+    """The mark's text as printed. Keys stacked one above the other are one mark whose text is their labels from
+    top to bottom joined by `/`."""
 
     cell: str
-    """The cell under the mark's centre."""
+    """The cell under the mark's centre, or the edge's own cell when the mark sits on a door."""
+
+    edge: str | None = None
+    """The door edge the mark is printed on, when it sits on one. Its cell is `cell`."""
 
     leader_to: str | None = None
     """The cell a leader line from the mark ends on."""
+
+    @model_validator(mode="after")
+    def _edge_names_the_cell(self) -> Mark:
+        if self.edge is not None and cell_key(parse_edge(self.edge)[0]) != self.cell:
+            raise ValueError(
+                f"mark {self.text!r} sits on edge {self.edge}, so its cell is that edge's cell, not {self.cell}"
+            )
+        return self
 
 
 class Outline(BaseModel):
@@ -886,7 +903,8 @@ class LevelPanel(BaseModel):
     panel: str
     origin: tuple[int, int]
     """The level cell where the turned panel's north-west cell sits. Panel cell `c` lands on
-    `origin + rotate_cell(c, (panel.width, panel.height), rotation)`."""
+    `origin + rotate_cell(c, (panel.width, panel.height), rotation)`, with the panel's width and height those of the
+    converted panel when the panel is a 5-foot one."""
 
     rotation: Rotation = 0
     """The clockwise quarter turn that put the panel's north at the top: `rotation_for` of its first region's
@@ -1026,6 +1044,8 @@ class DamagedEdge(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     edge: str
+    """The edge, in the level's coordinates."""
+
     before: EdgeLetter
     after: EdgeLetter
 
@@ -1040,7 +1060,7 @@ class Repair(BaseModel):
     fault: Literal["area_unreachable", "floor_cut_off", "door_without_floor"]
     edges: tuple[DamagedEdge, ...] = ()
     cells: tuple[str, ...] = ()
-    """Cells the repair changed: floor made rock, or rock made floor."""
+    """Cells the repair changed, in the level's coordinates: floor made rock, or rock made floor."""
 
     cost: float = Field(ge=0.0)
 
@@ -1062,7 +1082,9 @@ class GeometryTruth(BaseModel):
     dungeons: tuple[Dungeon, ...] = Field(min_length=1)
     repairs: tuple[Repair, ...] = ()
     before_repair: GeometryTruth | None = None
-    """The same document as the rules left it before any repair. A trace fills it when it made repairs."""
+    """The same document as the rules left it before any repair, its panels the reading as read. A trace fills it
+    when it made repairs, and the trace's own panels then carry the reading with each repair mapped back onto its
+    panel."""
 
     @model_validator(mode="after")
     def _references_resolve(self) -> GeometryTruth:
@@ -1090,7 +1112,6 @@ class GeometryTruth(BaseModel):
             for region in pair.regions:
                 if region not in regions:
                     raise ValueError(f"a half pair names region {region!r}, which the document lacks")
-        regions_by_id = {region.id: region for region in self.regions}
         panels_by_id = {panel.id: panel for panel in self.panels}
         for dungeon in self.dungeons:
             for level in dungeon.levels:
@@ -1100,7 +1121,7 @@ class GeometryTruth(BaseModel):
                         raise ValueError(
                             f"level {dungeon.id}/{level.number} names panel {part.panel!r}, which the document lacks"
                         )
-                    north = regions_by_id[panel.regions[0].region].compass.north
+                    north = self.north_in_force(panel.regions[0].region)
                     if part.rotation != rotation_for(north):
                         raise ValueError(
                             f"level {dungeon.id}/{level.number} places panel {part.panel!r} turned {part.rotation}, "
@@ -1115,6 +1136,27 @@ class GeometryTruth(BaseModel):
         if self.before_repair is not None and (self.before_repair.repairs or self.before_repair.before_repair):
             raise ValueError("the document before repair has no repairs of its own")
         return self
+
+    def north_in_force(self, region_id: str) -> PageSide:
+        """The page side a region's north points to, taking a half's partner's compass when the region prints none.
+
+        Args:
+            region_id: The region's id.
+
+        Returns:
+            The region's own `compass.north` when it prints a compass, else its half pair partner's when that
+            prints one, else the region's recorded default.
+        """
+        regions = {region.id: region for region in self.regions}
+        own = regions[region_id]
+        if own.compass.printed:
+            return own.compass.north
+        for pair in self.half_pairs:
+            if region_id in pair.regions:
+                other = regions[pair.regions[1] if pair.regions[0] == region_id else pair.regions[0]]
+                if other.compass.printed:
+                    return other.compass.north
+        return own.compass.north
 
     def region(self, region_id: str) -> Region:
         """The region with an id.
@@ -1171,6 +1213,82 @@ class GeometryTruth(BaseModel):
         raise KeyError((dungeon_id, number))
 
 
+def _cell_order(text: str) -> tuple[float, float]:
+    return order_key(parse_cell(text))
+
+
+def _canonical_panel(panel: Panel) -> Panel:
+    return panel.model_copy(
+        update={
+            "partial": tuple(sorted(panel.partial, key=_cell_order)),
+            "cave": tuple(sorted(panel.cave, key=_cell_order)),
+            "marks": tuple(sorted(panel.marks, key=lambda mark: (_cell_order(mark.cell), mark.text))),
+            "symbols": tuple(
+                sorted(
+                    (
+                        symbol.model_copy(update={"cells": tuple(sorted(symbol.cells, key=_cell_order))})
+                        for symbol in panel.symbols
+                    ),
+                    key=lambda symbol: (
+                        _cell_order(symbol.cells[0])
+                        if symbol.cells
+                        else _cell_order(cell_key(parse_edge(symbol.edge or "0,0:north")[0])),
+                        symbol.kind,
+                    ),
+                )
+            ),
+        }
+    )
+
+
+def _canonical_level(level: Level) -> Level:
+    if level.verdict != "traced":
+        return level.model_copy(update={"flags": tuple(sorted(level.flags))})
+    return level.model_copy(
+        update={
+            "areas": {
+                key: area.model_copy(update={"cells": tuple(sorted(area.cells, key=_cell_order))})
+                for key, area in sorted(level.areas.items())
+            },
+            "keys": tuple(sorted(level.keys, key=lambda placed: (_cell_order(placed.cell), placed.label))),
+            "transitions": tuple(sorted(level.transitions, key=lambda item: (_cell_order(item.cell), item.kind))),
+            "passages": tuple(
+                sorted(level.passages, key=lambda item: (_cell_order(item.cell), _SIDE_ORDER.index(item.side)))
+            ),
+            "flags": tuple(sorted(level.flags)),
+        }
+    )
+
+
+def canonical_form(truth: GeometryTruth) -> GeometryTruth:
+    """The document with every list that has no meaningful order put in north-then-west order.
+
+    Two resolutions are the same when their canonical forms are equal, with
+    `flags` left out of the comparison. `save_geometry_truth` writes this
+    form.
+
+    Args:
+        truth: Any document.
+
+    Returns:
+        A document equal to `truth` apart from the order of its area cells,
+        placed keys, transitions, passages, marks, symbols, partly-floor and
+        cave cells, and flags.
+    """
+    dungeons = tuple(
+        dungeon.model_copy(update={"levels": tuple(_canonical_level(level) for level in dungeon.levels)})
+        for dungeon in truth.dungeons
+    )
+    before = None if truth.before_repair is None else canonical_form(truth.before_repair)
+    return truth.model_copy(
+        update={
+            "panels": tuple(_canonical_panel(panel) for panel in truth.panels),
+            "dungeons": dungeons,
+            "before_repair": before,
+        }
+    )
+
+
 def load_geometry_truth(path: Path) -> GeometryTruth:
     """Load and validate a geometry truth document.
 
@@ -1194,5 +1312,5 @@ def save_geometry_truth(path: Path, truth: GeometryTruth) -> None:
         path: The JSON file to write.
         truth: The document.
     """
-    data = truth.model_dump(mode="json", exclude_none=True)
+    data = canonical_form(truth).model_dump(mode="json", exclude_none=True)
     path.write_text(json.dumps(data, indent=1, sort_keys=True) + "\n", encoding="utf-8")

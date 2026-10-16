@@ -210,12 +210,17 @@ class DamageSite(BaseModel):
 
     The site is chosen so the change touches one scorer family and no other.
     A wall is removed between two floor cells of one level, where no passage
-    stands and the cells aren't in two different areas. A key moves to a cell
+    stands, and either both cells are in one area or in corridor, or the two
+    areas they belong to already adjoin elsewhere. A key moves to a cell
     outside its area. A door's kind changes from plain to secret. A secret door
     is removed that isn't the only join between two areas and leaves every
     area reachable. A transition or passage moves to another floor cell of its
     level, a passage onto another wall side. A half pair's column offset grows
-    by one. A traced level becomes a fallback.
+    by one. A traced level becomes a fallback, and that level isn't the
+    dungeon's entrance level and no passage leads to it. A map's answer
+    reaches every area, so a removed wall can't change reachability. An edge
+    site stands on a 10-foot panel that no level turns, so the same edge is
+    changed in the panel and, at the panel's origin, in the level.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -287,9 +292,10 @@ def generate(out_dir: Path) -> tuple[str, ...]:
 
     Each map gets `<out_dir>/<name>/geometry.json`, `synthetic.json`,
     `images/<file>` for each image, `stages/survey.json`,
-    `stages/areas.<dungeon>.<level>.json` for each level, and
-    `stages/mapread.json`. Running it twice writes the same bytes for every
-    file except the JPEG images, whose decoded pixels are the same.
+    `stages/areas.<dungeon>.<level>.json` for every level, refused and
+    fallen-back levels included, and `stages/mapread.json` with its knob
+    `read`. Running it twice writes the same bytes for every file except the
+    JPEG images, whose decoded pixels are the same.
 
     Args:
         out_dir: The directory to write under. It's created if missing, and a

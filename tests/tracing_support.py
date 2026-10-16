@@ -93,11 +93,14 @@ def demo_truth() -> GeometryTruth:
 
     Room 1 opens on the corridor through a secret door at (1,2):south and a
     door at (2,2):south. Room 2 opens on it through a door at (4,2):south and
-    has a wall at (3,2):south. Stairs down at (2,1) lead to level 2. Cell (3,3)
-    is partly floor, and (4,3) is a cave cell. Panel `p1b` (3 by 3, floor at
-    (1,1), room 4) sits two cells east of `p1` on the level grid, at origin
-    (8, 0), and a passage pair joins (4,1) and (9,1). Level 2 is panel `p2`
-    (3 by 3, floor at (1,1), room 3) with stairs up.
+    has a wall at (3,2):south, and the wall between the rooms at (2,2):east is
+    the one wall between two floor cells that touches no partly-floor cell.
+    Stairs down at (2,1) lead to level 2. Cell (3,3) is partly floor, and
+    (4,3) is a cave cell. On the level grid `p1` sits at origin (1, 0), so the
+    corridor's end has a cell of rock west of it, and panel `p1b` (3 by 3,
+    floor at (1,1), room 4) sits two cells east of `p1`'s grid, at origin
+    (9, 0). A passage pair joins level cells (5,1) and (10,1). Level 2 is
+    panel `p2` (3 by 3, floor at (1,1), room 3) with stairs up to (3,1).
     """
     p1 = Panel(
         id="p1",
@@ -137,26 +140,26 @@ def demo_truth() -> GeometryTruth:
     level1 = Level(
         number=1,
         verdict="traced",
-        panels=(LevelPanel(panel="p1", origin=(0, 0)), LevelPanel(panel="p1b", origin=(8, 0))),
-        cells=("###########", "#....####.#", "#....######", ".....######", "###########"),
+        panels=(LevelPanel(panel="p1", origin=(1, 0)), LevelPanel(panel="p1b", origin=(9, 0))),
+        cells=("############", "##....####.#", "##....######", "#.....######", "############"),
         edges=EdgeGrids(
-            vertical=("------------", "-wolow---ww-", "-wowow------", "ooooow------", "------------"),
-            horizontal=("-----------", "-wwww----w-", "-oooo----w-", "wsdwd------", "wwwww------", "-----------"),
+            vertical=("-------------", "--wolow---ww-", "--wowow------", "-woooow------", "-------------"),
+            horizontal=("------------", "--wwww----w-", "--oooo----w-", "-wsdwd------", "-wwwww------", "------------"),
         ),
         areas={
-            "1": Area(cells=("1,1", "2,1", "1,2", "2,2")),
-            "2": Area(cells=("3,1", "4,1", "3,2", "4,2")),
-            "4": Area(cells=("9,1",)),
+            "1": Area(cells=("2,1", "3,1", "2,2", "3,2")),
+            "2": Area(cells=("4,1", "5,1", "4,2", "5,2")),
+            "4": Area(cells=("10,1",)),
         },
         keys=(
-            PlacedKey(label="1", cell="1,1", area="1"),
-            PlacedKey(label="2", cell="4,2", area="2"),
-            PlacedKey(label="4", cell="9,1", area="4"),
+            PlacedKey(label="1", cell="2,1", area="1"),
+            PlacedKey(label="2", cell="5,2", area="2"),
+            PlacedKey(label="4", cell="10,1", area="4"),
         ),
-        transitions=(Transition(cell="2,1", kind="stairs_down", to_level=2, to_cell="1,1"),),
+        transitions=(Transition(cell="3,1", kind="stairs_down", to_level=2, to_cell="1,1"),),
         passages=(
-            Passage(cell="4,1", side="east", to_level=1, to_cell="9,1"),
-            Passage(cell="9,1", side="west", to_level=1, to_cell="4,1"),
+            Passage(cell="5,1", side="east", to_level=1, to_cell="10,1"),
+            Passage(cell="10,1", side="west", to_level=1, to_cell="5,1"),
         ),
     )
     level2 = Level(
@@ -167,7 +170,7 @@ def demo_truth() -> GeometryTruth:
         edges=small_edges,
         areas={"3": Area(cells=("1,1",))},
         keys=(PlacedKey(label="3", cell="1,1", area="3"),),
-        transitions=(Transition(cell="1,1", kind="stairs_up", to_level=1, to_cell="2,1"),),
+        transitions=(Transition(cell="1,1", kind="stairs_up", to_level=1, to_cell="3,1"),),
     )
     return GeometryTruth(
         pages=(
@@ -181,7 +184,7 @@ def demo_truth() -> GeometryTruth:
         ),
         panels=(p1, p1b, p2),
         half_pairs=(HalfPair(regions=("r1", "r1b"), joined=False, rows=0),),
-        dungeons=(Dungeon(id="demo", name="Demo", entrance=Entrance(level=1, cell="0,3"), levels=(level1, level2)),),
+        dungeons=(Dungeon(id="demo", name="Demo", entrance=Entrance(level=1, cell="1,3"), levels=(level1, level2)),),
     )
 
 
@@ -268,9 +271,13 @@ def set_edge(truth: GeometryTruth, panel_id: str, edge: str, letter: str) -> Geo
     """A copy with one edge changed in a panel's reading and in the grid of the level that uses the panel."""
     cell, side = parse_edge(edge)
     panel = truth.panel(panel_id)
+    assert panel.scale_feet == 10, "an edge site stands on a 10-foot panel"
     truth = replace_panel(truth, panel.model_copy(update={"edges": panel.edges.with_letter(cell, side, letter)}))
     dungeon_id, level, origin = level_using(truth, panel_id)
     assert level.edges is not None
+    assert all(part.rotation == 0 for part in level.panels if part.panel == panel_id), (
+        "an edge site's panel isn't turned"
+    )
     level_cell = (cell[0] + origin[0], cell[1] + origin[1])
     return replace_level(
         truth, dungeon_id, level.model_copy(update={"edges": level.edges.with_letter(level_cell, side, letter)})
@@ -376,28 +383,24 @@ def shift_panel_east(truth: GeometryTruth, panel_id: str) -> GeometryTruth:
     """A copy in which a panel's registration found one more column at its west edge.
 
     The panel and its region grow one column of rock at the west, so every
-    reading moves one cell east. The level that uses the panel grows one
-    column of rock at the west too, so its cells, areas, keys, transitions,
-    passages, entrance, and other panels' origins all move one cell east.
-    The scorer's alignment undoes the shift, so the copy scores the same as
-    the original.
+    reading moves one cell east. The level's grid doesn't change: the panel's
+    new rock column takes the place of the margin cell that was west of it, so
+    the panel's origin moves one cell west and everything on the level stays
+    where it is. The scorer's alignment undoes the shift, so the copy scores
+    the same as the original.
     """
 
     def east(cell: tuple[int, int]) -> tuple[int, int]:
         return (cell[0] + 1, cell[1])
 
-    def widen(edges: EdgeGrids, cells: tuple[str, ...]) -> tuple[tuple[str, ...], EdgeGrids]:
-        new_cells = tuple("#" + row for row in cells)
-        vertical = tuple("-" + row for row in edges.vertical)
-        horizontal = tuple("-" + row for row in edges.horizontal)
-        return new_cells, EdgeGrids(vertical=vertical, horizontal=horizontal)
-
     panel = truth.panel(panel_id)
-    cells, edges = widen(panel.edges, panel.cells)
     new_panel = panel.model_copy(
         update={
-            "cells": cells,
-            "edges": edges,
+            "cells": tuple("#" + row for row in panel.cells),
+            "edges": EdgeGrids(
+                vertical=tuple("-" + row for row in panel.edges.vertical),
+                horizontal=tuple("-" + row for row in panel.edges.horizontal),
+            ),
             "partial": _map_cells(panel.partial, east),
             "cave": _map_cells(panel.cave, east),
             "marks": tuple(
@@ -417,7 +420,6 @@ def shift_panel_east(truth: GeometryTruth, panel_id: str) -> GeometryTruth:
             ),
         }
     )
-    truth = replace_panel(truth, new_panel)
     old_region = truth.region(panel.regions[0].region)
     new_region = old_region.model_copy(
         update={
@@ -426,63 +428,14 @@ def shift_panel_east(truth: GeometryTruth, panel_id: str) -> GeometryTruth:
         }
     )
     regions = tuple(new_region if candidate.id == old_region.id else candidate for candidate in truth.regions)
-    truth = rebuild(truth.model_copy(update={"regions": regions}))
-
-    dungeon_id, level, _origin = level_using(truth, panel_id)
-    assert level.edges is not None
-    level_cells, level_edges = widen(level.edges, level.cells)
-    new_level = level.model_copy(
-        update={
-            "cells": level_cells,
-            "edges": level_edges,
-            "panels": tuple(
-                part
-                if part.panel == panel_id
-                else part.model_copy(update={"origin": (part.origin[0] + 1, part.origin[1])})
-                for part in level.panels
-            ),
-            "areas": {
-                key: area.model_copy(update={"cells": _map_cells(area.cells, east)})
-                for key, area in level.areas.items()
-            },
-            "keys": tuple(
-                placed.model_copy(update={"cell": cell_key(east(parse_cell(placed.cell)))}) for placed in level.keys
-            ),
-            "transitions": tuple(
-                item.model_copy(update={"cell": cell_key(east(parse_cell(item.cell)))}) for item in level.transitions
-            ),
-            "passages": tuple(
-                item.model_copy(
-                    update={
-                        "cell": cell_key(east(parse_cell(item.cell))),
-                        "to_cell": cell_key(east(parse_cell(item.to_cell)))
-                        if item.to_level == level.number
-                        else item.to_cell,
-                    }
-                )
-                for item in level.passages
-            ),
-        }
+    dungeon_id, level, origin = level_using(truth, panel_id)
+    assert origin[0] >= 1, "the panel needs a margin cell west of it to take over"
+    parts = tuple(
+        part.model_copy(update={"origin": (origin[0] - 1, origin[1])}) if part.panel == panel_id else part
+        for part in level.panels
     )
-    dungeon = next(candidate for candidate in truth.dungeons if candidate.id == dungeon_id)
-    entrance = dungeon.entrance
-    if entrance is not None and entrance.level == level.number:
-        entrance = entrance.model_copy(update={"cell": cell_key(east(parse_cell(entrance.cell)))})
-    levels: list[Level] = []
-    for other in dungeon.levels:
-        if other.number == level.number:
-            levels.append(new_level)
-            continue
-        transitions = tuple(
-            item.model_copy(update={"to_cell": cell_key(east(parse_cell(item.to_cell)))})
-            if item.to_dungeon is None and item.to_level == level.number
-            else item
-            for item in other.transitions
-        )
-        levels.append(other.model_copy(update={"transitions": transitions}))
-    shifted = dungeon.model_copy(update={"entrance": entrance, "levels": tuple(levels)})
-    dungeons = tuple(shifted if candidate.id == dungeon_id else candidate for candidate in truth.dungeons)
-    return rebuild(truth.model_copy(update={"dungeons": dungeons}))
+    truth = replace_panel(rebuild(truth.model_copy(update={"regions": regions})), new_panel)
+    return replace_level(truth, dungeon_id, level.model_copy(update={"panels": parts}))
 
 
 def rotated_pair() -> tuple[GeometryTruth, GeometryTruth]:
@@ -497,19 +450,21 @@ def rotated_pair() -> tuple[GeometryTruth, GeometryTruth]:
 
     Its north is the page's left edge, so the level turns it 90 degrees
     clockwise: page cell `(x, y)` lands at `(1 - y, x)`, and with the level's
-    one-cell margin at origin `(1, 1)`. The level is 4 by 5:
+    one-cell margin at origin `(1, 1)`. The level is 4 by 4, its bottom row the
+    panel's own rock:
 
     ```text
     ####
     #..#    (1,1) is page (0,1), (2,1) is page (0,0)
     ##.#    (2,2) is page (1,0)
     ####
-    ####
     ```
 
     The trace's registration found one more column at the page's west edge,
-    so its panel is 4 by 2 with a column of rock first, and on its level every
-    cell lies one row farther south. The scorer's alignment undoes that.
+    so its panel is 4 by 2 with a column of rock first. Turned, that column is
+    a row of rock above the floor, which takes the margin's place, so the
+    trace's level grid is the same 4 by 4 with the panel at origin `(1, 0)`.
+    The scorer's alignment maps the extra page column to that row.
     """
     key_panel = Panel(
         id="pl",
@@ -524,10 +479,10 @@ def rotated_pair() -> tuple[GeometryTruth, GeometryTruth]:
         number=1,
         verdict="traced",
         panels=(LevelPanel(panel="pl", origin=(1, 1), rotation=90),),
-        cells=("####", "#..#", "##.#", "####", "####"),
+        cells=("####", "#..#", "##.#", "####"),
         edges=EdgeGrids(
-            vertical=("-----", "-wow-", "--ww-", "-----", "-----"),
-            horizontal=("----", "-ww-", "-wo-", "--w-", "----", "----"),
+            vertical=("-----", "-wow-", "--ww-", "-----"),
+            horizontal=("----", "-ww-", "-wo-", "--w-", "----"),
         ),
         areas={"1": Area(cells=("1,1", "2,1", "2,2"))},
         keys=(PlacedKey(label="1", cell="2,1", area="1"),),
@@ -541,18 +496,7 @@ def rotated_pair() -> tuple[GeometryTruth, GeometryTruth]:
         marks=(Mark(text="1", cell="1,0"),),
         outlines=(Outline(dungeon="turn", level=1, rects=((1, 0, 3, 2),), seeds=("1,0",)),),
     )
-    trace_level = Level(
-        number=1,
-        verdict="traced",
-        panels=(LevelPanel(panel="pl", origin=(1, 1), rotation=90),),
-        cells=("####", "####", "#..#", "##.#", "####", "####"),
-        edges=EdgeGrids(
-            vertical=("-----", "-----", "-wow-", "--ww-", "-----", "-----"),
-            horizontal=("----", "----", "-ww-", "-wo-", "--w-", "----", "----"),
-        ),
-        areas={"1": Area(cells=("1,2", "2,2", "2,3"))},
-        keys=(PlacedKey(label="1", cell="2,2", area="1"),),
-    )
+    trace_level = key_level.model_copy(update={"panels": (LevelPanel(panel="pl", origin=(1, 0), rotation=90),)})
 
     def document(columns: int, panel: Panel, level: Level, entrance: str) -> GeometryTruth:
         return GeometryTruth(
@@ -562,4 +506,4 @@ def rotated_pair() -> tuple[GeometryTruth, GeometryTruth]:
             dungeons=(Dungeon(id="turn", name="Turn", entrance=Entrance(level=1, cell=entrance), levels=(level,)),),
         )
 
-    return document(3, key_panel, key_level, "1,1"), document(4, trace_panel, trace_level, "1,2")
+    return document(3, key_panel, key_level, "1,1"), document(4, trace_panel, trace_level, "1,1")

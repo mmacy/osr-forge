@@ -12,11 +12,13 @@ from osrforge.tracing.truth import (
     GeometryTruth,
     Level,
     LevelPanel,
+    Mark,
     Panel,
     PanelRegion,
     Passage,
     Registration,
     Symbol,
+    canonical_form,
     cell_key,
     edge_key,
     load_geometry_truth,
@@ -104,7 +106,7 @@ def test_demo_document_validates_and_round_trips(tmp_path: Path):
     truth = demo_truth()
     path = tmp_path / "geometry.json"
     save_geometry_truth(path, truth)
-    assert load_geometry_truth(path) == truth
+    assert load_geometry_truth(path) == canonical_form(truth)
     save_geometry_truth(tmp_path / "again.json", truth)
     assert (tmp_path / "again.json").read_bytes() == path.read_bytes()
     assert truth.region("r1").registration is not None
@@ -136,13 +138,13 @@ def test_passage_side_must_be_a_wall():
     truth = demo_truth()
     level = truth.level("demo", 1)
     assert level.edges is not None
-    opened = level.model_copy(update={"edges": level.edges.with_letter((4, 1), "east", "o")})
+    opened = level.model_copy(update={"edges": level.edges.with_letter((5, 1), "east", "o")})
     with pytest.raises(ValidationError, match="isn't a wall"):
         Level.model_validate(opened.model_dump())
     with pytest.raises(ValidationError, match="isn't a wall"):
         Level.model_validate(
             level.model_copy(
-                update={"passages": (Passage(cell="1,1", side="east", to_level=1, to_cell="9,1"),)}
+                update={"passages": (Passage(cell="2,1", side="east", to_level=1, to_cell="10,1"),)}
             ).model_dump()
         )
 
@@ -206,14 +208,13 @@ def test_support_helpers_keep_documents_valid():
     assert changed.panel("p1").edges.at((3, 2), "south") == "o"
     level_edges = changed.level("demo", 1).edges
     assert level_edges is not None
-    assert level_edges.at((3, 2), "south") == "o"
+    assert level_edges.at((4, 2), "south") == "o"
     shifted = shift_panel_east(truth, "p1")
     assert shifted.panel("p1").width == 7
+    assert shifted.region("r1").columns == 7
     assert shifted.level("demo", 1).width == 12
-    assert shifted.level("demo", 1).areas["4"].cells == ("10,1",)
-    assert shifted.dungeons[0].entrance is not None
-    assert shifted.dungeons[0].entrance.cell == "1,3"
-    assert shifted.level("demo", 2).transitions[0].to_cell == "3,1"
+    assert shifted.level("demo", 1).panels[0].origin == (0, 0)
+    assert shifted.level("demo", 1).cells == truth.level("demo", 1).cells
 
 
 def test_rotation_helpers_follow_the_conventions():
@@ -239,8 +240,11 @@ def test_compass_angle_rounds_to_the_nearest_quarter_turn():
     assert Compass(north="top", printed=True, angle=45).angle == 45
     assert Compass(north="right", printed=True, angle=46).north == "right"
     assert Compass(north="top", printed=True, angle=350).north == "top"
+    assert Compass(north="left", printed=True, angle=315).north == "left"
     with pytest.raises(ValidationError, match="nearest quarter turn"):
         Compass(north="right", printed=True, angle=45)
+    with pytest.raises(ValidationError, match="nearest quarter turn"):
+        Compass(north="top", printed=True, angle=315)
     with pytest.raises(ValidationError, match="printed compass"):
         Compass(north="top", printed=False, angle=10)
     with pytest.raises(ValidationError, match="under 360"):
@@ -277,3 +281,33 @@ def test_rotated_pair_agrees_with_the_helpers():
                         side,
                     )
         assert rotated_size((panel.width, panel.height), part.rotation) == (2, panel.width)
+
+
+def test_compass_in_force_comes_through_the_half_pair():
+    truth = demo_truth()
+    r1, r1b = truth.region("r1"), truth.region("r1b")
+    regions = (
+        r1.model_copy(update={"compass": Compass(north="top", printed=False)}),
+        r1b.model_copy(update={"compass": Compass(north="left", printed=True)}),
+        truth.region("r2"),
+    )
+    assert truth.north_in_force("r1") == "top"
+    with pytest.raises(ValidationError, match="needs 90"):
+        GeometryTruth.model_validate(truth.model_copy(update={"regions": regions}).model_dump())
+
+
+def test_mark_on_a_door_names_the_edge_cell():
+    assert Mark(text="7", cell="2,1", edge="2,1:east").edge == "2,1:east"
+    with pytest.raises(ValidationError, match="that edge's cell"):
+        Mark(text="7", cell="3,1", edge="2,1:east")
+
+
+def test_canonical_form_orders_lists_north_then_west(tmp_path: Path):
+    truth = demo_truth()
+    ordered = canonical_form(truth)
+    assert [placed.label for placed in ordered.level("demo", 1).keys] == ["1", "4", "2"]
+    assert ordered.level("demo", 1).areas["1"].cells == ("2,1", "3,1", "2,2", "3,2")
+    assert [passage.cell for passage in ordered.level("demo", 1).passages] == ["5,1", "10,1"]
+    assert canonical_form(ordered) == ordered
+    save_geometry_truth(tmp_path / "geometry.json", truth)
+    assert load_geometry_truth(tmp_path / "geometry.json") == ordered

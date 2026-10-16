@@ -61,7 +61,7 @@ def _ratio(numerator: int, denominator: int) -> float | None:
 
 
 class FloorScore(BaseModel):
-    """How much of the floor the trace and the key agree on, over every traced level."""
+    """How much of the floor the trace and the key agree on: the `.` cells of the panels, after alignment."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -414,18 +414,28 @@ def score_trace(trace: GeometryTruth, key: GeometryTruth) -> TraceScore:
 
     A 5-foot panel in either document is converted with
     [`convert_five_foot`][osrforge.tracing.fivefoot.convert_five_foot] before
-    anything is compared. Each panel of the trace is then lined up with the
-    key's panel of the same id at the whole-cell offset within
-    `ALIGNMENT_SEARCH` cells that makes the most floor cells agree, ties going
-    to the offset nearest zero and then first in north-then-west order.
+    anything is compared. Panels are matched by id. Each panel of the trace is
+    then lined up with the key's panel of the same id at the whole-cell offset
+    `(dx, dy)` within `ALIGNMENT_SEARCH` cells that makes the most floor cells
+    agree, ties going to the smallest `|dx| + |dy|`, then the smallest `dy`,
+    then the smallest `dx`. A panel with no partner of the same id is left out
+    of the reading families, and the halves family reports the difference.
 
-    The floor, edges, and doors families compare the panels: the reading. The
+    The floor, edges, and doors families compare the panels: the reading, with
+    the trace's panels as repaired and `before_repair`'s as read. A panel used
+    only by a level that fell back in either document is left out of them. The
     areas, keys, joins, reachability, entrance, transitions, passages, and
     repairs families compare the levels: the resolution. A level cell is
     mapped through the panel it lies on: back to that panel's page coordinates
     by undoing the trace's panel origin and turn, across by the panel's
-    offset, and onto the key's level by the key's panel turn and origin. A level that fell back in either document
-    scores in the verdicts family only.
+    offset, and onto the key's level by the key's panel turn and origin. A
+    destination cell is mapped the same way through its target level's panels,
+    and when the target level fell back in either document the destination
+    compares by level number alone. A level that fell back in either document
+    scores in the verdicts family only. The whole-cell scores leave the
+    partly-floor cells and their edges out of the floor, edges, and doors
+    families and change nothing else. The rules are in
+    `docs/tracing-conventions.md` under "The scorer".
 
     Args:
         trace: The trace.

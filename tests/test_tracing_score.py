@@ -11,7 +11,7 @@ import pytest
 
 from osrforge.tracing.score import FAMILIES, score_trace
 from osrforge.tracing.synthetic import DamageSite
-from osrforge.tracing.truth import DamagedEdge, GeometryTruth, Level, Region, Repair
+from osrforge.tracing.truth import DamagedEdge, GeometryTruth, Legend, Level, Region, Repair
 from tracing_support import (
     TOUCHED_FAMILIES,
     apply_damage,
@@ -19,7 +19,6 @@ from tracing_support import (
     drop_passages,
     five_foot_pair,
     rebuild,
-    replace_level,
     rotated_pair,
     set_edge,
     shift_panel_east,
@@ -80,12 +79,12 @@ def test_partly_floor_cells_are_left_out_of_the_whole_cell_scores():
 
 
 DAMAGE = (
-    DamageSite(change="wall_removed", panel="p1", edge="3,2:south"),
-    DamageSite(change="key_moved", dungeon="demo", level=1, label="2", to_cell="4,3"),
+    DamageSite(change="wall_removed", panel="p1", edge="2,2:east"),
+    DamageSite(change="key_moved", dungeon="demo", level=1, label="2", to_cell="5,3"),
     DamageSite(change="door_kind_changed", panel="p1", edge="2,2:south"),
     DamageSite(change="secret_door_removed", panel="p1", edge="1,2:south"),
-    DamageSite(change="transition_moved", dungeon="demo", level=1, cell="2,1", to_cell="1,1"),
-    DamageSite(change="passage_moved", dungeon="demo", level=1, cell="4,1", side="east", to_cell="4,2", to_side="east"),
+    DamageSite(change="transition_moved", dungeon="demo", level=1, cell="3,1", to_cell="2,1"),
+    DamageSite(change="passage_moved", dungeon="demo", level=1, cell="5,1", side="east", to_cell="5,2", to_side="east"),
     DamageSite(change="refusal_flipped", dungeon="demo", level=2),
 )
 
@@ -213,22 +212,20 @@ def test_refusals_score_in_the_verdicts_family_only():
 def test_region_facts_count_in_the_verdicts_family():
     truth = demo_truth()
     r1 = truth.region("r1")
-    turned = r1.model_copy(update={"compass": r1.compass.model_copy(update={"north": "left"})})
-    trace = rebuild(truth.model_copy(update={"regions": (turned, *truth.regions[1:])}))
+    borrowed = r1.model_copy(update={"legend": Legend(printed=False, from_page=2, symbols=r1.legend.symbols)})
+    trace = rebuild(truth.model_copy(update={"regions": (borrowed, *truth.regions[1:])}))
     score = score_trace(trace, truth)
     assert score.after.imperfect_families() == ("verdicts",)
     assert score.after.verdicts.regions_right == 2
 
 
 def test_before_and_after_repair():
+    """The reading before repair has room 2's door read as a wall. The repair opens it, on the level and the panel."""
     key = demo_truth()
     read_as_wall = set_edge(key, "p1", "4,2:south", "w")
-    level = read_as_wall.level("demo", 1)
-    assert level.edges is not None
-    repaired_level = level.model_copy(update={"edges": level.edges.with_letter((4, 2), "south", "d")})
-    after = replace_level(read_as_wall, "demo", repaired_level)
+    repaired = set_edge(read_as_wall, "p1", "4,2:south", "d")
     trace = rebuild(
-        after.model_copy(
+        repaired.model_copy(
             update={
                 "before_repair": read_as_wall,
                 "repairs": (
@@ -236,7 +233,7 @@ def test_before_and_after_repair():
                         dungeon="demo",
                         level=1,
                         fault="area_unreachable",
-                        edges=(DamagedEdge(edge="4,2:south", before="w", after="d"),),
+                        edges=(DamagedEdge(edge="5,2:south", before="w", after="d"),),
                         cost=1.0,
                     ),
                 ),
@@ -246,8 +243,9 @@ def test_before_and_after_repair():
     score = score_trace(trace, key)
     assert score.before is not None
     assert score.before_whole is not None
-    assert score.after.imperfect_families() == ("doors",)
+    assert score.after.imperfect_families() == ()
     assert score.before.imperfect_families() == ("doors",)
+    assert (score.before.doors.door.key, score.before.doors.door.trace) == (2, 1)
     assert (score.after.repairs.per_level, score.after.repairs.edges, score.after.repairs.edges_matching) == (
         {"demo/1": 1},
         1,

@@ -58,26 +58,15 @@ text. Re-record the whole set via the minimod session commands in
 
 ## synthetic-maps/
 
-Maps drawn from levels written in the geometry truth format
-(`osrforge.tracing.truth`), so their answers are exact. They are original
-work made for this repository and dedicated to the public domain under
-[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Each map's
-directory has its answer (`geometry.json`), its manifest (`synthetic.json`:
-the features it shows and the damage sites the scorer tests use), its images,
-and the survey, content, and map-reading caches the stage would have.
+Maps drawn from levels written in the geometry truth format (`osrforge.tracing.truth`), so their answers are exact. They are original work made for this repository and dedicated to the public domain under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Each map's directory has its answer (`geometry.json`), its manifest (`synthetic.json`: the features it shows and the damage sites the scorer tests use), its images, and the survey, content, and map-reading caches the stage would have.
 
-The generator is `osrforge.tracing.synthetic`. Regenerate from the repo root
-with:
+The generator is `osrforge.tracing.synthetic`. Regenerate from the repo root with:
 
 ```sh
 uv run python -m osrforge.tracing.synthetic tests/assets/synthetic-maps
 ```
 
-A test regenerates the set and fails on any difference: every file byte for
-byte, except a JPEG image, whose decoded pixels must match to within 6 on
-every channel and 0.5 on average, because JPEG encoders differ between
-platforms. Edit a level in the generator and regenerate; never edit a
-committed answer or image by hand.
+A test regenerates the set and fails on any difference. A PNG image must match by its decoded pixels exactly, a JPEG image to within 6 on every channel and 0.5 on average, because JPEG encoders differ between platforms, and every other file byte for byte. Edit a level in the generator and regenerate. Never edit a committed answer or image by hand.
 
 ## chaotic-caves/
 
