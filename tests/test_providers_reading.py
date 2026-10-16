@@ -289,12 +289,17 @@ def test_the_reservation_is_the_input_at_the_cache_write_price_and_max_tokens_at
 
 
 class FakeStream:
-    """One streamed response: a first event after a short wait, then the final message."""
+    """One streamed response: a first event after a short wait, then the final message.
+
+    Like the SDK's stream, it has one iterator, so `get_final_message` after a
+    partial iteration resumes the same stream instead of starting it again.
+    """
 
     def __init__(self, client: FakeClient, index: int, message: Any) -> None:
         self.client = client
         self.index = index
         self.message = message
+        self._events = self._generate()
 
     def __enter__(self) -> FakeStream:
         return self
@@ -302,14 +307,17 @@ class FakeStream:
     def __exit__(self, *_: object) -> None:
         return None
 
-    def __iter__(self):
+    def _generate(self):
         time.sleep(0.05)
         self.client.log("first_event", self.index)
         yield SimpleNamespace(type="message_start")
         yield SimpleNamespace(type="message_stop")
 
+    def __iter__(self):
+        return self._events
+
     def get_final_message(self) -> Any:
-        for _ in self:
+        for _ in self._events:
             pass
         self.client.log("final", self.index)
         return self.message
@@ -474,9 +482,10 @@ def test_read_all_sends_the_first_request_of_each_shared_part_alone(tmp_path: Pa
     """Two pages with three items each share the instructions: one request warms each part before the rest read it."""
     requests = [
         make_request(
-            shared=((INSTRUCTIONS,), (page,)), question=(ImagePart(png=png_bytes(10 + i)), TextPart(text=f"Item {i}"))
+            shared=((INSTRUCTIONS,), (page,)),
+            question=(ImagePart(png=png_bytes(10 + 3 * page_index + i)), TextPart(text=f"Item {3 * page_index + i}")),
         )
-        for page in (PAGE_A, PAGE_B)
+        for page_index, page in enumerate((PAGE_A, PAGE_B))
         for i in range(3)
     ]
     answers = {f"Item {i}": final_message(data={"rows": [f"Item {i}"]}) for i in range(6)}
