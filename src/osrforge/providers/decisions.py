@@ -114,11 +114,13 @@ class DecisionRequest:
         separators, UTF-8) of the model, the tag, the image's
         [`pixel_digest`][osrforge.providers.base.pixel_digest] (of the source
         PNG, whatever format is sent), the state, the question, the options
-        as a list of `[id, description]` pairs, the format the image goes as
-        (what [`encode_request`][osrforge.providers.decisions.encode_request]
-        chooses), [`JPEG_QUALITY`][osrforge.providers.decisions.JPEG_QUALITY],
-        and [`JPEG_THRESHOLD_BYTES`][osrforge.providers.decisions.JPEG_THRESHOLD_BYTES],
-        so a change in how an image is sent changes the key.
+        as a list of `[id, description]` pairs,
+        [`JPEG_QUALITY`][osrforge.providers.decisions.JPEG_QUALITY], and
+        [`JPEG_THRESHOLD_BYTES`][osrforge.providers.decisions.JPEG_THRESHOLD_BYTES],
+        both read when the key is computed, so a change in how images are
+        sent changes every key. The format a particular request goes as
+        isn't in the key, because it depends on the PNG encoder's output
+        size rather than on the pixels. The recording stores that format.
 
         Returns:
             A 64-character sha256 hex digest.

@@ -181,11 +181,12 @@ class ClefProvider:
     """Clef on Workers AI, with the ledger and the retries the service needs.
 
     The constructor performs no I/O. Transport policy: at most five attempts
-    per request. A 413, which the service returns when it estimates a body
-    past a token limit, is retried up to three more times with backoff,
-    because the probe saw a 413 at a limit far below the model's pass on
-    retry. 408, 409, 429, every 5xx, and connection failures get bounded
-    exponential backoff. A 401 raises
+    per request in all, whatever mix of failures uses them. A 413, which the
+    service returns when it estimates a body past a token limit, is retried
+    with backoff, because the probe saw a 413 at a limit far below the
+    model's pass on retry, but no more than three of the five attempts may
+    follow a 413. 408, 409, 429, every 5xx, and connection failures get
+    bounded exponential backoff within the same five attempts. A 401 raises
     [`ClefAuthError`][osrforge.errors.ClefAuthError], whose message tells
     the user to run `wrangler login`, and any other 4xx raises at once. The
     attempts share the request's one reservation, settled once at the end.
