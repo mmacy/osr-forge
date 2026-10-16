@@ -45,6 +45,7 @@ markdown_extensions:
 exclude_docs: |
   spec.md
   improvement-spec.md
+  tracing-conventions.md
   phase-*-plan.md
   foundry-capabilities.md
 

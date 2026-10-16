@@ -37,6 +37,7 @@ dependencies = [
     "pyyaml>=6",
     "jsonschema>=4",
     "openai>=2.44",
+    "numpy>=2.5.4",
 ]
 
 [project.optional-dependencies]

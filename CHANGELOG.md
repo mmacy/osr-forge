@@ -6,6 +6,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- The geometry truth format (`osrforge.tracing.truth`): what a printed map shows and the levels made from it, with the conventions that turn one into the other in `docs/tracing-conventions.md`. It is the first contract of phase 12's map tracing, and `numpy` joins the dependencies with it.
+
 ## [0.2.0] - 2026-10-05
 
 ### Added
