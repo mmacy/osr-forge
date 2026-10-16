@@ -17,6 +17,7 @@ from osrforge.tracing.truth import Page
 
 PAGE_WIDTH = 200.0
 PAGE_HEIGHT = 300.0
+FORM_SIZE = 100.0
 
 
 @dataclass(frozen=True)
@@ -28,12 +29,15 @@ class Placement:
         image: The pixels.
         rect: `(left, bottom, right, top)` in points; may run off the page.
         jpeg: Store the image as JPEG at quality 95 instead of as raw pixels.
+        form: Draw the image inside a form object that fills the rectangle, so the image's own bounds are in
+            the form's space and the form's matrix places it on the page.
     """
 
     page: int
     image: Image.Image
     rect: tuple[float, float, float, float]
     jpeg: bool = False
+    form: bool = False
 
 
 def build_pdf(path: Path, placements: Sequence[Placement], page_count: int | None = None) -> Path:
@@ -43,8 +47,28 @@ def build_pdf(path: Path, placements: Sequence[Placement], page_count: int | Non
     # pypdfium2's PDF-writing API has no type stubs; the same ignores sit in test_map_images.py.
     pdf = pdfium.PdfDocument.new()  # pyright: ignore[reportAttributeAccessIssue]
     pages = [pdf.new_page(PAGE_WIDTH, PAGE_HEIGHT) for _ in range(count)]
+    sources = []
     for placement in placements:
         page = pages[placement.page - 1]
+        left, bottom, right, top = placement.rect
+        if placement.form:
+            # A one-page source document whose page the image fills becomes a form object on the target page.
+            source = pdfium.PdfDocument.new()  # pyright: ignore[reportAttributeAccessIssue]
+            sources.append(source)
+            inner = source.new_page(FORM_SIZE, FORM_SIZE)
+            image = pdfium.PdfImage.new(source)  # pyright: ignore[reportAttributeAccessIssue]
+            image.set_bitmap(pdfium.PdfBitmap.from_pil(placement.image.convert("RGB")))  # pyright: ignore[reportAttributeAccessIssue]
+            image.set_matrix(pdfium.PdfMatrix().scale(FORM_SIZE, FORM_SIZE))  # pyright: ignore[reportAttributeAccessIssue]
+            inner.insert_obj(image)
+            inner.gen_content()
+            form = source.page_as_xobject(0, pdf).as_pageobject()
+            form.set_matrix(
+                pdfium.PdfMatrix()  # pyright: ignore[reportAttributeAccessIssue]
+                .scale((right - left) / FORM_SIZE, (top - bottom) / FORM_SIZE)
+                .translate(left, bottom)
+            )
+            page.insert_obj(form)
+            continue
         image = pdfium.PdfImage.new(pdf)  # pyright: ignore[reportAttributeAccessIssue]
         if placement.jpeg:
             buffer = io.BytesIO()
@@ -52,8 +76,9 @@ def build_pdf(path: Path, placements: Sequence[Placement], page_count: int | Non
             buffer.seek(0)
             image.load_jpeg(buffer)
         else:
-            image.set_bitmap(pdfium.PdfBitmap.from_pil(placement.image.convert("RGB")))  # pyright: ignore[reportAttributeAccessIssue]
-        left, bottom, right, top = placement.rect
+            # pdfium stores a 1-bit or L source as 8-bit grey and a P or CMYK source as 24-bit RGB, so the
+            # builder can't make a true 1-bit, indexed, or CMYK image object.
+            image.set_bitmap(pdfium.PdfBitmap.from_pil(placement.image))  # pyright: ignore[reportAttributeAccessIssue]
         image.set_matrix(pdfium.PdfMatrix().scale(right - left, top - bottom).translate(left, bottom))  # pyright: ignore[reportAttributeAccessIssue]
         page.insert_obj(image)
     for page in pages:

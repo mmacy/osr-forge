@@ -66,10 +66,16 @@ def test_workdir_has_a_maps_directory(tmp_path: Path):
 def test_map_image_model():
     image = MapImage(file="p0001-0.png", pages=(1,), index=0, width=10, height=10, sha256="ab")
     assert not image.spread
+    MapImage(file="x", pages=(1, 2, 3), index=0, width=1, height=1, sha256="ab")
+    MapImage(file="x", pages=(4, 5), index=0, width=1, height=1, sha256="ab", spread=True)
     with pytest.raises(ValueError):
         MapImage(file="x", pages=(), index=0, width=1, height=1, sha256="ab")
     with pytest.raises(ValueError):
-        MapImage(file="x", pages=(1, 2, 3), index=0, width=1, height=1, sha256="ab")
+        MapImage(file="x", pages=(2, 1), index=0, width=1, height=1, sha256="ab")
+    with pytest.raises(ValueError):
+        MapImage(file="x", pages=(1, 3), index=0, width=1, height=1, sha256="ab", spread=True)
+    with pytest.raises(ValueError):
+        MapImage(file="x", pages=(1, 2, 3), index=0, width=1, height=1, sha256="ab", spread=True)
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
@@ -120,10 +126,39 @@ def test_only_listed_pages_are_read_and_blanked_pages_are_skipped(tmp_path: Path
     images = extract_map_images(pdf, pages=[1, 2, 3], blanked=[2], out_dir=out)
     assert [i.pages for i in images] == [(1,), (3,)]
     assert not (out / "p0002-0.png").exists()
-    with pytest.raises(PdfError):
+    with pytest.raises(ValueError):
         extract_map_images(pdf, pages=[4], blanked=[], out_dir=out)
+    with pytest.raises(ValueError):
+        extract_map_images(pdf, pages=[1, 4], blanked=[4], out_dir=out)
+    with pytest.raises(ValueError):
+        extract_map_images(pdf, pages=[0], blanked=[], out_dir=out)
     with pytest.raises(PdfError):
         extract_map_images(tmp_path / "absent.pdf", pages=[1], blanked=[], out_dir=out)
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_pages_are_taken_in_ascending_order_whatever_order_they_are_given(tmp_path: Path):
+    twice = picture(16)
+    pdf = build_pdf(
+        tmp_path / "m.pdf",
+        [Placement(1, twice, full_page()), Placement(2, picture(17), full_page()), Placement(3, twice, full_page())],
+    )
+    out = tmp_path / "maps"
+    images = extract_map_images(pdf, pages=[3, 2, 1], blanked=[], out_dir=out)
+    assert [(i.file, i.pages) for i in images] == [("p0001-0.png", (1, 3)), ("p0002-0.png", (2,))]
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_the_function_overwrites_its_own_files_and_leaves_the_others(tmp_path: Path):
+    pdf = build_pdf(tmp_path / "m.pdf", [Placement(1, picture(18), full_page())])
+    out = tmp_path / "maps"
+    out.mkdir()
+    (out / "p0001-0.png").write_bytes(b"stale")
+    (out / "notes.txt").write_text("keep me", encoding="utf-8")
+    (image,) = extract_map_images(pdf, pages=[1], blanked=[], out_dir=out)
+    assert same_picture(out / image.file, picture(18))
+    assert (out / "notes.txt").read_text(encoding="utf-8") == "keep me"
+    assert {path.name for path in out.iterdir()} == {"p0001-0.png", "notes.txt"}
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
@@ -145,6 +180,43 @@ def test_the_same_image_on_two_pages_counts_once(tmp_path: Path):
     # A duplicate on a blanked page doesn't count: the kept image lists the pages it was read from.
     images = extract_map_images(pdf, pages=[1, 2, 3], blanked=[3], out_dir=tmp_path / "maps2")
     assert [i.pages for i in images] == [(1,), (2,)]
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_an_image_printed_on_three_pages_lists_all_three(tmp_path: Path):
+    thrice = picture(19)
+    pdf = build_pdf(
+        tmp_path / "m.pdf",
+        [Placement(1, thrice, full_page()), Placement(2, thrice, full_page()), Placement(3, thrice, full_page())],
+    )
+    (image,) = extract_map_images(pdf, pages=[1, 2, 3], blanked=[], out_dir=tmp_path / "maps")
+    assert (image.file, image.pages, image.spread) == ("p0001-0.png", (1, 2, 3), False)
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_identical_images_on_consecutive_pages_are_a_spread_only_when_both_run_off_facing_edges(tmp_path: Path):
+    twice = picture(20, (240, 60))
+    # Both whole on their pages: a duplicate.
+    pdf = build_pdf(tmp_path / "a.pdf", [Placement(1, twice, full_page()), Placement(2, twice, full_page())])
+    (image,) = extract_map_images(pdf, pages=[1, 2], blanked=[], out_dir=tmp_path / "a")
+    assert (image.pages, image.spread) == ((1, 2), False)
+    # Only the first page's placement runs off its right edge: still a duplicate.
+    pdf = build_pdf(
+        tmp_path / "b.pdf",
+        [Placement(1, twice, (0.0, 100.0, 2 * PAGE_WIDTH, 200.0)), Placement(2, twice, full_page())],
+    )
+    (image,) = extract_map_images(pdf, pages=[1, 2], blanked=[], out_dir=tmp_path / "b")
+    assert (image.pages, image.spread) == ((1, 2), False)
+    # The facing edges are the first page's right and the second page's left, not the other way round.
+    pdf = build_pdf(
+        tmp_path / "c.pdf",
+        [
+            Placement(1, twice, (-PAGE_WIDTH, 100.0, PAGE_WIDTH, 200.0)),
+            Placement(2, twice, (0.0, 100.0, 2 * PAGE_WIDTH, 200.0)),
+        ],
+    )
+    (image,) = extract_map_images(pdf, pages=[1, 2], blanked=[], out_dir=tmp_path / "c")
+    assert (image.pages, image.spread) == ((1, 2), False)
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
@@ -176,6 +248,102 @@ def test_an_image_drawn_over_most_of_an_earlier_one_hides_it(tmp_path: Path):
     assert (image.file, image.pages, image.index) == ("p0001-1.png", (1,), 1)
     assert same_picture(out / image.file, shown)
     assert not (out / "p0001-0.png").exists()
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_hiding_runs_before_duplicates(tmp_path: Path):
+    """An image hidden on one page and shown alone on another is that other page's image."""
+    twice, cover = picture(21), picture(22)
+    pdf = build_pdf(
+        tmp_path / "m.pdf",
+        [Placement(1, twice, full_page()), Placement(1, cover, full_page()), Placement(2, twice, full_page())],
+    )
+    out = tmp_path / "maps"
+    images = extract_map_images(pdf, pages=[1, 2], blanked=[], out_dir=out)
+    assert [(i.file, i.pages, i.index) for i in images] == [("p0001-1.png", (1,), 1), ("p0002-0.png", (2,), 0)]
+    assert same_picture(out / "p0001-1.png", cover) and same_picture(out / "p0002-0.png", twice)
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_the_same_pixels_twice_on_one_page_keep_the_later_one_when_it_covers_the_first(tmp_path: Path):
+    same = picture(23)
+    pdf = build_pdf(tmp_path / "m.pdf", [Placement(1, same, full_page()), Placement(1, same, full_page())])
+    (image,) = extract_map_images(pdf, pages=[1], blanked=[], out_dir=tmp_path / "maps")
+    assert (image.file, image.index, image.pages) == ("p0001-1.png", 1, (1,))
+    # Side by side, neither hidden: the same pixels count once, under the first index.
+    pdf = build_pdf(
+        tmp_path / "n.pdf",
+        [
+            Placement(1, same, full_page(PAGE_HEIGHT, PAGE_HEIGHT / 2)),
+            Placement(1, same, full_page(PAGE_HEIGHT / 2, 0.0)),
+        ],
+    )
+    (image,) = extract_map_images(pdf, pages=[1], blanked=[], out_dir=tmp_path / "maps2")
+    assert (image.file, image.index, image.pages) == ("p0001-0.png", 0, (1,))
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_coverage_counts_each_later_image_alone(tmp_path: Path):
+    """Two later images that together cover the page, each covering 40 percent, hide nothing."""
+    big = picture(24)
+    pdf = build_pdf(
+        tmp_path / "m.pdf",
+        [
+            Placement(1, big, full_page()),
+            Placement(1, picture(25), full_page(PAGE_HEIGHT, 0.6 * PAGE_HEIGHT)),
+            Placement(1, picture(26), full_page(0.4 * PAGE_HEIGHT, 0.0)),
+        ],
+    )
+    images = extract_map_images(pdf, pages=[1], blanked=[], out_dir=tmp_path / "maps")
+    assert [i.index for i in images] == [0, 1, 2]
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_coverage_is_measured_on_rectangles_clipped_to_the_page(tmp_path: Path):
+    """An image mostly off the page shows only a strip, and a later image over that strip hides it."""
+    mostly_off, strip_cover = picture(27), picture(28)
+    pdf = build_pdf(
+        tmp_path / "m.pdf",
+        [
+            Placement(1, mostly_off, (-150.0, 0.0, 50.0, PAGE_HEIGHT)),
+            Placement(1, strip_cover, (0.0, 0.0, 60.0, PAGE_HEIGHT)),
+        ],
+    )
+    (image,) = extract_map_images(pdf, pages=[1], blanked=[], out_dir=tmp_path / "maps")
+    assert image.index == 1
+    # Unclipped, the later image would cover only a quarter of the first's 200-point width.
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_an_image_inside_a_form_object_is_placed_through_the_form_matrix(tmp_path: Path):
+    """The form's image fills the top half of the page, so it hides an earlier image drawn there and not one below."""
+    above, below, in_form = picture(29), picture(30), picture(31)
+    pdf = build_pdf(
+        tmp_path / "m.pdf",
+        [
+            Placement(1, above, full_page(PAGE_HEIGHT, PAGE_HEIGHT / 2)),
+            Placement(1, below, full_page(PAGE_HEIGHT / 2, 0.0)),
+            Placement(1, in_form, full_page(PAGE_HEIGHT, PAGE_HEIGHT / 2), form=True),
+        ],
+    )
+    out = tmp_path / "maps"
+    images = extract_map_images(pdf, pages=[1], blanked=[], out_dir=out)
+    assert [(i.file, i.index) for i in images] == [("p0001-1.png", 1), ("p0001-2.png", 2)]
+    assert same_picture(out / "p0001-1.png", below) and same_picture(out / "p0001-2.png", in_form)
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_a_one_bit_image_extracts_at_native_resolution_as_an_rgb_png(tmp_path: Path):
+    """The Lost City's hidden scan is 1-bit. pdfium stores a 1-bit source as 8-bit grey, so this is the nearest the
+    builder can make; the written PNG is RGB whatever the stored mode."""
+    one_bit = picture(32, (64, 40)).convert("1")
+    pdf = build_pdf(tmp_path / "m.pdf", [Placement(1, one_bit, (10.0, 10.0, 20.0, 20.0))])
+    out = tmp_path / "maps"
+    (image,) = extract_map_images(pdf, pages=[1], blanked=[], out_dir=out)
+    assert (image.width, image.height) == (64, 40)
+    with Image.open(out / image.file) as png:
+        assert png.mode == "RGB"
+    assert same_picture(out / image.file, one_bit)
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
