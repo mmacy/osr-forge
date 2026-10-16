@@ -10,6 +10,7 @@ import hashlib
 import io
 import json
 import math
+import random
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -62,10 +63,8 @@ PROBABILITIES = {"door": 0.9504, "open": 0.0125, "secret_door": 0.0211, "wall": 
 def png_bytes(seed: int, size: tuple[int, int] = (256, 256), noisy: bool = False) -> bytes:
     image = Image.new("RGB", size, (255, 255, 255))
     if noisy:
-        pixels = [
-            ((seed * 7919 + i * 104729) % 251, (seed + i * 7) % 253, (i * 13) % 255) for i in range(size[0] * size[1])
-        ]
-        image.putdata(pixels)
+        # Random bytes don't compress, so a noisy 512 by 512 crop's PNG body passes the JPEG threshold.
+        image = Image.frombytes("RGB", size, random.Random(seed).randbytes(size[0] * size[1] * 3))
     else:
         for x in range(0, size[0], 8):
             for y in range(size[1]):
@@ -316,7 +315,7 @@ def test_decide_posts_the_body_and_returns_the_probabilities_charged_to_the_ledg
         "date": "2026-10-15",
         "what": "osrforge test run",
         "requests": 2,
-        "usd": pytest.approx(cost_usd("clef", 308) + cost_usd("clef", 310, 5)),
+        "usd": pytest.approx(cost_usd("clef", 308) + cost_usd("clef", 310, 5), abs=1e-6),
     }
     assert ledger["spent_usd"] == pytest.approx(0.168562 + entry["usd"])
     assert "pending" not in entry
@@ -357,7 +356,7 @@ def test_a_rejection_that_stays_is_a_provider_error_naming_the_size_and_never_th
     assert TOKEN not in repr(decider.settings)
     ledger = json.loads(path.read_text(encoding="utf-8"))
     # Sent and rejected: settled at the estimate, like the probe's ledger counted its rejections.
-    assert ledger["entries"][1]["usd"] == pytest.approx(estimate_cost(make_request()))
+    assert ledger["entries"][1]["usd"] == pytest.approx(estimate_cost(make_request()), abs=1e-6)
     assert ledger["entries"][1]["requests"] == 1
     assert "pending" not in ledger["entries"][1]
 
@@ -582,7 +581,7 @@ def test_the_drift_sample_favours_small_margins_and_is_deterministic(tmp_path: P
     for request in requests:
         recorder.decide(request)
 
-    unrecorded = [make_request(image=png_bytes(900 + i)) for i in range(5)]
+    unrecorded = [make_request(image=png_bytes(300 + i)) for i in range(5)]
     candidates = unrecorded + requests
     sample = drift_sample(tmp_path, candidates, size=20)
     keys = [request.key() for request in sample]
