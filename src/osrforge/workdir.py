@@ -14,7 +14,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from osrforge.contracts.run import RunMeta, Stage, StageStatus, TokenUsage
+from osrforge.contracts.run import RequestUsage, RunMeta, Stage, StageStatus, TokenUsage
 
 __all__ = ["StageTracker", "Workdir", "track_stage", "write_json_artifact"]
 
@@ -229,10 +229,11 @@ class StageTracker:
     """
 
     def __init__(self) -> None:
-        """Start with zero usage and no model identity."""
+        """Start with zero usage, no model identity, and no requests."""
         self.usage = TokenUsage()
         self.provider: str | None = None
         self.model_id: str | None = None
+        self.requests: list[RequestUsage] = []
 
     def add_usage(self, usage: TokenUsage) -> None:
         """Accumulate one response's token usage.
@@ -259,6 +260,20 @@ class StageTracker:
         self.provider = provider
         self.model_id = model_id
 
+    def add_request(self, request: RequestUsage) -> None:
+        """Record one tracing request's usage for `run.json`.
+
+        The tracing stage calls it once per request it sends, after
+        [`add_usage`][osrforge.workdir.StageTracker.add_usage] for the same
+        answer. [`track_stage`][osrforge.workdir.track_stage] appends the
+        records to `run.json`'s `requests` when the stage finishes, completed
+        or failed.
+
+        Args:
+            request: The request's usage.
+        """
+        raise NotImplementedError("chunk: claude-provider")
+
 
 @contextmanager
 def track_stage(workdir: Workdir, stage: Stage) -> Generator[StageTracker]:
@@ -269,6 +284,9 @@ def track_stage(workdir: Workdir, stage: Stage) -> Generator[StageTracker]:
     the tracker saw a response — the run's provider/model identity. On
     exception, writes `failed` with `error=str(exc)`, the usage spent so far,
     and `finished_at`, then re-raises, leaving upstream artifacts untouched.
+    Either way, the requests the tracker recorded with
+    [`add_request`][osrforge.workdir.StageTracker.add_request] are appended
+    to the run's `requests`.
 
     Timestamps are legal here and only here: `run.json` is operational
     metadata, and keeping timestamps out of every other artifact is part of
