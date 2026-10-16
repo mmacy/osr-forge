@@ -210,6 +210,50 @@ def test_a_move_is_ruled_out_when_a_room_would_lose_a_cell_it_had():
     assert result.panel.partial == ("0,0",)
 
 
+def test_a_room_may_give_up_a_cell_while_it_keeps_another():
+    """Rule 1 counts cells: a room that keeps a cell may give up another.
+
+    Phase (0, 0): vertical lines 0, 2, and 4 hold 2 + 0 + 1 = 3 blocked segments
+    against 0 + 2 = 2 on lines 1 and 3, and horizontal lines 0 and 2 hold 3 + 4 = 7
+    against 1 on line 1. Square (3,1) is walled on every side, with a window on
+    the east frame, so it is walled room R2. The other six squares join through
+    open sides and the printed line, and the door on the west frame closes them,
+    so they are walled room R1. Cell (0,0) has four R1 squares and cell (1,0) has
+    R1 squares (2,0) and (2,1), so R1 has both cells and R2 has none.
+
+    The one run is the wall on vertical line 3 at row 1, between (2,1) and (3,1).
+    East gives (3,1) to R1, and R1 keeps both cells. West gives (2,1) to R2, so
+    cell (1,0) becomes R2's, but R1 still has cell (0,0), and R2 had no cell to
+    lose. Rule 1 leaves both directions, and so does rule 2, since the 2 by 3
+    block of R1 squares is joined and has no narrow run. Rule 3 moves the run
+    toward R1, six squares against one, so west to line 2. A cell-by-cell rule
+    would rule west out and move it east, giving vertical edges d, o, w.
+
+    Line 2 then reads o and w, so w. Line 0 reads w and d, so d. Line 4 reads -
+    and n, so n. The north frame reads w and n, so n, then w and -, so w. Both
+    cells are partly floor: (0,0) holds partly-floor square (0,0), and (1,0)
+    mixes rock (3,0) with floor. The door mark stays on the frame line 0.
+    """
+    result = convert_five_foot(
+        panel(
+            ("...#", "...."),
+            ("woow-", "doown"),
+            ("wnw-", "opow", "wwww"),
+            partial=("0,0", "2,1"),
+            marks=(Mark(text="1", cell="1,1"), Mark(text="D", cell="0,1", edge="0,1:west")),
+        )
+    )
+    assert result.phase == (0, 0)
+    assert result.panel.cells == ("..",)
+    assert result.panel.edges == EdgeGrids(vertical=("dwn",), horizontal=("nw", "ww"))
+    assert result.moves == (WallMove(axis="vertical", line=3, moved_to=2, start=1, end=2),)
+    assert result.panel.partial == ("0,0", "1,0")
+    assert sorted(result.panel.marks, key=lambda mark: mark.text) == [
+        Mark(text="1", cell="0,0"),
+        Mark(text="D", cell="0,0", edge="0,0:west"),
+    ]
+
+
 def test_a_block_is_joined_when_its_squares_connect_through_three_passable_edges():
     """Ruling C. A 2 by 3 room whose inner edges are o, p, o down the middle and s, o and o, d across.
 
