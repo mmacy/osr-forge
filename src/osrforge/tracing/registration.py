@@ -22,8 +22,13 @@ same result for the same image on every run.
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from osrforge.tracing._registration_fit import Settings
+from osrforge.tracing._registration_halves import align
+from osrforge.tracing._registration_ink import InkSettings, ink_image, read_darkness
+from osrforge.tracing._registration_regions import RegionResult, find_regions
 from osrforge.tracing.truth import Registration
 
 __all__ = [
@@ -76,24 +81,50 @@ INK_MARGIN = 20.0
 """How much darker than its local background a pixel must be to count as ink.
 
 The implementation sets this value. On the synthetic TSR blue maps the blurred
-grid lines are 16 to 47 darker than the paper beside them, so the reference
-fit's 35 loses part of every line there. A build from this contract passed
-every synthetic map at 20: at 15 fold-east fails, and at 25 old-stair-2 finds
-no region. Whatever the value, the committed maps and the perturbed copies
-must stay on their sides of the gate.
+grid lines are 16 to 47 darker than the paper beside them, and on 95 rows in
+100 the darkest pixel across a line is at least 32 darker; on the dark rock
+maps the lines are 27 darker. The reference fit's 35 loses part of every TSR
+line. At 15 and 25 the registration tests give the same results as at 20. At
+10 the scan grain of the TSR maps counts as ink, and the synthetic maps, the
+fold halves, and the bowed copy of page 47 fail; at 30 old-stair's upper page
+and the sunken temple's pages lose their regions; at 35 the fold halves lose
+theirs. 20 is the middle of the range that works. Whatever the value, the
+committed maps and the perturbed copies must stay on their sides of the gate.
 """
 
 BACKGROUND_RADIUS = 6
-"""Pixels. A pixel's local background is the lightest pixel within this distance of it."""
+"""Pixels. A pixel's local background is the lightest pixel within this distance of it.
+
+It reaches past the middle of the thickest line that must read as ink. At 4,
+the middle of the 9 px frame line between Chaotic Caves page 21's two maps is
+no longer ink, the line no longer splits them, and the page reads as one
+region of 37 by 50 cells. At 8 and 12 the registration tests give the same
+results as at 6.
+"""
 
 FILL_DARKNESS = 80.0
-"""A pixel whose darkest channel is at most `255 - FILL_DARKNESS` is fill or solid ink, not paper."""
+"""A pixel whose darkest channel is at most `255 - FILL_DARKNESS` is fill or solid ink, not paper.
+
+The TSR blue is 209 dark and the grey rock of page 21's Cave of Horrors 107,
+both fill at 80. At 50 the light grey rock of Chaotic Caves page 38, about 51
+dark, becomes fill: its rows down to the image's bottom edge then read as a
+frame, and the grid takes 80 rows where 78 are printed. At 120 and 160 the
+registration tests give the same results as at 80.
+"""
 
 OFFSET_CANDIDATES = 3
 """How many column offsets `align_halves` returns for the reading provider to choose among."""
 
 GAP_TOLERANCE = 0.1
 """Cells. A candidate offset's gap at the fold may be this far below zero, for the fits' error."""
+
+_INK = InkSettings(margin=INK_MARGIN, radius=BACKGROUND_RADIUS, fill=FILL_DARKNESS)
+_SETTINGS = Settings(
+    line_tolerance=LINE_TOLERANCE,
+    reject_tolerance=REJECT_TOLERANCE,
+    coverage_tolerance=COVERAGE_TOLERANCE,
+    coverage_line_share=COVERAGE_LINE_SHARE,
+)
 
 
 class GateFigures(BaseModel):
@@ -287,7 +318,8 @@ def register_image(image: Path) -> tuple[RegionFit, ...]:
     Raises:
         OSError: If the image can't be read.
     """
-    raise NotImplementedError("chunk: registration")
+    ink = ink_image(read_darkness(image), _INK)
+    return tuple(_region_fit(result) for result in find_regions(ink, _SETTINGS))
 
 
 def align_halves(first: Path, first_fit: RegionFit, second: Path, second_fit: RegionFit) -> HalfAlignment:
@@ -316,4 +348,56 @@ def align_halves(first: Path, first_fit: RegionFit, second: Path, second_fit: Re
         ValueError: If either fit is unregistered.
         OSError: If an image can't be read.
     """
-    raise NotImplementedError("chunk: registration")
+    if first_fit.registration is None or second_fit.registration is None:
+        raise ValueError("both halves must be registered to be aligned")
+    result = align(
+        ink_image(read_darkness(first), _INK).ink,
+        np.array(first_fit.registration.corners, dtype=np.float64),
+        ink_image(read_darkness(second), _INK).ink,
+        np.array(second_fit.registration.corners, dtype=np.float64),
+        OFFSET_CANDIDATES,
+        GAP_TOLERANCE,
+    )
+    return HalfAlignment(rows=result.rows, columns=result.columns, gaps=result.gaps)
+
+
+def _region_fit(result: RegionResult) -> RegionFit:
+    """The public form of one region's fit, with the gate's verdict."""
+    if result.figures is None or result.pitch is None or result.corners is None:
+        return RegionFit(rect=result.rect, verdict="unregistered", reason=result.reason or "no fit")
+    figures = result.figures
+    gate = GateFigures(
+        detected_lines=figures.detected,
+        rejected_lines=figures.rejected,
+        explained_share=figures.explained / figures.detected if figures.detected else 0.0,
+        index_jumps=figures.jumps,
+        counted_cells=figures.counted,
+        covered_cells=figures.covered,
+        coverage=figures.covered / figures.counted if figures.counted else 0.0,
+    )
+    pitch = (round(result.pitch[0], 4), round(result.pitch[1], 4))
+    if not gate.passes:
+        return RegionFit(rect=result.rect, pitch=pitch, verdict="unregistered", reason=_failure(gate), gate=gate)
+    corners = tuple(tuple((round(float(x), 3), round(float(y), 3)) for x, y in row) for row in result.corners.tolist())
+    return RegionFit(
+        rect=result.rect,
+        pitch=pitch,
+        verdict="registered",
+        gate=gate,
+        registration=Registration(corners=corners),
+    )
+
+
+def _failure(gate: GateFigures) -> str:
+    """Why a fit fails the gate, part by part."""
+    parts: list[str] = []
+    if gate.explained_share < EXPLAINED_MINIMUM:
+        parts.append(
+            f"the fit explains {gate.explained_share:.3f} of {gate.detected_lines} detected lines, "
+            f"under {EXPLAINED_MINIMUM}"
+        )
+    if gate.index_jumps:
+        parts.append(f"{gate.index_jumps} index jumps")
+    if gate.coverage < COVERAGE_MINIMUM:
+        parts.append(f"ink covers {gate.coverage:.3f} of {gate.counted_cells} counted cells, under {COVERAGE_MINIMUM}")
+    return "; ".join(parts)
