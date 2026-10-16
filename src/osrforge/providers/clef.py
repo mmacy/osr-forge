@@ -13,13 +13,29 @@ private corpus member's map stays in the owner's private corpus directory,
 never in the repository.
 """
 
+import hashlib
+import http.client
+import io
+import json
+import math
+import os
+import sys
+import threading
 import time
+import tomllib
+import urllib.error
+import urllib.request
 from collections.abc import Callable, Mapping
+from datetime import date
 from pathlib import Path
+from typing import cast
 
-from pydantic import BaseModel, ConfigDict, SecretStr
+from PIL import Image
+from pydantic import BaseModel, ConfigDict, SecretStr, ValidationError
 
-from osrforge.providers.decisions import DecisionRequest, DecisionResponse
+from osrforge.errors import ClefAuthError, ProviderError
+from osrforge.providers.decisions import DecisionRequest, DecisionResponse, ImageFormat, encode_request
+from osrforge.providers.ledger import Ledger, Reservation
 
 __all__ = [
     "ACCOUNT_ENV",
@@ -50,6 +66,22 @@ PRICE_PER_TOKEN: dict[str, float] = {"clef": 0.240e-6, "clef-flash": 0.090e-6}
 
 Transport = Callable[[str, bytes, Mapping[str, str]], tuple[int, bytes]]
 """Sends one POST, `(url, body, headers)`, and returns `(status, response body)`. May raise `OSError`."""
+
+_ATTEMPTS = 5
+"""The most attempts the provider makes at one request, whatever fails."""
+
+_ATTEMPTS_AFTER_413 = 3
+"""The most attempts that may follow a 413."""
+
+_MAX_BACKOFF_SECONDS = 30.0
+
+_RETRIED_STATUSES = frozenset({408, 409, 429})
+"""The 4xx statuses the provider retries besides 413; it retries every 5xx too."""
+
+_TIMEOUT_SECONDS = 120.0
+
+_SERVICE_MESSAGE_CHARS = 500
+"""The most characters of a response body an error message quotes when the body isn't the JSON envelope."""
 
 
 class ClefSettings(BaseModel):
@@ -101,7 +133,27 @@ class ClefSettings(BaseModel):
             ProviderError: If a required variable is missing or empty, the
                 stop isn't a number, or no token can be found.
         """
-        raise NotImplementedError("chunk: clef-provider")
+        account_id = os.environ.get(ACCOUNT_ENV, "").strip()
+        ledger = os.environ.get(LEDGER_ENV, "").strip()
+        missing = [name for name, value in ((ACCOUNT_ENV, account_id), (LEDGER_ENV, ledger)) if not value]
+        if missing:
+            raise ProviderError(f"missing required environment variable(s): {', '.join(missing)}")
+        stop_text = os.environ.get(LEDGER_STOP_ENV, "").strip()
+        stop: float | None = None
+        if stop_text:
+            try:
+                stop = float(stop_text)
+            except ValueError:
+                stop = math.nan
+            if not math.isfinite(stop) or stop < 0:
+                raise ProviderError(f"{LEDGER_STOP_ENV} isn't a number of dollars: {stop_text!r}")
+        token = os.environ.get(TOKEN_ENV, "").strip() or wrangler_token()
+        return cls(
+            account_id=account_id,
+            token=SecretStr(token),
+            ledger_path=Path(ledger).expanduser(),
+            ledger_stop_usd=stop,
+        )
 
 
 def wrangler_token(config_path: Path | None = None) -> str:
@@ -122,7 +174,25 @@ def wrangler_token(config_path: Path | None = None) -> str:
         ProviderError: If the file is missing or has no `oauth_token`. The
             message names the path, never any of the file's values.
     """
-    raise NotImplementedError("chunk: clef-provider")
+    if config_path is None:
+        config_dir = "Library/Preferences/.wrangler/config" if sys.platform == "darwin" else ".config/.wrangler/config"
+        config_path = Path.home() / config_dir / "default.toml"
+    try:
+        text = config_path.read_bytes()
+    except OSError as error:
+        raise ProviderError(
+            f"can't read the wrangler login {config_path} ({error.strerror or type(error).__name__}); "
+            f"run `wrangler login` or set {TOKEN_ENV}"
+        ) from error
+    try:
+        config = tomllib.loads(text.decode("utf-8"))
+    except UnicodeDecodeError, tomllib.TOMLDecodeError:
+        # The parser's message can quote the file, so it stays out of this one.
+        raise ProviderError(f"the wrangler login {config_path} isn't valid TOML") from None
+    token = config.get("oauth_token")
+    if not isinstance(token, str) or not token.strip():
+        raise ProviderError(f"the wrangler login {config_path} has no oauth_token; run `wrangler login`")
+    return token.strip()
 
 
 def estimate_tokens(request: DecisionRequest) -> int:
@@ -142,7 +212,14 @@ def estimate_tokens(request: DecisionRequest) -> int:
     Returns:
         The estimate.
     """
-    raise NotImplementedError("chunk: clef-provider")
+    with Image.open(io.BytesIO(request.image)) as image:
+        width, height = image.size
+    image_tokens = math.ceil(width / 32) * math.ceil(height / 32)
+    if width * height < 65536:
+        image_tokens = max(image_tokens, 64) * 2
+    image_tokens += 4
+    questions = {request.tag: {"type": "choice", "instructions": request.question, "criteria": dict(request.options)}}
+    return math.ceil(image_tokens + len(json.dumps(request.state)) / 2 + len(json.dumps(questions)) / 1.5 + 200)
 
 
 def estimate_cost(request: DecisionRequest) -> float:
@@ -154,7 +231,17 @@ def estimate_cost(request: DecisionRequest) -> float:
     Returns:
         The estimate in dollars.
     """
-    raise NotImplementedError("chunk: clef-provider")
+    return estimate_tokens(request) * _price(request.model) * 1.5
+
+
+def _price(model: str) -> float:
+    price = PRICE_PER_TOKEN.get(model)
+    if price is None:
+        raise ProviderError(
+            f"no price for the model {model!r}, so the ledger can't charge it "
+            f"(priced models: {', '.join(sorted(PRICE_PER_TOKEN))})"
+        )
+    return price
 
 
 def cost_usd(model: str, input_tokens: int, output_tokens: int = 0) -> float:
@@ -174,7 +261,7 @@ def cost_usd(model: str, input_tokens: int, output_tokens: int = 0) -> float:
     Raises:
         ProviderError: If the model has no price.
     """
-    raise NotImplementedError("chunk: clef-provider")
+    return (input_tokens + output_tokens) * _price(model)
 
 
 class ClefProvider:
@@ -213,9 +300,14 @@ class ClefProvider:
                 injectable for tests.
         """
         self.settings = settings
-        self._transport = transport
+        self._transport: Transport = transport if transport is not None else _urllib_transport
         self._sleep = sleep
-        self._today = today
+        self._today = today if today is not None else _local_date
+        self._ledger = Ledger(
+            settings.ledger_path, cost_key="usd", stop_usd=settings.ledger_stop_usd, count_key="requests"
+        )
+        self._entry: int | None = None
+        self._entry_lock = threading.Lock()
 
     def decide(self, request: DecisionRequest) -> DecisionResponse:
         """Send one question and return its probabilities.
@@ -246,4 +338,162 @@ class ClefProvider:
                 that stays after its retries, another 4xx, or an answer the
                 adapter can't read.
         """
-        raise NotImplementedError("chunk: clef-provider")
+        body, image_format = encode_request(request)
+        reservation = self._reserve(estimate_cost(request))
+        try:
+            answer = self._send(request, body)
+            response, output_tokens = _response(request, answer, image_format, hashlib.sha256(body).hexdigest())
+        except BaseException as error:
+            # The request was sent, and nothing says what it cost, so the estimate stays on the ledger.
+            try:
+                self._ledger.settle(reservation, reservation.usd)
+            except Exception as settle_error:
+                error.add_note(
+                    f"settling its ledger reservation failed too, so the entry stays pending: {settle_error}"
+                )
+            raise
+        self._ledger.settle(reservation, cost_usd(request.model, response.input_tokens, output_tokens))
+        return response
+
+    def _reserve(self, usd: float) -> Reservation:
+        """Reserve against this provider's ledger entry, opening the entry on the first request."""
+        with self._entry_lock:
+            if self._entry is None:
+                reservation = self._ledger.open_reserved({"date": self._today(), "what": self.settings.run_label}, usd)
+                self._entry = reservation.index
+                return reservation
+            entry = self._entry
+        return self._ledger.reserve(entry, usd)
+
+    def _send(self, request: DecisionRequest, body: bytes) -> bytes:
+        """POST the body under the transport policy and return the 200 answer's bytes."""
+        url = ENDPOINT.format(account_id=self.settings.account_id, model=request.model)
+        headers = {
+            "Authorization": f"Bearer {self.settings.token.get_secret_value()}",
+            "Content-Type": "application/json",
+        }
+        after_413 = 0
+        failure = ""
+        last_error: OSError | None = None
+        for attempt in range(_ATTEMPTS):
+            if attempt > 0:
+                self._sleep(min(2.0**attempt, _MAX_BACKOFF_SECONDS))
+            try:
+                status, answer = self._transport(url, body, headers)
+            except OSError as error:
+                last_error = error
+                failure = f"the connection failed: {error}"
+                continue
+            last_error = None
+            if status == 200:
+                return answer
+            failure = self._describe(request, status, body, answer)
+            if status == 401:
+                raise ClefAuthError(f"{failure}; the token was refused, so run `wrangler login` and try again")
+            if status == 413:
+                if after_413 == _ATTEMPTS_AFTER_413:
+                    raise ProviderError(f"{failure}; it stayed after {_ATTEMPTS_AFTER_413} retries")
+                after_413 += 1
+                continue
+            if status in _RETRIED_STATUSES or 500 <= status < 600:
+                continue
+            raise ProviderError(failure)
+        raise ProviderError(
+            self._redact(f"the {request.tag!r} decision failed after {_ATTEMPTS} attempts; the last: {failure}")
+        ) from last_error
+
+    def _describe(self, request: DecisionRequest, status: int, body: bytes, answer: bytes) -> str:
+        return self._redact(
+            f"the {request.tag!r} decision to {request.model} failed with HTTP {status} "
+            f"for a body of {len(body)} bytes: {_service_message(answer)}"
+        )
+
+    def _redact(self, text: str) -> str:
+        secret = self.settings.token.get_secret_value()
+        return text.replace(secret, "[the token]") if secret else text
+
+
+def _local_date() -> str:
+    return date.today().isoformat()
+
+
+def _urllib_transport(url: str, body: bytes, headers: Mapping[str, str]) -> tuple[int, bytes]:
+    """Send one POST with the standard library's HTTP client, returning an error status as an answer."""
+    sent = urllib.request.Request(url, data=body, headers={"User-Agent": "osr-forge", **headers}, method="POST")
+    try:
+        with urllib.request.urlopen(sent, timeout=_TIMEOUT_SECONDS) as answer:
+            return answer.status, answer.read()
+    except urllib.error.HTTPError as error:
+        with error:
+            return error.code, error.read()
+    except http.client.HTTPException as error:
+        # A connection dropped mid-answer surfaces as an HTTPException, which isn't an OSError.
+        raise OSError(f"{type(error).__name__}: {error}") from error
+
+
+def _service_message(answer: bytes) -> str:
+    """Return the service's error messages from an envelope, or the start of the body when it isn't one."""
+    try:
+        envelope: object = json.loads(answer)
+    except ValueError:
+        envelope = None
+    errors = _member(envelope, "errors")
+    if isinstance(errors, list):
+        messages = [str(message) for item in cast(list[object], errors) if (message := _member(item, "message"))]
+        if messages:
+            return " | ".join(messages)
+    text = answer.decode("utf-8", errors="replace").strip()
+    if not text:
+        return "(an empty body)"
+    return text[:_SERVICE_MESSAGE_CHARS] + ("..." if len(text) > _SERVICE_MESSAGE_CHARS else "")
+
+
+def _object(value: object) -> dict[str, object] | None:
+    """Return `value` as a JSON object, or `None` when it isn't one."""
+    return cast(dict[str, object], value) if isinstance(value, dict) else None
+
+
+def _member(value: object, key: str) -> object:
+    """Return `value[key]` when `value` is a JSON object, else `None`."""
+    found = _object(value)
+    return None if found is None else found.get(key)
+
+
+def _response(
+    request: DecisionRequest, answer: bytes, image_format: ImageFormat, body_sha256: str
+) -> tuple[DecisionResponse, int]:
+    """Read the envelope's `result` into a response, and return it with the usage's output tokens."""
+    where = f"the answer to the {request.tag!r} decision"
+    try:
+        envelope: object = json.loads(answer)
+    except ValueError as error:
+        raise ProviderError(f"{where} isn't JSON: {error}") from error
+    result = _object(_member(envelope, "result"))
+    if result is None:
+        raise ProviderError(f"{where} has no result object")
+    probabilities = _object(_member(_member(result.get("answers"), request.tag), "probabilities"))
+    if probabilities is None:
+        raise ProviderError(f"{where} has no probabilities for the question {request.tag!r}")
+    given = sorted(probabilities)
+    options = sorted(option_id for option_id, _ in request.options)
+    if given != options:
+        raise ProviderError(f"{where} gives probabilities for {given}, not for the options {options}")
+    usage = _object(result.get("usage"))
+    if usage is None:
+        raise ProviderError(f"{where} has no usage")
+    output_tokens = usage.get("output_tokens") or 0
+    if not isinstance(output_tokens, int) or isinstance(output_tokens, bool) or output_tokens < 0:
+        raise ProviderError(f"{where} reports output tokens that aren't a count: {output_tokens!r}")
+    try:
+        response = DecisionResponse.model_validate(
+            {
+                "probabilities": probabilities,
+                "model_id": result.get("model"),
+                "input_tokens": usage.get("input_tokens"),
+                "format": image_format,
+                "body_sha256": body_sha256,
+            }
+        )
+    except ValidationError as error:
+        raise ProviderError(f"{where} can't be read: {error}") from error
+    return response, output_tokens
