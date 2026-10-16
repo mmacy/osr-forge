@@ -78,7 +78,6 @@ def test_map_image_model():
         MapImage(file="x", pages=(1, 2, 3), index=0, width=1, height=1, sha256="ab", spread=True)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_each_listed_page_yields_its_image_at_native_resolution(tmp_path: Path):
     first, second = picture(1), picture(2, (90, 140))
     pdf = build_pdf(tmp_path / "m.pdf", [Placement(1, first, full_page()), Placement(2, second, (20, 20, 30, 30))])
@@ -94,7 +93,6 @@ def test_each_listed_page_yields_its_image_at_native_resolution(tmp_path: Path):
     assert same_picture(out / "p0002-0.png", second)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_jpeg_stored_image_comes_out_as_its_stored_pixels(tmp_path: Path):
     source = picture(3, (64, 48))
     pdf = build_pdf(tmp_path / "m.pdf", [Placement(1, source, full_page(), jpeg=True)])
@@ -110,7 +108,6 @@ def test_a_jpeg_stored_image_comes_out_as_its_stored_pixels(tmp_path: Path):
     assert difference.max() <= 2
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_only_listed_pages_are_read_and_blanked_pages_are_skipped(tmp_path: Path):
     pdf = build_pdf(
         tmp_path / "m.pdf",
@@ -136,7 +133,6 @@ def test_only_listed_pages_are_read_and_blanked_pages_are_skipped(tmp_path: Path
         extract_map_images(tmp_path / "absent.pdf", pages=[1], blanked=[], out_dir=out)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_pages_are_taken_in_ascending_order_whatever_order_they_are_given(tmp_path: Path):
     twice = picture(16)
     pdf = build_pdf(
@@ -148,7 +144,6 @@ def test_pages_are_taken_in_ascending_order_whatever_order_they_are_given(tmp_pa
     assert [(i.file, i.pages) for i in images] == [("p0001-0.png", (1, 3)), ("p0002-0.png", (2,))]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_function_overwrites_its_own_files_and_leaves_the_others(tmp_path: Path):
     pdf = build_pdf(tmp_path / "m.pdf", [Placement(1, picture(18), full_page())])
     out = tmp_path / "maps"
@@ -161,7 +156,6 @@ def test_the_function_overwrites_its_own_files_and_leaves_the_others(tmp_path: P
     assert {path.name for path in out.iterdir()} == {"p0001-0.png", "notes.txt"}
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_same_image_on_two_pages_counts_once(tmp_path: Path):
     twice = picture(4)
     pdf = build_pdf(
@@ -182,7 +176,6 @@ def test_the_same_image_on_two_pages_counts_once(tmp_path: Path):
     assert [i.pages for i in images] == [(1,), (2,)]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_an_image_printed_on_three_pages_lists_all_three(tmp_path: Path):
     thrice = picture(19)
     pdf = build_pdf(
@@ -193,7 +186,6 @@ def test_an_image_printed_on_three_pages_lists_all_three(tmp_path: Path):
     assert (image.file, image.pages, image.spread) == ("p0001-0.png", (1, 2, 3), False)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_identical_images_on_consecutive_pages_are_a_spread_only_when_both_run_off_facing_edges(tmp_path: Path):
     twice = picture(20, (240, 60))
     # Both whole on their pages: a duplicate.
@@ -219,7 +211,6 @@ def test_identical_images_on_consecutive_pages_are_a_spread_only_when_both_run_o
     assert (image.pages, image.spread) == ((1, 2), False)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_one_image_across_a_spread_is_one_map(tmp_path: Path):
     wide = picture(6, (240, 60))
     pdf = build_pdf(
@@ -235,7 +226,6 @@ def test_one_image_across_a_spread_is_one_map(tmp_path: Path):
     assert same_picture(out / image.file, wide)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_an_image_drawn_over_most_of_an_earlier_one_hides_it(tmp_path: Path):
     """The Lost City's page 20 draws a grey scan over a hidden 1-bit scan: the page shows the later one."""
     grey, shown = picture(7), picture(8)
@@ -250,7 +240,6 @@ def test_an_image_drawn_over_most_of_an_earlier_one_hides_it(tmp_path: Path):
     assert not (out / "p0001-0.png").exists()
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_hiding_runs_before_duplicates(tmp_path: Path):
     """An image hidden on one page and shown alone on another is that other page's image."""
     twice, cover = picture(21), picture(22)
@@ -264,7 +253,6 @@ def test_hiding_runs_before_duplicates(tmp_path: Path):
     assert same_picture(out / "p0001-1.png", cover) and same_picture(out / "p0002-0.png", twice)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_same_pixels_twice_on_one_page_keep_the_later_one_when_it_covers_the_first(tmp_path: Path):
     same = picture(23)
     pdf = build_pdf(tmp_path / "m.pdf", [Placement(1, same, full_page()), Placement(1, same, full_page())])
@@ -282,7 +270,6 @@ def test_the_same_pixels_twice_on_one_page_keep_the_later_one_when_it_covers_the
     assert (image.file, image.index, image.pages) == ("p0001-0.png", 0, (1,))
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_coverage_counts_each_later_image_alone(tmp_path: Path):
     """Two later images that together cover the page, each covering 40 percent, hide nothing."""
     big = picture(24)
@@ -298,7 +285,6 @@ def test_coverage_counts_each_later_image_alone(tmp_path: Path):
     assert [i.index for i in images] == [0, 1, 2]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_coverage_is_measured_on_rectangles_clipped_to_the_page(tmp_path: Path):
     """An image mostly off the page shows only a strip, and a later image over that strip hides it."""
     mostly_off, strip_cover = picture(27), picture(28)
@@ -314,7 +300,6 @@ def test_coverage_is_measured_on_rectangles_clipped_to_the_page(tmp_path: Path):
     # Unclipped, the later image would cover only a quarter of the first's 200-point width.
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_an_image_inside_a_form_object_is_placed_through_the_form_matrix(tmp_path: Path):
     """The form's image fills the top half of the page, so it hides an earlier image drawn there and not one below."""
     above, below, in_form = picture(29), picture(30), picture(31)
@@ -332,7 +317,6 @@ def test_an_image_inside_a_form_object_is_placed_through_the_form_matrix(tmp_pat
     assert same_picture(out / "p0001-1.png", below) and same_picture(out / "p0001-2.png", in_form)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_one_bit_image_extracts_at_native_resolution_as_an_rgb_png(tmp_path: Path):
     """The Lost City's hidden scan is 1-bit. pdfium stores a 1-bit source as 8-bit grey, so this is the nearest the
     builder can make; the written PNG is RGB whatever the stored mode."""
@@ -346,7 +330,6 @@ def test_a_one_bit_image_extracts_at_native_resolution_as_an_rgb_png(tmp_path: P
     assert same_picture(out / image.file, one_bit)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_an_overlap_of_less_than_half_hides_nothing(tmp_path: Path):
     """A legend or an inset drawn over the corner of a map leaves the map in place."""
     big, inset = picture(9), picture(10, (40, 40))
@@ -375,7 +358,6 @@ def expected_from_manifest(pages: tuple[Page, ...]) -> dict[str, tuple[tuple[int
     return {file: (tuple(numbers), spread, index) for file, (numbers, spread, index) in seen.items()}
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_manifest_with_every_case_extracts_as_the_rules_say(tmp_path: Path):
     pictures = {"map.png": picture(11), "twice.png": picture(12), "under.png": picture(13), "over.png": picture(14)}
     pictures["wide.png"] = picture(15, (240, 60))
@@ -411,7 +393,7 @@ def map_dirs() -> list[Path]:
     return sorted(path for path in SYNTHETIC.iterdir() if path.is_dir())
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
+@pytest.mark.xfail(reason="chunk: synth-styles", strict=True)
 def test_every_committed_synthetic_map_extracts_as_its_manifest_says(tmp_path: Path):
     """Needs the committed synthetic maps, so it stays marked until the generator chunks land as well."""
     dirs = map_dirs()

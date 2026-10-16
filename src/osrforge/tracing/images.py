@@ -158,6 +158,8 @@ def extract_map_images(
        on the second, some copy's runs off the left edge. Identical images
        on consecutive pages whose placements don't both run off those edges
        are a plain duplicate.
+       A rectangle runs off an edge when it passes the edge by more than 0.01
+       points, because pdfium stores matrices in single precision.
 
     Each kept image is written to `out_dir / file` as an RGB PNG. The
     directory is created if missing. The function overwrites each file it
