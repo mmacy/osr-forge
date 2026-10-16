@@ -52,6 +52,22 @@ whose request digests embed module text (also licensed):
 - `expected-corrected/` — the corrected goldens: the post-overrides
   `adventure.json` and `previews/`, plus the post-`check` `report.json`
   (findings merged; the session's accepted warnings byte-pinned).
+- `maps/`: the module's map images, for the tests of the stage that traces levels from printed maps. See [Map images](#map-images).
+
+## Map images
+
+Each image in `maps/` is a map the PDF embeds, extracted with pypdfium2 at its native resolution and saved as PNG without changes to its pixels. `maps/maps.json` lists each image's PDF page, size, and sha256, and the levels of the corpus truth (`tools/eval/corpus/jn1-chaotic-caves/truth.yaml`) it draws.
+
+| File | PDF page | Map | Levels | Size in pixels |
+| --- | --- | --- | --- | --- |
+| `p021.png` | 21 | Halfling Home and the Cave of Horrors | Halfling Home 1, Cave of Horrors 1 | 1634 × 2210 |
+| `p038.png` | 38 | Chaotic Caves main map | A. Orc Lair to J. Gnoll Lair, level 1 each | 1874 × 2450 |
+| `p046.png` | 46 | Map K, Manor Fort ground floor | The Abandoned Manor 1 | 1947 × 2596 |
+| `p047.png` | 47 | Map L, Manor Fort upper floor | The Abandoned Manor 2 | 1188 × 1470 |
+
+The module prints no map for the Crypt, so `maps.json` lists it under `no_map`.
+
+Each image was viewed in full and zoomed to confirm it contains only the map and its own legend, scale, compass, and title, with no non-licensed artwork.
 
 ## The JN1 monsters fixture's couplings
 
@@ -82,6 +98,8 @@ gitignored):
 - sha256: `37e6325ad0ebd52077aedb9f7f247511709d80bb8a25e4dd8c95da83d2730240`
 - Source: https://www.basicfantasy.org (Adventure Modules → JN1 The Chaotic
   Caves, Release 28)
+
+When the PDF is present, `tests/test_map_images.py` also checks every image in `maps/` against a fresh extraction, pixel for pixel.
 
 ## License verification record (2026-07-09)
 
