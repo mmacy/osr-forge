@@ -39,7 +39,7 @@ The version lives in `pyproject.toml` alone and the bump procedure is: edit the 
 
 - **Assembly purity.** `adventure.json`, `report.json`, and previews are a deterministic function of cached stage outputs plus `overrides.yaml`. LLM calls happen only in the extraction stages; correcting a draft never re-rolls the model.
 - **Provider isolation.** Pipeline code never imports a vendor SDK; all model access goes through the `ModelProvider` protocol, or, in the tracing stage, the `ReadingProvider` and `DecisionProvider` protocols. Vendor specifics live in adapters only: Azure AI Foundry and `gpt-5.4` in `providers/foundry.py`, the `anthropic` library in `providers/claude.py`, and the Workers AI endpoint in `providers/clef.py`.
-- **No network in tests.** Unit and pipeline tests run against `FixtureProvider` fixtures and the tracing providers' recordings; live-model calls happen only in the on-demand eval harness and the live checks under `tools/live/`, never in CI.
+- **No network in tests.** Unit and pipeline tests run against `FixtureProvider` fixtures and the tracing providers' recordings. Live-model calls happen only in the on-demand eval harness and the live checks under `tools/live/`, never in CI.
 - **osrlib stays outside.** osr-forge depends on osrlib; nothing here is a candidate for merging into it (osrlib is sans-I/O and frozen-API).
 
 ## Licensing

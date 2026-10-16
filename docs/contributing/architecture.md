@@ -74,7 +74,7 @@ is documented in [the workdir and artifacts](../reference/workdir-artifacts.md).
   [`osrforge.providers.claude`][], and the Workers AI endpoint in
   [`osrforge.providers.clef`][], and nowhere else. Tests run on
   [`FixtureProvider`][osrforge.providers.fixtures.FixtureProvider] and on
-  the tracing providers' recordings — see [testing](testing.md).
+  the tracing providers' recordings. See [testing](testing.md).
 
 ## Where model spend happens — and where it can't
 

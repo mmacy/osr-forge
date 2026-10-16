@@ -15,14 +15,18 @@ pixels and parameters, so tests replay it without calling the service.
 replays a directory of recordings and
 [`RecordingReadingProvider`][osrforge.providers.reading.RecordingReadingProvider]
 writes them. The live adapter is
-[`ClaudeProvider`][osrforge.providers.claude.ClaudeProvider].
+[`ClaudeProvider`][osrforge.providers.claude.ClaudeProvider]. A recording of
+a private corpus member's map may contain the module's text or picture, so
+those recordings live in the owner's private corpus directory and never in
+the repository; only the committed corpus members' and the synthetic maps'
+recordings are committed.
 """
 
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -30,6 +34,7 @@ from osrforge.providers.base import ImagePart, TextPart
 
 __all__ = [
     "MAX_SHARED_PARTS",
+    "MAX_SHARED_PART_BLOCKS",
     "THINKING",
     "Effort",
     "ReadingProvider",
@@ -41,6 +46,7 @@ __all__ = [
     "RequestKind",
     "Retry",
     "recording_filename",
+    "request_body",
 ]
 
 Effort = Literal["low", "medium", "high", "xhigh", "max"]
@@ -59,6 +65,14 @@ MAX_SHARED_PARTS = 3
 
 The API allows four cache breakpoints in one request. The system prompt
 takes one, so a request has at most three shared parts.
+"""
+
+MAX_SHARED_PART_BLOCKS = 20
+"""The most content parts one shared part may have.
+
+The cache looks back twenty blocks from each breakpoint for the previous
+one, so a shared part is a few blocks: the instructions as one text part,
+or a page as one image part, never a long run of parts.
 """
 
 _NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -120,10 +134,14 @@ class ReadingRequest:
         shared: The shared parts, in order: the instructions, the legend, the
             symbol vocabulary, and any worked examples first, then the page
             image when several requests are about one page. Each part is one
-            or more content parts and ends at a cache breakpoint. At most
+            or more content parts, at most
+            [`MAX_SHARED_PART_BLOCKS`][osrforge.providers.reading.MAX_SHARED_PART_BLOCKS],
+            and ends at a cache breakpoint. At most
             [`MAX_SHARED_PARTS`][osrforge.providers.reading.MAX_SHARED_PARTS].
-            A shared part needs at least 512 tokens to be cached, which the
-            caller sees in the response's usage.
+            The cache stores a prefix of at least 512 tokens: the whole
+            prompt up to a breakpoint, from the system prompt on, not each
+            part on its own. The caller sees what was cached in the
+            response's usage.
         question: The crop and the question, after the shared parts. At
             least one content part.
         retry: The malformed answer and the fault, when this request is the
@@ -140,6 +158,8 @@ class ReadingRequest:
             raise ValueError(f"a request has at most {MAX_SHARED_PARTS} shared parts, not {len(self.shared)}")
         if any(len(part) == 0 for part in self.shared):
             raise ValueError("every shared part has at least one content part")
+        if any(len(part) > MAX_SHARED_PART_BLOCKS for part in self.shared):
+            raise ValueError(f"a shared part has at most {MAX_SHARED_PART_BLOCKS} content parts")
         if len(self.question) == 0:
             raise ValueError("the question has at least one content part")
 
@@ -272,6 +292,29 @@ class ReadingProvider(Protocol):
         ...
 
 
+def request_body(request: ReadingRequest, model: str) -> dict[str, Any]:
+    """Build the exact body the provider sends for a request.
+
+    The body has `model`, `max_tokens`, `system` as one text block with
+    `cache_control`, `messages`, `thinking` as `{"type": "adaptive"}`, and
+    `output_config` with the kind's effort and its schema as the JSON schema
+    format. The first message is the user message: the blocks of each shared
+    part in order, then the question's blocks. A text part is a text block
+    and an image part is a base64 PNG image block. The last block of each
+    shared part has `cache_control: {"type": "ephemeral"}`, and no block of
+    the question does. A retry adds an assistant message with the malformed
+    answer's text and a user message with the fault.
+
+    Args:
+        request: The request.
+        model: The model id.
+
+    Returns:
+        The body, as the keyword arguments of the SDK's `messages.stream`.
+    """
+    raise NotImplementedError("chunk: claude-provider")
+
+
 def recording_filename(kind: str, key: str) -> str:
     """Return the filename a recording is stored under: `<kind>.<key[:12]>.json`.
 
@@ -290,10 +333,14 @@ class RecordedReadingProvider:
 
     A recording file is JSON with `schema_version`, `key`, `kind`, `model`,
     `request`, and `response`. `request` is the exact body the live adapter
-    sent ([`request_body`][osrforge.providers.claude.request_body]) with each
+    sent ([`request_body`][osrforge.providers.reading.request_body]) with each
     image block's `data` replaced by the image's pixel digest, so a reader can
     see every parameter and the recording stays small. `response` has `data`,
-    `usage`, `model_id`, and `stop_reason`.
+    `usage`, `model_id`, and `stop_reason`. On replay, the provider builds
+    the body the current code would send, in the same digest form, and
+    compares it with the stored one, so a recording whose key still matches
+    but whose body the code no longer builds fails as stale instead of
+    answering.
     """
 
     def __init__(self, recordings: Path, model: str) -> None:
@@ -323,6 +370,9 @@ class RecordedReadingProvider:
 
         Raises:
             FixtureMissError: If no recording has the request's key.
+            StaleRecordingError: If the stored body, with digests in place of
+                image data, isn't the body the current code builds for the
+                request.
             ReadingFailure: If the recording's `stop_reason` is `max_tokens`
                 or `refusal`, as the live answer failed.
             SchemaValidationError: If the recorded data doesn't fit the

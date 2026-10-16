@@ -7,7 +7,10 @@ for each answer as JSON that fits the kind's schema (`output_config.format`),
 runs every request with adaptive thinking at the kind's effort, and marks a
 cache breakpoint on the system prompt and at the end of each shared part. It
 reserves each request's worst-case cost on the Claude ledger before sending
-and settles it from the answer's usage.
+and settles it from the answer's usage. The body it sends is
+[`request_body`][osrforge.providers.reading.request_body]. The server-side
+refusal `fallbacks` parameter stays off, because a fallback would answer on
+another model mid-run and change the recording key with it.
 """
 
 import time
@@ -30,7 +33,6 @@ __all__ = [
     "ModelPrices",
     "cost_usd",
     "estimate_input_tokens",
-    "request_body",
     "worst_case_usd",
 ]
 
@@ -116,11 +118,13 @@ class ClaudeSettings(BaseModel):
 def estimate_input_tokens(request: ReadingRequest) -> int:
     """Estimate a request's input tokens from above, for the reservation.
 
-    The estimate is the sum over every text part, the system prompt, the
-    retry's answer and fault, and the schema's compact JSON of
-    `ceil(bytes / 3)` in UTF-8, plus `ceil(width * height / 750)` for each
-    image, plus 64. It counts every token at the uncached price, so it's an
-    upper bound on what the answer's usage reports.
+    The estimate is one token per UTF-8 byte of every text part, the system
+    prompt, the retry's answer and fault, and the schema's compact JSON
+    (sorted keys, compact separators), plus `ceil(width * height / 750)` for
+    each image, plus 64. A token is never shorter than a byte and the API
+    never charges an image more than that, so the estimate is an upper bound
+    on what the answer's usage reports, and the over-reservation is small
+    beside `max_tokens` at the output price.
 
     Args:
         request: The request.
@@ -164,37 +168,16 @@ def cost_usd(model: str, usage: ReadingUsage) -> float:
     raise NotImplementedError("chunk: claude-provider")
 
 
-def request_body(request: ReadingRequest, model: str) -> dict[str, Any]:
-    """Build the exact body the provider sends for a request.
-
-    The body has `model`, `max_tokens`, `system` as one text block with
-    `cache_control`, `messages`, `thinking` as `{"type": "adaptive"}`, and
-    `output_config` with the kind's effort and its schema as the JSON schema
-    format. The first message is the user message: the blocks of each shared
-    part in order, then the question's blocks. A text part is a text block
-    and an image part is a base64 PNG image block. The last block of each
-    shared part has `cache_control: {"type": "ephemeral"}`, and no block of
-    the question does. A retry adds an assistant message with the malformed
-    answer's text and a user message with the fault.
-
-    Args:
-        request: The request.
-        model: The model id.
-
-    Returns:
-        The body, as the keyword arguments of `messages.stream`.
-    """
-    raise NotImplementedError("chunk: claude-provider")
-
-
 class ClaudeProvider:
     """Claude over the Messages API, with the ledger and the cache discipline.
 
-    The constructor performs no I/O. Transport policy: bounded exponential
-    backoff on 429, 5xx, and connection failures, honouring `Retry-After`;
-    auth and other 4xx failures raise at once. Each request is one API call:
-    a malformed answer isn't re-prompted here, because the tracing stage
-    makes the one retry with its own recording.
+    The constructor performs no I/O. Transport policy: at most five attempts
+    per request, with bounded exponential backoff that honours `Retry-After`,
+    on 408, 409, 429, every 5xx, and connection failures. Any other 4xx,
+    including an auth failure, raises at once. The attempts share the
+    request's one reservation, settled once at the end. A malformed answer
+    isn't re-prompted here, because the tracing stage makes the one retry
+    with its own recording. No error message contains the API key.
     """
 
     def __init__(
@@ -227,12 +210,16 @@ class ClaudeProvider:
     def read(self, request: ReadingRequest) -> ReadingResponse:
         """Send one request and return its answer.
 
-        Before sending, the provider opens a ledger entry `{"t", "script":
-        "osrforge", "label": "<kind> <effort>", "model"}` and reserves
-        [`worst_case_usd`][osrforge.providers.claude.worst_case_usd] against
-        it. It streams the response, settles the reservation at
+        Before sending, the provider reserves
+        [`worst_case_usd`][osrforge.providers.claude.worst_case_usd] on a new
+        ledger entry `{"t", "script": "osrforge", "label": "<kind> <effort>",
+        "model"}` in one step
+        ([`Ledger.open_reserved`][osrforge.providers.ledger.Ledger.open_reserved]),
+        so a refusal writes nothing to the ledger. It streams the response,
+        settles the reservation at
         [`cost_usd`][osrforge.providers.claude.cost_usd] of the answer's usage
-        whether or not the answer is good, and then checks the answer: a
+        whether or not the answer is good (a request whose attempts all fail
+        keeps its worst case), and then checks the answer: a
         `stop_reason` of `max_tokens` or `refusal` is a
         [`ReadingFailure`][osrforge.errors.ReadingFailure], and the first text
         block's JSON is checked against the kind's schema.

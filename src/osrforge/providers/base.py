@@ -65,10 +65,13 @@ class ImagePart:
 def pixel_digest(png: bytes) -> str:
     """Return the sha256 hex digest of an image's decoded pixels.
 
-    The digest covers the image's size and its pixels converted to RGB, so two
-    PNG files that encode the same picture differently, or a PNG and the JPEG
-    the Clef adapter made from it, have the same digest. The tracing
-    providers' recording keys use it (see
+    The digest covers the image's size and its pixels converted to RGBA, so
+    two PNG files that encode the same picture differently have the same
+    digest, an image without an alpha channel and the same image with every
+    pixel opaque have the same digest, and a change of alpha changes it. A
+    JPEG is lossy, so it never shares a digest with the PNG it was made from:
+    the Clef key hashes the source PNG's pixels, whatever the adapter sends.
+    The tracing providers' recording keys use it (see
     [`ReadingRequest.key`][osrforge.providers.reading.ReadingRequest.key] and
     [`DecisionRequest.key`][osrforge.providers.decisions.DecisionRequest.key]),
     where [`ModelRequest.fingerprint`][osrforge.providers.base.ModelRequest.fingerprint]
@@ -79,7 +82,7 @@ def pixel_digest(png: bytes) -> str:
 
     Returns:
         A 64-character sha256 hex digest of `f"{width}x{height}:"` followed by
-        the RGB pixel bytes, row by row.
+        the RGBA pixel bytes, row by row.
 
     Raises:
         ValueError: If the bytes aren't an image Pillow can decode.

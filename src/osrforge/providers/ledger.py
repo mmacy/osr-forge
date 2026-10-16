@@ -10,9 +10,17 @@ key), and the ledger keeps every entry it finds in the file.
 
 Spend is reserved before a request at its worst case and settled after it at
 the cost the answer reports, so a request that fails after it was sent, or a
-process that dies between the two, leaves its worst case on the ledger. The
-file is locked while it's read and written, so requests that run at the same
-time, in threads or in separate processes, don't lose a charge.
+process that dies between the two, leaves its worst case on the ledger. A
+request's retries share its one reservation.
+
+The file is written under a lock that excludes threads and processes alike,
+and any script that writes the same file follows the same protocol: take an
+exclusive `fcntl.flock` on the sidecar file `<ledger path>.lock`, read the
+ledger, change it, write it to a temporary file in the same directory,
+`os.replace` the temporary file over the ledger, and release the lock.
+Amounts are kept in whole micro-dollars and written rounded to six decimal
+places, as the files already are, so the stop comparison is exact and
+`spent_usd` never shows float noise.
 """
 
 from collections.abc import Mapping
@@ -45,8 +53,8 @@ class Ledger:
         from osrforge.providers.ledger import Ledger
 
         ledger = Ledger(Path("claude-ledger.json"), cost_key="cost_usd")
-        index = ledger.open({"t": "2026-10-15T10:00:00", "script": "osrforge", "label": "items p38", "model": "m"})
-        reservation = ledger.reserve(index, 0.08)
+        entry = {"t": "2026-10-15T10:00:00", "script": "osrforge", "label": "items p38", "model": "m"}
+        reservation = ledger.open_reserved(entry, 0.08)
         # ... the request runs ...
         ledger.settle(reservation, 0.0312)
         ```
@@ -117,13 +125,35 @@ class Ledger:
         """
         raise NotImplementedError("chunk: claude-provider")
 
+    def open_reserved(self, entry: Mapping[str, object], usd: float) -> Reservation:
+        """Append an entry and reserve against it in one locked step, writing nothing on a refusal.
+
+        The stop is checked before the entry is written, so a refused request
+        leaves the file byte for byte as it was. Otherwise this is `open`
+        followed by `reserve` under one lock.
+
+        Args:
+            entry: The entry's fields.
+            usd: The worst-case cost.
+
+        Returns:
+            The reservation, to settle.
+
+        Raises:
+            LedgerStopError: If the reservation would take the spend past the
+                stop.
+        """
+        raise NotImplementedError("chunk: claude-provider")
+
     def reserve(self, index: int, usd: float) -> Reservation:
         """Reserve a request's worst-case cost against an entry.
 
         Under the lock: if the file's `spent_usd` plus `usd` would pass the
         stop, nothing is written and `LedgerStopError` is raised. Otherwise
         the entry's cost and the file's `spent_usd` grow by `usd`, and the
-        entry's `pending` count grows by one.
+        entry's `pending` count grows by one. The comparison is made in whole
+        micro-dollars, so a reservation that reaches the stop exactly is
+        allowed.
 
         Args:
             index: The entry's index.
