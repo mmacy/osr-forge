@@ -801,12 +801,15 @@ class Resolver:
         # Unlabelled walled rooms and unkeyed parts closed off by printed lines join the areas they open onto.
         self.join_unlabelled(rooms, space_of)
 
-        # Keyed walled structures with no door get one.
+        # Keyed walled structures with no door out of the structure get one.
         for group in structures:
             keyed = {self.assigned[c] for room in group for c in room.cells if c in self.assigned}
             if not keyed:
                 continue
-            if any(world.edge(c, side) in DOORS for room in group for c in room.cells for side in SIDES):
+            members = {c for room in group for c in room.cells}
+            if any(
+                world.edge(c, side) in DOORS and world.across(c, side) not in members for c in members for side in SIDES
+            ):
                 continue
             level_id = min(keyed, key=lambda item: self.level_index(item[0]))[0]
             self.synthesize_door(level_id, group)
@@ -1495,26 +1498,27 @@ class Resolver:
         return not (panels & target_panels)
 
     def passages_make(self, level_id: LevelId, key: str, target_level: LevelId, target_key: str) -> bool:
-        """Whether a passage pair across a cut already joins two areas, through a door, a vestibule, or an open edge."""
+        """Whether a passage pair across a cut already joins two areas, through a door, a vestibule, or an open edge.
+
+        A walk from the first area over its level's corridor, across passable edges and doors and into no other
+        area, reaches a passage whose destination leads, by the same walk on the target level, into the second area.
+        """
         world = self.world
+        target = self.area_of(target_level, target_key)
 
-        def around(level: LevelId, area_key: str) -> set[Cell]:
-            cells = self.area_of(level, area_key)
-            near = set(cells)
-            for c in cells:
-                for side in SIDES:
-                    other = world.across(c, side)
-                    if other is not None and world.edge(c, side) in PASSABLE + DOORS and other in self.owner:
-                        near.add(other)
-            return {self.to_level(level, c) for c in near if c[0] in self.levels[level].placements}
+        def corridor_walk(level: LevelId, start: set[WCell], goal: set[WCell]) -> dict[WCell, int]:
+            def allowed(c: WCell) -> bool:
+                owned = self.owner.get(c) == level and world.letter(c) in ".~"
+                return owned and (c in start or c in goal or c not in self.assigned)
 
-        start, goal = around(level_id, key), around(target_level, target_key)
+            return world.walk(list(start), world.walking, allowed)
+
+        reached = corridor_walk(level_id, self.area_of(level_id, key), set())
         for cell, _side, to_cell, to_level in self.levels[level_id].passages:
-            if (
-                to_level == target_level
-                and self.to_level(level_id, cell) in start
-                and self.to_level(to_level, to_cell) in goal
-            ):
+            if to_level != target_level or cell not in reached:
+                continue
+            beyond = corridor_walk(target_level, {to_cell}, target)
+            if any(c in beyond for c in target):
                 return True
         return False
 
