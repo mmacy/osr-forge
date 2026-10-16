@@ -9,10 +9,19 @@ image drawn over an earlier one, and a page the `blank_page_renders` setting
 blanks because a model service's content filter rejected it.
 """
 
+import hashlib
+import io
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
+import pypdfium2 as pdfium
+import pypdfium2.raw as pdfium_c  # pyright: ignore[reportMissingTypeStubs]
+from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from osrforge.errors import PdfError
 
 __all__ = ["HIDDEN_COVERAGE", "MapImage", "extract_map_images", "map_image_filename"]
 
@@ -22,6 +31,35 @@ HIDDEN_COVERAGE = 0.5
 Each later image counts alone: two later images that together cover an
 earlier one, neither of them by more than this share, hide nothing.
 """
+
+_EDGE_TOLERANCE = 0.01
+"""How far, in points, a placement must pass a page edge to run off it.
+
+pdfium keeps matrices in single precision, so a placement that ends exactly at
+an edge can come out a few millionths of a point past it.
+"""
+
+type _Rect = tuple[float, float, float, float]
+"""`(left, bottom, right, top)` in page coordinates."""
+
+
+@dataclass(frozen=True)
+class _Placed:
+    """One shown image object on one page, with where it lands and its pixels.
+
+    Attributes:
+        page: The 1-based page number.
+        index: The image's index among the page's image objects.
+        rect: The placement rectangle, unclipped.
+        page_box: The page's visible box.
+        pixels: The stored pixels, converted to RGB.
+    """
+
+    page: int
+    index: int
+    rect: _Rect
+    page_box: _Rect
+    pixels: Image.Image
 
 
 class MapImage(BaseModel):
@@ -139,4 +177,144 @@ def extract_map_images(
         ValueError: If a listed page is below 1 or beyond the PDF's page
             count, whether or not it's blanked.
     """
-    raise NotImplementedError("chunk: map-images")
+    pdf = _open(pdf_path)
+    try:
+        count = len(pdf)
+        listed = sorted(set(pages))
+        out_of_range = [number for number in listed if not 1 <= number <= count]
+        if out_of_range:
+            raise ValueError(f"pages {out_of_range} are outside the PDF's 1 to {count}: {pdf_path}")
+        skipped = set(blanked)
+        try:
+            shown = [image for number in listed if number not in skipped for image in _shown_images(pdf, number)]
+        except pdfium.PdfiumError as error:
+            raise PdfError(f"source failed while its images were read: {pdf_path}") from error
+    finally:
+        pdf.close()
+
+    # Duplicates: images are taken in order of page and then index, so the first of each set of equal pixels names it.
+    groups: dict[tuple[int, int, bytes], list[_Placed]] = {}
+    for image in shown:
+        key = (image.pixels.width, image.pixels.height, hashlib.sha256(image.pixels.tobytes()).digest())
+        groups.setdefault(key, []).append(image)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    kept: list[MapImage] = []
+    for copies in groups.values():
+        first = copies[0]
+        numbers = tuple(sorted({copy.page for copy in copies}))
+        buffer = io.BytesIO()
+        first.pixels.save(buffer, "PNG")
+        data = buffer.getvalue()
+        file = map_image_filename(first.page, first.index)
+        (out_dir / file).write_bytes(data)
+        kept.append(
+            MapImage(
+                file=file,
+                pages=numbers,
+                index=first.index,
+                width=first.pixels.width,
+                height=first.pixels.height,
+                sha256=hashlib.sha256(data).hexdigest(),
+                spread=_is_spread(numbers, copies),
+            )
+        )
+    return tuple(sorted(kept, key=lambda image: (image.pages[0], image.index)))
+
+
+def _open(pdf_path: Path) -> pdfium.PdfDocument:
+    """Open the PDF, raising [`PdfError`][osrforge.errors.PdfError] if it can't be read."""
+    if not pdf_path.is_file():
+        raise PdfError(f"source is not a readable file: {pdf_path}")
+    try:
+        return pdfium.PdfDocument(pdf_path)
+    except pdfium.PdfiumError as error:
+        raise PdfError(f"source is corrupt or password-protected: {pdf_path}") from error
+
+
+def _shown_images(pdf: pdfium.PdfDocument, number: int) -> list[_Placed]:
+    """Return the images a page shows, with their pixels: every image object neither off the page nor hidden.
+
+    Args:
+        pdf: The open PDF.
+        number: The 1-based page number.
+
+    Returns:
+        The shown images in index order.
+    """
+    # pypdfium2 has no type information for a page's members or its page objects, so they're Any here.
+    page: Any = pdf[number - 1]
+    try:
+        left, bottom, right, top = page.get_bbox()
+        page_box: _Rect = (float(left), float(bottom), float(right), float(top))
+        objects: list[Any] = list(page.get_objects(filter=[pdfium_c.FPDF_PAGEOBJ_IMAGE]))
+        rects = [_placement_rect(image) for image in objects]
+        clipped = [_intersection(rect, page_box) for rect in rects]
+        shown: list[_Placed] = []
+        for index, image in enumerate(objects):
+            area = _area(clipped[index])
+            if area <= 0.0:
+                continue
+            if any(
+                _area(_intersection(clipped[index], later)) > HIDDEN_COVERAGE * area for later in clipped[index + 1 :]
+            ):
+                continue
+            pixels: Image.Image = image.get_bitmap(render=False).to_pil().convert("RGB")
+            shown.append(_Placed(number, index, rects[index], page_box, pixels))
+        return shown
+    finally:
+        page.close()
+
+
+def _placement_rect(image: Any) -> _Rect:
+    """Return the axis-aligned bounds of the quadrilateral an image's unit square maps to on its page.
+
+    The image's matrix places it in the space of the form object it's inside,
+    if any, so each enclosing form's matrix is applied in turn, innermost
+    first.
+
+    Args:
+        image: A pypdfium2 `PdfImage` from a page's object list.
+
+    Returns:
+        The placement rectangle.
+    """
+    corners = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+    current: Any = image
+    while current is not None:
+        a, b, c, d, e, f = (float(value) for value in current.get_matrix().get())
+        corners = [(a * x + c * y + e, b * x + d * y + f) for x, y in corners]
+        current = current.container
+    xs = [x for x, _ in corners]
+    ys = [y for _, y in corners]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def _intersection(first: _Rect, second: _Rect) -> _Rect:
+    """Return the intersection of two rectangles, which may be empty (zero or negative extent)."""
+    return (max(first[0], second[0]), max(first[1], second[1]), min(first[2], second[2]), min(first[3], second[3]))
+
+
+def _area(rect: _Rect) -> float:
+    """Return a rectangle's area, 0 when it's empty."""
+    return max(rect[2] - rect[0], 0.0) * max(rect[3] - rect[1], 0.0)
+
+
+def _is_spread(numbers: tuple[int, ...], copies: list[_Placed]) -> bool:
+    """Return whether an image's copies span a two-page spread.
+
+    Args:
+        numbers: The pages the image appears on, ascending.
+        copies: The image's shown copies on those pages.
+
+    Returns:
+        True when the image is on exactly two consecutive pages, some copy on
+        the first runs off that page's right edge, and some copy on the second
+        runs off that page's left edge.
+    """
+    if len(numbers) != 2 or numbers[1] != numbers[0] + 1:
+        return False
+    first, second = numbers
+    runs_off_right = any(copy.page == first and copy.rect[2] > copy.page_box[2] + _EDGE_TOLERANCE for copy in copies)
+    runs_off_left = any(copy.page == second and copy.rect[0] < copy.page_box[0] - _EDGE_TOLERANCE for copy in copies)
+    return runs_off_right and runs_off_left
