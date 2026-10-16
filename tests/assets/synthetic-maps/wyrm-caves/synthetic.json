@@ -1,0 +1,37 @@
+{
+  "name": "wyrm-caves",
+  "title": "The wyrm caves",
+  "features": [
+    "corridor_off_frame"
+  ],
+  "damage": [
+    {
+      "change": "key_moved",
+      "dungeon": "the-wyrm-caves",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": "3",
+      "cell": null,
+      "side": null,
+      "to_cell": "8,8",
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "wyrm-caves.png",
+      "ink": [
+        86,
+        60,
+        42
+      ],
+      "paper": [
+        249,
+        243,
+        228
+      ]
+    }
+  ]
+}

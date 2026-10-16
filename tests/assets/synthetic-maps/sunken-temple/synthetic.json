@@ -1,0 +1,51 @@
+{
+  "name": "sunken-temple",
+  "title": "The sunken temple",
+  "features": [
+    "legend_on_another_page",
+    "no_compass"
+  ],
+  "damage": [
+    {
+      "change": "key_moved",
+      "dungeon": "the-sunken-temple",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": "2",
+      "cell": null,
+      "side": null,
+      "to_cell": "7,6",
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "sunken-temple-1.png",
+      "ink": [
+        34,
+        31,
+        38
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "file": "sunken-temple-2.png",
+      "ink": [
+        34,
+        31,
+        38
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    }
+  ]
+}

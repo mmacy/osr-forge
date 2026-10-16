@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "title": "The lost maps",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-lost-crypt",
+      "name": "The lost crypt",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Antechamber",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Ossuary",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "map_pages": [
+            2
+          ],
+          "areas": [
+            {
+              "key": "1b",
+              "name": "Lower vault",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2
+              ]
+            },
+            {
+              "key": "2b",
+              "name": "Tomb",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}

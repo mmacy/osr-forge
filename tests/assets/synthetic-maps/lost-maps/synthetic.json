@@ -1,0 +1,37 @@
+{
+  "name": "lost-maps",
+  "title": "The lost maps",
+  "features": [
+    "reject_no_grid",
+    "reject_warped"
+  ],
+  "damage": [],
+  "images": [
+    {
+      "file": "lost-sketch.png",
+      "ink": [
+        28,
+        28,
+        28
+      ],
+      "paper": [
+        252,
+        251,
+        246
+      ]
+    },
+    {
+      "file": "lost-warped.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "title": "Greyrock country",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "greyrock-tower",
+      "name": "Greyrock tower",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            5
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Entry hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                5
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Guard room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                5
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Store",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "map_pages": [
+            6
+          ],
+          "areas": [
+            {
+              "key": "4",
+              "name": "Cellar",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                6
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Crypt",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                6
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}

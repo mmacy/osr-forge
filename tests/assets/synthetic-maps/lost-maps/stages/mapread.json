@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "map_reading": "read",
+  "levels": [
+    {
+      "dungeon_id": "the-lost-crypt",
+      "level_number": 1,
+      "map_pages": [
+        1
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "the-lost-crypt",
+      "level_number": 2,
+      "map_pages": [
+        2
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
+    }
+  ]
+}
