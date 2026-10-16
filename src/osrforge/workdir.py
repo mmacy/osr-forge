@@ -107,6 +107,23 @@ class Workdir:
         return self.stages_dir / "mapread.json"
 
     @property
+    def maps_dir(self) -> Path:
+        """The map images the tracing stage extracts from the source, one PNG per kept image."""
+        return self.root / "maps"
+
+    def map_png(self, page_number: int, index: int) -> Path:
+        """Return the path of one map image.
+
+        Args:
+            page_number: The 1-based page the image first appears on.
+            index: The image's index among that page's image objects.
+
+        Returns:
+            `maps/p<page>-<index>.png`, the page zero-padded to 4 digits.
+        """
+        return self.maps_dir / f"p{page_number:04d}-{index}.png"
+
+    @property
     def overrides_yaml(self) -> Path:
         """The human correction file."""
         return self.root / "overrides.yaml"
