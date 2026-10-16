@@ -17,6 +17,7 @@ from osrforge.tracing.truth import (
     PanelRegion,
     Passage,
     Registration,
+    Scale,
     Symbol,
     canonical_form,
     cell_key,
@@ -114,6 +115,29 @@ def test_demo_document_validates_and_round_trips(tmp_path: Path):
     assert truth.level("demo", 2).areas == {"3": truth.level("demo", 2).areas["3"]}
     with pytest.raises(KeyError):
         truth.level("demo", 3)
+
+
+def test_a_region_with_no_scale_in_feet_round_trips(tmp_path: Path):
+    """A refused region at a quarter mile to the square has no feet, and the saved file leaves the field out."""
+    truth = demo_truth()
+    first = truth.regions[0]
+    refused = first.model_copy(
+        update={
+            "id": "r9",
+            "scale": Scale(feet=None, printed=True, text="1 square = 1/4 mile"),
+            "verdict": "refused",
+            "reason": "a scale other than 5 or 10 feet",
+            "registration": None,
+        }
+    )
+    with_refused = GeometryTruth.model_validate(
+        {**truth.model_dump(), "regions": [*truth.model_dump()["regions"], refused.model_dump()]}
+    )
+    path = tmp_path / "geometry.json"
+    save_geometry_truth(path, with_refused)
+    loaded = load_geometry_truth(path)
+    assert loaded.region("r9").scale.feet is None
+    assert loaded == canonical_form(with_refused)
 
 
 def test_five_foot_documents_validate():
