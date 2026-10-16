@@ -1,0 +1,83 @@
+{
+  "name": "crypt",
+  "title": "The crypt of the grey abbot",
+  "features": [
+    "open_hall_several_keys",
+    "labelled_one_cell_hall",
+    "dashed_circle_in_room",
+    "jail_cells_row_one_key",
+    "dash_dot_partition",
+    "pillars",
+    "steps_inside_level",
+    "corridor_off_frame"
+  ],
+  "damage": [
+    {
+      "change": "wall_removed",
+      "dungeon": null,
+      "level": null,
+      "panel": "crypt",
+      "edge": "5,2:east",
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": null
+    },
+    {
+      "change": "door_kind_changed",
+      "dungeon": null,
+      "level": null,
+      "panel": "crypt",
+      "edge": "13,7:east",
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": null
+    },
+    {
+      "change": "secret_door_removed",
+      "dungeon": null,
+      "level": null,
+      "panel": "crypt",
+      "edge": "19,9:east",
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": null
+    },
+    {
+      "change": "key_moved",
+      "dungeon": "crypt",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": "9",
+      "cell": null,
+      "side": null,
+      "to_cell": "2,10",
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "crypt.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

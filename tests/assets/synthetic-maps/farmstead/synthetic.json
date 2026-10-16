@@ -1,0 +1,56 @@
+{
+  "name": "farmstead",
+  "title": "Hobb's farmstead",
+  "features": [
+    "farmstead_open_ground",
+    "tree_house_no_door",
+    "keys_stacked",
+    "moated_house_bridge",
+    "key_at_rear_door",
+    "windows",
+    "overlay_contours_tracks_stream"
+  ],
+  "damage": [
+    {
+      "change": "wall_removed",
+      "dungeon": null,
+      "level": null,
+      "panel": "farmstead",
+      "edge": "13,3:east",
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": null
+    },
+    {
+      "change": "key_moved",
+      "dungeon": "hobbs-farmstead",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": "2",
+      "cell": null,
+      "side": null,
+      "to_cell": "10,12",
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "farmstead.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    }
+  ]
+}

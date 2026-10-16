@@ -1,0 +1,55 @@
+{
+  "name": "ravine-lair",
+  "title": "Lair K, the ravine caves",
+  "features": [
+    "keys_on_water",
+    "key_outside_open_cave_mouth",
+    "key_outside_walled_cave_mouth",
+    "level_with_two_cave_mouths",
+    "letter_lair_label_outside",
+    "overlay_contours_tracks_stream"
+  ],
+  "damage": [
+    {
+      "change": "key_moved",
+      "dungeon": "lair-k",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": "4",
+      "cell": null,
+      "side": null,
+      "to_cell": "5,4",
+      "to_side": null,
+      "pair": null
+    },
+    {
+      "change": "door_kind_changed",
+      "dungeon": null,
+      "level": null,
+      "panel": "ravine-lair",
+      "edge": "5,5:south",
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "ravine-lair.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

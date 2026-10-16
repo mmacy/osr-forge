@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-old-stair",
+  "level_number": 2,
+  "areas": [
+    {
+      "key": "3",
+      "description": "The two flights from the landing arrive at either end of this hall, above a dark pool.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "4",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "2",
+          "direction": "up",
+          "via": "stairs",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        2
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "4",
+      "description": "A heap of broken crates.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "3",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        2
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

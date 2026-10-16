@@ -393,7 +393,6 @@ def map_dirs() -> list[Path]:
     return sorted(path for path in SYNTHETIC.iterdir() if path.is_dir())
 
 
-@pytest.mark.xfail(reason="chunk: synth-styles", strict=True)
 def test_every_committed_synthetic_map_extracts_as_its_manifest_says(tmp_path: Path):
     """Needs the committed synthetic maps, so it stays marked until the generator chunks land as well."""
     dirs = map_dirs()

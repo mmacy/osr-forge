@@ -163,7 +163,6 @@ def loaded_maps() -> list[SyntheticMap]:
     return [load_map(path) for path in map_dirs()]
 
 
-@pytest.mark.xfail(reason=CORE, strict=True)
 def test_set_is_committed():
     assert FEATURE_CHUNK.keys() == set(FEATURES)
     assert map_dirs(), "no synthetic maps are committed"
@@ -182,7 +181,6 @@ def pixels(path: Path) -> np.ndarray:
         return np.asarray(image.convert("RGB")).astype(np.int16)
 
 
-@pytest.mark.xfail(reason=CORE, strict=True)
 def test_regeneration_matches_the_committed_set(tmp_path: Path):
     """A PNG matches by its decoded pixels exactly, a JPEG within the tolerance, and every other file byte for byte."""
     names = generate(tmp_path)
@@ -202,13 +200,11 @@ def test_regeneration_matches_the_committed_set(tmp_path: Path):
             assert fresh.read_bytes() == kept.read_bytes(), relative
 
 
-@pytest.mark.xfail(reason=CORE, strict=True)
 def test_committed_set_stays_small():
     total = sum(path.stat().st_size for path in SYNTHETIC.rglob("*") if path.is_file())
     assert 0 < total <= SIZE_LIMIT
 
 
-@pytest.mark.xfail(reason=CORE, strict=True)
 def test_caches_load_through_the_stage_models():
     """Every level, refused and fallen-back levels included, has a content cache, and the map-reading knob is read."""
     assert map_dirs()
@@ -230,7 +226,6 @@ def test_caches_load_through_the_stage_models():
         assert reading.map_reading == "read"
 
 
-@pytest.mark.xfail(reason=CORE, strict=True)
 def test_each_answer_scores_perfect_against_itself():
     assert map_dirs()
     for item in loaded_maps():
@@ -277,7 +272,6 @@ def reachable_areas(truth: GeometryTruth, dungeon_id: str) -> set[tuple[int, str
     return areas
 
 
-@pytest.mark.xfail(reason=CORE, strict=True)
 def test_damage_sites_follow_their_constraints():
     """Each site stands where `DamageSite` says: every area reachable, edge sites on unturned 10-foot panels, and a
     flipped level neither the entrance level nor one a passage leads to."""
@@ -308,7 +302,6 @@ def test_damage_sites_follow_their_constraints():
                         assert passage.to_level != site.level, (item.path.name, site)
 
 
-@pytest.mark.xfail(reason=CORE, strict=True)
 def test_single_changes_touch_only_their_families():
     assert map_dirs()
     seen: set[str] = set()
@@ -900,7 +893,13 @@ PREDICATES: dict[str, Callable[[SyntheticMap], bool]] = {
 
 @pytest.mark.parametrize(
     "feature",
-    [pytest.param(name, marks=pytest.mark.xfail(reason=FEATURE_CHUNK[name], strict=True)) for name in FEATURES],
+    [
+        pytest.param(
+            name,
+            marks=() if FEATURE_CHUNK[name] == CORE else pytest.mark.xfail(reason=FEATURE_CHUNK[name], strict=True),
+        )
+        for name in FEATURES
+    ],
 )
 def test_feature_coverage(feature: str):
     holders = [item for item in loaded_maps() if feature in item.manifest.features]
@@ -931,7 +930,6 @@ def test_set_has_every_style_and_the_halves_share_their_images():
     assert joined_images & apart_images
 
 
-@pytest.mark.xfail(reason=CORE, strict=True)
 def test_tsr_blue_maps_are_scans():
     """A TSR blue region is a JPEG at about 26 pixels per cell with a pitch that varies across the map and noise on
     its paper: 150 dpi over 10-foot cells of the printed size, JPEG noise, and uneven pitch."""
@@ -1038,7 +1036,6 @@ def region_edges(truth: GeometryTruth, region: Region) -> Iterable[tuple[tuple[i
                         yield (rx, ry), side, panel.edges.at((px, py), side)
 
 
-@pytest.mark.xfail(reason=CORE, strict=True)
 def test_pictures_show_ink_on_walls_and_doors_and_blank_paper_across_open_edges():
     assert map_dirs()
     for item in loaded_maps():

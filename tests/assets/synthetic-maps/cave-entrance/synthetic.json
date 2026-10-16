@@ -1,0 +1,37 @@
+{
+  "name": "cave-entrance",
+  "title": "The hollow hill",
+  "features": [
+    "entrance_chamber_in_cave_mouth_unprinted_key"
+  ],
+  "damage": [
+    {
+      "change": "key_moved",
+      "dungeon": "the-hollow-hill",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": "3",
+      "cell": null,
+      "side": null,
+      "to_cell": "13,5",
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "cave-entrance.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

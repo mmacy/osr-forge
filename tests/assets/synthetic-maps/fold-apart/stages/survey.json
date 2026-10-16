@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "title": "The fold, apart",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-fold-apart",
+      "name": "The fold",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1,
+            2
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "West room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "2",
+              "name": "East room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}

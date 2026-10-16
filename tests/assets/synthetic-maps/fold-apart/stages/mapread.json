@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "map_reading": "read",
+  "levels": [
+    {
+      "dungeon_id": "the-fold-apart",
+      "level_number": 1,
+      "map_pages": [
+        1,
+        2
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "title": "The old stair",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-old-stair",
+      "name": "The old stair",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Stair hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Landing",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "map_pages": [
+            2
+          ],
+          "areas": [
+            {
+              "key": "3",
+              "name": "Lower hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Side room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}

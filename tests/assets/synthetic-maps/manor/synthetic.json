@@ -1,0 +1,52 @@
+{
+  "name": "manor",
+  "title": "Greywall manor",
+  "features": [
+    "walled_courtyard",
+    "gateway_no_door_between_towers",
+    "windows"
+  ],
+  "damage": [
+    {
+      "change": "door_kind_changed",
+      "dungeon": null,
+      "level": null,
+      "panel": "manor",
+      "edge": "13,7:west",
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": null
+    },
+    {
+      "change": "key_moved",
+      "dungeon": "greywall-manor",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": "6",
+      "cell": null,
+      "side": null,
+      "to_cell": "10,6",
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "manor.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    }
+  ]
+}
