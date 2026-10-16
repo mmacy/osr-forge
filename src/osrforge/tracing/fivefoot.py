@@ -162,18 +162,22 @@ class _Grid:
         self.space_size = [0] * len(self.walled)
         for space in self.space.values():
             self.space_size[space] += 1
-        self.cell_rooms: dict[_Square, frozenset[int]] = {}
+        self.cell_rooms: dict[_Square, frozenset[int]] = {
+            cell: self._rooms_in(cell) for cell in {self.cell_of(square) for square in self.space}
+        }
         """The walled rooms each cell belongs to, after the moves so far."""
 
         self.room_cells = [0] * len(self.walled)
         """How many cells each walled room has, after the moves so far."""
 
-        for cell in {self.cell_of(square) for square in self.space}:
-            rooms = self._rooms_in(cell)
-            self.cell_rooms[cell] = rooms
+        for rooms in self.cell_rooms.values():
             for room in rooms:
                 self.room_cells[room] += 1
+
         self.narrow_squares: set[_Square] = set()
+        self.narrow_links: set[_Edge] = set()
+        """The segments between consecutive squares of a narrow run, on the reading as read."""
+
         self.narrow_edges: set[_Edge] = set()
         """The 10-foot edges between consecutive cells of a narrow run."""
 
@@ -222,14 +226,15 @@ class _Grid:
         return min(read, key=_PRECEDENCE.index) if read else None
 
     def _find_spaces(self) -> None:
-        # An open space is a walled room when every side it shares with anything but its own floor is blocked. The
-        # rule's open-ground clause excludes nothing here: open ground is floor outside every walled structure, so an
-        # enclosed space holds none.
+        # An open space is enclosed when every side it shares with anything but its own floor is blocked, and it's a
+        # walled room when it's enclosed and isn't open ground. Spaces are numbered in page order of their first
+        # squares, so the lowest number wins an open-ground tie.
+        enclosed_spaces: list[bool] = []
         for y in range(self.height):
             for x in range(self.width):
                 if self.kind((x, y)) != "." or (x, y) in self.space:
                     continue
-                number = len(self.walled)
+                number = len(enclosed_spaces)
                 self.space[(x, y)] = number
                 stack = [(x, y)]
                 enclosed = True
@@ -243,7 +248,19 @@ class _Grid:
                         elif neighbour not in self.space:
                             self.space[neighbour] = number
                             stack.append(neighbour)
-                self.walled.append(enclosed)
+                enclosed_spaces.append(enclosed)
+        open_ground: set[int] = set()
+        for outline in self.panel.outlines:
+            for left, top, width, height in outline.open_ground:
+                inside: dict[int, int] = {}
+                for y in range(top, top + height):
+                    for x in range(left, left + width):
+                        space = self.space.get((x, y))
+                        if space is not None:
+                            inside[space] = inside.get(space, 0) + 1
+                if inside:
+                    open_ground.add(max(inside, key=lambda space: (inside[space], -space)))
+        self.walled = [enclosed and space not in open_ground for space, enclosed in enumerate(enclosed_spaces)]
 
     def _find_narrow_runs(self) -> None:
         # A narrow run's squares each have at most two passable floor neighbours and lie in no 2 by 2 block of floor
@@ -277,12 +294,13 @@ class _Grid:
                 if neighbour not in candidates or self.segment(_between(square, neighbour)) != "o":
                     continue
                 self.narrow_squares.update((square, neighbour))
+                self.narrow_links.add(_between(square, neighbour))
                 cell, other = self.cell_of(square), self.cell_of(neighbour)
                 if cell != other:
                     self.narrow_edges.add(_between(cell, other))
 
     def runs(self) -> list[_Run]:
-        """Every run, in north-then-west order of its midpoint with north at the top of the page."""
+        """Every run, in page order of its midpoint, a horizontal run before a vertical one with the same midpoint."""
         runs: list[_Run] = []
         axes: tuple[tuple[_Axis, int], ...] = (("vertical", self.ox), ("horizontal", self.oy))
         for axis, offset in axes:
@@ -297,7 +315,7 @@ class _Grid:
                     elif not inside and start is not None:
                         runs.append(_Run(axis, line, start, index))
                         start = None
-        return sorted(runs, key=lambda run: (order_key(run.midpoint()), run.axis, run.line, run.start))
+        return sorted(runs, key=lambda run: (order_key(run.midpoint()), run.axis != "horizontal", run.line, run.start))
 
     def _separates_floor(self, segment: _Edge) -> bool:
         low, high = _sides(segment)
@@ -306,8 +324,8 @@ class _Grid:
     def destination(self, run: _Run) -> int:
         """The 10-foot line a run moves to, by the four rules in order.
 
-        Rules 1 and 2 are tests a direction passes or fails, and each decides
-        only when one direction passes and the other fails.
+        Rules 1 and 2 each rule directions out, and decide only when they
+        leave exactly one.
         """
         lower, upper = run.line - 1, run.line + 1
         for keeps in (self._keeps_rooms, self._keeps_narrow_runs):
@@ -340,8 +358,8 @@ class _Grid:
         return frozenset(space for space, count in counts.items() if count >= 2)
 
     def _keeps_rooms(self, run: _Run, to: int) -> bool:
-        # Rule 1: the move fails when it leaves a walled room that has a cell with none. A room that has no cell
-        # before the move doesn't count against either direction.
+        # Rule 1: the move is ruled out when it leaves a walled room that has a cell with none. A room that has no
+        # cell before the move doesn't count against either direction.
         changes = self._changes(run, to)
         change: dict[int, int] = {}
         for cell in {self.cell_of(square) for square in changes}:
@@ -354,15 +372,9 @@ class _Grid:
         return all(self.room_cells[room] + delta > 0 for room, delta in change.items() if self.room_cells[room] > 0)
 
     def _keeps_narrow_runs(self, run: _Run, to: int) -> bool:
-        # Rule 2: the move fails when it blocks a passable edge between consecutive cells of a narrow run. The moved
-        # letters are blocked, so every 10-foot edge they land on is blocked after the move.
-        for index in range(run.start, run.end):
-            edge = self.edge_of((run.axis, to, index))
-            if edge in self.narrow_edges:
-                letter = self.read_letter(edge)
-                if letter is not None and letter in _PASSABLE:
-                    return False
-        return True
+        # Rule 2: the move is ruled out when a segment it moves would land between two consecutive squares of a
+        # narrow run, with the runs found on the reading as read.
+        return all((run.axis, to, index) not in self.narrow_links for index in range(run.start, run.end))
 
     def _part(self, run: _Run, side: int) -> int:
         """The squares of the open spaces on one side of a run: side 0 is west or north, side 1 east or south."""
@@ -377,17 +389,16 @@ class _Grid:
         takes the letter of the moved segment beside it.
         """
         changes = self._changes(run, to)
-        cells = {self.cell_of(square) for square in changes}
-        before = {cell: self.cell_rooms.get(cell, _NO_ROOMS) for cell in cells}
         for square, space in changes.items():
             self.space_size[self.space[square]] -= 1
             self.space_size[space] += 1
             self.space[square] = space
-        for cell in cells:
+        for cell in {self.cell_of(square) for square in changes}:
+            before = self.cell_rooms.get(cell, _NO_ROOMS)
             after = self._rooms_in(cell)
-            for room in before[cell] - after:
+            for room in before - after:
                 self.room_cells[room] -= 1
-            for room in after - before[cell]:
+            for room in after - before:
                 self.room_cells[room] += 1
             self.cell_rooms[cell] = after
         letters = self.lines[run.axis]
@@ -458,25 +469,43 @@ class _Grid:
             cave=tuple(cave),
             marks=tuple(self._convert_mark(mark) for mark in panel.marks),
             outlines=tuple(self._convert_outline(outline) for outline in panel.outlines),
-            symbols=tuple(self._convert_symbol(symbol) for symbol in panel.symbols),
+            symbols=tuple(converted for converted in map(self._convert_symbol, panel.symbols) if converted is not None),
         )
 
     def _convert_cell(self, text: str) -> str:
         return cell_key(self.cell_of(parse_cell(text)))
 
-    def _convert_edge(self, text: str) -> str:
-        # An edge becomes the same side of the cell that contains its square. When its segment moved, it becomes
-        # the side of that cell the segment moved to, so a mark on a door stays on the door.
+    def _convert_edge(self, text: str) -> str | None:
+        """Where an edge that a mark or a cave mouth names lands, or `None` when it lands on no edge.
+
+        A segment on a 10-foot line keeps its side, on the cell that holds its
+        square. A segment that moved goes with its run. Any other segment goes
+        to the side it faces from its floor square, on that square's cell, and
+        has no edge when neither square beside it is floor. When both are
+        floor, the square the edge is named from is the floor square.
+        """
         (x, y), side = parse_edge(text)
-        cell = self.cell_of((x, y))
         if side in ("west", "east"):
-            to = self.moved.get(("vertical", x if side == "west" else x + 1, y))
-            if to is not None:
-                side = "west" if to == 2 * cell[0] - self.ox else "east"
+            segment: _Edge = ("vertical", x if side == "west" else x + 1, y)
+            offset = self.ox
         else:
-            to = self.moved.get(("horizontal", y if side == "north" else y + 1, x))
-            if to is not None:
-                side = "north" if to == 2 * cell[1] - self.oy else "south"
+            segment = ("horizontal", y if side == "north" else y + 1, x)
+            offset = self.oy
+        axis, line, _index = segment
+        low_side, high_side = ("east", "west") if axis == "vertical" else ("south", "north")
+        to = self.moved.get(segment)
+        if to is None and (line - offset) % 2 == 1:
+            low, high = _sides(segment)
+            named = (x, y)
+            floor = [square for square in (named, high if named == low else low) if self.kind(square) == "."]
+            if not floor:
+                return None
+            square = floor[0]
+            return edge_key(self.cell_of(square), low_side if square == low else high_side)
+        cell = self.cell_of((x, y))
+        if to is not None:
+            first_line = 2 * (cell[0] if axis == "vertical" else cell[1]) - offset
+            side = high_side if to == first_line else low_side
         return edge_key(cell, side)
 
     def _convert_rect(self, rect: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
@@ -488,6 +517,7 @@ class _Grid:
         return (left, top, right - left, bottom - top)
 
     def _convert_mark(self, mark: Mark) -> Mark:
+        # A mark whose edge lands on no edge keeps its cell and loses the edge.
         return mark.model_copy(
             update={
                 "cell": self._convert_cell(mark.cell),
@@ -505,13 +535,12 @@ class _Grid:
             }
         )
 
-    def _convert_symbol(self, symbol: Symbol) -> Symbol:
-        return symbol.model_copy(
-            update={
-                "cells": _unique(self._convert_cell(cell) for cell in symbol.cells),
-                "edge": None if symbol.edge is None else self._convert_edge(symbol.edge),
-            }
-        )
+    def _convert_symbol(self, symbol: Symbol) -> Symbol | None:
+        # A cave mouth whose edge lands on no edge is dropped.
+        if symbol.edge is None:
+            return symbol.model_copy(update={"cells": _unique(self._convert_cell(cell) for cell in symbol.cells)})
+        edge = self._convert_edge(symbol.edge)
+        return None if edge is None else symbol.model_copy(update={"edge": edge})
 
 
 def convert_five_foot(panel: Panel) -> FiveFootConversion:
@@ -522,12 +551,11 @@ def convert_five_foot(panel: Panel) -> FiveFootConversion:
     phase. Squares outside the 5-foot grid count as rock. The result is
     `ceil((width + ox) / 2)` cells wide and `ceil((height + oy) / 2)` high.
 
-    The panel alone doesn't say where its compass points, so the runs are put
-    in north-then-west order with north at the top of the page. Each run's
-    direction is decided in that order, after the moves of the runs before it.
-    An edge that a mark or a cave mouth names becomes the same side of the cell
-    that contains its square, or, when the segment moved, the side of that cell
-    it moved to.
+    The runs move in page order of their midpoints, a horizontal run before a
+    vertical one with the same midpoint, and each run's direction is decided
+    after the moves of the runs before it. A mark whose door edge lands on no
+    10-foot edge keeps its cell and loses the edge, and such a cave mouth is
+    dropped.
 
     Args:
         panel: A panel whose `scale_feet` is 5.
