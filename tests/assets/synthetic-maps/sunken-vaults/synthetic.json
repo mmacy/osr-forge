@@ -1,0 +1,25 @@
+{
+  "name": "sunken-vaults",
+  "title": "The sunken vaults",
+  "features": [
+    "several_levels_one_page",
+    "levels_meet_at_locked_secret_door",
+    "door_no_vestibule_fits"
+  ],
+  "damage": [],
+  "images": [
+    {
+      "file": "sunken-vaults.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    }
+  ]
+}

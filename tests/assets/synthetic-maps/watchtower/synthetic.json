@@ -1,0 +1,25 @@
+{
+  "name": "watchtower",
+  "title": "The watchtower",
+  "features": [
+    "panels_two_scales_one_page",
+    "panels_trapdoor",
+    "corridor_off_frame"
+  ],
+  "damage": [],
+  "images": [
+    {
+      "file": "watchtower.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    }
+  ]
+}

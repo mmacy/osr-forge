@@ -102,8 +102,18 @@ LOOKS: dict[str, Look] = {
 }
 """The styles this generator draws, by the truth format's style name."""
 
-SCALE_TEXT = "1 SQUARE = 10 FEET"
-"""The scale statement every map prints."""
+
+def scale_text(feet: int) -> str:
+    """The scale statement a map at a scale prints.
+
+    Args:
+        feet: Feet per square.
+
+    Returns:
+        The statement.
+    """
+    return f"1 SQUARE = {feet} FEET"
+
 
 MARGIN = 24
 _TITLE_ROOM = 34
@@ -111,15 +121,22 @@ _FURNITURE_ROOM = 104
 
 
 def registration_for(
-    columns: int, rows: int, look: Look, origin: Point, cut: Sequence[PageSide], width: int | None
+    columns: int,
+    rows: int,
+    look: Look,
+    origin: Point,
+    cut: Sequence[PageSide],
+    width: int | None,
+    shown: float = 0.0,
 ) -> Registration:
     """The grid corners of a region drawn in a look, placed on the page.
 
     The pitch wanders as a bow: wider in the middle of the map than at its
     edges. A row's corners shift right by `skew` for each pixel the row lies
     below the first. A region cut off at the right edge of its image ends on
-    the image's last pixel, and one cut off at the left starts on its first.
-    A cut region isn't skewed, so the cut runs along the image's edge.
+    the image's last pixel, and one cut off at the left starts on its first,
+    unless the image shows part of the next column beyond the cut grid. A cut
+    region isn't skewed, so the cut runs along the image's edge.
 
     Args:
         columns: The region's width in cells.
@@ -128,6 +145,7 @@ def registration_for(
         origin: The north-west corner's pixel position, when no cut moves it.
         cut: The image edges that cut the region off.
         width: The image's width, needed for a cut at the right edge.
+        shown: How much of the column beyond a cut grid edge the image shows, in cells of the look's pitch.
 
     Returns:
         The registration, its corners rounded to thousandths of a pixel.
@@ -140,11 +158,11 @@ def registration_for(
     ys = line(rows, origin[1])
     skew = 0.0 if cut else look.skew
     if "left" in cut:
-        xs = [x - xs[0] - 0.5 for x in xs]
+        xs = [x - xs[0] - 0.5 + shown * look.pitch for x in xs]
     if "right" in cut:
         if width is None:
             raise ValueError("a region cut off at the right needs its image's width")
-        xs = [x + (width - 0.5 - xs[-1]) for x in xs]
+        xs = [x + (width - 0.5 - shown * look.pitch - xs[-1]) for x in xs]
     return Registration(
         corners=tuple(
             tuple((round(xs[i] + skew * (ys[j] - ys[0]), 3), round(ys[j], 3)) for i in range(columns + 1))
@@ -156,23 +174,25 @@ def registration_for(
 class Pen:
     """Draws a plan through a registration."""
 
-    def __init__(self, canvas: Canvas, registration: Registration, look: Look) -> None:
+    def __init__(self, canvas: Canvas, registration: Registration, look: Look, shift: float = 0.0) -> None:
         """Bind a canvas, a registration, and a look.
 
         Args:
             canvas: Where to draw.
             registration: Where each grid point lies.
             look: The style.
+            shift: How many columns the drawn plan has west of the registered grid.
         """
         self.canvas = canvas
         self.registration = registration
         self.look = look
+        self.shift = shift
         corners = registration.corners
         self.pitch = (corners[0][-1][0] - corners[0][0][0]) / (len(corners[0]) - 1)
 
     def px(self, point: Point) -> Point:
-        """The pixel position of a grid point."""
-        return self.registration.pixel(point)
+        """The pixel position of a grid point, a point beyond the registered grid extending its nearest cell."""
+        return self.registration.pixel((point[0] - self.shift, point[1]))
 
     def quad(self, cell: Cell) -> list[Point]:
         """A cell's four corners in pixels, clockwise from the north-west."""
@@ -386,7 +406,38 @@ def _symbol(pen: Pen, plan: Plan, index: int) -> None:
                 for step in range(1, 6):
                     pen.line((x + step / 6.0, y + 0.18), (x + step / 6.0, y + 0.82), 0.04, cap=0.0)
         return
-    if symbol.kind in ("stairs", "steps", "ladder"):
+    if symbol.kind in ("trapdoor", "hinged_floor"):
+        for x, y in cells:
+            box = [(x + 0.5 + dx * 0.3, y + 0.5 + dy * 0.3) for dx, dy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+            for index in range(4):
+                pen.line(box[index], box[(index + 1) % 4], 0.05, cap=0.025)
+            pen.label("T", (x + 0.5, y + 0.5), 0.3, 0.05, backed=False)
+        return
+    if symbol.kind in ("ladder", "slide", "chute"):
+        run = _run(plan, cells)
+        for x, y in cells:
+            if run == "ns":
+                pen.line((x + 0.3, y), (x + 0.3, y + 1.0), 0.05, cap=0.0)
+                pen.line((x + 0.7, y), (x + 0.7, y + 1.0), 0.05, cap=0.0)
+            else:
+                pen.line((x, y + 0.3), (x + 1.0, y + 0.3), 0.05, cap=0.0)
+                pen.line((x, y + 0.7), (x + 1.0, y + 0.7), 0.05, cap=0.0)
+            for step in range(4 if symbol.kind == "ladder" else 2):
+                offset = (step + 0.5) / (4 if symbol.kind == "ladder" else 2)
+                if symbol.kind == "ladder" and run == "ns":
+                    pen.line((x + 0.3, y + offset), (x + 0.7, y + offset), 0.04, cap=0.0)
+                elif symbol.kind == "ladder":
+                    pen.line((x + offset, y + 0.3), (x + offset, y + 0.7), 0.04, cap=0.0)
+                elif run == "ns":
+                    pen.path(
+                        [(x + 0.36, y + offset - 0.1), (x + 0.5, y + offset + 0.06), (x + 0.64, y + offset - 0.1)], 0.04
+                    )
+                else:
+                    pen.path(
+                        [(x + offset - 0.1, y + 0.36), (x + offset + 0.06, y + 0.5), (x + offset - 0.1, y + 0.64)], 0.04
+                    )
+        return
+    if symbol.kind in ("stairs", "steps"):
         run = _run(plan, cells)
         bars = 5 if symbol.kind != "steps" else 3
         reach = 0.42 if symbol.kind != "steps" else 0.26
@@ -548,6 +599,9 @@ _LEGEND_NAMES: dict[str, str] = {
     "pillar": "PILLAR",
     "cave_mouth": "CAVE MOUTH",
     "bridge": "BRIDGE",
+    "trapdoor": "TRAPDOOR",
+    "slide": "SLIDE",
+    "ladder": "LADDER",
 }
 
 
@@ -583,6 +637,20 @@ def _legend_sample(canvas: Canvas, look: Look, origin: Point, entry: str) -> Non
         pen.line((0.3, 0.7), (1.7, 0.7), 0.06, cap=0.0)
         for step in range(1, 7):
             pen.line((0.3 + step * 0.2, 0.3), (0.3 + step * 0.2, 0.7), 0.04, cap=0.0)
+    elif entry == "trapdoor":
+        box = [(1.0 + dx * 0.3, 0.5 + dy * 0.3) for dx, dy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+        for index in range(4):
+            pen.line(box[index], box[(index + 1) % 4], 0.05, cap=0.025)
+        pen.label("T", (1.0, 0.5), 0.3, 0.05, backed=False)
+    elif entry in ("ladder", "slide"):
+        pen.line((0.3, 0.3), (1.7, 0.3), 0.05, cap=0.0)
+        pen.line((0.3, 0.7), (1.7, 0.7), 0.05, cap=0.0)
+        for step in range(1, 7 if entry == "ladder" else 4):
+            at = 0.3 + step * (0.2 if entry == "ladder" else 0.35)
+            if entry == "ladder":
+                pen.line((at, 0.3), (at, 0.7), 0.04, cap=0.0)
+            else:
+                pen.path([(at - 0.1, 0.36), (at + 0.06, 0.5), (at - 0.1, 0.64)], 0.04)
     canvas.outline((origin[0], origin[1], origin[0] + 2 * size, origin[1] + size), 1.0)
 
 
@@ -609,15 +677,46 @@ def page_size(region: RegionSpec, look: Look) -> tuple[int, int]:
     probe = registration_for(plan.width, plan.height, look, (MARGIN, MARGIN + _TITLE_ROOM), (), None)
     right = max(point[0] for row in probe.corners for point in row)
     bottom = max(point[1] for row in probe.corners for point in row)
-    furniture = MARGIN * 2 + 230 + 150 * max(1, (len(legend_entries(region)) + 1) // 2)
+    entries = legend_entries(region) if region.legend_from is None else []
+    furniture = MARGIN * 2 + 230 + 150 * max(1, (len(entries) + 1) // 2)
     width = max(math.ceil(right) + MARGIN, furniture)
     if "left" in region.cut_off:
         width -= MARGIN
     return width, math.ceil(bottom) + _FURNITURE_ROOM
 
 
+def _furniture(
+    canvas: Canvas, look: Look, left: float, top: float, compass: bool, scale: str, entries: Sequence[str]
+) -> None:
+    """Draw the compass, the scale statement, and the legend below a map, leaving out what the page doesn't print."""
+    if compass:
+        _compass(canvas, (left + 16.0, top + 40.0), 48.0)
+    text(canvas, scale, (left + 50.0 + text_width(scale, 9.0) / 2.0, top + 14.0), 9.0, 1.3)
+    for index, entry in enumerate(entries):
+        column, row = divmod(index, 2)
+        x = left + 50.0 + column * 150.0
+        y = top + 30.0 + row * 28.0
+        _legend_sample(canvas, look, (x, y), entry)
+        name = _LEGEND_NAMES[entry]
+        text(canvas, name, (x + 48.0 + text_width(name, 8.0) / 2.0, y + 10.0), 8.0, 1.2)
+
+
+def _scan(canvas: Canvas, look: Look, seed: int) -> bytes:
+    pixels = canvas.pixels(look.paper, look.tint, look.ink)
+    if look.blur:
+        pixels = blur(pixels)
+    if look.grain:
+        grain = noise(canvas.width, canvas.height, seed, look.grain)
+        pixels = pixels + grain[:, :, None]
+    return encode(pixels, look.format)
+
+
 def draw_page(region: RegionSpec, seed: int) -> tuple[bytes, Registration, Look]:
     """Draw one region on its own page image.
+
+    A half whose fold cuts through a column draws that column too, as far as
+    the image shows it. A region that prints no compass or no legend leaves
+    it out.
 
     Args:
         region: The region.
@@ -630,27 +729,83 @@ def draw_page(region: RegionSpec, seed: int) -> tuple[bytes, Registration, Look]
     plan = region.plan
     width, height = page_size(region, look)
     registration = registration_for(
-        plan.width, plan.height, look, (MARGIN, MARGIN + _TITLE_ROOM), region.cut_off, width
+        plan.width, plan.height, look, (MARGIN, MARGIN + _TITLE_ROOM), region.cut_off, width, region.fold_shown
     )
     canvas = Canvas(width, height)
-    draw_plan(Pen(canvas, registration, look), plan, region.cut_off)
+    shift = 1.0 if region.fold is not None and "left" in region.cut_off else 0.0
+    draw_plan(Pen(canvas, registration, look, shift), region.fold or plan, region.cut_off)
     left = MARGIN if "left" not in region.cut_off else MARGIN + 4
     text(canvas, region.title, (left + text_width(region.title, 13.0) / 2.0, MARGIN + 8.0), 13.0, 1.8)
     bottom = max(point[1] for row in registration.corners for point in row)
-    furniture = bottom + 22.0
-    _compass(canvas, (left + 16.0, furniture + 40.0), 48.0)
-    text(canvas, SCALE_TEXT, (left + 50.0 + text_width(SCALE_TEXT, 9.0) / 2.0, furniture + 14.0), 9.0, 1.3)
-    for index, entry in enumerate(legend_entries(region)):
-        column, row = divmod(index, 2)
-        x = left + 50.0 + column * 150.0
-        y = furniture + 30.0 + row * 28.0
-        _legend_sample(canvas, look, (x, y), entry)
-        name = _LEGEND_NAMES[entry]
-        text(canvas, name, (x + 48.0 + text_width(name, 8.0) / 2.0, y + 10.0), 8.0, 1.2)
-    pixels = canvas.pixels(look.paper, look.tint, look.ink)
-    if look.blur:
-        pixels = blur(pixels)
-    if look.grain:
-        grain = noise(width, height, seed, look.grain)
-        pixels = pixels + grain[:, :, None]
-    return encode(pixels, look.format), registration, look
+    entries = legend_entries(region) if region.legend_from is None else []
+    _furniture(canvas, look, left, bottom + 22.0, region.prints_compass, scale_text(region.scale_feet), entries)
+    return _scan(canvas, look, seed), registration, look
+
+
+def draw_sheet(regions: Sequence[RegionSpec], seed: int) -> tuple[bytes, dict[str, Registration], Look]:
+    """Draw several regions on one page image: the first as a page draws it, and the others where `at` puts them.
+
+    Each later region is drawn on blank paper with its title above its frame,
+    and with its scale statement below its frame when its scale differs from
+    the first region's. A region inside the first one's frame is an inset over
+    its rock. The page prints one compass and one legend, which serve every
+    region on it.
+
+    Args:
+        regions: The regions, the first one first.
+        seed: The scan noise's seed.
+
+    Returns:
+        The encoded image, each region's registration by id, and the look.
+    """
+    first = regions[0]
+    look = LOOKS[first.style]
+    if any(region.style != first.style or region.legend != first.legend for region in regions):
+        raise ValueError(f"the regions on image {first.image} differ in style or legend")
+    if any(region.cut_off or region.fold or not region.prints_compass or region.legend_from for region in regions):
+        raise ValueError(f"the regions on image {first.image} must each be whole and print the page's furniture")
+    main = registration_for(first.plan.width, first.plan.height, look, (MARGIN, MARGIN + _TITLE_ROOM), (), None)
+    registrations = {first.id: main}
+    for region in regions[1:]:
+        if region.at is None:
+            raise ValueError(f"region {region.id} shares image {first.image} but has no place on it")
+        corner = main.pixel(region.at)
+        registrations[region.id] = registration_for(region.plan.width, region.plan.height, look, corner, (), None)
+
+    def extent(registration: Registration) -> tuple[float, float, float, float]:
+        xs = [point[0] for row in registration.corners for point in row]
+        ys = [point[1] for row in registration.corners for point in row]
+        return min(xs), min(ys), max(xs), max(ys)
+
+    own_scale = {region.id: region.scale_feet != first.scale_feet for region in regions}
+    right = max(extent(registration)[2] for registration in registrations.values())
+    bottom = max(extent(registrations[region.id])[3] + (18.0 if own_scale[region.id] else 0.0) for region in regions)
+    entries: list[str] = []
+    for region in regions:
+        entries += [entry for entry in legend_entries(region) if entry not in entries]
+    entries = [entry for entry in "dsln" if entry in entries] + [entry for entry in entries if entry not in "dsln"]
+    furniture = MARGIN * 2 + 230 + 150 * max(1, (len(entries) + 1) // 2)
+    width = max(math.ceil(right) + MARGIN, furniture)
+    canvas = Canvas(width, math.ceil(bottom) + _FURNITURE_ROOM)
+    draw_plan(Pen(canvas, main, look), first.plan, ())
+    text(canvas, first.title, (MARGIN + text_width(first.title, 13.0) / 2.0, MARGIN + 8.0), 13.0, 1.8)
+    for region in regions[1:]:
+        registration = registrations[region.id]
+        pen = Pen(canvas, registration, look)
+        xmin, ymin, xmax, ymax = extent(registration)
+        canvas.rectangle(
+            (
+                xmin - 0.4 * pen.pitch,
+                ymin - 24.0,
+                xmax + 0.4 * pen.pitch,
+                ymax + 0.4 * pen.pitch + (18.0 if own_scale[region.id] else 0.0),
+            ),
+            "paper",
+        )
+        draw_plan(pen, region.plan, ())
+        text(canvas, region.title, ((xmin + xmax) / 2.0, ymin - 12.0), 11.0, 1.5)
+        if own_scale[region.id]:
+            words = scale_text(region.scale_feet)
+            text(canvas, words, ((xmin + xmax) / 2.0, ymax + 13.0), 9.0, 1.3)
+    _furniture(canvas, look, MARGIN, bottom + 22.0, True, scale_text(first.scale_feet), entries)
+    return _scan(canvas, look, seed), registrations, look

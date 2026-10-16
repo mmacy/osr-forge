@@ -127,9 +127,9 @@ class Plan:
         """The plan's columns from `first` up to `stop`, as a plan of their own.
 
         Marks and symbols move with their cells, and those outside the columns
-        are left out. The outline is cut to the columns. A cut edge keeps its
-        letter, so floor that runs across the cut runs off the new plan's
-        frame.
+        are left out. The outline is cut to the columns. A cut edge beside
+        floor or water keeps its letter, so floor that runs across the cut runs
+        off the new plan's frame, and a cut edge beside rock reads `-`.
 
         Args:
             first: The first column kept.
@@ -189,12 +189,20 @@ class Plan:
             return tuple(kept)
 
         width = stop - first
+        cells = tuple(row[first:stop] for row in self.cells)
+
+        def frame(row: str, inside: str) -> str:
+            return row if inside in ".~" else "-"
+
         return Plan(
             width=width,
             height=self.height,
-            cells=tuple(row[first:stop] for row in self.cells),
+            cells=cells,
             edges=EdgeGrids(
-                vertical=tuple(row[first : stop + 1] for row in self.edges.vertical),
+                vertical=tuple(
+                    frame(row[first], cells[y][0]) + row[first + 1 : stop] + frame(row[stop], cells[y][-1])
+                    for y, row in enumerate(self.edges.vertical)
+                ),
                 horizontal=tuple(row[first:stop] for row in self.edges.horizontal),
             ),
             marks=marks,

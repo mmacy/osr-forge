@@ -2,17 +2,26 @@
 
 Each function returns one map's spec. The answers aren't here: they're worked
 out from each map's reading by [`resolve_dungeon`][osrforge.tracing.synthetic._resolve.resolve_dungeon].
-Coordinates in a sketch are cells of its own grid, `(x, y)` from the north-west.
-A damage site's level cell is on the level's grid, which adds a margin of one
-cell where a level's floor reaches the frame.
+Coordinates in a sketch are cells of its own grid, `(x, y)` from the north-west,
+in 5-foot squares for a 5-foot region. A damage site's level cell is on the
+level's grid, which adds a margin of one cell where a level's floor reaches
+the frame.
 """
 
 from collections.abc import Callable
 
 from osrforge.contracts.stages import AreaConnection
-from osrforge.tracing.synthetic import DamageSite
+from osrforge.tracing.synthetic import DamageSite, Feature
 from osrforge.tracing.synthetic._plan import Plan, Sketch
-from osrforge.tracing.synthetic._spec import AreaSpec, DungeonSpec, LevelSpec, MapSpec, PanelSpec, RegionSpec
+from osrforge.tracing.synthetic._spec import (
+    AreaSpec,
+    DungeonSpec,
+    LevelSpec,
+    MapSpec,
+    OutlineSpec,
+    PanelSpec,
+    RegionSpec,
+)
 from osrforge.tracing.truth import HalfPair, Style, SymbolKind
 
 
@@ -470,6 +479,410 @@ def fold_apart() -> MapSpec:
     )
 
 
+def _ways(*links: tuple[str, str, str]) -> tuple[AreaConnection, ...]:
+    """Prose connections, each as the target key, the compass direction, and the means."""
+    return tuple(AreaConnection(to_key=key, direction=direction, via=via) for key, direction, via in links)  # type: ignore[arg-type]
+
+
+def undercroft() -> MapSpec:
+    """Two levels on one page whose floors meet at doors and along a corridor.
+
+    They meet at a door between two corridors, at a door between two rooms,
+    and where the cut crosses a corridor at its bend.
+    """
+    sketch = Sketch(26, 19)
+    sketch.run("in", (0, 8), (2, 8)).edge((0, 8), "west", "o").edge((2, 8), "east", "d")
+    sketch.room("r1", 3, 5, 6, 7).mark("1", (5, 8))
+    sketch.room("r5", 2, 1, 6, 4).edge((5, 4), "south", "d").mark("2", (4, 2))
+    sketch.run("c", (9, 6), (18, 6)).edge((8, 6), "east", "d").edge((13, 6), "east", "d").edge((18, 6), "east", "d")
+    sketch.room("r2", 19, 3, 6, 6).mark("5", (21, 5))
+    sketch.room("r3", 3, 12, 6, 4).edge((6, 11), "south", "d").mark("6", (4, 14))
+    sketch.run("b", (9, 10), (13, 10), (13, 13)).edge((8, 10), "east", "d").edge((13, 13), "south", "d")
+    sketch.room("r4", 11, 14, 6, 4).mark("7", (15, 17))
+    plan = sketch.build()
+    region = RegionSpec("undercroft", 1, "undercroft.jpg", "tsr_blue", plan, "THE UNDERCROFT, LEVELS 1 AND 2")
+    panel = PanelSpec(
+        "undercroft",
+        (("undercroft", (0, 0)),),
+        plan,
+        outlines=(
+            OutlineSpec(1, ((0, 0, 26, 19),), ((5, 7),)),
+            OutlineSpec(2, ((0, 0, 26, 19),), ((22, 6),)),
+        ),
+    )
+    upper = (
+        AreaSpec(
+            "1",
+            "Pillared crypt",
+            "Doors lead east toward the lower vaults and south into the bone store.",
+            links=_ways(("5", "east", "door"), ("6", "south", "door"), ("7", "east", "passage")),
+        ),
+        AreaSpec("2", "Sexton's room", "A cot and a lantern hook."),
+    )
+    lower = (
+        AreaSpec(
+            "5",
+            "Lower vault",
+            "A corridor with a door halfway along leads west to the crypt.",
+            links=_ways(("1", "west", "door")),
+        ),
+        AreaSpec("6", "Bone store", "Bones are stacked to the ceiling.", links=_ways(("1", "north", "door"))),
+        AreaSpec(
+            "7", "Well room", "A passage climbs north and west to the crypt.", links=_ways(("1", "north", "passage"))
+        ),
+    )
+    dungeon = DungeonSpec(
+        "the-undercroft",
+        "The undercroft",
+        (LevelSpec(1, upper, ("undercroft",)), LevelSpec(2, lower, ("undercroft",))),
+    )
+    return MapSpec(
+        name="undercroft",
+        title="The undercroft",
+        features=(
+            "several_levels_one_page",
+            "two_levels_joined_by_door",
+            "two_levels_joined_by_open_floor",
+            "levels_meet_at_door",
+            "corridor_bends_across_cut",
+            "passage_at_floor_edge",
+            "corridor_off_frame",
+        ),
+        dungeon=dungeon,
+        regions=(region,),
+        panels=(panel,),
+    )
+
+
+def sunken_vaults() -> MapSpec:
+    """Two levels on one page that meet at a locked secret door and at a door where no vestibule fits.
+
+    The prose locks the secret door. The other door opens on a one-cell
+    closet from a cell with a second door, so neither side can be its
+    vestibule.
+    """
+    sketch = Sketch(22, 16)
+    sketch.run("in", (0, 7), (2, 7)).edge((0, 7), "west", "o").edge((2, 7), "east", "d")
+    sketch.room("r1", 3, 4, 7, 7).mark("1", (5, 6))
+    sketch.room("r3", 10, 5, 6, 5).edge((9, 7), "east", "s").mark("3", (13, 6))
+    sketch.room("r4", 10, 10, 1, 1).edge((9, 10), "east", "d").mark("4", (10, 10))
+    sketch.room("r2", 6, 11, 4, 3).edge((9, 10), "south", "d").mark("2", (7, 12))
+    plan = sketch.build()
+    region = RegionSpec(
+        "sunken-vaults", 1, "sunken-vaults.png", "black_white", plan, "THE SUNKEN VAULTS, LEVELS 1 AND 2"
+    )
+    panel = PanelSpec(
+        "sunken-vaults",
+        (("sunken-vaults", (0, 0)),),
+        plan,
+        outlines=(
+            OutlineSpec(1, ((0, 0, 22, 16),), ((4, 8),)),
+            OutlineSpec(2, ((0, 0, 22, 16),), ((14, 8),)),
+        ),
+    )
+    locked = AreaConnection(to_key="3", direction="east", via="secret_door", door_locked=True)
+    upper = (
+        AreaSpec(
+            "1",
+            "Hall of urns",
+            "A locked secret door in the east wall opens on the vault. A door in the south-east corner opens on a "
+            "closet, and another on the guard post.",
+            links=(locked, *_ways(("4", "east", "door"))),
+        ),
+        AreaSpec("2", "Guard post", "A stool and a rusted bell."),
+    )
+    lower = (
+        AreaSpec(
+            "3",
+            "Drowned vault",
+            "Water stands ankle deep. A locked secret door leads west to the hall of urns.",
+            links=(AreaConnection(to_key="1", direction="west", via="secret_door", door_locked=True),),
+        ),
+        AreaSpec("4", "Closet", "Rotten sacks fill a narrow closet.", links=_ways(("1", "west", "door"))),
+    )
+    dungeon = DungeonSpec(
+        "the-sunken-vaults",
+        "The sunken vaults",
+        (LevelSpec(1, upper, ("sunken-vaults",)), LevelSpec(2, lower, ("sunken-vaults",))),
+    )
+    return MapSpec(
+        name="sunken-vaults",
+        title="The sunken vaults",
+        features=("several_levels_one_page", "levels_meet_at_locked_secret_door", "door_no_vestibule_fits"),
+        dungeon=dungeon,
+        regions=(region,),
+        panels=(panel,),
+    )
+
+
+_GATE_FOLD = 10
+"""The column of the gatehouse that the fold cuts through, which neither half registers."""
+
+
+def _gate_plan() -> Plan:
+    sketch = Sketch(21, 18)
+    sketch.room("hall", 4, 1, 13, 3).mark("1", (5, 2))
+    sketch.room("north", 7, 4, 7, 3).edge((12, 3), "south", "d").mark("2", (12, 5))
+    sketch.run("in", (0, 5), (6, 5)).edge((0, 5), "west", "o").edge((6, 5), "east", "d")
+    sketch.room("south", 7, 7, 7, 3).edge((9, 6), "south", "d").mark("3", (8, 8))
+    sketch.room("west", 4, 11, 6, 3).run("west", (10, 12), (11, 12)).mark("4", (6, 12))
+    sketch.run("dead", (5, 14), (5, 16), (10, 16)).edge((5, 13), "south", "d")
+    sketch.room("east", 12, 10, 6, 5).edge((11, 12), "east", "d").edge((12, 9), "south", "d").mark("5", (15, 12))
+    sketch.outline((0, 0, 21, 18))
+    return sketch.build()
+
+
+def _gate_regions(plan: Plan) -> tuple[RegionSpec, RegionSpec]:
+    """The two halves: the west prints the legend and the compass, the east prints neither."""
+    west = RegionSpec(
+        "gate-west",
+        1,
+        "gatehouse-west.jpg",
+        "tsr_blue",
+        plan.columns(0, _GATE_FOLD),
+        "THE GATEHOUSE, WEST",
+        ("right",),
+        fold=plan.columns(0, _GATE_FOLD + 1),
+        fold_shown=0.3,
+    )
+    east = RegionSpec(
+        "gate-east",
+        2,
+        "gatehouse-east.jpg",
+        "tsr_blue",
+        plan.columns(_GATE_FOLD + 1, plan.width),
+        "THE GATEHOUSE, EAST",
+        ("left",),
+        prints_compass=False,
+        legend_from=1,
+        fold=plan.columns(_GATE_FOLD, plan.width),
+        fold_shown=0.3,
+    )
+    return west, east
+
+
+_GATE_AREAS = (
+    AreaSpec("1", "Gate hall", "The hall runs the width of the gatehouse."),
+    AreaSpec("2", "Porter's room", "A door in the south wall leads to the guardroom."),
+    AreaSpec("3", "Guardroom", "Racks of pikes line the walls."),
+    AreaSpec("4", "Stable", "Stalls open on a short passage to the east."),
+    AreaSpec("5", "Tack room", "Saddles hang from pegs."),
+)
+
+_GATE_FEATURES: tuple[Feature, ...] = ("halves_gap_at_fold", "halves_legend_compass_one_half", "corridor_off_frame")
+
+
+def gatehouse_joined() -> MapSpec:
+    """A map printed in two halves whose fold cuts through a column, joined with that column between them."""
+    plan = _gate_plan()
+    west, east = _gate_regions(plan)
+    panel = PanelSpec("gate-west+gate-east", (("gate-west", (0, 0)), ("gate-east", (_GATE_FOLD + 1, 0))), plan)
+    dungeon = DungeonSpec("the-gatehouse-joined", "The gatehouse", (LevelSpec(1, _GATE_AREAS, (panel.id,)),))
+    return MapSpec(
+        name="gatehouse-joined",
+        title="The gatehouse, joined",
+        features=("halves_joined_at_offset", *_GATE_FEATURES),
+        dungeon=dungeon,
+        regions=(west, east),
+        panels=(panel,),
+        half_pairs=(HalfPair(regions=("gate-west", "gate-east"), joined=True, rows=0, columns=1),),
+    )
+
+
+def gatehouse_apart() -> MapSpec:
+    """The same two halves left apart: the column the fold cuts is lost, and passages link the fold columns."""
+    plan = _gate_plan()
+    west, east = _gate_regions(plan)
+    panels = (
+        PanelSpec("gate-west", (("gate-west", (0, 0)),), west.plan),
+        PanelSpec("gate-east", (("gate-east", (0, 0)),), east.plan),
+    )
+    dungeon = DungeonSpec(
+        "the-gatehouse-apart", "The gatehouse", (LevelSpec(1, _GATE_AREAS, ("gate-west", "gate-east")),)
+    )
+    return MapSpec(
+        name="gatehouse-apart",
+        title="The gatehouse, apart",
+        features=(
+            "halves_apart_unequal_stretches",
+            "halves_apart_door_ends_stretch",
+            "halves_apart_stretch_without_partner",
+            *_GATE_FEATURES,
+        ),
+        dungeon=dungeon,
+        regions=(west, east),
+        panels=panels,
+        half_pairs=(HalfPair(regions=("gate-west", "gate-east"), joined=False, rows=0),),
+    )
+
+
+def watchtower() -> MapSpec:
+    """One level drawn as two panels at different scales on one page.
+
+    The tower is drawn at 10 feet and its cellar beside it at 5 feet. A
+    trapdoor drops into the cellar and a ladder climbs back up.
+    """
+    tower = Sketch(15, 12)
+    tower.run("in", (0, 4), (1, 4)).edge((0, 4), "west", "o").edge((1, 4), "east", "d")
+    tower.room("guard", 2, 2, 6, 5).mark("1", (5, 4)).symbol("ladder", (3, 2), run="ns")
+    tower.room("store", 8, 2, 5, 5).edge((7, 4), "east", "d").mark("2", (10, 3)).symbol("trapdoor", (11, 5))
+    tower.room("watch", 2, 7, 11, 3).edge((4, 6), "south", "d").mark("3", (8, 8))
+    tower.outline((0, 0, 15, 12))
+    cellar = Sketch(14, 12)
+    cellar.room("deep", 2, 2, 6, 8).mark("4", (4, 5))
+    cellar.room("well", 8, 2, 4, 4).edge((7, 3), "east", "d").mark("5", (8, 4)).symbol("ladder", (10, 2), (10, 3))
+    cellar.water(10, 4, 2, 2)
+    cellar.outline((0, 0, 14, 12))
+    tower_plan, cellar_plan = tower.build(), cellar.build()
+    legend: tuple[SymbolKind, ...] = ("ladder", "trapdoor")
+    regions = (
+        RegionSpec("tower", 1, "watchtower.png", "black_white", tower_plan, "THE WATCHTOWER", legend=legend),
+        RegionSpec(
+            "cellar",
+            1,
+            "watchtower.png",
+            "black_white",
+            cellar_plan,
+            "THE CELLAR",
+            legend=legend,
+            scale_feet=5,
+            at=(float(tower_plan.width) + 2.0, 0.0),
+        ),
+    )
+    panels = (
+        PanelSpec("tower", (("tower", (0, 0)),), tower_plan),
+        PanelSpec("cellar", (("cellar", (0, 0)),), cellar_plan),
+    )
+    areas = (
+        AreaSpec(
+            "1",
+            "Guardroom",
+            "A ladder in the north-west corner leads down to the well room in the cellar.",
+            links=_ways(("5", "down", "stairs")),
+        ),
+        AreaSpec(
+            "2",
+            "Store",
+            "A trapdoor in the floor drops into the deep cellar.",
+            links=_ways(("4", "down", "trapdoor")),
+        ),
+        AreaSpec("3", "Watch room", "Arrow slits look out on the road."),
+        AreaSpec("4", "Deep cellar", "Casks of sour wine."),
+        AreaSpec(
+            "5", "Well room", "A ladder beside the well climbs to the guardroom.", links=_ways(("1", "up", "stairs"))
+        ),
+    )
+    dungeon = DungeonSpec("the-watchtower", "The watchtower", (LevelSpec(1, areas, ("tower", "cellar")),))
+    return MapSpec(
+        name="watchtower",
+        title="The watchtower",
+        features=("panels_two_scales_one_page", "panels_trapdoor", "corridor_off_frame"),
+        dungeon=dungeon,
+        regions=regions,
+        panels=panels,
+    )
+
+
+def mill() -> MapSpec:
+    """One level drawn as two panels on two pages, joined by a ladder and by a grain slide.
+
+    The loft is on the first page and the ground floor on the second.
+    """
+    loft = Sketch(14, 9)
+    loft.room("loft", 0, 2, 7, 5).edge((0, 4), "west", "o").mark("4", (3, 4)).symbol("ladder", (5, 5), run="ns")
+    loft.room("hopper", 7, 2, 4, 3).edge((6, 3), "east", "d").mark("5", (8, 3)).symbol("slide", (9, 3), (10, 3))
+    loft.outline((0, 0, 14, 9))
+    ground = Sketch(16, 11)
+    ground.run("in", (0, 4), (1, 4)).edge((0, 4), "west", "o").edge((1, 4), "east", "o")
+    ground.room("mill", 2, 2, 7, 6).mark("1", (5, 4)).symbol("ladder", (7, 6), run="ns")
+    ground.room("bins", 9, 2, 5, 4).edge((8, 3), "east", "d").mark("2", (11, 3))
+    ground.room("office", 9, 6, 5, 3).edge((8, 7), "east", "d").mark("3", (11, 7))
+    ground.outline((0, 0, 16, 11))
+    loft_plan, ground_plan = loft.build(), ground.build()
+    legend: tuple[SymbolKind, ...] = ("ladder", "slide")
+    regions = (
+        RegionSpec("loft", 1, "mill-1.jpg", "tsr_blue", loft_plan, "THE MILL, LOFT", legend=legend),
+        RegionSpec("ground", 2, "mill-2.jpg", "tsr_blue", ground_plan, "THE MILL, GROUND FLOOR", legend=legend),
+    )
+    panels = (
+        PanelSpec("loft", (("loft", (0, 0)),), loft_plan),
+        PanelSpec("ground", (("ground", (0, 0)),), ground_plan),
+    )
+    areas = (
+        AreaSpec(
+            "1",
+            "Mill room",
+            "The millstones stand idle. A ladder climbs to the loft.",
+            links=_ways(("4", "up", "stairs")),
+        ),
+        AreaSpec("2", "Grain bins", "The slide from the hopper empties into the bins."),
+        AreaSpec("3", "Miller's office", "A ledger lies open on the desk."),
+        AreaSpec(
+            "4",
+            "Loft",
+            "A hoist door opens on empty air. A ladder leads down to the mill room.",
+            links=_ways(("1", "down", "stairs")),
+        ),
+        AreaSpec(
+            "5",
+            "Hopper",
+            "A grain slide drops to the bins below.",
+            links=_ways(("2", "down", "chute")),
+        ),
+    )
+    dungeon = DungeonSpec("the-mill", "The mill", (LevelSpec(1, areas, ("loft", "ground")),))
+    return MapSpec(
+        name="mill",
+        title="The mill",
+        features=("panels_two_pages_ladder", "panels_slide", "corridor_off_frame"),
+        dungeon=dungeon,
+        regions=regions,
+        panels=panels,
+    )
+
+
+def shrine() -> MapSpec:
+    """A level whose stair room leads down to a grotto drawn as an inset inside the map's frame."""
+    sketch = Sketch(24, 16)
+    sketch.room("nave", 2, 2, 8, 8).mark("1", (5, 5)).run("in", (5, 10), (5, 15)).edge((5, 15), "south", "o")
+    sketch.room("vestry", 10, 2, 4, 4).edge((9, 3), "east", "d").mark("2", (11, 3))
+    sketch.room("stair", 10, 7, 4, 3).edge((9, 8), "east", "d").mark("3", (11, 8)).symbol("stairs", (12, 8), (13, 8))
+    sketch.outline((0, 0, 24, 16))
+    grotto = Sketch(6, 5)
+    grotto.room("grotto", 1, 1, 4, 3).water(3, 2, 2, 1).mark("4", (2, 3)).symbol("stairs", (1, 1), run="ew")
+    grotto.outline((0, 0, 6, 5))
+    plan, inset = sketch.build(), grotto.build()
+    legend: tuple[SymbolKind, ...] = ("stairs",)
+    regions = (
+        RegionSpec("shrine", 1, "shrine.jpg", "tsr_blue", plan, "THE SHRINE OF THE DROWNED", legend=legend),
+        RegionSpec("grotto", 1, "shrine.jpg", "tsr_blue", inset, "THE GROTTO", legend=legend, at=(16.0, 9.0)),
+    )
+    panels = (
+        PanelSpec("shrine", (("shrine", (0, 0)),), plan),
+        PanelSpec("grotto", (("grotto", (0, 0)),), inset),
+    )
+    areas = (
+        AreaSpec("1", "Nave", "Broken pews face an empty plinth."),
+        AreaSpec("2", "Vestry", "Mouldering vestments hang on hooks."),
+        AreaSpec(
+            "3",
+            "Stair room",
+            "A stair winds down to the grotto.",
+            links=_ways(("4", "down", "stairs")),
+        ),
+        AreaSpec("4", "Grotto", "A still pool fills half the grotto."),
+    )
+    dungeon = DungeonSpec("the-shrine", "The shrine of the drowned", (LevelSpec(1, areas, ("shrine", "grotto")),))
+    return MapSpec(
+        name="shrine",
+        title="The shrine of the drowned",
+        features=("inset", "corridor_off_frame"),
+        dungeon=dungeon,
+        regions=regions,
+        panels=panels,
+    )
+
+
 MAPS: tuple[Callable[[], MapSpec], ...] = (
     crypt,
     warrens,
@@ -480,5 +893,12 @@ MAPS: tuple[Callable[[], MapSpec], ...] = (
     manor,
     fold_joined,
     fold_apart,
+    undercroft,
+    sunken_vaults,
+    gatehouse_joined,
+    gatehouse_apart,
+    watchtower,
+    mill,
+    shrine,
 )
 """Every map this generator draws."""

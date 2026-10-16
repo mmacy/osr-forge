@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-gatehouse-apart",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "1",
+      "description": "The hall runs the width of the gatehouse.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "2",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1,
+        2
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "2",
+      "description": "A door in the south wall leads to the guardroom.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "1",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "3",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1,
+        2
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "3",
+      "description": "Racks of pikes line the walls.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "2",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "5",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1,
+        2
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "4",
+      "description": "Stalls open on a short passage to the east.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "5",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1,
+        2
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "5",
+      "description": "Saddles hang from pegs.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "3",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "4",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1,
+        2
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

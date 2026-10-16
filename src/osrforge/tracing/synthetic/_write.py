@@ -25,50 +25,33 @@ from osrforge.contracts.stages import (
     TownInfo,
 )
 from osrforge.tracing.synthetic import SyntheticImage, SyntheticManifest
-from osrforge.tracing.synthetic._draw import SCALE_TEXT, draw_page
+from osrforge.tracing.synthetic._draw import draw_page, draw_sheet, scale_text
 from osrforge.tracing.synthetic._maps import MAPS
-from osrforge.tracing.synthetic._plan import Plan
-from osrforge.tracing.synthetic._resolve import Resolved, level_model, resolve_dungeon
-from osrforge.tracing.synthetic._spec import MapSpec
+from osrforge.tracing.synthetic._resolve import (
+    DesignError,
+    Resolved,
+    frames_of,
+    level_model,
+    panel_model,
+    resolve_dungeon,
+)
+from osrforge.tracing.synthetic._spec import MapSpec, RegionSpec
 from osrforge.tracing.truth import (
     Compass,
     Dungeon,
     GeometryTruth,
     Legend,
-    Outline,
     Page,
     PageImage,
-    Panel,
-    PanelRegion,
     Region,
     Registration,
     Scale,
-    cell_key,
     save_geometry_truth,
 )
 from osrforge.workdir import write_json_artifact
 
 _DIRECTIONS: dict[str, Direction] = {"north": "north", "east": "east", "south": "south", "west": "west"}
 _OPPOSITE: dict[str, str] = {"north": "south", "south": "north", "east": "west", "west": "east"}
-
-
-def _seeds(plan: Plan) -> tuple[str, ...]:
-    if plan.seeds:
-        return plan.seeds
-    owned = [
-        (x, y)
-        for rx, ry, w, h in plan.rects
-        for y in range(ry, ry + h)
-        for x in range(rx, rx + w)
-        if plan.cell((x, y)) == "."
-    ]
-    inner = [
-        cell
-        for cell in owned
-        if all(plan.cell((cell[0] + dx, cell[1] + dy)) == "." for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-    ]
-    chosen = min(inner or owned, key=lambda cell: (cell[1], cell[0]))
-    return (cell_key(chosen),)
 
 
 def _connections(level: Resolved) -> dict[str, list[AreaConnection]]:
@@ -102,6 +85,25 @@ def _proposals(level: Resolved) -> tuple[MapEdgeProposal, ...]:
     return tuple(proposals)
 
 
+def _check_panel_order(spec: MapSpec, registrations: dict[str, Registration]) -> None:
+    """Make sure each level lists its panels in page order, the order Panels and the level's grid places them in.
+
+    Panels go by page, and on one page by the top edge of their frames, highest first, then left to right.
+    """
+    regions = {region.id: region for region in spec.regions}
+
+    def place(panel_id: str) -> tuple[int, float, float]:
+        panel = next(panel for panel in spec.panels if panel.id == panel_id)
+        first = regions[panel.regions[0][0]]
+        corners = registrations[first.id].corners
+        return (first.page, min(point[1] for point in corners[0]), min(row[0][0] for row in corners))
+
+    for level in spec.dungeon.levels:
+        places = [place(panel) for panel in level.panels]
+        if places != sorted(places):
+            raise DesignError(f"level {level.number} doesn't list its panels in page order")
+
+
 def build(spec: MapSpec, out_dir: Path) -> None:
     """Write one map's directory.
 
@@ -116,16 +118,22 @@ def build(spec: MapSpec, out_dir: Path) -> None:
     (target / "stages").mkdir()
     registrations: dict[str, Registration] = {}
     images: dict[str, SyntheticImage] = {}
+    sheets: dict[str, list[RegionSpec]] = {}
     for region in spec.regions:
-        if region.image in images:
-            raise ValueError(f"image {region.image} holds two regions, which the generator doesn't draw")
-        seed = zlib.crc32(region.image.encode())
-        data, registration, look = draw_page(region, seed)
-        (target / "images" / region.image).write_bytes(data)
-        registrations[region.id] = registration
-        images[region.image] = SyntheticImage(file=region.image, ink=look.ink, paper=look.paper)
+        sheets.setdefault(region.image, []).append(region)
+    for image, sheet in sheets.items():
+        seed = zlib.crc32(image.encode())
+        if len(sheet) == 1:
+            data, registration, look = draw_page(sheet[0], seed)
+            drawn = {sheet[0].id: registration}
+        else:
+            data, drawn, look = draw_sheet(sheet, seed)
+        (target / "images" / image).write_bytes(data)
+        registrations |= drawn
+        images[image] = SyntheticImage(file=image, ink=look.ink, paper=look.paper)
+    _check_panel_order(spec, registrations)
     levels, entrance = resolve_dungeon(spec)
-    level_of = {panel: level.number for level in spec.dungeon.levels for panel in level.panels}
+    frames = frames_of(levels)
     regions = tuple(
         Region(
             id=region.id,
@@ -134,36 +142,16 @@ def build(spec: MapSpec, out_dir: Path) -> None:
             style=region.style,
             columns=region.plan.width,
             rows=region.plan.height,
-            scale=Scale(feet=10, printed=True, text=SCALE_TEXT),
-            compass=Compass(north="top", printed=True),
-            legend=Legend(printed=True, symbols=region.legend),
+            scale=Scale(feet=region.scale_feet, printed=True, text=scale_text(region.scale_feet)),
+            compass=Compass(north="top", printed=region.prints_compass),
+            legend=Legend(printed=region.legend_from is None, from_page=region.legend_from, symbols=region.legend),
             cut_off=region.cut_off,
             verdict="registered",
             registration=registrations[region.id],
         )
         for region in spec.regions
     )
-    panels = tuple(
-        Panel(
-            id=panel.id,
-            regions=tuple(PanelRegion(region=region, origin=origin) for region, origin in panel.regions),
-            scale_feet=10,
-            cells=panel.plan.cells,
-            edges=panel.plan.edges,
-            marks=panel.plan.marks,
-            outlines=(
-                Outline(
-                    dungeon=spec.dungeon.id,
-                    level=level_of[panel.id],
-                    rects=panel.plan.rects,
-                    seeds=_seeds(panel.plan),
-                    open_ground=panel.plan.open_ground,
-                ),
-            ),
-            symbols=panel.plan.symbols,
-        )
-        for panel in spec.panels
-    )
+    panels = tuple(panel_model(spec, panel) for panel in spec.panels)
     pages: dict[int, list[str]] = {}
     for region in spec.regions:
         pages.setdefault(region.page, [])
@@ -182,7 +170,7 @@ def build(spec: MapSpec, out_dir: Path) -> None:
                 id=spec.dungeon.id,
                 name=spec.dungeon.name,
                 entrance=entrance,
-                levels=tuple(level_model(level) for level in levels),
+                levels=tuple(level_model(level, frames) for level in levels),
             ),
         ),
     )
