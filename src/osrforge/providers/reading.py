@@ -22,15 +22,21 @@ the repository; only the committed corpus members' and the synthetic maps'
 recordings are committed.
 """
 
+import base64
+import hashlib
+import json
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, cast, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from osrforge.providers.base import ImagePart, TextPart
+from osrforge.errors import FixtureMissError, ProviderError, ReadingFailure, StaleRecordingError
+from osrforge.providers.base import ImagePart, TextPart, ensure_schema, pixel_digest
+from osrforge.versioning import SCHEMA_VERSION
+from osrforge.workdir import write_json_artifact
 
 __all__ = [
     "MAX_SHARED_PARTS",
@@ -76,6 +82,21 @@ or a page as one image part, never a long run of parts.
 """
 
 _NAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
+
+_FAILED_STOP_REASONS = frozenset({"max_tokens", "refusal"})
+"""The stop reasons that leave no answer to check."""
+
+_ANSWERED = "end_turn"
+"""The stop reason a recording of an answer carries."""
+
+
+def _canonical_hash(value: object) -> str:
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _key_blocks(parts: Iterable[TextPart | ImagePart]) -> list[dict[str, str]]:
+    return [{"text": part.text} if isinstance(part, TextPart) else {"image": pixel_digest(part.png)} for part in parts]
 
 
 @dataclass(frozen=True)
@@ -181,7 +202,10 @@ class ReadingRequest:
         Returns:
             A 64-character sha256 hex digest.
         """
-        raise NotImplementedError("chunk: claude-provider")
+        identity = self._prefix_identity(model)
+        identity["question"] = _key_blocks(self.question)
+        identity["retry"] = None if self.retry is None else {"answer": self.retry.answer, "fault": self.retry.fault}
+        return _canonical_hash(identity)
 
     def shared_key(self, model: str) -> str:
         """Return the hash of the request's cached prefix: the model, the kind, and the shared parts.
@@ -200,7 +224,18 @@ class ReadingRequest:
         Returns:
             A 64-character sha256 hex digest.
         """
-        raise NotImplementedError("chunk: claude-provider")
+        return _canonical_hash(self._prefix_identity(model))
+
+    def _prefix_identity(self, model: str) -> dict[str, object]:
+        return {
+            "model": model,
+            "system": self.kind.system,
+            "effort": self.kind.effort,
+            "thinking": THINKING,
+            "schema": self.kind.schema,
+            "max_tokens": self.kind.max_tokens,
+            "shared": [_key_blocks(part) for part in self.shared],
+        }
 
 
 class ReadingUsage(BaseModel):
@@ -312,7 +347,39 @@ def request_body(request: ReadingRequest, model: str) -> dict[str, Any]:
     Returns:
         The body, as the keyword arguments of the SDK's `messages.stream`.
     """
-    raise NotImplementedError("chunk: claude-provider")
+    return _body(request, model, lambda png: base64.standard_b64encode(png).decode("ascii"))
+
+
+def _recorded_body(request: ReadingRequest, model: str) -> dict[str, Any]:
+    """The request body as a recording stores it: each image's data replaced by its pixel digest."""
+    return _body(request, model, pixel_digest)
+
+
+def _body(request: ReadingRequest, model: str, image_data: Callable[[bytes], str]) -> dict[str, Any]:
+    def block(part: TextPart | ImagePart) -> dict[str, Any]:
+        if isinstance(part, TextPart):
+            return {"type": "text", "text": part.text}
+        return {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": image_data(part.png)}}
+
+    content: list[dict[str, Any]] = []
+    for part in request.shared:
+        blocks = [block(item) for item in part]
+        blocks[-1]["cache_control"] = {"type": "ephemeral"}
+        content.extend(blocks)
+    content.extend(block(item) for item in request.question)
+    messages: list[dict[str, Any]] = [{"role": "user", "content": content}]
+    if request.retry is not None:
+        messages.append({"role": "assistant", "content": [{"type": "text", "text": request.retry.answer}]})
+        messages.append({"role": "user", "content": [{"type": "text", "text": request.retry.fault}]})
+    kind = request.kind
+    return {
+        "model": model,
+        "max_tokens": kind.max_tokens,
+        "system": [{"type": "text", "text": kind.system, "cache_control": {"type": "ephemeral"}}],
+        "messages": messages,
+        "thinking": {"type": THINKING},
+        "output_config": {"effort": kind.effort, "format": {"type": "json_schema", "schema": kind.schema}},
+    }
 
 
 def recording_filename(kind: str, key: str) -> str:
@@ -326,6 +393,26 @@ def recording_filename(kind: str, key: str) -> str:
         The filename.
     """
     return f"{kind}.{key[:12]}.json"
+
+
+class _RecordedResponse(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    data: object
+    usage: ReadingUsage
+    model_id: str
+    stop_reason: str
+
+
+class _Recording(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: int
+    key: str
+    kind: str
+    model: str
+    request: dict[str, object]
+    response: _RecordedResponse
 
 
 class RecordedReadingProvider:
@@ -380,7 +467,40 @@ class RecordedReadingProvider:
             ProviderError: If the recording's schema version isn't this
                 package's.
         """
-        raise NotImplementedError("chunk: claude-provider")
+        key = request.key(self.model)
+        kind = request.kind.name
+        path = self.recordings / recording_filename(kind, key)
+        if not path.is_file():
+            raise FixtureMissError(
+                f"no recording of the {kind!r} request with key {key} in {self.recordings} "
+                f"(recorded kinds: {self._recorded_kinds() or 'none'})"
+            )
+        try:
+            raw: Any = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            raise ProviderError(f"recording {path} isn't JSON: {error}") from error
+        version: object = cast(dict[str, Any], raw).get("schema_version") if isinstance(raw, dict) else None
+        if version != SCHEMA_VERSION:
+            raise ProviderError(f"recording {path} has schema version {version}, expected {SCHEMA_VERSION}")
+        try:
+            recording = _Recording.model_validate(raw)
+        except ValidationError as error:
+            raise ProviderError(f"recording {path} is malformed: {error}") from error
+        if recording.key != key:
+            raise FixtureMissError(f"recording {path} has key {recording.key}, but the {kind!r} request's is {key}")
+        if recording.request != json.loads(json.dumps(_recorded_body(request, self.model))):
+            raise StaleRecordingError(
+                f"recording {path} stores a body the current code no longer builds for the {kind!r} request; "
+                "record it again"
+            )
+        response = recording.response
+        if response.stop_reason in _FAILED_STOP_REASONS:
+            raise ReadingFailure(
+                f"the recorded answer to the {kind!r} request stopped with stop reason {response.stop_reason!r}",
+                stop_reason=response.stop_reason,
+            )
+        ensure_schema(response.data, request.kind.schema, str(path))
+        return ReadingResponse(data=response.data, usage=response.usage, model_id=response.model_id)
 
     def read_all(self, requests: Sequence[ReadingRequest]) -> list[ReadingResponse | Exception]:
         """Replay each request in order.
@@ -392,7 +512,17 @@ class RecordedReadingProvider:
             One item per request: its recorded answer, or the exception
             `read` raises for it.
         """
-        raise NotImplementedError("chunk: claude-provider")
+        results: list[ReadingResponse | Exception] = []
+        for request in requests:
+            try:
+                results.append(self.read(request))
+            except Exception as error:
+                results.append(error)
+        return results
+
+    def _recorded_kinds(self) -> list[str]:
+        # Filenames are <kind>.<key[:12]>.json, and kind names may contain dots.
+        return sorted({path.name.rsplit(".", 2)[0] for path in self.recordings.glob("*.json")})
 
 
 class RecordingReadingProvider:
@@ -424,7 +554,13 @@ class RecordingReadingProvider:
         Returns:
             The inner provider's answer, unchanged.
         """
-        raise NotImplementedError("chunk: claude-provider")
+        try:
+            response = self.inner.read(request)
+        except ReadingFailure as failure:
+            self._record_failure(request, failure)
+            raise
+        self._record(request, response)
+        return response
 
     def read_all(self, requests: Sequence[ReadingRequest]) -> list[ReadingResponse | Exception]:
         """Read all through the inner provider's `read_all` and record every exchange.
@@ -435,4 +571,37 @@ class RecordingReadingProvider:
         Returns:
             The inner provider's items, unchanged.
         """
-        raise NotImplementedError("chunk: claude-provider")
+        items = self.inner.read_all(requests)
+        for request, item in zip(requests, items, strict=True):
+            if isinstance(item, ReadingResponse):
+                self._record(request, item)
+            elif isinstance(item, ReadingFailure):
+                self._record_failure(request, item)
+        return items
+
+    def _record(self, request: ReadingRequest, response: ReadingResponse) -> None:
+        self._write(
+            request,
+            _RecordedResponse(
+                data=response.data, usage=response.usage, model_id=response.model_id, stop_reason=_ANSWERED
+            ),
+        )
+
+    def _record_failure(self, request: ReadingRequest, failure: ReadingFailure) -> None:
+        self._write(
+            request,
+            _RecordedResponse(data=None, usage=ReadingUsage(), model_id=self.model, stop_reason=failure.stop_reason),
+        )
+
+    def _write(self, request: ReadingRequest, response: _RecordedResponse) -> None:
+        key = request.key(self.model)
+        recording = _Recording(
+            schema_version=SCHEMA_VERSION,
+            key=key,
+            kind=request.kind.name,
+            model=self.model,
+            request=_recorded_body(request, self.model),
+            response=response,
+        )
+        self.recordings.mkdir(parents=True, exist_ok=True)
+        write_json_artifact(self.recordings / recording_filename(request.kind.name, key), recording)
