@@ -85,6 +85,8 @@ The Azure AI Foundry adapter reads its connection from `OSRFORGE_FOUNDRY_*` envi
 | `OSRFORGE_FOUNDRY_DEPLOYMENT` | The model deployment name | yes |
 | `OSRFORGE_FOUNDRY_API_KEY` | The API key. Omit to use Entra ID via `DefaultAzureCredential`, which needs the `osr-forge[entra]` extra | no |
 
+The tracing stage's Claude provider reads `ANTHROPIC_API_KEY` and `OSRFORGE_CLAUDE_LEDGER` (required), and `OSRFORGE_CLAUDE_MODEL` and `OSRFORGE_CLAUDE_LEDGER_STOP` (optional). See [the provider setup guide](https://mmacy.github.io/osr-forge/guides/provider-setup/).
+
 ## Licensing
 
 Package code is MIT (see [LICENSE](LICENSE)). osr-forge ships no game content: osrlib's OGL data stays in osrlib, and test assets live under `tests/assets/` outside the built distribution, each with its provenance and license documented in [tests/assets/README.md](tests/assets/README.md).

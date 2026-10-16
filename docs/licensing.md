@@ -41,6 +41,10 @@ anything that does (fixture recording) stays opt-in, developer-facing, and out
 of the conversion path.
 
 Conversion runs locally and everything derived from your module stays in your
-own workdir — nothing is shared unless you share it. The one external party in
-the loop is the model provider you configure, which receives page text and
-images as extraction requests under your own account and terms.
+own workdir — nothing is shared unless you share it. The external parties in
+the loop are the model services you configure, which receive page text and
+images as extraction requests under your own accounts and terms: the Foundry
+deployment for the extraction stages and, when the tracing stage runs,
+Anthropic's Messages API (map pages and crops) and Cloudflare's Workers AI
+(crops). The two cost ledgers those providers write live outside the workdir
+and hold costs and request counts, never any text or image from a module.

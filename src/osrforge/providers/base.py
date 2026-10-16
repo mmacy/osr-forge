@@ -1,10 +1,17 @@
-"""The provider protocol and its request/response types.
+"""The extraction stages' provider protocol and its request/response types.
 
 Exactly one seam wide: a single `generate` method taking a structured-output
 request. Schema enforcement is the provider's contract —
 `generate` either returns `data` that validates against `request.schema` or
 raises [`SchemaValidationError`][osrforge.errors.SchemaValidationError] after
 its retry budget, so callers trust `response.data`.
+
+The tracing stage uses two other protocols, each in its own module:
+[`ReadingProvider`][osrforge.providers.reading.ReadingProvider] for Claude's
+whole-map readings and judgments, and
+[`DecisionProvider`][osrforge.providers.decisions.DecisionProvider] for
+Clef's answers about one cell, edge, or key. The content part types here are
+shared by all three.
 """
 
 import hashlib
@@ -25,6 +32,7 @@ __all__ = [
     "ModelResponse",
     "TextPart",
     "ensure_schema",
+    "pixel_digest",
 ]
 
 _TAG_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -42,12 +50,40 @@ class TextPart:
 
 @dataclass(frozen=True)
 class ImagePart:
-    """One ordered image content part of a request — a page render.
+    """One ordered image content part of a request: a page render, a map image, or a crop.
 
-    Preprocessing emits PNG; adapters do their own base64/data-URL packaging.
+    The bytes are always PNG. Preprocessing and the tracing stage emit PNG,
+    and each adapter does its own packaging: the Foundry adapter sends a
+    base64 data URL, the Claude adapter a base64 image block, and the Clef
+    adapter re-encodes a large crop as JPEG (`osrforge.providers.clef`).
     """
 
     png: bytes
+
+
+def pixel_digest(png: bytes) -> str:
+    """Return the sha256 hex digest of an image's decoded pixels.
+
+    The digest covers the image's size and its pixels converted to RGB, so two
+    PNG files that encode the same picture differently, or a PNG and the JPEG
+    the Clef adapter made from it, have the same digest. The tracing
+    providers' recording keys use it (see
+    [`ReadingRequest.key`][osrforge.providers.reading.ReadingRequest.key] and
+    [`DecisionRequest.key`][osrforge.providers.decisions.DecisionRequest.key]),
+    where [`ModelRequest.fingerprint`][osrforge.providers.base.ModelRequest.fingerprint]
+    hashes the PNG bytes.
+
+    Args:
+        png: The PNG bytes.
+
+    Returns:
+        A 64-character sha256 hex digest of `f"{width}x{height}:"` followed by
+        the RGB pixel bytes, row by row.
+
+    Raises:
+        ValueError: If the bytes aren't an image Pillow can decode.
+    """
+    raise NotImplementedError("chunk: claude-provider")
 
 
 @dataclass(frozen=True)
@@ -74,11 +110,16 @@ class ModelRequest:
             raise ValueError(f"request tag must be a stable identifier ([A-Za-z0-9._-]+): {self.tag!r}")
 
     def fingerprint(self) -> str:
-        """Return the request's identity hash, shared by fixtures and future run-caching.
+        """Return the request's identity hash, which names the extraction stages' fixtures.
 
         The fingerprint is the sha256 hex of the canonical JSON (sorted keys,
         compact separators, UTF-8) of the request with each image part replaced
-        by `{"sha256": ..., "bytes": ...}`.
+        by `{"sha256": ..., "bytes": ...}`, so it hashes each image's PNG
+        bytes. A re-encoded page render changes it. The tracing providers'
+        recording keys hash decoded pixels instead
+        ([`pixel_digest`][osrforge.providers.base.pixel_digest]), because the
+        tracing stage draws its crops at run time and a different PNG encoder
+        must still find the recording.
 
         Returns:
             A 64-character sha256 hex digest.

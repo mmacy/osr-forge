@@ -9,10 +9,12 @@ additively as the package does.
 __all__ = [
     "ExtractionError",
     "FixtureMissError",
+    "LedgerStopError",
     "OsrForgeError",
     "OverrideError",
     "PdfError",
     "ProviderError",
+    "ReadingFailure",
     "SchemaValidationError",
 ]
 
@@ -58,3 +60,26 @@ class SchemaValidationError(ProviderError):
 
 class FixtureMissError(ProviderError):
     """No recorded fixture matches the request's fingerprint."""
+
+
+class ReadingFailure(ProviderError):
+    """A reading answer stopped at `max_tokens` or with a refusal, so there is no answer to check.
+
+    Attributes:
+        stop_reason: The stop reason the service returned: `max_tokens` or
+            `refusal`.
+    """
+
+    def __init__(self, message: str, stop_reason: str) -> None:
+        """Record the stop reason beside the message.
+
+        Args:
+            message: What failed, naming the request kind.
+            stop_reason: The service's stop reason.
+        """
+        super().__init__(message)
+        self.stop_reason = stop_reason
+
+
+class LedgerStopError(ProviderError):
+    """A request's reservation would take a ledger's spend past its stop, so the request wasn't sent."""
