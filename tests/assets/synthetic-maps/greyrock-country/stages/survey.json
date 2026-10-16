@@ -17,6 +17,101 @@
         {
           "number": 1,
           "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "w1",
+              "name": "Hollowmere",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "w2",
+              "name": "Greyrock",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "map_pages": [
+            2
+          ],
+          "areas": [
+            {
+              "key": "h1",
+              "name": "Ford hex",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2
+              ]
+            },
+            {
+              "key": "h2",
+              "name": "Barrow hex",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "map_pages": [
+            3
+          ],
+          "areas": [
+            {
+              "key": "v1",
+              "name": "Inn",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                3
+              ]
+            },
+            {
+              "key": "v2",
+              "name": "Temple",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                3
+              ]
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "map_pages": [
+            4
+          ],
+          "areas": [
+            {
+              "key": "r1",
+              "name": "Ruin",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "map_pages": [
             5
           ],
           "areas": [
@@ -50,13 +145,13 @@
           ]
         },
         {
-          "number": 2,
+          "number": 6,
           "map_pages": [
             6
           ],
           "areas": [
             {
-              "key": "4",
+              "key": "c1",
               "name": "Cellar",
               "source_label": null,
               "kind": "room",
@@ -65,7 +160,7 @@
               ]
             },
             {
-              "key": "5",
+              "key": "c2",
               "name": "Crypt",
               "source_label": null,
               "kind": "room",

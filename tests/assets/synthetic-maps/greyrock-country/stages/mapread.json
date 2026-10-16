@@ -6,7 +6,7 @@
       "dungeon_id": "greyrock-tower",
       "level_number": 1,
       "map_pages": [
-        5
+        1
       ],
       "status": "read",
       "unread_reason": null,
@@ -16,6 +16,50 @@
     {
       "dungeon_id": "greyrock-tower",
       "level_number": 2,
+      "map_pages": [
+        2
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "greyrock-tower",
+      "level_number": 3,
+      "map_pages": [
+        3
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "greyrock-tower",
+      "level_number": 4,
+      "map_pages": [
+        4
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "greyrock-tower",
+      "level_number": 5,
+      "map_pages": [
+        5
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "greyrock-tower",
+      "level_number": 6,
       "map_pages": [
         6
       ],

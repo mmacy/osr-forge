@@ -4,28 +4,28 @@
   "level_number": 2,
   "areas": [
     {
-      "key": "4",
-      "description": "Below the tower.",
+      "key": "h1",
+      "description": "A ford across the river.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [],
       "connections": [],
       "source_pages": [
-        6
+        2
       ],
       "confidence": 1.0
     },
     {
-      "key": "5",
-      "description": "Below the cellar.",
+      "key": "h2",
+      "description": "Old barrows in the hills.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [],
       "connections": [],
       "source_pages": [
-        6
+        2
       ],
       "confidence": 1.0
     }

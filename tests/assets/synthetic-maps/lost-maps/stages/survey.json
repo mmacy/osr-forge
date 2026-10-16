@@ -37,6 +37,33 @@
               "source_pages": [
                 1
               ]
+            },
+            {
+              "key": "3",
+              "name": "Chapel",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Embalming room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Bell room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
             }
           ]
         },
@@ -47,7 +74,7 @@
           ],
           "areas": [
             {
-              "key": "1b",
+              "key": "6",
               "name": "Lower vault",
               "source_label": null,
               "kind": "room",
@@ -56,8 +83,17 @@
               ]
             },
             {
-              "key": "2b",
+              "key": "7",
               "name": "Tomb",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2
+              ]
+            },
+            {
+              "key": "8",
+              "name": "Charnel room",
               "source_label": null,
               "kind": "room",
               "source_pages": [

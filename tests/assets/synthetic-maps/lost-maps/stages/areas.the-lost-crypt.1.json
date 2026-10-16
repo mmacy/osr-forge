@@ -28,6 +28,45 @@
         1
       ],
       "confidence": 1.0
+    },
+    {
+      "key": "3",
+      "description": "A chapel east of the ossuary.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "4",
+      "description": "Tables and dried herbs.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "5",
+      "description": "A cracked bell hangs here.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
     }
   ]
 }

@@ -1,13 +1,16 @@
 """Gridded caves: floor shaped by curves, whose cells are read from how much of each is floor.
 
 A cave's floor is the union of capsules, each the points within a radius of
-a segment, drawn over the grid with its walls off the grid lines. The
-reading follows Cells and edges in `docs/tracing-conventions.md`: a cell is
-floor when at least half of it is floor, a cell between a quarter and three
-quarters floor is partly floor, and a cell the wall passes through is a cave
-cell. The share of floor is counted at `SAMPLES` by `SAMPLES` points per
-cell, and a cell whose share lies near a threshold is refused, so the reading
-doesn't hang on how finely the floor is counted.
+a segment, drawn over the grid with its walls off the grid lines. The picture
+leaves exactly that union as paper and inks the rock around it, so a cell's
+share of floor is the paper a reader sees in it. The reading follows Cells
+and edges in `docs/tracing-conventions.md`: a cell is floor when at least half
+of it is floor, a cell between a quarter and three quarters floor is partly
+floor, and a cell the wall passes through, partly floor and partly rock, is a
+cave cell. The share is counted at `SAMPLES` by `SAMPLES` points per cell, and
+a cell whose share lies near 0, a quarter, a half, three quarters, or 1
+without reaching it is refused, so the reading doesn't hang on how finely the
+floor is counted.
 """
 
 from collections.abc import Sequence
@@ -19,11 +22,11 @@ import numpy.typing as npt
 from osrforge.tracing.synthetic._plan import Ornament, Plan, Sketch
 from osrforge.tracing.truth import cell_key
 
-SAMPLES = 16
+SAMPLES = 64
 """Sample points per cell along each axis when counting a cell's floor."""
 
 MARGIN = 0.03
-"""How far a cell's share of floor must stay from a quarter, a half, and three quarters."""
+"""How far a cell's share of floor must stay from 0, a quarter, a half, three quarters, and 1, unless it is 0 or 1."""
 
 type FloatArray = npt.NDArray[np.float64]
 type BoolArray = npt.NDArray[np.bool_]
@@ -88,8 +91,8 @@ def cave_plan(sketch: Sketch, caves: Sequence[Ornament]) -> Plan:
         The plan, with its partly-floor and cave cells and the caves as ornaments to draw.
 
     Raises:
-        ValueError: If a cell's share of floor lies near a threshold, or two floor cells meet at an edge whose
-            middle isn't floor.
+        ValueError: If a cell's share of floor lies near a threshold, 0, or 1 without reaching it, or two floor
+            cells side by side have rock between their centres.
     """
     share = shares(caves, sketch.width, sketch.height)
     partial: list[str] = []
@@ -97,8 +100,8 @@ def cave_plan(sketch: Sketch, caves: Sequence[Ornament]) -> Plan:
     for y in range(sketch.height):
         for x in range(sketch.width):
             value = float(share[y, x])
-            for threshold in (0.25, 0.5, 0.75):
-                if abs(value - threshold) < MARGIN:
+            for threshold in (0.0, 0.25, 0.5, 0.75, 1.0):
+                if value != threshold and abs(value - threshold) < MARGIN:
                     raise ValueError(f"cell {(x, y)} is {value:.3f} floor, too near {threshold}")
             if value >= 0.5:
                 sketch.run("cave", (x, y))
@@ -106,13 +109,13 @@ def cave_plan(sketch: Sketch, caves: Sequence[Ornament]) -> Plan:
                 partial.append(cell_key((x, y)))
             if 0.0 < value < 1.0:
                 walled.append(cell_key((x, y)))
+    steps = np.arange(SAMPLES + 1, dtype=np.float64) / SAMPLES
     for (x, y), _name in list(sketch.space.items()):
         for dx, dy in ((1, 0), (0, 1)):
             if (x + dx, y + dy) in sketch.space:
-                middle = (x + 0.5 + dx * 0.5, y + 0.5 + dy * 0.5)
-                point = np.array([middle[0]]), np.array([middle[1]])
-                if not bool(inside(caves, point[0], point[1])[0]):
-                    raise ValueError(f"floor cells {(x, y)} and {(x + dx, y + dy)} meet where the wall runs")
+                xs, ys = x + 0.5 + dx * steps, y + 0.5 + dy * steps
+                if not bool(inside(caves, xs, ys).all()):
+                    raise ValueError(f"floor cells {(x, y)} and {(x + dx, y + dy)} have rock between their centres")
     for cave in caves:
         sketch.ornaments.append(cave)
     plan = sketch.build()

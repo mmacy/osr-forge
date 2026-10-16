@@ -4,41 +4,28 @@
   "level_number": 1,
   "areas": [
     {
-      "key": "1",
-      "description": "The tower's ground floor.",
+      "key": "w1",
+      "description": "A village at the road's end.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [],
       "connections": [],
       "source_pages": [
-        5
+        1
       ],
       "confidence": 1.0
     },
     {
-      "key": "2",
-      "description": "Beside the entry hall.",
+      "key": "w2",
+      "description": "The tower on the ridge.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [],
       "connections": [],
       "source_pages": [
-        5
-      ],
-      "confidence": 1.0
-    },
-    {
-      "key": "3",
-      "description": "Behind the guard room.",
-      "encounters": [],
-      "trap": null,
-      "treasure": [],
-      "features": [],
-      "connections": [],
-      "source_pages": [
-        5
+        1
       ],
       "confidence": 1.0
     }

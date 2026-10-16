@@ -97,10 +97,10 @@ def wyrm_caves() -> MapSpec:
     caves = (
         Ornament("cave", ((-1.0, 7.5), (4.0, 7.5)), 0.62),
         Ornament("cave", ((6.5, 7.5), (6.5, 7.5)), 3.3),
-        Ornament("cave", ((9.0, 7.5), (17.0, 7.5)), 0.62),
-        Ornament("cave", ((19.4, 5.4), (21.6, 8.6)), 2.6),
-        Ornament("cave", ((20.5, 10.0), (20.5, 12.0)), 0.62),
-        Ornament("cave", ((20.5, 13.0), (20.5, 13.0)), 2.4),
+        Ornament("cave", ((9.0, 7.5), (18.5, 7.5)), 0.62),
+        Ornament("cave", ((20.5, 6.5), (20.5, 6.5)), 2.7),
+        Ornament("cave", ((20.5, 9.0), (20.5, 11.5)), 0.62),
+        Ornament("cave", ((20.5, 13.0), (20.5, 13.0)), 2.2),
     )
     sketch.edge((0, 7), "west", "o").edge((13, 7), "east", "d")
     sketch.mark("1", (6, 7)).mark("2", (20, 6)).mark("3", (20, 13))
@@ -234,7 +234,15 @@ def scattered_pages() -> MapSpec:
             "DRAFT",
             plan=replace(first_plan, marks=()),
         ),
-        SheetSpec("art", 5, "scattered-art.png", "outdoor", "outdoor", "THE ROAD TO THE GALLERY"),
+        SheetSpec(
+            "art",
+            5,
+            "scattered-art.png",
+            "outdoor",
+            "outdoor",
+            "THE ROAD TO THE GALLERY",
+            scale=Scale(feet=10, printed=False),
+        ),
     )
     pages = (
         Page(
@@ -351,21 +359,38 @@ def greyrock_country() -> MapSpec:
             legend=NO_LEGEND,
         ),
     )
-    first = (
-        AreaSpec("1", "Entry hall", "The tower's ground floor."),
-        AreaSpec("2", "Guard room", "Beside the entry hall."),
-        AreaSpec("3", "Store", "Behind the guard room."),
+    levels = (
+        (("w1", "Hollowmere", "A village at the road's end."), ("w2", "Greyrock", "The tower on the ridge.")),
+        (("h1", "Ford hex", "A ford across the river."), ("h2", "Barrow hex", "Old barrows in the hills.")),
+        (("v1", "Inn", "The Wayfarer's inn."), ("v2", "Temple", "A small stone temple.")),
+        (("r1", "Ruin", "A ruined watchtower in the valley."),),
+        (
+            ("1", "Entry hall", "The tower's ground floor."),
+            ("2", "Guard room", "Beside the entry hall."),
+            ("3", "Store", "Behind the guard room."),
+        ),
+        (("c1", "Cellar", "Below the tower."), ("c2", "Crypt", "Below the cellar.")),
     )
-    second = (
-        AreaSpec("4", "Cellar", "Below the tower."),
-        AreaSpec("5", "Crypt", "Below the cellar."),
+    reasons = (
+        "its map is an outdoor map, which the stage refuses",
+        "its map is a hex map, which the stage refuses",
+        "its map is a town map, which the stage refuses",
+        "its map is a quarter mile to the square, a scale the stage refuses",
+        "its map is an isometric view, which the stage refuses",
+        "its map is a side view, which the stage refuses",
     )
     dungeon = DungeonSpec(
         "greyrock-tower",
         "Greyrock tower",
-        (
-            LevelSpec(1, first, (), fallback="its map is an isometric view, which the stage refuses", pages=(5,)),
-            LevelSpec(2, second, (), fallback="its map is a side view, which the stage refuses", pages=(6,)),
+        tuple(
+            LevelSpec(
+                number,
+                tuple(AreaSpec(key, name, description) for key, name, description in areas),
+                (),
+                fallback=reason,
+                pages=(number,),
+            )
+            for number, (areas, reason) in enumerate(zip(levels, reasons, strict=True), start=1)
         ),
     )
     return MapSpec(
@@ -390,9 +415,9 @@ def lost_maps() -> MapSpec:
     """Two maps registration must reject: one drawn with no grid, and one whose grid is warped."""
     warped = Sketch(24, 16)
     warped.run("a", (0, 8), (4, 8)).edge((0, 8), "west", "o").edge((4, 8), "east", "d")
-    warped.room("r1", 5, 4, 8, 8).mark("1", (8, 7))
-    warped.room("r2", 14, 3, 7, 5).edge((13, 5), "east", "d").mark("2", (17, 5))
-    warped.room("r3", 14, 9, 7, 5).edge((13, 10), "east", "d").mark("3", (17, 11))
+    warped.room("r1", 5, 4, 8, 8).mark("6", (8, 7))
+    warped.room("r2", 14, 3, 7, 5).edge((13, 5), "east", "d").mark("7", (17, 5))
+    warped.room("r3", 14, 9, 7, 5).edge((13, 10), "east", "d").mark("8", (17, 11))
     warped.outline((0, 0, 24, 16))
     warped_plan = warped.build()
     sheets = (
@@ -426,10 +451,14 @@ def lost_maps() -> MapSpec:
     first = (
         AreaSpec("1", "Antechamber", "The first room of the crypt."),
         AreaSpec("2", "Ossuary", "Bones stacked to the ceiling."),
+        AreaSpec("3", "Chapel", "A chapel east of the ossuary."),
+        AreaSpec("4", "Embalming room", "Tables and dried herbs."),
+        AreaSpec("5", "Bell room", "A cracked bell hangs here."),
     )
     second = (
-        AreaSpec("1b", "Lower vault", "A vault below the ossuary."),
-        AreaSpec("2b", "Tomb", "A sealed tomb."),
+        AreaSpec("6", "Lower vault", "A vault below the ossuary."),
+        AreaSpec("7", "Tomb", "A sealed tomb."),
+        AreaSpec("8", "Charnel room", "Bones heaped against the walls."),
     )
     dungeon = DungeonSpec(
         "the-lost-crypt",

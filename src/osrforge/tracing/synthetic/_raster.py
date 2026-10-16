@@ -81,34 +81,6 @@ class Canvas:
             self.ink[window] &= ~inside
             self.tint[window] &= ~inside
 
-    def band(self, shape: Shape, box: tuple[float, float, float, float], reach: int) -> None:
-        """Ink the samples inside a shape that lie within `reach` samples of its outside, as a wall along its edge.
-
-        Args:
-            shape: The membership test.
-            box: The box `(xmin, ymin, xmax, ymax)` in pixels the wall is drawn in; the shape may run past it.
-            reach: The wall's width in samples, counted in steps along a row or a column.
-        """
-        xmin, ymin, xmax, ymax = box
-        pad = reach / SUPERSAMPLE + 1.0
-        columns = _sample_range(xmin - pad, xmax + pad, self.width)
-        rows = _sample_range(ymin - pad, ymax + pad, self.height)
-        if columns is None or rows is None:
-            return
-        xs = (np.arange(columns[0], columns[1], dtype=np.float64) + 0.5) / SUPERSAMPLE - 0.5
-        ys = (np.arange(rows[0], rows[1], dtype=np.float64) + 0.5) / SUPERSAMPLE - 0.5
-        inner = shape(xs[np.newaxis, :], ys[:, np.newaxis])
-        eroded = inner.copy()
-        for _ in range(reach):
-            step = eroded.copy()
-            step[1:, :] &= eroded[:-1, :]
-            step[:-1, :] &= eroded[1:, :]
-            step[:, 1:] &= eroded[:, :-1]
-            step[:, :-1] &= eroded[:, 1:]
-            eroded = step
-        within = ((xs >= xmin) & (xs <= xmax))[np.newaxis, :] & ((ys >= ymin) & (ys <= ymax))[:, np.newaxis]
-        self.ink[rows[0] : rows[1], columns[0] : columns[1]] |= inner & ~eroded & within
-
     def polygon(self, points: Sequence[Point], layer: Layer = "ink", pattern: Shape | None = None) -> None:
         """Fill a convex polygon, optionally only where a pattern holds.
 

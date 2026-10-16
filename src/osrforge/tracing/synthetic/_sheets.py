@@ -257,7 +257,7 @@ def _no_grid(canvas: Canvas) -> None:
     corridors = [
         ((left + 171.0, top + 87.0), (left + 233.0, top + 87.0)),
         ((left + 351.0, top + 101.0), (left + 409.0, top + 101.0)),
-        ((left + 204.0, top + 133.0), (left + 204.0, top + 209.0)),
+        ((left + 150.0, top + 133.0), (left + 150.0, top + 209.0)),
         ((left + 287.0, top + 262.0), (left + 371.0, top + 262.0)),
     ]
     for start, end in corridors:
@@ -302,6 +302,14 @@ def _warped(registration: Registration, pitch: float) -> Registration:
     )
 
 
+def _bent_frame(pen: Pen, width: int, height: int) -> None:
+    """Draw the map's frame a cell at a time, so it bends with the warp as a warped scan's frame would."""
+    border = [(float(x), 0.0) for x in range(width)] + [(float(width), float(y)) for y in range(height)]
+    border += [(float(x), float(height)) for x in range(width, 0, -1)] + [(0.0, float(y)) for y in range(height, 0, -1)]
+    for start, end in itertools.pairwise([*border, border[0]]):
+        pen.line(start, end, 0.06, cap=0.03)
+
+
 def draw_sheet(sheet: SheetSpec) -> tuple[bytes, Rgb, Rgb]:
     """Draw a sheet's page.
 
@@ -320,8 +328,12 @@ def draw_sheet(sheet: SheetSpec) -> tuple[bytes, Rgb, Rgb]:
         width = max(math.ceil(max(point[0] for row in probe.corners for point in row)) + MARGIN * 2, PAGE[0])
         height = math.ceil(max(point[1] for row in probe.corners for point in row)) + 80
         canvas = Canvas(width, height)
-        registration = probe if sheet.drawing == "plan" else _warped(probe, look.pitch)
-        draw_plan(Pen(canvas, registration, look), plan, ())
+        if sheet.drawing == "plan":
+            draw_plan(Pen(canvas, probe, look), plan, ())
+        else:
+            pen = Pen(canvas, _warped(probe, look.pitch), look)
+            draw_plan(pen, plan, ("top", "right", "bottom", "left"))
+            _bent_frame(pen, plan.width, plan.height)
         bottom = height - 50.0
     else:
         canvas = Canvas(*PAGE)

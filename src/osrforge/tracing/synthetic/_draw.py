@@ -21,7 +21,6 @@ import numpy.typing as npt
 from osrforge.tracing.synthetic._cave import inside
 from osrforge.tracing.synthetic._plan import Ornament, Plan, neighbour
 from osrforge.tracing.synthetic._raster import (
-    SUPERSAMPLE,
     BoolArray,
     Canvas,
     FloatArray,
@@ -344,7 +343,10 @@ def draw_plan(pen: Pen, plan: Plan, cut: Sequence[PageSide]) -> None:
 
 
 def _cave_floor(pen: Pen, caves: list[Ornament]) -> None:
-    """Paint rock everywhere off the caves' floor, and a wall along the floor's edge, off the grid lines."""
+    """Paint rock everywhere off the caves' floor, so the paper left is exactly the floor the reading counts.
+
+    The rock's edge is the cave's wall, off the grid lines.
+    """
     corners = pen.registration.corners
     (left, top), (right, bottom) = corners[0][0], corners[-1][-1]
     pitch = pen.pitch
@@ -355,9 +357,7 @@ def _cave_floor(pen: Pen, caves: list[Ornament]) -> None:
     def rock(x: FloatArray, y: FloatArray) -> BoolArray:
         return ~floor(x, y) & (x >= left) & (x <= right) & (y >= top) & (y <= bottom)
 
-    box = (left, top, right, bottom)
-    pen.canvas.paint(rock, box)
-    pen.canvas.band(floor, box, round(0.12 * pitch * SUPERSAMPLE))
+    pen.canvas.paint(rock, (left, top, right, bottom))
 
 
 def _other_name(cell: Cell, side: str) -> str:

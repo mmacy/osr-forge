@@ -4,7 +4,7 @@
   "level_number": 2,
   "areas": [
     {
-      "key": "1b",
+      "key": "6",
       "description": "A vault below the ossuary.",
       "encounters": [],
       "trap": null,
@@ -17,8 +17,21 @@
       "confidence": 1.0
     },
     {
-      "key": "2b",
+      "key": "7",
       "description": "A sealed tomb.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        2
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "8",
+      "description": "Bones heaped against the walls.",
       "encounters": [],
       "trap": null,
       "treasure": [],
