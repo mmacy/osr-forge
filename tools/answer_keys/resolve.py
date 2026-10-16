@@ -612,7 +612,7 @@ class Resolver:
             placed.cell = self.nearest_floor(level_id, cell, exclude=open_ground)
 
     def space_has_other_key(self, wcell: WCell, key: SurveyKey) -> bool:
-        """Whether the open space of a cell holds a key other than the given one."""
+        """Whether the open space of a cell contains a placed key other than the given one."""
         space = self.world.space_of().get(wcell)
         if space is None:
             return False
@@ -1086,8 +1086,9 @@ class Resolver:
                 order = world.edge_order(c, side)
                 if other is not None and world.is_floor(other) and other not in cells:
                     candidates.append((distances.get(other, 10**9), order, c, side))
-                if key_cell is not None and c[0] == key_cell[0]:
-                    fallback.append((chebyshev(world.cell(c), world.cell(key_cell)), order, c, side))
+                if key_cell is not None:
+                    distance = chebyshev(self.to_level(level_id, c), self.to_level(level_id, key_cell))
+                    fallback.append((distance, order, c, side))
         chosen = min(candidates) if candidates else (min(fallback) if fallback else None)
         if chosen is None:
             raise ConventionGap(f"no wall edge for a synthesized door on level {level_id}")
@@ -1461,13 +1462,15 @@ class Resolver:
                     if target is None:
                         continue
                     target_level, target_key = target
-                    if target_level == level_id or self.levels[target_level].verdict != "traced":
+                    if self.levels[target_level].verdict != "traced":
                         continue
                     if target_key is None:
                         raise ConventionGap(
                             f"connection from {level_id}/{area.key} names only level {target_level}: no target area"
                         )
                     if not self.area_of(target_level, target_key):
+                        continue
+                    if target_level == level_id and not self.on_other_panels(level_id, area.key, target_key):
                         continue
                     if self.passages_make(level_id, area.key, target_level, target_key):
                         continue
@@ -1484,6 +1487,12 @@ class Resolver:
                         continue
                     seen.add(identity)
                     self.realize_link(Link((level_id, area.key), (target_level, target_key), LINK_VIAS[connection.via]))
+
+    def on_other_panels(self, level_id: LevelId, key: str, target_key: str) -> bool:
+        """Whether two areas of one level lie on panels with none in common."""
+        panels = {c[0] for c in self.area_of(level_id, key)}
+        target_panels = {c[0] for c in self.area_of(level_id, target_key)}
+        return not (panels & target_panels)
 
     def passages_make(self, level_id: LevelId, key: str, target_level: LevelId, target_key: str) -> bool:
         """Whether a passage pair across a cut already joins two areas, through a door, a vestibule, or an open edge."""
@@ -1745,9 +1754,9 @@ class Resolver:
         self.partition(keys_only_on_floor=False)
         self.cave_mouth_rule()
         self.find_openings()
+        self.place_panels()
         self.areas()
         self.doors()
-        self.place_panels()
         self.cuts()
         self.shift_levels()
         self.links()
