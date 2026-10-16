@@ -130,6 +130,36 @@ def test_refuses_a_reservation_that_would_pass_the_stop(claude_path: Path):
 
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_open_reserved_writes_nothing_on_a_refusal_and_one_entry_otherwise(claude_path: Path):
+    ledger = Ledger(claude_path, cost_key="cost_usd", stop_usd=0.1)
+    before = claude_path.read_bytes()
+    with pytest.raises(LedgerStopError):
+        ledger.open_reserved(CLAUDE_ENTRY, 0.09)
+    assert claude_path.read_bytes() == before
+
+    reservation = ledger.open_reserved(CLAUDE_ENTRY, 0.05)
+    during = load(claude_path)
+    assert reservation == Reservation(index=2, usd=0.05)
+    assert during["entries"][2] == {**CLAUDE_ENTRY, "cost_usd": pytest.approx(0.05), "pending": 1}
+    ledger.settle(reservation, 0.01)
+    assert load(claude_path)["entries"][2] == {**CLAUDE_ENTRY, "cost_usd": pytest.approx(0.01)}
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_amounts_are_whole_micro_dollars_written_to_six_places(tmp_path: Path):
+    """0.1 + 0.2 is 0.30000000000000004 in floats; in micro-dollars it reaches a stop of 0.3 exactly."""
+    path = write_ledger(tmp_path / "ledger.json", {**CLAUDE_LEDGER, "spent_usd": 0.1, "entries": []})
+    ledger = Ledger(path, cost_key="cost_usd", stop_usd=0.3)
+    reservation = ledger.open_reserved(CLAUDE_ENTRY, 0.2)
+    text = path.read_text(encoding="utf-8")
+    assert '"spent_usd": 0.3' in text and "0.30000000000000004" not in text
+    ledger.settle(reservation, 0.1234567)
+    after = load(path)
+    assert after["entries"][0]["cost_usd"] == 0.123457
+    assert after["spent_usd"] == 0.223457
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_stop_comes_from_the_file_unless_a_setting_overrides_it(claude_path: Path, clef_path: Path):
     assert Ledger(claude_path, cost_key="cost_usd").stop_usd == 160.0
     assert Ledger(clef_path, cost_key="usd", count_key="requests").stop_usd == 8.0

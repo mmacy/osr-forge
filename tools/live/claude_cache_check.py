@@ -10,9 +10,10 @@ Usage, from the repository root with `ANTHROPIC_API_KEY` and
     uv run python tools/live/claude_cache_check.py
 
 It builds one request kind at low effort with the schema of a short answer,
-and two requests whose one shared part is the same text, longer than 512
-tokens, that starts with a value new to this run (the time, so no earlier
-run's cache entry can serve it). It sends both through
+whose system prompt starts with a value new to this run (the time), so
+nothing in the cached prefix can be warm from an earlier run, and two
+requests whose one shared part is the same text, longer than 512 tokens. It
+sends both through
 `ClaudeProvider.read_all` on `claude-sonnet-5-5`, and it prints each answer's
 usage and the ledger entries it wrote. It exits 0 when both answers fit the
 schema, the first answer's cache write is greater than zero, and the second

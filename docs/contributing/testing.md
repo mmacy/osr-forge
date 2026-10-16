@@ -38,12 +38,15 @@ and [`DecisionRequest.key`][osrforge.providers.decisions.DecisionRequest.key]).
 [`RecordedReadingProvider`][osrforge.providers.reading.RecordedReadingProvider]
 replays Claude's answers and
 [`RecordingReadingProvider`][osrforge.providers.reading.RecordingReadingProvider]
-writes them; the Clef pair is in [`osrforge.providers.decisions`][]. A
+writes them, and the Clef pair is in [`osrforge.providers.decisions`][]. A
 recording file names its kind or tag and the first twelve characters of its
 key, like a fixture, and holds the request's exact body with each image's
 data replaced by its pixel digest, so a reviewer reads every parameter and
 the repository stays small. No test calls Claude or Clef: the live checks
-under `tools/live/` are run by hand and charge the cost ledgers.
+under `tools/live/` are run by hand and charge the cost ledgers. Recordings
+of a private corpus member's maps may contain the module's text or picture,
+so they live in the owner's private corpus directory, never in the
+repository.
 
 ## The re-record rule
 

@@ -41,7 +41,7 @@ anything that does (fixture recording) stays opt-in, developer-facing, and out
 of the conversion path.
 
 Conversion runs locally and everything derived from your module stays in your
-own workdir — nothing is shared unless you share it. The external parties in
+own workdir. Nothing is shared unless you share it. The external parties in
 the loop are the model services you configure, which receive page text and
 images as extraction requests under your own accounts and terms: the Foundry
 deployment for the extraction stages and, when the tracing stage runs,

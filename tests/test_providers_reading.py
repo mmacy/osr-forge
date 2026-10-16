@@ -1,7 +1,9 @@
 """The reading provider: request keys, the request body, the Claude adapter, and the recordings tests replay.
 
 No test here calls the service. The Claude adapter runs against a fake client that answers like the SDK's
-`messages.stream`, and the live check that proves the cache sharing is `tools/live/claude_cache_check.py`.
+`messages.stream`, and the live check that proves the cache sharing is `tools/live/claude_cache_check.py`. The
+Clef provider chunk (`tests/test_providers_decisions.py`) starts after this chunk is implemented, because it uses
+`pixel_digest`, the ledger, and the errors this chunk builds.
 """
 
 import base64
@@ -21,7 +23,14 @@ from pydantic import SecretStr
 
 from conftest import fabricate_workdir
 from osrforge.contracts.run import RequestUsage, Stage
-from osrforge.errors import FixtureMissError, LedgerStopError, ProviderError, ReadingFailure, SchemaValidationError
+from osrforge.errors import (
+    FixtureMissError,
+    LedgerStopError,
+    ProviderError,
+    ReadingFailure,
+    SchemaValidationError,
+    StaleRecordingError,
+)
 from osrforge.providers.base import ImagePart, TextPart, pixel_digest
 from osrforge.providers.claude import (
     PRICES,
@@ -29,7 +38,6 @@ from osrforge.providers.claude import (
     ClaudeSettings,
     cost_usd,
     estimate_input_tokens,
-    request_body,
     worst_case_usd,
 )
 from osrforge.providers.reading import (
@@ -42,6 +50,7 @@ from osrforge.providers.reading import (
     RequestKind,
     Retry,
     recording_filename,
+    request_body,
 )
 from osrforge.workdir import track_stage
 
@@ -112,6 +121,20 @@ def test_pixel_digest_hashes_pixels_not_bytes():
     with pytest.raises(ValueError):
         pixel_digest(b"not an image")
 
+    # The digest covers alpha: an opaque RGBA copy matches the RGB original, and a change of alpha differs.
+    with Image.open(io.BytesIO(png)) as image:
+        opaque = image.convert("RGBA")
+    buffer = io.BytesIO()
+    opaque.save(buffer, "PNG")
+    assert pixel_digest(buffer.getvalue()) == digest
+    translucent = opaque.copy()
+    pixel = opaque.getpixel((0, 0))
+    assert isinstance(pixel, tuple)
+    translucent.putpixel((0, 0), (pixel[0], pixel[1], pixel[2], 128))
+    buffer = io.BytesIO()
+    translucent.save(buffer, "PNG")
+    assert pixel_digest(buffer.getvalue()) != digest
+
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_key_is_a_stable_hash_of_pixels_and_parameters():
@@ -161,6 +184,9 @@ def test_request_validation():
         make_request(shared=((INSTRUCTIONS,), (PAGE_A,), (PAGE_B,), (CROP,)))
     with pytest.raises(ValueError):
         make_request(shared=((INSTRUCTIONS,), ()))
+    with pytest.raises(ValueError):
+        make_request(shared=((INSTRUCTIONS,) * 21,))
+    make_request(shared=((INSTRUCTIONS,) * 20,))
     with pytest.raises(ValueError):
         make_request(question=())
     with pytest.raises(ValueError):
@@ -249,7 +275,9 @@ def test_the_reservation_is_the_input_at_the_cache_write_price_and_max_tokens_at
         kind=kind, shared=((ImagePart(png=png_bytes(1, (100, 20))),),), question=(TextPart(text="hello world"),)
     )
     schema_bytes = len(json.dumps({"type": "object"}, sort_keys=True, separators=(",", ":")).encode("utf-8"))
-    expected_tokens = 1 + 4 + -(-schema_bytes // 3) + -(-(100 * 20) // 750) + 64
+    # One token per UTF-8 byte of the system prompt ("abc") and the text ("hello world"), the schema's bytes,
+    # ceil(100 * 20 / 750) for the image, and 64.
+    expected_tokens = 3 + 11 + schema_bytes + -(-(100 * 20) // 750) + 64
     assert estimate_input_tokens(request) == expected_tokens
     prices = PRICES[MODEL]
     assert worst_case_usd(MODEL, request) == pytest.approx(expected_tokens * prices.cache_write + 1000 * prices.output)
@@ -310,10 +338,16 @@ def final_message(
 
 
 class FakeClient:
-    """Answers `messages.stream(**body)` from a queue of final messages (or exceptions), logging every step."""
+    """Answers `messages.stream(**body)`, logging every step.
 
-    def __init__(self, answers: list[Any]) -> None:
-        self.answers = list(answers)
+    A list of answers is a queue, consumed in the order requests arrive, for tests that send one request at a
+    time. A mapping answers each request by the text of its last content block (the question), so a test of
+    `read_all` doesn't depend on the order threads start their streams.
+    """
+
+    def __init__(self, answers: list[Any] | dict[str, Any]) -> None:
+        self.queue = list(answers) if isinstance(answers, list) else []
+        self.by_question = dict(answers) if isinstance(answers, dict) else {}
         self.bodies: list[dict[str, Any]] = []
         self.events: list[tuple[str, int]] = []
         self.lock = threading.Lock()
@@ -327,7 +361,10 @@ class FakeClient:
         with self.lock:
             index = len(self.bodies)
             self.bodies.append(body)
-            answer = self.answers.pop(0)
+            if self.by_question:
+                answer = self.by_question[body["messages"][0]["content"][-1]["text"]]
+            else:
+                answer = self.queue.pop(0)
             self.events.append(("start", index))
         if isinstance(answer, Exception):
             raise answer
@@ -343,7 +380,7 @@ def ledger_file(tmp_path: Path, spent: float = 0.0, stop: float = 160.0) -> Path
 
 
 def provider(
-    tmp_path: Path, answers: list[Any], stop: float = 160.0, spent: float = 0.0
+    tmp_path: Path, answers: list[Any] | dict[str, Any], stop: float = 160.0, spent: float = 0.0
 ) -> tuple[ClaudeProvider, FakeClient, Path]:
     client = FakeClient(answers)
     path = ledger_file(tmp_path, spent=spent, stop=stop)
@@ -436,13 +473,16 @@ def test_connection_failures_are_retried_then_raised_without_the_key(tmp_path: P
 def test_read_all_sends_the_first_request_of_each_shared_part_alone(tmp_path: Path):
     """Two pages with three items each share the instructions: one request warms each part before the rest read it."""
     requests = [
-        make_request(shared=((INSTRUCTIONS,), (page,)), question=(ImagePart(png=png_bytes(10 + i)), QUESTION))
+        make_request(
+            shared=((INSTRUCTIONS,), (page,)), question=(ImagePart(png=png_bytes(10 + i)), TextPart(text=f"Item {i}"))
+        )
         for page in (PAGE_A, PAGE_B)
         for i in range(3)
     ]
-    reader, client, _ = provider(tmp_path, [final_message(data={"rows": [str(i)]}) for i in range(6)])
+    answers = {f"Item {i}": final_message(data={"rows": [f"Item {i}"]}) for i in range(6)}
+    reader, client, _ = provider(tmp_path, answers)
     responses = reader.read_all(requests)
-    assert [r.data for r in responses if isinstance(r, ReadingResponse)] == [{"rows": [str(i)]} for i in range(6)]
+    assert [r.data for r in responses if isinstance(r, ReadingResponse)] == [{"rows": [f"Item {i}"]} for i in range(6)]
 
     order = {event: i for i, event in enumerate(client.events)}
     sent = {i: body for i, body in enumerate(client.bodies)}
@@ -467,8 +507,9 @@ def test_read_all_sends_the_first_request_of_each_shared_part_alone(tmp_path: Pa
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_read_all_returns_each_failure_in_its_place(tmp_path: Path):
-    requests = [make_request(question=(ImagePart(png=png_bytes(20 + i)), QUESTION)) for i in range(3)]
-    reader, _, _ = provider(tmp_path, [final_message(), final_message(stop_reason="max_tokens"), final_message()])
+    requests = [make_request(question=(ImagePart(png=png_bytes(20 + i)), TextPart(text=f"Item {i}"))) for i in range(3)]
+    answers = {"Item 0": final_message(), "Item 1": final_message(stop_reason="max_tokens"), "Item 2": final_message()}
+    reader, _, _ = provider(tmp_path, answers)
     results = reader.read_all(requests)
     assert isinstance(results[0], ReadingResponse) and isinstance(results[2], ReadingResponse)
     assert isinstance(results[1], ReadingFailure)
@@ -591,6 +632,19 @@ def test_replay_revalidates_against_the_kind_schema(tmp_path: Path):
     recording["response"]["data"] = {"rows": "not a list"}
     path.write_text(json.dumps(recording), encoding="utf-8")
     with pytest.raises(SchemaValidationError):
+        RecordedReadingProvider(tmp_path, MODEL).read(request)
+
+
+@pytest.mark.xfail(reason=CHUNK, strict=True)
+def test_replay_refuses_a_recording_whose_body_the_code_no_longer_builds(tmp_path: Path):
+    """The key still matches, so only the stored body shows that the request's rendering changed."""
+    request = make_request()
+    RecordingReadingProvider(StubReader([RESPONSE]), tmp_path, MODEL).read(request)
+    path = tmp_path / recording_filename("probe", request.key(MODEL))
+    recording = json.loads(path.read_text(encoding="utf-8"))
+    recording["request"]["system"][0]["text"] = "Rendered differently."
+    path.write_text(json.dumps(recording), encoding="utf-8")
+    with pytest.raises(StaleRecordingError):
         RecordedReadingProvider(tmp_path, MODEL).read(request)
 
 

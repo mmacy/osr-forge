@@ -170,3 +170,5 @@ truth file, the sidecar, and the workdir all stay in the owner's private
 corpus directory, and the committed BYOM scoreboard carries only aggregate
 counts and ratios (see `AGENTS.md` → Licensing). This is a permanent fence,
 not a deferral.
+
+The tracing providers' recordings follow the fence too: a recording of a private member's map may contain the module's text or picture, so it lives in the owner's private corpus directory beside the member's truth files, and never in the repository. Only the committed members' and the synthetic maps' recordings are committed.

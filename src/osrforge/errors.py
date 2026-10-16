@@ -16,6 +16,7 @@ __all__ = [
     "ProviderError",
     "ReadingFailure",
     "SchemaValidationError",
+    "StaleRecordingError",
 ]
 
 
@@ -83,3 +84,7 @@ class ReadingFailure(ProviderError):
 
 class LedgerStopError(ProviderError):
     """A request's reservation would take a ledger's spend past its stop, so the request wasn't sent."""
+
+
+class StaleRecordingError(ProviderError):
+    """A recording's key matches the request, but its stored body isn't the body the current code builds."""
