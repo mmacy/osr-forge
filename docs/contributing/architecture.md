@@ -66,11 +66,15 @@ is documented in [the workdir and artifacts](../reference/workdir-artifacts.md).
   module: the map-versus-prose merge and the entrance selection live there
   once, consumed by both `geometry` and the eval scorer.
 - **Vendor SDKs stay in adapters.** Pipeline code sees only the
-  [`ModelProvider`][osrforge.providers.base.ModelProvider] protocol; the
-  Azure AI Foundry specifics live in
-  [`osrforge.providers.foundry`][] and nowhere else. Tests run on
-  [`FixtureProvider`][osrforge.providers.fixtures.FixtureProvider] —
-  see [testing](testing.md).
+  [`ModelProvider`][osrforge.providers.base.ModelProvider] protocol, and the
+  tracing stage the [`ReadingProvider`][osrforge.providers.reading.ReadingProvider]
+  and [`DecisionProvider`][osrforge.providers.decisions.DecisionProvider]
+  protocols. The Azure AI Foundry specifics live in
+  [`osrforge.providers.foundry`][], the `anthropic` library in
+  [`osrforge.providers.claude`][], and the Workers AI endpoint in
+  [`osrforge.providers.clef`][], and nowhere else. Tests run on
+  [`FixtureProvider`][osrforge.providers.fixtures.FixtureProvider] and on
+  the tracing providers' recordings. See [testing](testing.md).
 
 ## Where model spend happens — and where it can't
 

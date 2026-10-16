@@ -136,6 +136,14 @@ replayed by
 network and zero cost. Named `<tag>.<fingerprint[:12]>.json`. See
 [testing](../contributing/testing.md).
 
+## Recording { #recording }
+
+One answer from a tracing provider (Claude or Clef), filed under its key: the
+sha256 of the request's decoded pixels and its parameters. Recordings replay
+the tracing stage in tests the way [fixtures](#fixture) replay the
+extraction stages, and they key on pixels rather than PNG bytes because the
+stage draws its crops at run time. See [testing](../contributing/testing.md).
+
 ## Replay-grade vs evidence-grade { #replay-grade }
 
 A *replay-grade* fixture set is closed over committed assets — every byte of

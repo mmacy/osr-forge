@@ -8,7 +8,7 @@ osr-forge is front-end-agnostic by contract, not by implementation: it's Python 
 
 - Convert a digital or scanned module PDF into a draft osrlib `Adventure` that passes `Adventure.model_validate`, with every gap and guess called out in a machine-readable report.
 - Make human correction first-class and reproducible: corrections live in an overrides file, never in hand-edits to generated output, and re-assembly is a pure function of cached pipeline outputs plus overrides.
-- Keep the LLM behind a small provider interface. The first adapter targets Azure AI Foundry with `gpt-5.4`; others (Anthropic, local models) are drop-ins later.
+- Keep each model behind a small provider interface. The extraction stages share one, `ModelProvider`, whose adapter targets Azure AI Foundry with `gpt-5.4`. The tracing stage has two roles of its own: a reading provider, which Claude fills through the Messages API, and a decision provider, which Cloudflare's Clef fills. Vendor code lives in adapters only.
 - Be usable three ways: as a CLI for humans, as a library for host apps (osr-web's worker), and as an artifact producer for any consumer that just wants the JSON.
 - Ship quality evals so extraction changes are measured, not vibed.
 
@@ -56,6 +56,8 @@ my-module.forge/
 ├── pages/
 │   ├── 0001.png
 │   └── 0001.txt
+├── maps/                 # the images the map pages embed, at native resolution, one PNG each
+│   └── p0038-0.png
 ├── stages/               # cached raw stage outputs — the LLM's actual answers
 │   ├── survey.json
 │   ├── areas.<dungeon>.<level>.json
@@ -72,9 +74,11 @@ my-module.forge/
 
 Host apps archive the whole workdir (osr-web stores it in Blob Storage) to get debuggability and stage-level re-runs for free. (There is no geometry cache: geometry is deterministic and recomputed inside every assembly.)
 
-## LLM provider interface
+`maps/` holds what the tracing stage's first step extracts (`osrforge.tracing.images`): every image a map page embeds, read with pypdfium2 at the resolution the PDF stores it at, named `p<page>-<index>.png` for the first page it appears on and its index among that page's image objects. One image that spans a two-page spread is one map, the same image on two pages counts once, an image that a later image on the page covers by more than half is left out because the page shows the later one, and a page the `blank_page_renders` setting blanks is skipped. The stage's cost ledgers stay outside the workdir.
 
-One small protocol; the pipeline knows nothing about vendors:
+## Model provider interfaces
+
+Three small protocols; the pipeline knows nothing about vendors. The extraction stages share one:
 
 ```python
 class ModelProvider(Protocol):
@@ -93,6 +97,13 @@ Providers own retries, rate-limit backoff, and schema enforcement (native struct
 - **`FixtureProvider`** ships alongside it: replays recorded request/response pairs from disk. This is how unit tests, CI, and host-app integration tests run the full pipeline with zero network and zero cost.
 
 Because preprocessing yields text + page images per page, the pipeline never depends on any provider's native PDF ingestion — that's what makes adapters cheap.
+
+The tracing stage takes two providers of its own, as `TracingProviders` in `osrforge.tracing.stage`, and every other stage stays on its `ModelProvider`:
+
+- **The reading provider** (`ReadingProvider` in `osrforge.providers.reading`) reads each map page whole, judges the items the decision provider is unsure of, and picks the offset between two halves of a map. Claude fills it through `ClaudeProvider` (`osrforge.providers.claude`, the only module that imports `anthropic`). Each kind of request (`RequestKind`) fixes one system prompt, one output schema, one effort, and one `max_tokens`, so requests of a kind share prompt-cache entries. Every request runs with adaptive thinking. A request is its kind plus its content arranged for the cache: the shared parts first, each ending at a cache breakpoint, and the crop and the question last. The adapter streams each response, asks for the answer as JSON that fits the kind's schema (`output_config.format`), and checks it again. An answer that stops at `max_tokens` or with a refusal is a `ReadingFailure`. The adapter makes no re-prompt of its own: the tracing stage asks once more with the malformed answer and the fault appended, as a request with its own recording. `read_all` sends the first request that contains each shared part alone and the rest once that request's answer starts to arrive, because a cache entry becomes readable only then.
+- **The decision provider** (`DecisionProvider` in `osrforge.providers.decisions`) answers one fixed-choice question about one image with a probability for every option. Clef on Workers AI fills it through `ClefProvider` (`osrforge.providers.clef`). The provider computes the answer's `choice`, `confidence`, and `margin` from the probabilities.
+- **Recordings** replace both providers in tests and continuous integration. A recording is one answer filed under its key, the hash of the request's decoded pixels and its parameters. For Claude those are the model, the system prompt, the message text, the cache breakpoints, the effort, the thinking setting, the schema, and `max_tokens`. For Clef they are the model, the tag, the state, the question, the options, and how the image is sent. The key hashes pixels, not PNG bytes, because the stage draws its crops at run time. A recording of a private corpus member's map stays in the owner's private corpus directory, never in the repository. Each recording also holds the request's exact body, with each image's data replaced by its pixel digest, and a Clef recording records whether the image went as PNG or JPEG. `RecordedReadingProvider` and `RecordedDecisionProvider` replay a directory of recordings, and `RecordingReadingProvider` and `RecordingDecisionProvider` write them. The extraction stages' `FixtureProvider` is unchanged and keys on PNG bytes.
+- **The ledgers** (`osrforge.providers.ledger`) are two JSON files outside the workdir that record what each service has cost, with a stop. Before each request a provider reserves the request's worst-case cost (for Claude, its input at the cache-write price and `max_tokens` at the output price) and refuses the request when the reservation would take the spend past the stop. After the answer it settles the reservation at the cost the usage reports. The file is locked while it's read and written, so requests that run at the same time don't lose a charge. Each ledger's path and stop are provider settings. `run.json` records the model and each tracing request's cache reads and writes in `requests`.
 
 ## Overrides
 
@@ -248,7 +259,7 @@ Changing settings on an existing workdir goes through `rerun --set`, guarded by 
 ## Tooling and packaging
 
 - Python ≥ 3.14 (osrlib's floor), managed with `uv`; `ruff` format/lint, `pyright`, `pytest`.
-- Dependencies: `osrlib` (compatible-range pin, `>=1.8,<2`), `pypdfium2` (rendering + text extraction; permissive license, unlike PyMuPDF's AGPL), `pillow` (PNG encoding for rendered pages — pypdfium2 produces raw bitmaps, not image files), `pyyaml`, `jsonschema` (provider-side validation of structured-output responses), `numpy` (the tracing stage's image measurements and the synthetic map generator), the OpenAI-compatible client for the Foundry adapter, `azure-identity` (optional extra).
+- Dependencies: `osrlib` (compatible-range pin, `>=1.8,<2`), `pypdfium2` (rendering + text extraction; permissive license, unlike PyMuPDF's AGPL), `pillow` (PNG encoding for rendered pages, because pypdfium2 produces raw bitmaps, not image files), `pyyaml`, `jsonschema` (provider-side validation of structured-output responses), `numpy` (the tracing stage's image measurements and the synthetic map generator), the OpenAI-compatible client for the Foundry adapter, `anthropic` (the Claude adapter), `azure-identity` (optional extra). The Clef adapter calls Workers AI's REST endpoint with no vendor SDK.
 - Package name `osr-forge` (import `osrforge`) — both it and `osrforge` are unclaimed on PyPI as of 2026-07-08. MIT license; the package ships no game content (osrlib's OGL data stays in osrlib), and the release pipeline's dist audit machine-checks it.
 - Released as 0.1.0 (Development Status :: 4 - Beta) via the tag-driven `release.yml`; documentation at <https://mmacy.github.io/osr-forge/>.
 

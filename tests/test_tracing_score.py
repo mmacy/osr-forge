@@ -27,8 +27,6 @@ from tracing_support import (
     shift_panel_east,
 )
 
-pytestmark = pytest.mark.xfail(reason="chunk: scorer", strict=True)
-
 
 def test_own_answer_scores_perfect():
     truth = demo_truth()
