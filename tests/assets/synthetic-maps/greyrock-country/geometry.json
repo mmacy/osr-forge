@@ -1,0 +1,296 @@
+{
+ "dungeons": [
+  {
+   "id": "greyrock-tower",
+   "levels": [
+    {
+     "areas": {},
+     "cells": [],
+     "flags": [],
+     "keys": [],
+     "locked_doors": [],
+     "number": 1,
+     "panels": [],
+     "passages": [],
+     "reason": "its map is an outdoor map, which the stage refuses",
+     "transitions": [],
+     "verdict": "fallback"
+    },
+    {
+     "areas": {},
+     "cells": [],
+     "flags": [],
+     "keys": [],
+     "locked_doors": [],
+     "number": 2,
+     "panels": [],
+     "passages": [],
+     "reason": "its map is a hex map, which the stage refuses",
+     "transitions": [],
+     "verdict": "fallback"
+    },
+    {
+     "areas": {},
+     "cells": [],
+     "flags": [],
+     "keys": [],
+     "locked_doors": [],
+     "number": 3,
+     "panels": [],
+     "passages": [],
+     "reason": "its map is a town map, which the stage refuses",
+     "transitions": [],
+     "verdict": "fallback"
+    },
+    {
+     "areas": {},
+     "cells": [],
+     "flags": [],
+     "keys": [],
+     "locked_doors": [],
+     "number": 4,
+     "panels": [],
+     "passages": [],
+     "reason": "its map is a quarter mile to the square, a scale the stage refuses",
+     "transitions": [],
+     "verdict": "fallback"
+    },
+    {
+     "areas": {},
+     "cells": [],
+     "flags": [],
+     "keys": [],
+     "locked_doors": [],
+     "number": 5,
+     "panels": [],
+     "passages": [],
+     "reason": "its map is an isometric view, which the stage refuses",
+     "transitions": [],
+     "verdict": "fallback"
+    },
+    {
+     "areas": {},
+     "cells": [],
+     "flags": [],
+     "keys": [],
+     "locked_doors": [],
+     "number": 6,
+     "panels": [],
+     "passages": [],
+     "reason": "its map is a side view, which the stage refuses",
+     "transitions": [],
+     "verdict": "fallback"
+    }
+   ],
+   "name": "Greyrock tower"
+  }
+ ],
+ "half_pairs": [],
+ "pages": [
+  {
+   "blanked": false,
+   "images": [
+    {
+     "file": "greyrock-wilds.png",
+     "hidden": false
+    }
+   ],
+   "number": 1
+  },
+  {
+   "blanked": false,
+   "images": [
+    {
+     "file": "greyrock-hexes.png",
+     "hidden": false
+    }
+   ],
+   "number": 2
+  },
+  {
+   "blanked": false,
+   "images": [
+    {
+     "file": "greyrock-village.png",
+     "hidden": false
+    }
+   ],
+   "number": 3
+  },
+  {
+   "blanked": false,
+   "images": [
+    {
+     "file": "greyrock-valley.png",
+     "hidden": false
+    }
+   ],
+   "number": 4
+  },
+  {
+   "blanked": false,
+   "images": [
+    {
+     "file": "greyrock-tower.png",
+     "hidden": false
+    }
+   ],
+   "number": 5
+  },
+  {
+   "blanked": false,
+   "images": [
+    {
+     "file": "greyrock-section.png",
+     "hidden": false
+    }
+   ],
+   "number": 6
+  }
+ ],
+ "panels": [],
+ "regions": [
+  {
+   "columns": 0,
+   "compass": {
+    "north": "top",
+    "printed": true
+   },
+   "cut_off": [],
+   "id": "wilds",
+   "image": "greyrock-wilds.png",
+   "legend": {
+    "printed": false,
+    "symbols": []
+   },
+   "page": 1,
+   "reason": "an outdoor map",
+   "rows": 0,
+   "scale": {
+    "printed": true,
+    "text": "1 INCH = 2 MILES"
+   },
+   "style": "outdoor",
+   "verdict": "refused"
+  },
+  {
+   "columns": 0,
+   "compass": {
+    "north": "top",
+    "printed": true
+   },
+   "cut_off": [],
+   "id": "hexes",
+   "image": "greyrock-hexes.png",
+   "legend": {
+    "printed": false,
+    "symbols": []
+   },
+   "page": 2,
+   "reason": "a hex map",
+   "rows": 0,
+   "scale": {
+    "printed": true,
+    "text": "1 HEX = 6 MILES"
+   },
+   "style": "hex",
+   "verdict": "refused"
+  },
+  {
+   "columns": 0,
+   "compass": {
+    "north": "top",
+    "printed": true
+   },
+   "cut_off": [],
+   "id": "village",
+   "image": "greyrock-village.png",
+   "legend": {
+    "printed": false,
+    "symbols": []
+   },
+   "page": 3,
+   "reason": "a town map",
+   "rows": 0,
+   "scale": {
+    "printed": true,
+    "text": "1 INCH = 100 FEET"
+   },
+   "style": "town",
+   "verdict": "refused"
+  },
+  {
+   "columns": 26,
+   "compass": {
+    "north": "top",
+    "printed": true
+   },
+   "cut_off": [],
+   "id": "valley",
+   "image": "greyrock-valley.png",
+   "legend": {
+    "printed": false,
+    "symbols": []
+   },
+   "page": 4,
+   "reason": "a scale of a quarter mile to the square",
+   "rows": 16,
+   "scale": {
+    "printed": true,
+    "text": "1 SQUARE = 1/4 MILE"
+   },
+   "style": "black_white",
+   "verdict": "refused"
+  },
+  {
+   "columns": 0,
+   "compass": {
+    "north": "top",
+    "printed": true
+   },
+   "cut_off": [],
+   "id": "tower",
+   "image": "greyrock-tower.png",
+   "legend": {
+    "printed": false,
+    "symbols": []
+   },
+   "page": 5,
+   "reason": "an isometric map",
+   "rows": 0,
+   "scale": {
+    "feet": 10,
+    "printed": true,
+    "text": "1 SQUARE = 10 FEET"
+   },
+   "style": "isometric",
+   "verdict": "refused"
+  },
+  {
+   "columns": 0,
+   "compass": {
+    "north": "top",
+    "printed": false
+   },
+   "cut_off": [],
+   "id": "section",
+   "image": "greyrock-section.png",
+   "legend": {
+    "printed": false,
+    "symbols": []
+   },
+   "page": 6,
+   "reason": "a side view",
+   "rows": 0,
+   "scale": {
+    "feet": 10,
+    "printed": true,
+    "text": "1 SQUARE = 10 FEET"
+   },
+   "style": "side_view",
+   "verdict": "refused"
+  }
+ ],
+ "repairs": [],
+ "schema_version": 1
+}

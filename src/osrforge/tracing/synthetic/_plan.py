@@ -15,7 +15,19 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Literal
 
-from osrforge.tracing.truth import EdgeGrids, Mark, Symbol, SymbolKind, cell_key, edge_key, parse_cell, parse_edge
+from osrforge.tracing.truth import (
+    EdgeGrids,
+    Mark,
+    Symbol,
+    SymbolKind,
+    cell_key,
+    edge_key,
+    parse_cell,
+    parse_edge,
+    rotate_cell,
+    rotate_side,
+    rotated_size,
+)
 
 type Cell = tuple[int, int]
 type Point = tuple[float, float]
@@ -57,7 +69,7 @@ def canonical(cell: Cell, side: str) -> tuple[Cell, str]:
     return cell, side
 
 
-Decoration = Literal["contour", "track", "stream", "tree", "dashed_circle"]
+Decoration = Literal["contour", "track", "stream", "tree", "dashed_circle", "cave"]
 """An ornament drawn over the map that the reading doesn't record."""
 
 
@@ -66,7 +78,9 @@ class Ornament:
     """One ornament, in grid coordinates.
 
     A contour, a track, and a stream follow `points`. A tree and a dashed
-    circle are centred on `points[0]` with radius `size`.
+    circle are centred on `points[0]` with radius `size`. A cave is the floor
+    within `size` of the segment from `points[0]` to `points[-1]`: a plan with
+    caves draws its floor as their union, with walls off the grid.
     """
 
     kind: Decoration
@@ -96,6 +110,8 @@ class Plan:
     edge_styles: dict[str, str] = field(default_factory=dict[str, str])
     stair_runs: dict[str, str] = field(default_factory=dict[str, str])
     ornaments: tuple[Ornament, ...] = ()
+    partial: tuple[str, ...] = ()
+    cave: tuple[str, ...] = ()
 
     def letter(self, cell: Cell, side: str) -> str:
         """The edge letter on one side of a cell.
@@ -122,6 +138,106 @@ class Plan:
         if 0 <= x < self.width and 0 <= y < self.height:
             return self.cells[y][x]
         return "#"
+
+    def turned(self, rotation: int) -> Plan:
+        """The plan turned clockwise by a quarter turn, as panel placement turns a panel.
+
+        Cells, edges, marks, symbols, the outline, and ornaments all turn, by
+        `rotate_cell` and `rotate_side` in `osrforge.tracing.truth`.
+
+        Args:
+            rotation: 0, 90, 180, or 270 degrees clockwise.
+
+        Returns:
+            The turned plan.
+        """
+        if rotation == 0:
+            return self
+        size = (self.width, self.height)
+        width, height = rotated_size(size, rotation)
+
+        def turn(text: str) -> str:
+            return cell_key(rotate_cell(parse_cell(text), size, rotation))
+
+        def turn_edge(text: str) -> str:
+            cell, side = parse_edge(text)
+            return edge_key(rotate_cell(cell, size, rotation), rotate_side(side, rotation))
+
+        def turn_point(point: Point) -> Point:
+            x, y = point
+            if rotation == 90:
+                return (self.height - y, x)
+            if rotation == 180:
+                return (self.width - x, self.height - y)
+            return (y, self.width - x)
+
+        def turn_rects(rects: tuple[tuple[int, int, int, int], ...]) -> tuple[tuple[int, int, int, int], ...]:
+            turned: list[tuple[int, int, int, int]] = []
+            for x, y, w, h in rects:
+                a = rotate_cell((x, y), size, rotation)
+                b = rotate_cell((x + w - 1, y + h - 1), size, rotation)
+                left, top = min(a[0], b[0]), min(a[1], b[1])
+                turned.append((left, top, abs(a[0] - b[0]) + 1, abs(a[1] - b[1]) + 1))
+            return tuple(turned)
+
+        cells = [["#"] * width for _ in range(height)]
+        letters: dict[tuple[Cell, str], str] = {}
+        for y in range(self.height):
+            for x in range(self.width):
+                tx, ty = rotate_cell((x, y), size, rotation)
+                cells[ty][tx] = self.cells[y][x]
+                for side in SIDES:
+                    letters[canonical((tx, ty), rotate_side(side, rotation))] = self.letter((x, y), side)
+
+        def at(cell: Cell, side: str) -> str:
+            return letters[canonical(cell, side)]
+
+        swap = {"ns": "ew", "ew": "ns"} if rotation in (90, 270) else {"ns": "ns", "ew": "ew"}
+        return Plan(
+            width=width,
+            height=height,
+            cells=tuple("".join(row) for row in cells),
+            edges=EdgeGrids(
+                vertical=tuple(
+                    "".join(at((x, y), "west") for x in range(width)) + at((width - 1, y), "east")
+                    for y in range(height)
+                ),
+                horizontal=(
+                    *("".join(at((x, y), "north") for x in range(width)) for y in range(height)),
+                    "".join(at((x, height - 1), "south") for x in range(width)),
+                ),
+            ),
+            marks=tuple(
+                mark.model_copy(
+                    update={
+                        "cell": turn(mark.cell),
+                        "edge": None if mark.edge is None else turn_edge(mark.edge),
+                        "leader_to": None if mark.leader_to is None else turn(mark.leader_to),
+                    }
+                )
+                for mark in self.marks
+            ),
+            symbols=tuple(
+                symbol.model_copy(
+                    update={
+                        "cells": tuple(turn(text) for text in symbol.cells),
+                        "edge": None if symbol.edge is None else turn_edge(symbol.edge),
+                    }
+                )
+                for symbol in self.symbols
+            ),
+            rects=turn_rects(self.rects),
+            open_ground=turn_rects(self.open_ground),
+            seeds=tuple(turn(text) for text in self.seeds),
+            edge_styles={turn_edge(key): value for key, value in self.edge_styles.items()},
+            stair_runs={turn(key): swap[value] for key, value in self.stair_runs.items()},
+            ornaments=tuple(
+                Ornament(kind=item.kind, points=tuple(turn_point(point) for point in item.points), size=item.size)
+                for item in self.ornaments
+            ),
+            partial=tuple(turn(text) for text in self.partial),
+            cave=tuple(turn(text) for text in self.cave),
+        )
 
     def columns(self, first: int, stop: int) -> Plan:
         """The plan's columns from `first` up to `stop`, as a plan of their own.
@@ -493,3 +609,30 @@ class Sketch:
             stair_runs=dict(self.stair_runs),
             ornaments=tuple(self.ornaments),
         )
+
+
+def seed_cells(plan: Plan) -> tuple[str, ...]:
+    """A plan's seed cells: its own, or else its first floor cell inside the outline with floor on every side.
+
+    Args:
+        plan: The plan.
+
+    Returns:
+        The seed cells.
+    """
+    if plan.seeds:
+        return plan.seeds
+    owned = [
+        (x, y)
+        for rx, ry, w, h in plan.rects
+        for y in range(ry, ry + h)
+        for x in range(rx, rx + w)
+        if plan.cell((x, y)) == "."
+    ]
+    inner = [
+        cell
+        for cell in owned
+        if all(plan.cell((cell[0] + dx, cell[1] + dy)) == "." for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+    ]
+    chosen = min(inner or owned, key=lambda cell: (cell[1], cell[0]))
+    return (cell_key(chosen),)

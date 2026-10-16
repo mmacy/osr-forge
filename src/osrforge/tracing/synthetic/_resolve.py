@@ -3,20 +3,21 @@
 The generator never writes an area, a placed key, an entrance, a transition,
 or a passage by hand. It applies the conventions to the reading it drew, so
 the answer is the one the reference resolution script must reach. It applies
-only the rules its maps exercise: no compass turns a panel, and levels that
-share a panel share all their panels and print every key on floor. Where a
-map would need a rule this module doesn't apply, or reaches a case the
-conventions leave open, it raises
+only the rules its maps exercise: halves left apart are 10-foot panels that
+aren't turned, and levels that share a panel share all their panels, aren't
+turned, and print every key on floor. Where a map would need a rule this
+module doesn't apply, or reaches a case the conventions leave open, it raises
 [`DesignError`][osrforge.tracing.synthetic._resolve.DesignError] rather than
 choose, so a map can't quietly carry an answer the rules don't give.
 
-Everything here works on a board: a level's panels, converted to 10-foot cells,
-copied to their places on the level's grid. The panels aren't turned, so
-north-then-west order on the board is the order the rules ask for, and page
-order within a panel is the same order. Levels whose floors meet on the panels
-they share are worked out together on one board, as the conventions find
-rooms and areas before ownership divides the floor, and then cut apart, each
-level's grid being the part of the board its own floor needs.
+Everything here works on a board: a level's panels, converted to 10-foot cells
+and turned to put their north at the top, copied to their places on the
+level's grid. North-then-west order on the board is then the order the rules
+ask for, the order `order_key` gives on a panel before its turn. Levels whose
+floors meet on the panels they share are worked out together on one board, as
+the conventions find rooms and areas before ownership divides the floor, and
+then cut apart, each level's grid being the part of the board its own floor
+needs.
 """
 
 import heapq
@@ -24,12 +25,12 @@ import itertools
 import re
 from collections import deque
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Literal
 
 from osrforge.contracts.stages import AreaConnection
 from osrforge.tracing.fivefoot import convert_five_foot
-from osrforge.tracing.synthetic._plan import SIDES, Plan, canonical, neighbour
+from osrforge.tracing.synthetic._plan import SIDES, Plan, canonical, neighbour, seed_cells
 from osrforge.tracing.synthetic._spec import AreaSpec, LevelSpec, MapSpec, PanelSpec, RegionSpec
 from osrforge.tracing.truth import (
     Area,
@@ -44,12 +45,14 @@ from osrforge.tracing.truth import (
     PanelRegion,
     Passage,
     PlacedKey,
+    Rotation,
     Side,
     Symbol,
     Transition,
     cell_key,
     parse_cell,
     parse_edge,
+    rotation_for,
 )
 
 type Cell = tuple[int, int]
@@ -171,6 +174,9 @@ class Board:
     legends: set[str] = field(default_factory=set[str])
     """The symbols that the legends of the level's regions explain."""
 
+    turns: dict[str, Rotation] = field(default_factory=dict[str, Rotation])
+    """Each panel's quarter turn onto the level."""
+
     seeds: list[tuple[Cell, int]] = field(default_factory=list[tuple[Cell, int]])
     """Each outline's seed cells, with the outline's level."""
 
@@ -178,7 +184,7 @@ class Board:
     """The levels whose outlines hold each owned cell."""
 
     sizes: dict[str, Cell] = field(default_factory=dict[str, Cell])
-    """Each panel's width and height in 10-foot cells."""
+    """Each panel's width and height in 10-foot cells, after its turn."""
 
     def letter(self, cell: Cell, side: str) -> str:
         """The reading's letter on one side of a cell, `-` where no panel reads it."""
@@ -1033,37 +1039,6 @@ def _apart_pair(spec: MapSpec, first: PanelSpec, second: PanelSpec) -> HalfPair 
     return None
 
 
-def _region(spec: MapSpec, region_id: str) -> RegionSpec:
-    return next(region for region in spec.regions if region.id == region_id)
-
-
-def default_seeds(plan: Plan) -> tuple[str, ...]:
-    """A plan's own seeds, or else its first floor cell whose four neighbours are floor, or else its first floor cell.
-
-    Args:
-        plan: A plan with one outline.
-
-    Returns:
-        The seed cells.
-    """
-    if plan.seeds:
-        return plan.seeds
-    owned = [
-        (x, y)
-        for rx, ry, w, h in plan.rects
-        for y in range(ry, ry + h)
-        for x in range(rx, rx + w)
-        if plan.cell((x, y)) == "."
-    ]
-    inner = [
-        cell
-        for cell in owned
-        if all(plan.cell((cell[0] + dx, cell[1] + dy)) == "." for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-    ]
-    chosen = min(inner or owned, key=lambda cell: (cell[1], cell[0]))
-    return (cell_key(chosen),)
-
-
 def panel_model(spec: MapSpec, panel: PanelSpec) -> Panel:
     """A panel's reading in the truth format, in its own squares, with the outline of each level that uses it.
 
@@ -1075,11 +1050,8 @@ def panel_model(spec: MapSpec, panel: PanelSpec) -> Panel:
         The panel as read.
 
     Raises:
-        DesignError: If the panel's regions differ in scale, or several levels use it without an outline each.
+        DesignError: If several levels use the panel without an outline each.
     """
-    scales: list[Literal[5, 10]] = [_region(spec, region).scale_feet for region, _origin in panel.regions]
-    if len(set(scales)) != 1:
-        raise DesignError(f"panel {panel.id!r} joins regions of different scales")
     plan = panel.plan
     users = [level.number for level in spec.dungeon.levels if panel.id in level.panels]
     if panel.outlines:
@@ -1102,16 +1074,18 @@ def panel_model(spec: MapSpec, panel: PanelSpec) -> Panel:
                 dungeon=spec.dungeon.id,
                 level=users[0],
                 rects=plan.rects,
-                seeds=default_seeds(plan),
+                seeds=seed_cells(plan),
                 open_ground=plan.open_ground,
             ),
         )
     return Panel(
         id=panel.id,
         regions=tuple(PanelRegion(region=region, origin=origin) for region, origin in panel.regions),
-        scale_feet=scales[0],
+        scale_feet=panel.scale_feet,
         cells=plan.cells,
         edges=plan.edges,
+        partial=plan.partial,
+        cave=plan.cave,
         marks=plan.marks,
         outlines=outlines,
         symbols=plan.symbols,
@@ -1119,33 +1093,47 @@ def panel_model(spec: MapSpec, panel: PanelSpec) -> Panel:
 
 
 def resolution_plan(spec: MapSpec, panel: PanelSpec) -> tuple[Plan, tuple[Outline, ...]]:
-    """The 10-foot reading the rules run on, and its outlines.
+    """A panel's reading as the rules after placement see it, converted to 10-foot cells and turned, with its outlines.
 
     A 5-foot panel is converted by [`convert_five_foot`][osrforge.tracing.fivefoot.convert_five_foot] first, as the
-    conventions' order puts the conversion before every other rule.
+    conventions' order puts the conversion before every other rule. The panel then turns by the quarter turn that
+    puts its north at the top.
 
     Args:
         spec: The map.
         panel: The panel.
 
     Returns:
-        The plan in 10-foot cells, and the panel's outlines in those cells.
+        The plan in 10-foot cells on the level, and the panel's outlines in those cells.
+
+    Raises:
+        DesignError: If a panel that several levels share is turned.
     """
     model = panel_model(spec, panel)
-    if model.scale_feet == 10:
-        return panel.plan, model.outlines
-    converted = convert_five_foot(model).panel
-    if any(outline.open_ground for outline in converted.outlines):
-        raise DesignError(f"5-foot panel {panel.id!r} has open ground, which isn't resolved here")
-    plan = Plan(
-        width=converted.width,
-        height=converted.height,
-        cells=converted.cells,
-        edges=converted.edges,
-        marks=converted.marks,
-        symbols=converted.symbols,
+    plan, outlines = panel.plan, model.outlines
+    if panel.scale_feet == 5:
+        converted = convert_five_foot(model).panel
+        plan = Plan(
+            width=converted.width,
+            height=converted.height,
+            cells=converted.cells,
+            edges=converted.edges,
+            marks=converted.marks,
+            symbols=converted.symbols,
+            partial=converted.partial,
+            cave=converted.cave,
+        )
+        outlines = converted.outlines
+    rotation = _turn(spec, panel)
+    if rotation == 0:
+        return plan, outlines
+    if len(outlines) != 1:
+        raise DesignError(f"panel {panel.id!r} is turned and shared by several levels, which isn't resolved here")
+    outline = outlines[0]
+    turned = replace(plan, rects=outline.rects, open_ground=outline.open_ground, seeds=outline.seeds).turned(rotation)
+    return turned, (
+        outline.model_copy(update={"rects": turned.rects, "open_ground": turned.open_ground, "seeds": turned.seeds}),
     )
-    return plan, converted.outlines
 
 
 def _owned(plan: Plan, outlines: Iterable[Outline]) -> set[Cell]:
@@ -1157,6 +1145,12 @@ def _owned(plan: Plan, outlines: Iterable[Outline]) -> set[Cell]:
                     if plan.cell((cx, cy)) in ".~":
                         owned.add((cx, cy))
     return owned
+
+
+def _turn(spec: MapSpec, panel: PanelSpec) -> Rotation:
+    """The quarter turn that puts a panel's north at the top: its first region's printed compass, or none."""
+    region = next(region for region in spec.regions if region.id == panel.regions[0][0])
+    return rotation_for(region.compass.north) if region.compass.printed else 0
 
 
 def _board(spec: MapSpec, level: LevelSpec, numbers: frozenset[int]) -> tuple[Board, dict[str, Cell]]:
@@ -1190,6 +1184,7 @@ def _board(spec: MapSpec, level: LevelSpec, numbers: frozenset[int]) -> tuple[Bo
         ox, oy = px + shift[0], py + shift[1]
         origins[panel.id] = (ox, oy)
         own = [outline for outline in outlines if outline.level in numbers]
+        board.turns[panel.id] = _turn(spec, panel)
         for y in range(plan.height):
             for x in range(plan.width):
                 board.cells[(ox + x, oy + y)] = plan.cells[y][x]
@@ -1264,8 +1259,12 @@ def _link_fold(
     right_cut = regions[second.regions[0][0]].cut_off
     if "right" not in left_cut or "left" not in right_cut:
         raise DesignError("halves left apart must be cut off at facing left and right edges")
-    if any(regions[part.regions[0][0]].scale_feet != 10 for part in (first, second)):
-        raise DesignError("5-foot halves left apart aren't resolved here")
+    if (
+        first.scale_feet != 10
+        or second.scale_feet != 10
+        or any(regions[part.regions[0][0]].compass.north != "top" for part in (first, second))
+    ):
+        raise DesignError("5-foot or turned halves left apart aren't resolved here")
     left_column, right_column = first.plan.width - 1, 0
     shift = second_origin[1] - first_origin[1]
     left = _stretches(first.plan, left_column)
@@ -1947,7 +1946,7 @@ def level_model(level: Resolved, frames: dict[int, tuple[int, int, int, int]]) -
         number=level.spec.number,
         verdict="traced",
         panels=tuple(
-            LevelPanel(panel=panel, origin=(origin[0] - x0, origin[1] - y0), rotation=0)
+            LevelPanel(panel=panel, origin=(origin[0] - x0, origin[1] - y0), rotation=level.board.turns[panel])
             for panel, origin in level.origins.items()
         ),
         cells=tuple("".join(level.level_cells.get((x, y), "#") for x in columns) for y in rows),
@@ -1998,10 +1997,10 @@ def frames_of(levels: list[Resolved]) -> dict[int, tuple[int, int, int, int]]:
     return {level.spec.number: level.frame or (0, 0, level.board.width, level.board.height) for level in levels}
 
 
-def _groups(spec: MapSpec) -> list[tuple[LevelSpec, ...]]:
+def _groups(levels: Iterable[LevelSpec]) -> list[tuple[LevelSpec, ...]]:
     """The levels in survey order, those that share a panel gathered into one group at the first one's place."""
     groups: list[list[LevelSpec]] = []
-    for level in spec.dungeon.levels:
+    for level in levels:
         group = next((group for group in groups if any(set(level.panels) & set(other.panels) for other in group)), None)
         if group is None:
             groups.append([level])
@@ -2010,17 +2009,18 @@ def _groups(spec: MapSpec) -> list[tuple[LevelSpec, ...]]:
     return [tuple(group) for group in groups]
 
 
-def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance]:
-    """Work out every level of a map's dungeon, its links and passages, and its entrance.
+def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance | None]:
+    """Work out every traced level of a map's dungeon, its links and passages, and its entrance.
 
     Args:
         spec: The map.
 
     Returns:
-        The resolved levels in survey order, and the entrance on its level's grid.
+        The resolved traced levels in survey order, and the entrance on its level's grid, or `None` when every level
+        falls back.
     """
     levels: list[Resolved] = []
-    for group in _groups(spec):
+    for group in _groups(level for level in spec.dungeon.levels if level.fallback is None):
         if len(group) == 1:
             levels.append(LevelRules(spec, group[0]).resolve())
         else:
@@ -2030,6 +2030,8 @@ def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance]:
     for level in levels:
         fold_passages(level)
     link_levels(levels)
+    if not levels:
+        return levels, None
     found = entrance(levels, spec.entrance_key)
     x0, y0, _width, _height = frames_of(levels)[found.level]
     cell = parse_cell(found.cell)

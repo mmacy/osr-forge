@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "title": "The sunken temple",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-sunken-temple",
+      "name": "The sunken temple",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Pillared hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Shrine",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "map_pages": [
+            2
+          ],
+          "areas": [
+            {
+              "key": "3",
+              "name": "Flooded hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Reliquary",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "greyrock-tower",
+  "level_number": 3,
+  "areas": [
+    {
+      "key": "v1",
+      "description": "The Wayfarer's inn.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        3
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "v2",
+      "description": "A small stone temple.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        3
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

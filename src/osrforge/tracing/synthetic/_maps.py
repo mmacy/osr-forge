@@ -22,7 +22,8 @@ from osrforge.tracing.synthetic._spec import (
     PanelSpec,
     RegionSpec,
 )
-from osrforge.tracing.truth import HalfPair, Style, SymbolKind
+from osrforge.tracing.synthetic._style_maps import STYLE_MAPS
+from osrforge.tracing.truth import Compass, HalfPair, Scale, Style, SymbolKind
 
 
 def _single(
@@ -653,7 +654,7 @@ def _gate_regions(plan: Plan) -> tuple[RegionSpec, RegionSpec]:
         plan.columns(_GATE_FOLD + 1, plan.width),
         "THE GATEHOUSE, EAST",
         ("left",),
-        prints_compass=False,
+        compass=Compass(north="top", printed=False),
         legend_from=1,
         fold=plan.columns(_GATE_FOLD, plan.width),
         fold_shown=0.3,
@@ -745,13 +746,13 @@ def watchtower() -> MapSpec:
             cellar_plan,
             "THE CELLAR",
             legend=legend,
-            scale_feet=5,
+            scale=Scale(feet=5, printed=True, text="1 SQUARE = 5 FEET"),
             at=(float(tower_plan.width) + 2.0, 0.0),
         ),
     )
     panels = (
         PanelSpec("tower", (("tower", (0, 0)),), tower_plan),
-        PanelSpec("cellar", (("cellar", (0, 0)),), cellar_plan),
+        PanelSpec("cellar", (("cellar", (0, 0)),), cellar_plan, scale_feet=5),
     )
     areas = (
         AreaSpec(
@@ -900,5 +901,6 @@ MAPS: tuple[Callable[[], MapSpec], ...] = (
     watchtower,
     mill,
     shrine,
+    *STYLE_MAPS,
 )
 """Every map this generator draws."""

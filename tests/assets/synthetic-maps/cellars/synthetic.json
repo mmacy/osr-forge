@@ -1,0 +1,23 @@
+{
+  "name": "cellars",
+  "title": "The cellars",
+  "features": [
+    "five_foot_rooms_two_and_three_wide"
+  ],
+  "damage": [],
+  "images": [
+    {
+      "file": "cellars.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    }
+  ]
+}

@@ -15,9 +15,15 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
+import numpy as np
+import numpy.typing as npt
+
+from osrforge.tracing.synthetic._cave import inside
 from osrforge.tracing.synthetic._plan import Ornament, Plan, neighbour
 from osrforge.tracing.synthetic._raster import (
+    BoolArray,
     Canvas,
+    FloatArray,
     Point,
     Rgb,
     blur,
@@ -29,8 +35,8 @@ from osrforge.tracing.synthetic._raster import (
     text_width,
     waves,
 )
-from osrforge.tracing.synthetic._spec import RegionSpec
-from osrforge.tracing.truth import PageSide, Registration, parse_cell, parse_edge
+from osrforge.tracing.synthetic._spec import TEN_FEET, UPRIGHT, RegionSpec
+from osrforge.tracing.truth import PageSide, Registration, Scale, parse_cell, parse_edge, rotation_for
 
 type Cell = tuple[int, int]
 
@@ -59,6 +65,8 @@ class Look:
     """The spread of each of the four terms of the scan's noise, 0 for none."""
 
     format: Literal["jpeg", "png"]
+    wall: float = 0.24
+    """A wall's width in cells."""
 
 
 def _tint(ink: Rgb, paper: Rgb, share: float) -> Rgb:
@@ -73,6 +81,9 @@ _BLUE: Rgb = (46, 100, 172)
 _BLUE_PAPER: Rgb = (242, 241, 233)
 _BLACK: Rgb = (24, 24, 24)
 _WHITE: Rgb = (255, 255, 255)
+_DARK: Rgb = (34, 31, 38)
+_CAVE_INK: Rgb = (86, 60, 42)
+_CAVE_PAPER: Rgb = (249, 243, 228)
 
 LOOKS: dict[str, Look] = {
     "tsr_blue": Look(
@@ -99,21 +110,34 @@ LOOKS: dict[str, Look] = {
         grain=0,
         format="png",
     ),
+    "dark_rock": Look(
+        ink=_DARK,
+        paper=_WHITE,
+        tint=_tint(_DARK, _WHITE, 0.12),
+        rock="solid",
+        pitch=24.0,
+        bow=0.0,
+        skew=0.0,
+        blur=False,
+        grain=0,
+        format="png",
+        wall=0.32,
+    ),
+    "cave": Look(
+        ink=_CAVE_INK,
+        paper=_CAVE_PAPER,
+        tint=_tint(_CAVE_INK, _CAVE_PAPER, 0.3),
+        rock="solid",
+        pitch=24.0,
+        bow=0.0,
+        skew=0.0,
+        blur=False,
+        grain=0,
+        format="png",
+        wall=0.3,
+    ),
 }
 """The styles this generator draws, by the truth format's style name."""
-
-
-def scale_text(feet: int) -> str:
-    """The scale statement a map at a scale prints.
-
-    Args:
-        feet: Feet per square.
-
-    Returns:
-        The statement.
-    """
-    return f"1 SQUARE = {feet} FEET"
-
 
 MARGIN = 24
 _TITLE_ROOM = 34
@@ -274,9 +298,12 @@ def draw_plan(pen: Pen, plan: Plan, cut: Sequence[PageSide]) -> None:
     look = pen.look
     canvas = pen.canvas
     pitch = pen.pitch
+    caves = [ornament for ornament in plan.ornaments if ornament.kind == "cave"]
     for y in range(plan.height):
         for x in range(plan.width):
             letter = plan.cells[y][x]
+            if letter == "#" and caves:
+                continue
             if letter == "#":
                 if look.rock == "solid":
                     canvas.polygon(pen.quad((x, y)))
@@ -288,9 +315,11 @@ def draw_plan(pen: Pen, plan: Plan, cut: Sequence[PageSide]) -> None:
     positions = list(plan.edges.positions())
     for cell, side in positions:
         other = neighbour(cell, side)
-        if cell in occupied and other in occupied:
+        if caves or (cell in occupied and other in occupied):
             a, b = pen.ends(cell, side)
             pen.line(a, b, GRID, "tint", cap=GRID / 2.0)
+    if caves:
+        _cave_floor(pen, caves)
     styles = plan.edge_styles
     for cell, side in positions:
         letter = plan.letter(cell, side)
@@ -303,9 +332,9 @@ def draw_plan(pen: Pen, plan: Plan, cut: Sequence[PageSide]) -> None:
             pattern = (0.16, 0.12, 0.03, 0.12) if style == "dashdot" else (0.2, 0.12)
             pen.dashes([a, b], 0.07, pattern)
         elif letter == "n":
-            pen.line(a, b, WINDOW, cap=WALL / 2.0)
-        elif letter in "wdls":
-            pen.line(a, b, WALL, cap=WALL / 2.0)
+            pen.line(a, b, WINDOW, cap=look.wall / 2.0)
+        elif letter in "dls" or (letter == "w" and not caves):
+            pen.line(a, b, look.wall, cap=look.wall / 2.0)
     for cell, side in positions:
         letter = plan.letter(cell, side)
         if letter in "nlds":
@@ -321,6 +350,24 @@ def draw_plan(pen: Pen, plan: Plan, cut: Sequence[PageSide]) -> None:
     for index in range(4):
         if names[index] not in cut:
             pen.line(corners[index], corners[(index + 1) % 4], 0.06, cap=0.03)
+
+
+def _cave_floor(pen: Pen, caves: list[Ornament]) -> None:
+    """Paint rock everywhere off the caves' floor, so the paper left is exactly the floor the reading counts.
+
+    The rock's edge is the cave's wall, off the grid lines.
+    """
+    corners = pen.registration.corners
+    (left, top), (right, bottom) = corners[0][0], corners[-1][-1]
+    pitch = pen.pitch
+
+    def floor(x: FloatArray, y: FloatArray) -> BoolArray:
+        return inside(caves, (x - left) / pitch, (y - top) / pitch)
+
+    def rock(x: FloatArray, y: FloatArray) -> BoolArray:
+        return ~floor(x, y) & (x >= left) & (x <= right) & (y >= top) & (y <= bottom)
+
+    pen.canvas.paint(rock, (left, top, right, bottom))
 
 
 def _other_name(cell: Cell, side: str) -> str:
@@ -517,6 +564,8 @@ def circle(centre: Point, radius: float, steps: int = 24) -> list[Point]:
 
 
 def _ornament(pen: Pen, ornament: Ornament) -> None:
+    if ornament.kind == "cave":
+        return
     if ornament.kind == "contour":
         pen.path(chaikin(ornament.points), 0.035)
     elif ornament.kind == "track":
@@ -657,28 +706,27 @@ def _legend_sample(canvas: Canvas, look: Look, origin: Point, entry: str) -> Non
 def legend_entries(region: RegionSpec) -> list[str]:
     """The legend's entries, in the order they're printed: the door kinds the map shows, then its symbols."""
     letters = "".join(region.plan.edges.vertical) + "".join(region.plan.edges.horizontal)
-    entries = [letter for letter in "dsln" if letter in letters]
+    entries = [letter for letter in "dsln" if letter in letters or (letter == "l" and "locked_door" in region.legend)]
     if "l" in letters and "locked_door" not in region.legend:
         raise ValueError(f"region {region.id} shows a locked door its legend doesn't explain")
     return entries + [kind for kind in region.legend if kind != "locked_door"]
 
 
-def page_size(region: RegionSpec, look: Look) -> tuple[int, int]:
-    """The page image's size for one region.
+def page_size(region: RegionSpec, look: Look, plan: Plan) -> tuple[int, int]:
+    """The page image's size for one region, drawn with its north at the top.
 
     Args:
         region: The region.
         look: Its style.
+        plan: The region's plan turned to put its north at the top.
 
     Returns:
         `(width, height)` in pixels.
     """
-    plan = region.plan
     probe = registration_for(plan.width, plan.height, look, (MARGIN, MARGIN + _TITLE_ROOM), (), None)
     right = max(point[0] for row in probe.corners for point in row)
     bottom = max(point[1] for row in probe.corners for point in row)
-    entries = legend_entries(region) if region.legend_from is None else []
-    furniture = MARGIN * 2 + 230 + 150 * max(1, (len(entries) + 1) // 2)
+    furniture = MARGIN * 2 + 230 + 150 * max(1, (len(legend_entries(region)) + 1) // 2)
     width = max(math.ceil(right) + MARGIN, furniture)
     if "left" in region.cut_off:
         width -= MARGIN
@@ -686,12 +734,13 @@ def page_size(region: RegionSpec, look: Look) -> tuple[int, int]:
 
 
 def _furniture(
-    canvas: Canvas, look: Look, left: float, top: float, compass: bool, scale: str, entries: Sequence[str]
+    canvas: Canvas, look: Look, left: float, top: float, compass: bool, scale: Scale, entries: Sequence[str]
 ) -> None:
     """Draw the compass, the scale statement, and the legend below a map, leaving out what the page doesn't print."""
     if compass:
         _compass(canvas, (left + 16.0, top + 40.0), 48.0)
-    text(canvas, scale, (left + 50.0 + text_width(scale, 9.0) / 2.0, top + 14.0), 9.0, 1.3)
+    if scale.printed and scale.text is not None:
+        text(canvas, scale.text, (left + 50.0 + text_width(scale.text, 9.0) / 2.0, top + 14.0), 9.0, 1.3)
     for index, entry in enumerate(entries):
         column, row = divmod(index, 2)
         x = left + 50.0 + column * 150.0
@@ -701,19 +750,64 @@ def _furniture(
         text(canvas, name, (x + 48.0 + text_width(name, 8.0) / 2.0, y + 10.0), 8.0, 1.2)
 
 
-def _scan(canvas: Canvas, look: Look, seed: int) -> bytes:
-    pixels = canvas.pixels(look.paper, look.tint, look.ink)
+def _scan(pixels: npt.NDArray[np.int32], look: Look, seed: int) -> bytes:
+    """Scan a drawn page: blur it and add the look's noise, then encode it."""
     if look.blur:
         pixels = blur(pixels)
     if look.grain:
-        grain = noise(canvas.width, canvas.height, seed, look.grain)
+        grain = noise(pixels.shape[1], pixels.shape[0], seed, look.grain)
         pixels = pixels + grain[:, :, None]
     return encode(pixels, look.format)
+
+
+def _turn_page(
+    pixels: npt.NDArray[np.int32], registration: Registration, rotation: int, plan: Plan
+) -> tuple[npt.NDArray[np.int32], Registration]:
+    """Turn a page drawn north-up so its north points where the region's compass says.
+
+    The page turns counter-clockwise by `rotation`, the quarter turn that panel
+    placement undoes. Each corner of the region's grid in page orientation
+    takes the pixel of the north-up corner it turned from.
+
+    Args:
+        pixels: The north-up page.
+        registration: The north-up grid's corners.
+        rotation: The clockwise quarter turn from the page to the north-up drawing.
+        plan: The region's plan in page orientation.
+
+    Returns:
+        The turned page and the region's registration on it.
+    """
+    turns = rotation // 90
+    height, width = pixels.shape[0], pixels.shape[1]
+
+    def turned(point: tuple[float, float]) -> tuple[float, float]:
+        x, y = point
+        size = (width, height)
+        for _ in range(turns):
+            x, y = y, size[0] - 1 - x
+            size = (size[1], size[0])
+        return (round(x, 3), round(y, 3))
+
+    def upright(gx: int, gy: int) -> tuple[int, int]:
+        if rotation == 90:
+            return (plan.height - gy, gx)
+        if rotation == 180:
+            return (plan.width - gx, plan.height - gy)
+        return (gy, plan.width - gx)
+
+    corners = tuple(
+        tuple(turned(registration.corners[upright(gx, gy)[1]][upright(gx, gy)[0]]) for gx in range(plan.width + 1))
+        for gy in range(plan.height + 1)
+    )
+    return np.ascontiguousarray(np.rot90(pixels, k=turns)), Registration(corners=corners)
 
 
 def draw_page(region: RegionSpec, seed: int) -> tuple[bytes, Registration, Look]:
     """Draw one region on its own page image.
 
+    The page is drawn with the region's north at the top, then turned so its
+    north points where the region's compass says, title and legend with it.
     A half whose fold cuts through a column draws that column too, as far as
     the image shows it. A region that prints no compass or no legend leaves
     it out.
@@ -726,8 +820,11 @@ def draw_page(region: RegionSpec, seed: int) -> tuple[bytes, Registration, Look]
         The encoded image, the region's registration, and its look.
     """
     look = LOOKS[region.style]
-    plan = region.plan
-    width, height = page_size(region, look)
+    rotation = rotation_for(region.compass.north) if region.compass.printed else 0
+    if rotation and region.fold is not None:
+        raise ValueError(f"region {region.id} is a turned half, which the generator doesn't draw")
+    plan = region.plan.turned(rotation)
+    width, height = page_size(region, look, plan)
     registration = registration_for(
         plan.width, plan.height, look, (MARGIN, MARGIN + _TITLE_ROOM), region.cut_off, width, region.fold_shown
     )
@@ -738,11 +835,14 @@ def draw_page(region: RegionSpec, seed: int) -> tuple[bytes, Registration, Look]
     text(canvas, region.title, (left + text_width(region.title, 13.0) / 2.0, MARGIN + 8.0), 13.0, 1.8)
     bottom = max(point[1] for row in registration.corners for point in row)
     entries = legend_entries(region) if region.legend_from is None else []
-    _furniture(canvas, look, left, bottom + 22.0, region.prints_compass, scale_text(region.scale_feet), entries)
-    return _scan(canvas, look, seed), registration, look
+    _furniture(canvas, look, left, bottom + 22.0, region.compass.printed, region.scale or TEN_FEET, entries)
+    pixels = canvas.pixels(look.paper, look.tint, look.ink)
+    if rotation:
+        pixels, registration = _turn_page(pixels, registration, rotation, region.plan)
+    return _scan(pixels, look, seed), registration, look
 
 
-def draw_sheet(regions: Sequence[RegionSpec], seed: int) -> tuple[bytes, dict[str, Registration], Look]:
+def draw_regions(regions: Sequence[RegionSpec], seed: int) -> tuple[bytes, dict[str, Registration], Look]:
     """Draw several regions on one page image: the first as a page draws it, and the others where `at` puts them.
 
     Each later region is drawn on blank paper with its title above its frame,
@@ -762,8 +862,11 @@ def draw_sheet(regions: Sequence[RegionSpec], seed: int) -> tuple[bytes, dict[st
     look = LOOKS[first.style]
     if any(region.style != first.style or region.legend != first.legend for region in regions):
         raise ValueError(f"the regions on image {first.image} differ in style or legend")
-    if any(region.cut_off or region.fold or not region.prints_compass or region.legend_from for region in regions):
-        raise ValueError(f"the regions on image {first.image} must each be whole and print the page's furniture")
+    if any(
+        region.cut_off or region.fold or region.compass != UPRIGHT or region.legend_from is not None
+        for region in regions
+    ):
+        raise ValueError(f"the regions on image {first.image} must each be whole, upright, and print the furniture")
     main = registration_for(first.plan.width, first.plan.height, look, (MARGIN, MARGIN + _TITLE_ROOM), (), None)
     registrations = {first.id: main}
     for region in regions[1:]:
@@ -777,7 +880,8 @@ def draw_sheet(regions: Sequence[RegionSpec], seed: int) -> tuple[bytes, dict[st
         ys = [point[1] for row in registration.corners for point in row]
         return min(xs), min(ys), max(xs), max(ys)
 
-    own_scale = {region.id: region.scale_feet != first.scale_feet for region in regions}
+    scales = {region.id: region.scale or TEN_FEET for region in regions}
+    own_scale = {region.id: scales[region.id] != scales[first.id] for region in regions}
     right = max(extent(registration)[2] for registration in registrations.values())
     bottom = max(extent(registrations[region.id])[3] + (18.0 if own_scale[region.id] else 0.0) for region in regions)
     entries: list[str] = []
@@ -804,8 +908,8 @@ def draw_sheet(regions: Sequence[RegionSpec], seed: int) -> tuple[bytes, dict[st
         )
         draw_plan(pen, region.plan, ())
         text(canvas, region.title, ((xmin + xmax) / 2.0, ymin - 12.0), 11.0, 1.5)
-        if own_scale[region.id]:
-            words = scale_text(region.scale_feet)
+        words = scales[region.id].text
+        if own_scale[region.id] and words is not None:
             text(canvas, words, ((xmin + xmax) / 2.0, ymax + 13.0), 9.0, 1.3)
-    _furniture(canvas, look, MARGIN, bottom + 22.0, True, scale_text(first.scale_feet), entries)
-    return _scan(canvas, look, seed), registrations, look
+    _furniture(canvas, look, MARGIN, bottom + 22.0, True, scales[first.id], entries)
+    return _scan(canvas.pixels(look.paper, look.tint, look.ink), look, seed), registrations, look
