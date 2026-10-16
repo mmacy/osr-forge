@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "map_reading": "read",
+  "levels": [
+    {
+      "dungeon_id": "the-scattered-pages",
+      "level_number": 1,
+      "map_pages": [
+        1,
+        4
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
+    },
+    {
+      "dungeon_id": "the-scattered-pages",
+      "level_number": 2,
+      "map_pages": [
+        2,
+        3
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
+    }
+  ]
+}

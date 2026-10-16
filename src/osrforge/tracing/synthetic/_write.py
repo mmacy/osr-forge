@@ -25,16 +25,17 @@ from osrforge.contracts.stages import (
     TownInfo,
 )
 from osrforge.tracing.synthetic import SyntheticImage, SyntheticManifest
-from osrforge.tracing.synthetic._draw import SCALE_TEXT, draw_page
+from osrforge.tracing.synthetic._draw import draw_page
 from osrforge.tracing.synthetic._maps import MAPS
-from osrforge.tracing.synthetic._plan import Plan
+from osrforge.tracing.synthetic._plan import seed_cells
 from osrforge.tracing.synthetic._resolve import Resolved, level_model, resolve_dungeon
-from osrforge.tracing.synthetic._spec import MapSpec
+from osrforge.tracing.synthetic._sheets import draw_sheet
+from osrforge.tracing.synthetic._spec import TEN_FEET, MapSpec
 from osrforge.tracing.truth import (
-    Compass,
     Dungeon,
     GeometryTruth,
     Legend,
+    Level,
     Outline,
     Page,
     PageImage,
@@ -42,33 +43,12 @@ from osrforge.tracing.truth import (
     PanelRegion,
     Region,
     Registration,
-    Scale,
-    cell_key,
     save_geometry_truth,
 )
 from osrforge.workdir import write_json_artifact
 
 _DIRECTIONS: dict[str, Direction] = {"north": "north", "east": "east", "south": "south", "west": "west"}
 _OPPOSITE: dict[str, str] = {"north": "south", "south": "north", "east": "west", "west": "east"}
-
-
-def _seeds(plan: Plan) -> tuple[str, ...]:
-    if plan.seeds:
-        return plan.seeds
-    owned = [
-        (x, y)
-        for rx, ry, w, h in plan.rects
-        for y in range(ry, ry + h)
-        for x in range(rx, rx + w)
-        if plan.cell((x, y)) == "."
-    ]
-    inner = [
-        cell
-        for cell in owned
-        if all(plan.cell((cell[0] + dx, cell[1] + dy)) == "." for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-    ]
-    chosen = min(inner or owned, key=lambda cell: (cell[1], cell[0]))
-    return (cell_key(chosen),)
 
 
 def _connections(level: Resolved) -> dict[str, list[AreaConnection]]:
@@ -124,7 +104,14 @@ def build(spec: MapSpec, out_dir: Path) -> None:
         (target / "images" / region.image).write_bytes(data)
         registrations[region.id] = registration
         images[region.image] = SyntheticImage(file=region.image, ink=look.ink, paper=look.paper)
-    levels, entrance = resolve_dungeon(spec)
+    for sheet in spec.sheets:
+        if sheet.image in images:
+            raise ValueError(f"image {sheet.image} holds two pictures, which the generator doesn't draw")
+        data, ink, paper = draw_sheet(sheet)
+        (target / "images" / sheet.image).write_bytes(data)
+        images[sheet.image] = SyntheticImage(file=sheet.image, ink=ink, paper=paper)
+    resolved, entrance = resolve_dungeon(spec)
+    traced = {level.spec.number: level for level in resolved}
     level_of = {panel: level.number for level in spec.dungeon.levels for panel in level.panels}
     regions = tuple(
         Region(
@@ -134,29 +121,47 @@ def build(spec: MapSpec, out_dir: Path) -> None:
             style=region.style,
             columns=region.plan.width,
             rows=region.plan.height,
-            scale=Scale(feet=10, printed=True, text=SCALE_TEXT),
-            compass=Compass(north="top", printed=True),
-            legend=Legend(printed=True, symbols=region.legend),
+            scale=region.scale or TEN_FEET,
+            compass=region.compass,
+            legend=Legend(printed=region.legend_from is None, from_page=region.legend_from, symbols=region.legend),
             cut_off=region.cut_off,
             verdict="registered",
             registration=registrations[region.id],
         )
         for region in spec.regions
+    ) + tuple(
+        Region(
+            id=sheet.id,
+            page=sheet.page,
+            image=sheet.image,
+            style=sheet.style,
+            columns=sheet.columns,
+            rows=sheet.rows,
+            scale=sheet.scale,
+            compass=sheet.compass,
+            legend=sheet.legend,
+            verdict=sheet.verdict,
+            reason=sheet.reason,
+        )
+        for sheet in spec.sheets
+        if sheet.verdict is not None
     )
     panels = tuple(
         Panel(
             id=panel.id,
             regions=tuple(PanelRegion(region=region, origin=origin) for region, origin in panel.regions),
-            scale_feet=10,
+            scale_feet=panel.scale_feet,
             cells=panel.plan.cells,
             edges=panel.plan.edges,
+            partial=panel.plan.partial,
+            cave=panel.plan.cave,
             marks=panel.plan.marks,
             outlines=(
                 Outline(
                     dungeon=spec.dungeon.id,
                     level=level_of[panel.id],
                     rects=panel.plan.rects,
-                    seeds=_seeds(panel.plan),
+                    seeds=seed_cells(panel.plan),
                     open_ground=panel.plan.open_ground,
                 ),
             ),
@@ -165,12 +170,13 @@ def build(spec: MapSpec, out_dir: Path) -> None:
         for panel in spec.panels
     )
     pages: dict[int, list[str]] = {}
-    for region in spec.regions:
-        pages.setdefault(region.page, [])
-        if region.image not in pages[region.page]:
-            pages[region.page].append(region.image)
+    for picture in [*spec.regions, *(sheet for sheet in spec.sheets if sheet.verdict is not None)]:
+        pages.setdefault(picture.page, [])
+        if picture.image not in pages[picture.page]:
+            pages[picture.page].append(picture.image)
     truth = GeometryTruth(
-        pages=tuple(
+        pages=spec.pages
+        or tuple(
             Page(number=number, images=tuple(PageImage(file=file) for file in files))
             for number, files in sorted(pages.items())
         ),
@@ -182,7 +188,12 @@ def build(spec: MapSpec, out_dir: Path) -> None:
                 id=spec.dungeon.id,
                 name=spec.dungeon.name,
                 entrance=entrance,
-                levels=tuple(level_model(level) for level in levels),
+                levels=tuple(
+                    level_model(traced[level.number])
+                    if level.fallback is None
+                    else Level(number=level.number, verdict="fallback", reason=level.fallback)
+                    for level in spec.dungeon.levels
+                ),
             ),
         ),
     )
@@ -190,7 +201,8 @@ def build(spec: MapSpec, out_dir: Path) -> None:
     page_of = {region.id: region.page for region in spec.regions}
     regions_of = {panel.id: [region for region, _origin in panel.regions] for panel in spec.panels}
     map_pages = {
-        level.number: tuple(sorted({page_of[region] for panel in level.panels for region in regions_of[panel]}))
+        level.number: level.pages
+        or tuple(sorted({page_of[region] for panel in level.panels for region in regions_of[panel]}))
         for level in spec.dungeon.levels
     }
     survey = SurveyIndex(
@@ -219,11 +231,15 @@ def build(spec: MapSpec, out_dir: Path) -> None:
         monster_names=(),
     )
     write_json_artifact(target / "stages" / "survey.json", survey)
-    for level in levels:
-        connections = _connections(level)
+    for level in spec.dungeon.levels:
+        connections = (
+            _connections(traced[level.number])
+            if level.number in traced
+            else {area.key: list(area.links) for area in level.areas}
+        )
         content = LevelContent(
             dungeon_id=spec.dungeon.id,
-            level_number=level.spec.number,
+            level_number=level.number,
             areas=tuple(
                 AreaContent(
                     key=area.key,
@@ -232,27 +248,25 @@ def build(spec: MapSpec, out_dir: Path) -> None:
                     treasure=(),
                     features=(),
                     connections=tuple(connections[area.key]),
-                    source_pages=map_pages[level.spec.number],
+                    source_pages=map_pages[level.number],
                     confidence=1.0,
                 )
-                for area in level.spec.areas
+                for area in level.areas
             ),
         )
-        write_json_artifact(target / "stages" / f"areas.{spec.dungeon.id}.{level.spec.number}.json", content)
+        write_json_artifact(target / "stages" / f"areas.{spec.dungeon.id}.{level.number}.json", content)
     reading = MapReading(
         map_reading="read",
         levels=tuple(
             MapLevelReading(
                 dungeon_id=spec.dungeon.id,
-                level_number=level.spec.number,
-                map_pages=map_pages[level.spec.number],
+                level_number=level.number,
+                map_pages=map_pages[level.number],
                 status="read",
-                proposals=_proposals(level),
-                entrance_key=spec.entrance_key
-                if any(area.key == spec.entrance_key for area in level.spec.areas)
-                else None,
+                proposals=_proposals(traced[level.number]) if level.number in traced else (),
+                entrance_key=spec.entrance_key if any(area.key == spec.entrance_key for area in level.areas) else None,
             )
-            for level in levels
+            for level in spec.dungeon.levels
         ),
     )
     write_json_artifact(target / "stages" / "mapread.json", reading)

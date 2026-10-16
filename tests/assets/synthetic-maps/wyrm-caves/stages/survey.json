@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "title": "The wyrm caves",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-wyrm-caves",
+      "name": "The wyrm caves",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Mouth cavern",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Long cavern",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Wyrm's den",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}
