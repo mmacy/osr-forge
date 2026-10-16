@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "lair-k",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "1",
+      "description": "The open mouth of the lair looks out over the ravine.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "2",
+      "description": "A dry stone wall closes this cave from the ravine.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "3",
+      "description": "Black water fills a pool in the floor.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "4",
+          "direction": "north",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "4",
+      "description": "Bedding lies along the walls around the pool.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "3",
+          "direction": "south",
+          "via": "passage",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

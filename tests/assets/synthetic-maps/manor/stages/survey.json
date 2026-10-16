@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "title": "Greywall manor",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "greywall-manor",
+      "name": "Greywall manor",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Gate hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "2",
+              "name": "West tower",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "3",
+              "name": "East tower",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Great chamber",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Library",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "6",
+              "name": "Solar",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "7",
+              "name": "Passage room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}

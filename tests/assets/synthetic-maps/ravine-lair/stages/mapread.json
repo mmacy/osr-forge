@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "map_reading": "read",
+  "levels": [
+    {
+      "dungeon_id": "lair-k",
+      "level_number": 1,
+      "map_pages": [
+        1
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "3",
+          "b": "4",
+          "door": "none"
+        }
+      ],
+      "entrance_key": null
+    }
+  ]
+}

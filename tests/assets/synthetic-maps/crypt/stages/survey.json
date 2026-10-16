@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "title": "The crypt of the grey abbot",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "crypt",
+      "name": "The crypt of the grey abbot",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "North end of the great hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "2",
+              "name": "South end of the great hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Dais",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Cells",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Closet",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "6",
+              "name": "Summoning room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "7",
+              "name": "West vestry",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "8",
+              "name": "East vestry",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "9",
+              "name": "Shrine",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}
