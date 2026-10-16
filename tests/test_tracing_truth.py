@@ -140,6 +140,46 @@ def test_a_region_with_no_scale_in_feet_round_trips(tmp_path: Path):
     assert loaded == canonical_form(with_refused)
 
 
+def test_a_level_records_the_doors_the_prose_locks(tmp_path: Path):
+    """A prose lock is listed by edge, keeps the reading's letter, and saves under one name per edge."""
+    truth = demo_truth()
+    level = truth.level("demo", 1)
+    assert level.edges is not None
+    doors = [
+        (cell, side)
+        for cell in ((x, y) for y, row in enumerate(level.cells) for x in range(len(row)))
+        for side in ("south", "east")
+        if level.edges.at(cell, side) in "dls"
+    ]
+    assert doors, "the demo level has a door on a south or east side"
+    (x, y), side = doors[0]
+    named_south_or_east = edge_key((x, y), side)
+    locked = level.model_copy(update={"locked_doors": (named_south_or_east,)})
+    Level.model_validate(locked.model_dump())
+    dungeon = truth.dungeons[0]
+    levels = tuple(locked if item.number == 1 else item for item in dungeon.levels)
+    document = GeometryTruth.model_validate(
+        {**truth.model_dump(), "dungeons": [dungeon.model_copy(update={"levels": levels}).model_dump()]}
+    )
+    path = tmp_path / "geometry.json"
+    save_geometry_truth(path, document)
+    other_name = edge_key((x, y + 1), "north") if side == "south" else edge_key((x + 1, y), "west")
+    assert load_geometry_truth(path).level("demo", 1).locked_doors == (other_name,)
+
+
+def test_a_locked_door_must_be_a_door():
+    truth = demo_truth()
+    level = truth.level("demo", 1)
+    assert level.edges is not None
+    walls = [
+        edge_key(cell, "east")
+        for cell in ((x, y) for y, row in enumerate(level.cells) for x in range(len(row)) if row[x] == ".")
+        if level.edges.at(cell, "east") == "w"
+    ]
+    with pytest.raises(ValidationError, match="isn't a door"):
+        Level.model_validate({**level.model_dump(), "locked_doors": [walls[0]]})
+
+
 def test_five_foot_documents_validate():
     five, ten = five_foot_pair()
     assert five.panels[0].scale_feet == 5

@@ -940,6 +940,10 @@ class Level(BaseModel):
     keys: tuple[PlacedKey, ...] = ()
     transitions: tuple[Transition, ...] = ()
     passages: tuple[Passage, ...] = ()
+    locked_doors: tuple[str, ...] = ()
+    """The doors the prose locks, each as an edge address `x,y:side` of a cell of the level. The edge keeps the
+    letter the reading gives, so a secret door the prose locks stays `s` and is listed here. A door read as `l`
+    under a legend with the locked-door symbol is locked by its letter and isn't listed."""
     flags: tuple[str, ...] = ()
     """What the report flags on this level, one entry each."""
 
@@ -950,8 +954,19 @@ class Level(BaseModel):
         if traced == (self.reason is not None):
             raise ValueError(f"{what}: a reason is present exactly when the level fell back")
         if not traced:
-            if self.panels or self.cells or self.edges or self.areas or self.keys or self.transitions or self.passages:
-                raise ValueError(f"{what}: a level that fell back has no grid, areas, keys, transitions, or passages")
+            if (
+                self.panels
+                or self.cells
+                or self.edges
+                or self.areas
+                or self.keys
+                or self.transitions
+                or self.passages
+                or self.locked_doors
+            ):
+                raise ValueError(
+                    f"{what}: a level that fell back has no grid, areas, keys, transitions, passages, or locked doors"
+                )
             return self
         if not self.panels or self.edges is None:
             raise ValueError(f"{what}: a traced level has panels, cells, and edges")
@@ -964,6 +979,11 @@ class Level(BaseModel):
             _check_cells_in([placed.cell], self.cells, f"{what} key {placed.label!r}")
         for transition in self.transitions:
             _check_cells_in([transition.cell], self.cells, f"{what} {transition.kind}")
+        for address in self.locked_doors:
+            cell, side = parse_edge(address)
+            _check_cells_in([cell_key(cell)], self.cells, f"{what} locked door {address}")
+            if self.edges.at(cell, side) not in DOOR_LETTERS:
+                raise ValueError(f"{what}: locked door {address} isn't a door in the level's edges")
         for passage in self.passages:
             _check_cells_in([passage.cell], self.cells, f"{what} passage")
             if self.edges.at(parse_cell(passage.cell), passage.side) != "w":
@@ -1260,9 +1280,26 @@ def _canonical_level(level: Level) -> Level:
             "passages": tuple(
                 sorted(level.passages, key=lambda item: (_cell_order(item.cell), _SIDE_ORDER.index(item.side)))
             ),
+            "locked_doors": tuple(sorted({_edge_name(address) for address in level.locked_doors}, key=_edge_order)),
             "flags": tuple(sorted(level.flags)),
         }
     )
+
+
+def _edge_name(address: str) -> str:
+    """Name an edge from the cell on its north or west, so its two names become one."""
+    (x, y), side = parse_edge(address)
+    if side == "south":
+        return edge_key((x, y + 1), "north")
+    if side == "east":
+        return edge_key((x + 1, y), "west")
+    return address
+
+
+def _edge_order(address: str) -> tuple[float, float]:
+    (x, y), side = parse_edge(address)
+    midpoint = (x + 0.5, y) if side == "north" else (x, y + 0.5)
+    return (midpoint[1], midpoint[0])
 
 
 def canonical_form(truth: GeometryTruth) -> GeometryTruth:
