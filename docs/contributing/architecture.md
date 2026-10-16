@@ -72,7 +72,7 @@ is documented in [the workdir and artifacts](../reference/workdir-artifacts.md).
   protocols. The Azure AI Foundry specifics live in
   [`osrforge.providers.foundry`][], the `anthropic` library in
   [`osrforge.providers.claude`][], and the Workers AI endpoint in
-  `osrforge.providers.clef`, and nowhere else. Tests run on
+  [`osrforge.providers.clef`][], and nowhere else. Tests run on
   [`FixtureProvider`][osrforge.providers.fixtures.FixtureProvider] and on
   the tracing providers' recordings — see [testing](testing.md).
 

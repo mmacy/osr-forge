@@ -55,7 +55,8 @@ class ImagePart:
     The bytes are always PNG. Preprocessing and the tracing stage emit PNG,
     and each adapter does its own packaging: the Foundry adapter sends a
     base64 data URL, the Claude adapter a base64 image block, and the Clef
-    adapter re-encodes a large crop as JPEG (`osrforge.providers.clef`).
+    adapter re-encodes a large crop as JPEG (see
+    [`osrforge.providers.clef`][]).
     """
 
     png: bytes

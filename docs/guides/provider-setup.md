@@ -83,3 +83,36 @@ the ledger and refuses the request when that would pass the stop. After the
 answer it settles the reservation at what the answer's usage cost. The
 ledger file is locked while it's read and written, so several conversions
 can share one ledger.
+
+### Clef, the decision provider
+
+[`ClefProvider`][osrforge.providers.clef.ClefProvider] fills the
+[`DecisionProvider`][osrforge.providers.decisions.DecisionProvider] role
+through Cloudflare's Workers AI REST endpoint. It reads its settings from
+the environment and your wrangler login:
+
+| Variable | Meaning | Required |
+| --- | --- | --- |
+| `OSRFORGE_CLEF_ACCOUNT_ID` | The Cloudflare account id | yes |
+| `OSRFORGE_CLEF_LEDGER` | The path of the Clef cost ledger | yes |
+| `OSRFORGE_CLEF_TOKEN` | A Cloudflare API token with Workers AI access. Omit to use the token of your `wrangler login` | no |
+| `OSRFORGE_CLEF_LEDGER_STOP` | The spend in dollars past which the provider refuses to send a request. Default: the ledger file's own `stop_usd` | no |
+
+```python
+from osrforge.providers.clef import ClefProvider, ClefSettings
+
+provider = ClefProvider(ClefSettings.from_env())
+```
+
+The provider never writes the token anywhere: not to a log, a recording, or
+an error message. It sends each crop as PNG and rebuilds a request body over
+100 KB with the crop as JPEG at quality 90, because Workers AI rejects
+bodies far smaller than its documented limit. Each request's recording
+records which format it used. The ledger works as Claude's does, with one
+entry per run that counts the requests settled against it.
+
+Clef has no version pin, so the model behind a request can change between
+runs. Before a sweep, the drift check
+([`drift_check`][osrforge.providers.decisions.drift_check]) sends a sample
+of recorded requests again with their exact stored bodies and stops the
+sweep if a top answer changes or any probability moves by more than 0.03.
