@@ -15,6 +15,7 @@ from osrforge.tracing.synthetic._plan import Plan
 from osrforge.tracing.truth import Compass, HalfPair, Legend, Page, PageSide, Scale, Style, SymbolKind
 
 type Cell = tuple[int, int]
+type Point = tuple[float, float]
 
 UPRIGHT = Compass(north="top", printed=True)
 """A printed compass pointing to the top of the page."""
@@ -85,6 +86,26 @@ class RegionSpec:
     legend_from: int | None = None
     """The page whose legend the region uses when it prints none; `legend` then lists that legend's symbols."""
 
+    fold: Plan | None = None
+    """For a half whose image edge cuts through a column: the plan as drawn, `plan` with that column added on the
+    fold side. The column belongs to neither half's grid."""
+
+    fold_shown: float = 0.0
+    """How much of the column the fold cuts the image shows, in cells."""
+
+    at: Point | None = None
+    """For a region drawn on an image that an earlier region is on: where its grid's north-west corner sits, in the
+    grid coordinates of the first region on that image."""
+
+
+@dataclass(frozen=True)
+class OutlineSpec:
+    """One level's outline on a panel that several levels share, in the panel's cells."""
+
+    level: int
+    rects: tuple[tuple[int, int, int, int], ...]
+    seeds: tuple[Cell, ...]
+
 
 @dataclass(frozen=True)
 class PanelSpec:
@@ -98,6 +119,8 @@ class PanelSpec:
     regions: tuple[tuple[str, Cell], ...]
     plan: Plan
     scale_feet: Literal[5, 10] = 10
+    outlines: tuple[OutlineSpec, ...] = ()
+    """The outlines of the levels that share the panel, or none when one level uses it and `plan` holds its outline."""
 
 
 @dataclass(frozen=True)

@@ -3,24 +3,29 @@
 The generator never writes an area, a placed key, an entrance, a transition,
 or a passage by hand. It applies the conventions to the reading it drew, so
 the answer is the one the reference resolution script must reach. It applies
-only the rules its maps exercise: a level's panels are 10-foot panels that no
-compass turns, one outline each, and a pair of halves left apart is the only
-way two panels of a level meet. Where a map would need a rule this module
-doesn't apply, or reaches a case the conventions leave open, it raises
+only the rules its maps exercise: halves left apart are 10-foot panels that
+aren't turned, and levels that share a panel share all their panels, aren't
+turned, and print every key on floor. Where a map would need a rule this
+module doesn't apply, or reaches a case the conventions leave open, it raises
 [`DesignError`][osrforge.tracing.synthetic._resolve.DesignError] rather than
 choose, so a map can't quietly carry an answer the rules don't give.
 
-Everything here works on the level's grid: each panel's reading is copied to
-its place there first. The panels aren't turned, so north-then-west order on
-the level is the order the rules ask for, and page order within a panel is the
-same order.
+Everything here works on a board: a level's panels, converted to 10-foot cells
+and turned to put their north at the top, copied to their places on the
+level's grid. North-then-west order on the board is then the order the rules
+ask for, the order `order_key` gives on a panel before its turn. Levels whose
+floors meet on the panels they share are worked out together on one board, as
+the conventions find rooms and areas before ownership divides the floor, and
+then cut apart, each level's grid being the part of the board its own floor
+needs.
 """
 
+import heapq
 import itertools
 import re
 from collections import deque
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Literal
 
 from osrforge.contracts.stages import AreaConnection
@@ -172,6 +177,15 @@ class Board:
     turns: dict[str, Rotation] = field(default_factory=dict[str, Rotation])
     """Each panel's quarter turn onto the level."""
 
+    seeds: list[tuple[Cell, int]] = field(default_factory=list[tuple[Cell, int]])
+    """Each outline's seed cells, with the outline's level."""
+
+    outlines: dict[Cell, set[int]] = field(default_factory=dict[Cell, set[int]])
+    """The levels whose outlines hold each owned cell."""
+
+    sizes: dict[str, Cell] = field(default_factory=dict[str, Cell])
+    """Each panel's width and height in 10-foot cells, after its turn."""
+
     def letter(self, cell: Cell, side: str) -> str:
         """The reading's letter on one side of a cell, `-` where no panel reads it."""
         return self.edges.get(eid(cell, side), "-")
@@ -238,7 +252,15 @@ class Resolved:
     level_cells: dict[Cell, str]
     transitions: list[Transition] = field(default_factory=list[Transition])
     passages: list[Passage] = field(default_factory=list[Passage])
+    """Passages and transitions name cells on the board, the target level's board for a destination."""
+
     area_of: dict[Cell, str] = field(default_factory=dict[Cell, str])
+    locked: list[EdgeId] = field(default_factory=list[EdgeId])
+    """The doors the prose locks, as Doors says, when the reading doesn't lock them by their letter."""
+
+    frame: tuple[int, int, int, int] | None = None
+    """The level's grid as `(x, y, width, height)` on the board, or `None` when it is the whole board. Levels that
+    share a panel share a board, and each level's grid is the part of it its own floor needs."""
 
     def joins(self) -> dict[tuple[str, str], list[tuple[EdgeId, str, str]]]:
         """Each pair of areas a passable edge or a door joins, with the edges and the side of the first area's cell.
@@ -309,19 +331,23 @@ def _floor_bfs(board: Board, starts: Iterable[Cell], letters: str, allowed: set[
 
 
 class LevelRules:
-    """The rules for one level, up to its areas and doors."""
+    """The rules for one level, or for levels that share their panels, up to the areas and doors."""
 
-    def __init__(self, spec: MapSpec, level: LevelSpec) -> None:
+    def __init__(self, spec: MapSpec, level: LevelSpec, members: tuple[LevelSpec, ...] = ()) -> None:
         """Copy the level's panels onto its grid and find what the drawing shows.
 
         Args:
             spec: The map.
-            level: The level.
+            level: The level, or for levels that share their panels, one level made of all their areas in survey
+                order.
+            members: The levels that share the panels, when `level` stands for them, in survey order.
         """
         self.spec = spec
         self.level = level
+        self.members = members
         self.keys: dict[str, AreaSpec] = {area.key: area for area in level.areas}
-        self.board, self.origins = _board(spec, level)
+        numbers = frozenset(member.number for member in members) if members else frozenset({level.number})
+        self.board, self.origins = _board(spec, level, numbers)
         board = self.board
         self.crossing: set[Cell] = set()
         for symbol, cells, _edge in board.symbols:
@@ -560,6 +586,11 @@ class LevelRules:
         settled = [cell for cell in self.walkable if cell not in self.ground and cell not in self.crossing]
         for mark, cell, edge, leader in board.marks:
             for label, kind in self.labels(mark):
+                if self.members and (kind == "letter" or edge is not None or leader is not None or cell not in settled):
+                    raise DesignError(
+                        f"label {label!r} isn't a key printed on floor, which levels sharing a panel need here, "
+                        "because placing it needs the first partition"
+                    )
                 if kind == "letter":
                     letters.append((label, cell))
                     continue
@@ -703,6 +734,8 @@ class LevelRules:
         for area in self.level.areas:
             if area.key in printed:
                 continue
+            if self.members:
+                raise DesignError(f"unprinted key {area.key!r} on a panel several levels share isn't resolved here")
             if area.key == self.spec.entrance_key or area.name.lower() in ("entrance", "entranceway"):
                 take(self._entrance_chamber(area, placed, run_cells), area.key)
             else:
@@ -751,6 +784,8 @@ class LevelRules:
             take(near, item.key)
         self._join_unlabelled(claim, unreached)
         doors = self._synthesized_doors(claim, placed)
+        if self.members and doors:
+            raise DesignError("a synthesized door on a panel several levels share isn't resolved here")
         keyed = {cell: key for cell, key in claim.items() if key is not None and cell in board.owned}
         return keyed, doors
 
@@ -906,7 +941,7 @@ class LevelRules:
         overrides = dict(doors)
         if "l" in board.edges.values() and "locked_door" not in board.legends:
             raise DesignError("a locked door read without the legend's symbol isn't resolved by this generator")
-        return Resolved(
+        resolved = Resolved(
             spec=self.level,
             board=board,
             origins=self.origins,
@@ -917,6 +952,61 @@ class LevelRules:
             level_cells=level_cells,
             area_of=dict(keyed),
         )
+        resolved.locked = self.locks(resolved)
+        return resolved
+
+    def locks(self, resolved: Resolved) -> list[EdgeId]:
+        """The doors the prose locks, as Doors says, leaving out doors the reading locks by their letter.
+
+        The prose locks a door where it states a lock: the connections the
+        writer derives from a locked door the map shows, and the links an area
+        spec declares with `door_locked`. Each lock goes on the door nearest the
+        first area on the shortest walk from the first area's first cell to the
+        second's, equally short walks compared cell by cell in north-then-west
+        order.
+
+        Args:
+            resolved: The level's areas and doors.
+
+        Returns:
+            The locked doors' edges, in the order the prose states them.
+        """
+        stated: list[tuple[str, str]] = []
+        for (first, second), edges in resolved.joins().items():
+            if any(letter == "l" for _edge, _side, letter in edges):
+                stated += [(first, second), (second, first)]
+        for area in self.level.areas:
+            for link in area.links:
+                if link.door_locked and link.via in ("door", "secret_door"):
+                    if link.to_key not in self.keys:
+                        raise DesignError(f"a lock on the way from {area.key!r} to another board isn't resolved here")
+                    stated.append((area.key, link.to_key))
+        found: list[EdgeId] = []
+        for first, second in stated:
+            door = self._locked_door(resolved, first, second)
+            if door is None:
+                raise DesignError(f"the lock between {first!r} and {second!r} finds no door, which isn't resolved here")
+            if self.board.edges[door] != "l" and door not in found:
+                found.append(door)
+        return found
+
+    def _locked_door(self, resolved: Resolved, first: str, second: str) -> EdgeId | None:
+        start = min(resolved.areas[first], key=cell_order)
+        goal = min(resolved.areas[second], key=cell_order)
+        distance = self.walking([goal])
+        if start not in distance:
+            return None
+        cell = start
+        while cell != goal:
+            step = min(
+                (step for step in self.board.steps(cell, PASSABLE + DOORS) if distance.get(step) == distance[cell] - 1),
+                key=cell_order,
+            )
+            side = next((side for side in SIDES if neighbour(cell, side) == step), None)
+            if side is not None and self.board.letter(cell, side) in DOORS:
+                return eid(cell, side)
+            cell = step
+        return None
 
 
 def _rect(cells: list[Cell]) -> tuple[int, int, int, int] | None:
@@ -949,13 +1039,111 @@ def _apart_pair(spec: MapSpec, first: PanelSpec, second: PanelSpec) -> HalfPair 
     return None
 
 
-def _owned(plan: Plan) -> set[Cell]:
+def panel_model(spec: MapSpec, panel: PanelSpec) -> Panel:
+    """A panel's reading in the truth format, in its own squares, with the outline of each level that uses it.
+
+    Args:
+        spec: The map.
+        panel: The panel.
+
+    Returns:
+        The panel as read.
+
+    Raises:
+        DesignError: If several levels use the panel without an outline each.
+    """
+    plan = panel.plan
+    users = [level.number for level in spec.dungeon.levels if panel.id in level.panels]
+    if panel.outlines:
+        if sorted(outline.level for outline in panel.outlines) != users or plan.open_ground:
+            raise DesignError(f"panel {panel.id!r} needs one outline for each level that uses it, and no open ground")
+        outlines = tuple(
+            Outline(
+                dungeon=spec.dungeon.id,
+                level=outline.level,
+                rects=outline.rects,
+                seeds=tuple(cell_key(cell) for cell in outline.seeds),
+            )
+            for outline in panel.outlines
+        )
+    else:
+        if len(users) != 1:
+            raise DesignError(f"panel {panel.id!r} is used by levels {users} but has one outline")
+        outlines = (
+            Outline(
+                dungeon=spec.dungeon.id,
+                level=users[0],
+                rects=plan.rects,
+                seeds=seed_cells(plan),
+                open_ground=plan.open_ground,
+            ),
+        )
+    return Panel(
+        id=panel.id,
+        regions=tuple(PanelRegion(region=region, origin=origin) for region, origin in panel.regions),
+        scale_feet=panel.scale_feet,
+        cells=plan.cells,
+        edges=plan.edges,
+        partial=plan.partial,
+        cave=plan.cave,
+        marks=plan.marks,
+        outlines=outlines,
+        symbols=plan.symbols,
+    )
+
+
+def resolution_plan(spec: MapSpec, panel: PanelSpec) -> tuple[Plan, tuple[Outline, ...]]:
+    """A panel's reading as the rules after placement see it, converted to 10-foot cells and turned, with its outlines.
+
+    A 5-foot panel is converted by [`convert_five_foot`][osrforge.tracing.fivefoot.convert_five_foot] first, as the
+    conventions' order puts the conversion before every other rule. The panel then turns by the quarter turn that
+    puts its north at the top.
+
+    Args:
+        spec: The map.
+        panel: The panel.
+
+    Returns:
+        The plan in 10-foot cells on the level, and the panel's outlines in those cells.
+
+    Raises:
+        DesignError: If a panel that several levels share is turned.
+    """
+    model = panel_model(spec, panel)
+    plan, outlines = panel.plan, model.outlines
+    if panel.scale_feet == 5:
+        converted = convert_five_foot(model).panel
+        plan = Plan(
+            width=converted.width,
+            height=converted.height,
+            cells=converted.cells,
+            edges=converted.edges,
+            marks=converted.marks,
+            symbols=converted.symbols,
+            partial=converted.partial,
+            cave=converted.cave,
+        )
+        outlines = converted.outlines
+    rotation = _turn(spec, panel)
+    if rotation == 0:
+        return plan, outlines
+    if len(outlines) != 1:
+        raise DesignError(f"panel {panel.id!r} is turned and shared by several levels, which isn't resolved here")
+    outline = outlines[0]
+    turned = replace(plan, rects=outline.rects, open_ground=outline.open_ground, seeds=outline.seeds).turned(rotation)
+    return turned, (
+        outline.model_copy(update={"rects": turned.rects, "open_ground": turned.open_ground, "seeds": turned.seeds}),
+    )
+
+
+def _owned(plan: Plan, outlines: Iterable[Outline]) -> set[Cell]:
     owned: set[Cell] = set()
-    for x, y, w, h in plan.rects:
-        for cy in range(y, y + h):
-            for cx in range(x, x + w):
-                if plan.cell((cx, cy)) in ".~":
-                    owned.add((cx, cy))
+    for outline in outlines:
+        for x, y, w, h in outline.rects:
+            for cy in range(y, y + h):
+                for cx in range(x, x + w):
+                    if plan.cell((cx, cy)) in ".~":
+                        owned.add((cx, cy))
     return owned
 
 
@@ -965,48 +1153,10 @@ def _turn(spec: MapSpec, panel: PanelSpec) -> Rotation:
     return rotation_for(region.compass.north) if region.compass.printed else 0
 
 
-def _reading(spec: MapSpec, panel: PanelSpec) -> Plan:
-    """A panel's reading as the rules after placement see it: converted to 10-foot cells, then turned."""
-    plan = panel.plan
-    if panel.scale_feet == 5:
-        converted = convert_five_foot(
-            Panel(
-                id=panel.id,
-                regions=tuple(PanelRegion(region=region, origin=origin) for region, origin in panel.regions),
-                scale_feet=5,
-                cells=plan.cells,
-                edges=plan.edges,
-                partial=plan.partial,
-                cave=plan.cave,
-                marks=plan.marks,
-                outlines=(
-                    Outline(
-                        dungeon="d", level=1, rects=plan.rects, seeds=seed_cells(plan), open_ground=plan.open_ground
-                    ),
-                ),
-                symbols=plan.symbols,
-            )
-        ).panel
-        outline = converted.outlines[0]
-        plan = Plan(
-            width=converted.width,
-            height=converted.height,
-            cells=converted.cells,
-            edges=converted.edges,
-            marks=converted.marks,
-            symbols=converted.symbols,
-            rects=outline.rects,
-            open_ground=outline.open_ground,
-            seeds=outline.seeds,
-            partial=converted.partial,
-            cave=converted.cave,
-        )
-    return plan.turned(_turn(spec, panel))
-
-
-def _board(spec: MapSpec, level: LevelSpec) -> tuple[Board, dict[str, Cell]]:
+def _board(spec: MapSpec, level: LevelSpec, numbers: frozenset[int]) -> tuple[Board, dict[str, Cell]]:
+    """Copy a level's panels onto its grid, the floor inside the outlines of the levels in `numbers` being owned."""
     panels = [next(panel for panel in spec.panels if panel.id == name) for name in level.panels]
-    plans = {panel.id: _reading(spec, panel) for panel in panels}
+    readings = [resolution_plan(spec, panel) for panel in panels]
     starts: list[Cell] = []
     for index, panel in enumerate(panels):
         if index == 0:
@@ -1014,26 +1164,27 @@ def _board(spec: MapSpec, level: LevelSpec) -> tuple[Board, dict[str, Cell]]:
             continue
         before = panels[index - 1]
         pair = _apart_pair(spec, before, panel)
-        x = starts[-1][0] + plans[before.id].width + 2
+        x = starts[-1][0] + readings[index - 1][0].width + 2
         y = starts[-1][1] + pair.rows if pair is not None else 0
         starts.append((x, y))
     xs: list[int] = []
     ys: list[int] = []
-    for panel, (px, py) in zip(panels, starts, strict=True):
-        xs += [px, px + plans[panel.id].width - 1]
-        ys += [py, py + plans[panel.id].height - 1]
-        for x, y in _owned(plans[panel.id]):
+    for (plan, outlines), (px, py) in zip(readings, starts, strict=True):
+        own = [outline for outline in outlines if outline.level in numbers]
+        xs += [px, px + plan.width - 1]
+        ys += [py, py + plan.height - 1]
+        for x, y in _owned(plan, own):
             xs += [px + x - 1, px + x + 1]
             ys += [py + y - 1, py + y + 1]
     shift = (-min(xs), -min(ys))
     board = Board(width=max(xs) - min(xs) + 1, height=max(ys) - min(ys) + 1)
     origins: dict[str, Cell] = {}
     regions = {region.id: region for region in spec.regions}
-    for panel, (px, py) in zip(panels, starts, strict=True):
+    for panel, (plan, outlines), (px, py) in zip(panels, readings, starts, strict=True):
         ox, oy = px + shift[0], py + shift[1]
         origins[panel.id] = (ox, oy)
+        own = [outline for outline in outlines if outline.level in numbers]
         board.turns[panel.id] = _turn(spec, panel)
-        plan = plans[panel.id]
         for y in range(plan.height):
             for x in range(plan.width):
                 board.cells[(ox + x, oy + y)] = plan.cells[y][x]
@@ -1043,8 +1194,15 @@ def _board(spec: MapSpec, level: LevelSpec) -> tuple[Board, dict[str, Cell]]:
                         0 <= neighbour((x, y), side)[0] < plan.width and 0 <= neighbour((x, y), side)[1] < plan.height
                     ):
                         board.frame[eid((ox + x, oy + y), side)] = False
-        board.owned |= {(ox + x, oy + y) for x, y in _owned(plan)}
-        board.ground_rects += [(ox + x, oy + y, w, h) for x, y, w, h in plan.open_ground]
+        board.owned |= {(ox + x, oy + y) for x, y in _owned(plan, own)}
+        for outline in own:
+            board.ground_rects += [(ox + x, oy + y, w, h) for x, y, w, h in outline.open_ground]
+            board.seeds += [
+                ((ox + parse_cell(seed)[0], oy + parse_cell(seed)[1]), outline.level) for seed in outline.seeds
+            ]
+            for x, y in _owned(plan, [outline]):
+                board.outlines.setdefault((ox + x, oy + y), set()).add(outline.level)
+        board.sizes[panel.id] = (plan.width, plan.height)
         for mark in plan.marks:
             cell = parse_cell(mark.cell)
             edge = None
@@ -1101,6 +1259,12 @@ def _link_fold(
     right_cut = regions[second.regions[0][0]].cut_off
     if "right" not in left_cut or "left" not in right_cut:
         raise DesignError("halves left apart must be cut off at facing left and right edges")
+    if (
+        first.scale_feet != 10
+        or second.scale_feet != 10
+        or any(regions[part.regions[0][0]].compass.north != "top" for part in (first, second))
+    ):
+        raise DesignError("5-foot or turned halves left apart aren't resolved here")
     left_column, right_column = first.plan.width - 1, 0
     shift = second_origin[1] - first_origin[1]
     left = _stretches(first.plan, left_column)
@@ -1135,6 +1299,354 @@ def _link_fold(
         board.frame[eid((second_origin[0] + right_column, second_origin[1] + y), "west")] = True
 
 
+# Levels whose floors meet: the partition, the cut between them, and its vestibules and passages.
+
+
+def _neck(board: Board, cell: Cell) -> bool:
+    """Whether a cell is a one-cell neck: floor with floor on two opposite sides and no floor on the other two."""
+    if not board.floor(cell):
+        return False
+    floor = {side: board.floor(neighbour(cell, side)) for side in SIDES}
+    return (floor["north"] and floor["south"] and not floor["east"] and not floor["west"]) or (
+        floor["east"] and floor["west"] and not floor["north"] and not floor["south"]
+    )
+
+
+def _step_cost(board: Board, step: Cell, letter: str, mouth: bool) -> int:
+    """The partition's cost of one step onto `step` across an edge with `letter`, the largest that applies."""
+    costs: list[int] = []
+    if letter in PASSABLE and (board.floor(step) or board.water(step)):
+        costs.append(1)
+    if _neck(board, step):
+        costs.append(2)
+    if letter in DOORS or mouth:
+        costs.append(4)
+    if letter in "wn":
+        costs.append(20)
+    if board.cells.get(step) == "#":
+        costs.append(20)
+    if not costs:
+        raise DesignError(f"no partition cost applies to the step onto {step} across {letter!r}")
+    return max(costs)
+
+
+def partition(board: Board, mouths: Iterable[EdgeId], sources: list[tuple[Cell, int, int]]) -> dict[Cell, int]:
+    """The level each owned cell goes to, as Who owns a cell says.
+
+    The walk grows from every source at once over every cell of the panels,
+    rock included, and over the links of halves left apart as open edges. A
+    cell goes to the level of the source that reaches it most cheaply, a key
+    beating a seed at the same cost, and of two sources of one kind the one
+    whose cell comes first in north-then-west order.
+
+    Args:
+        board: The panels on the board.
+        mouths: The cave mouths' edges.
+        sources: Each source's cell, rank (0 for a placed key, 1 for a seed), and level.
+
+    Returns:
+        The owner of each owned floor or water cell. A cell inside one outline goes to that outline's level.
+    """
+    mouth_edges = set(mouths)
+    best: dict[Cell, tuple[int, int, int, int, int]] = {}
+    heap: list[tuple[tuple[int, int, int, int, int], Cell]] = []
+    for cell, rank, level in sources:
+        label = (0, rank, cell[1], cell[0], level)
+        if cell not in best or label < best[cell]:
+            best[cell] = label
+            heapq.heappush(heap, (label, cell))
+    while heap:
+        label, cell = heapq.heappop(heap)
+        if best[cell] != label:
+            continue
+        for side in SIDES:
+            if cell in board.partner and board.fold_side[cell] == side:
+                step, letter, mouth = board.partner[cell], "o", False
+            else:
+                step = neighbour(cell, side)
+                if step not in board.cells:
+                    continue
+                letter, mouth = board.letter(cell, side), eid(cell, side) in mouth_edges
+            reached = (label[0] + _step_cost(board, step, letter, mouth), *label[1:])
+            if step not in best or reached < best[step]:
+                best[step] = reached
+                heapq.heappush(heap, (reached, step))
+    owners: dict[Cell, int] = {}
+    for cell in board.owned:
+        levels = board.outlines[cell]
+        owner = next(iter(levels)) if len(levels) == 1 else best[cell][4]
+        if owner not in levels:
+            raise DesignError(f"cell {cell} is nearest a source of level {owner}, whose outline doesn't hold it")
+        owners[cell] = owner
+    return owners
+
+
+def _parts(board: Board, cells: set[Cell]) -> int:
+    """How many parts a set of cells falls into when joined across passable edges and doors."""
+    seen: set[Cell] = set()
+    parts = 0
+    for start in sorted(cells, key=cell_order):
+        if start in seen:
+            continue
+        parts += 1
+        seen |= set(_floor_bfs(board, [start], PASSABLE + DOORS, cells))
+    return parts
+
+
+type FarCell = tuple[int, Cell]
+"""A passage's far cell, with the level whose grid it is on."""
+
+
+class Cut:
+    """The cut between the levels that share a board, worked out as Who owns a cell says.
+
+    `owner` starts as the partition with each area given whole to its key's
+    level, and the vestibules change it. The pairs are recorded as each
+    passage's cell, side, level, destination, and destination level.
+    """
+
+    def __init__(self, rules: LevelRules, shared: Resolved, owner: dict[Cell, int], survey: list[int]) -> None:
+        """Make the cut's vestibules and passages.
+
+        Args:
+            rules: The rules that resolved the shared board.
+            shared: The board's areas, worked out over every level's keys.
+            owner: Each owned cell's level after the final partition and the areas.
+            survey: The level numbers in survey order.
+        """
+        self.board = rules.board
+        self.owner = owner
+        self.survey = survey
+        self.areas = {key: list(cells) for key, cells in shared.areas.items()}
+        self.area_of = dict(shared.area_of)
+        self.link_cells = {
+            cell for symbol, cells, _edge in self.board.symbols if symbol.kind in LINK_KINDS for cell in cells
+        }
+        self.pairs: list[tuple[Cell, str, int, Cell, int]] = []
+        self.far: set[FarCell] = set()
+        self.dropped: set[EdgeId] = set()
+        self.quiet: set[EdgeId] = set()
+        """Vestibule sides that are walls with no passages, and the side that has the vestibule's pair."""
+
+        self.keyed = {item.cell for item in shared.placed}
+
+        doors = sorted(
+            (edge for edge in self.edges() if self.board.edges[edge] in DOORS),
+            key=lambda edge: order(edge_middle(edge)),
+        )
+        for edge in doors:
+            self._vestibule(edge)
+        for edge in sorted(self.edges(), key=lambda edge: order(edge_middle(edge))):
+            letter = self.board.edges[edge]
+            if edge in self.quiet or edge in self.dropped or letter not in PASSABLE:
+                if letter not in PASSABLE + DOORS + "w":
+                    raise DesignError(f"the cut crosses {letter!r} at {edge}, which isn't resolved here")
+                continue
+            first, second = edge_cells(edge)
+            self._pair(first, second, keep_or_drop=True)
+
+    def edges(self) -> list[EdgeId]:
+        """The edges between owned cells of two levels."""
+        found: list[EdgeId] = []
+        for edge in self.board.edges:
+            first, second = edge_cells(edge)
+            if first in self.owner and second in self.owner and self.owner[first] != self.owner[second]:
+                found.append(edge)
+        for cell, other in self.board.partner.items():
+            if cell in self.owner and other in self.owner and self.owner[cell] != self.owner[other]:
+                raise DesignError("a cut across the fold of halves left apart isn't resolved here")
+        return found
+
+    def _pair_far(self, cell: Cell, other: Cell) -> set[FarCell]:
+        return {(self.owner[cell], other), (self.owner[other], cell)}
+
+    def _pair(self, cell: Cell, other: Cell, keep_or_drop: bool) -> bool:
+        """Make the pair of passages across the edge between two cells, unless it shares a far cell with a kept pair."""
+        far = self._pair_far(cell, other)
+        if far & self.far:
+            if not keep_or_drop:
+                raise DesignError(f"the pair between {cell} and {other} would be dropped, which isn't resolved here")
+            return False
+        side = next(side for side in SIDES if neighbour(cell, side) == other)
+        opposite = next(back for back in SIDES if neighbour(other, back) == cell)
+        self.pairs.append((cell, side, self.owner[cell], other, self.owner[other]))
+        self.pairs.append((other, opposite, self.owner[other], cell, self.owner[cell]))
+        self.far |= far
+        return True
+
+    def _qualifying(self, cell: Cell, door: EdgeId, leaving: int) -> list[str]:
+        """The sides of a cell that qualify for its pair as a door's vestibule, or none when the vestibule is refused.
+
+        A placed key on the cell isn't resolved here, since the cell would leave the key's area.
+        """
+        board = self.board
+        if any(board.letter(cell, side) in DOORS for side in SIDES if eid(cell, side) != door):
+            return []
+        if cell in self.link_cells:
+            return []
+        floor = {other for other, level in self.owner.items() if level == leaving}
+        if _parts(board, floor - {cell}) > _parts(board, floor):
+            return []
+        key = self.area_of.get(cell)
+        if key is not None:
+            rest = set(self.areas[key]) - {cell}
+            if not rest or _parts(board, rest) > _parts(board, set(self.areas[key])):
+                return []
+        sides: list[str] = []
+        joining = next(
+            level for level in self.survey if level != leaving and level in (self.owner[c] for c in edge_cells(door))
+        )
+        for side in SIDES:
+            other = neighbour(cell, side)
+            if eid(cell, side) == door or board.letter(cell, side) not in PASSABLE:
+                continue
+            if self.owner.get(other) == leaving:
+                if not {(joining, other), (leaving, cell)} & self.far:
+                    sides.append(side)
+            elif other in self.owner:
+                raise DesignError(f"vestibule {cell} opens on its new level's floor, which isn't resolved here")
+        if sides and cell in self.keyed:
+            raise DesignError(f"a key stands on vestibule {cell}, which isn't resolved here")
+        return sides
+
+    def _vestibule(self, door: EdgeId) -> None:
+        """Give a door on the cut its vestibule, or drop the door, as Who owns a cell says."""
+        first, second = edge_cells(door)
+        if self.owner[first] == self.owner[second]:
+            return
+        later_first = self.survey.index(self.owner[first]) > self.survey.index(self.owner[second])
+        tries = [first, second] if later_first else [second, first]
+        for cell in tries:
+            leaving = self.owner[cell]
+            joining = self.owner[first if cell == second else second]
+            sides = self._qualifying(cell, door, leaving)
+            if not sides:
+                continue
+            self.owner[cell] = joining
+            key = self.area_of.pop(cell, None)
+            if key is not None:
+                self.areas[key].remove(cell)
+            door_side = next(side for side in SIDES if eid(cell, side) == door)
+            free = [side for side in sides if self._free(cell, side, joining)]
+            choices = free or sides
+            opposite = _OPPOSITE[door_side]
+            side = (
+                opposite if opposite in choices else min(choices, key=lambda item: order(edge_middle(eid(cell, item))))
+            )
+            self._pair(cell, neighbour(cell, side), keep_or_drop=False)
+            self.quiet |= {eid(cell, other) for other in SIDES if other != door_side}
+            return
+        self.dropped.add(door)
+        self._pair(first, second, keep_or_drop=False)
+
+    def _free(self, cell: Cell, side: str, joining: int) -> bool:
+        """Whether no pair across another passable edge or door of the cut would use a vestibule side's far cells."""
+        far = {(joining, neighbour(cell, side)), (self.owner[neighbour(cell, side)], cell)}
+        own = {eid(cell, other) for other in SIDES}
+        for edge in self.edges():
+            if edge in own or self.board.edges[edge] not in PASSABLE + DOORS:
+                continue
+            a, b = edge_cells(edge)
+            if self._pair_far(a, b) & far:
+                return False
+        return True
+
+
+_OPPOSITE: dict[str, str] = {"north": "south", "south": "north", "east": "west", "west": "east"}
+
+
+def _frame(board: Board, origins: dict[str, Cell], cells: Iterable[Cell]) -> tuple[int, int, int, int]:
+    """The smallest grid that holds every panel and a cell of rock beyond the level's own floor and water."""
+    xs: list[int] = []
+    ys: list[int] = []
+    for panel, (ox, oy) in origins.items():
+        width, height = board.sizes[panel]
+        xs += [ox, ox + width - 1]
+        ys += [oy, oy + height - 1]
+    for x, y in cells:
+        xs += [x - 1, x + 1]
+        ys += [y - 1, y + 1]
+    return (min(xs), min(ys), max(xs) - min(xs) + 1, max(ys) - min(ys) + 1)
+
+
+def resolve_shared(spec: MapSpec, members: tuple[LevelSpec, ...]) -> list[Resolved]:
+    """Resolve levels whose floors meet on the panels they share, and cut them apart.
+
+    The keys and areas are worked out once over every level's keys, so a
+    room is never split by ownership. The final partition then gives each
+    owned cell a level, each area goes whole to its key's level, and the cut
+    between the levels makes its vestibules and passages.
+
+    Args:
+        spec: The map.
+        members: The levels, in survey order, each placing the same panels.
+
+    Returns:
+        One resolved level for each member, in survey order.
+    """
+    if len({member.panels for member in members}) != 1:
+        raise DesignError("levels that share a panel but not all their panels aren't resolved here")
+    shared_spec = LevelSpec(
+        number=members[0].number,
+        areas=tuple(area for member in members for area in member.areas),
+        panels=members[0].panels,
+    )
+    rules = LevelRules(spec, shared_spec, members)
+    shared = rules.resolve()
+    board = rules.board
+    if board.partner:
+        raise DesignError("halves left apart on panels that several levels share aren't resolved here")
+    level_of_key = {area.key: member.number for member in members for area in member.areas}
+    sources = [(item.cell, 0, level_of_key[item.key]) for item in shared.placed]
+    sources += [(cell, 1, level) for cell, level in board.seeds]
+    owner = partition(board, rules.mouths, sources)
+    for key, cells in shared.areas.items():
+        for cell in cells:
+            owner[cell] = level_of_key[key]
+    cut = Cut(rules, shared, owner, [member.number for member in members])
+    walls: set[EdgeId] = set(cut.edges()) | cut.dropped
+    keeper: dict[EdgeId, int] = {}
+    for edge in shared.locked:
+        first, second = edge_cells(edge)
+        if edge not in cut.dropped:
+            keeper[edge] = cut.owner[first]
+            if cut.owner[second] != keeper[edge]:
+                raise DesignError(f"locked door {edge} lies on the cut without a vestibule or a drop")
+    levels: list[Resolved] = []
+    for member in members:
+        number = member.number
+        own = {cell for cell, level in cut.owner.items() if level == number}
+        keys = {area.key for area in member.areas}
+        level_cells = {cell: letter for cell, letter in shared.level_cells.items() if cell in own}
+        for cell in own - level_cells.keys():
+            level_cells[cell] = "."
+        areas = {key: sorted(cells, key=cell_order) for key, cells in cut.areas.items() if key in keys}
+        levels.append(
+            Resolved(
+                spec=member,
+                board=board,
+                origins=shared.origins,
+                areas=areas,
+                placed=[item for item in shared.placed if item.key in keys],
+                openings=[opening for opening in shared.openings if all(cell in own for cell in opening.inside)],
+                overrides={**shared.overrides, **dict.fromkeys(walls, "w")},
+                level_cells=level_cells,
+                passages=[
+                    Passage(cell=cell_key(cell), side=_SIDE_NAMES[side], to_level=to_level, to_cell=cell_key(other))
+                    for cell, side, level, other, to_level in cut.pairs
+                    if level == number
+                ],
+                area_of={cell: key for cell, key in cut.area_of.items() if key in keys},
+                locked=[edge for edge in shared.locked if keeper.get(edge) == number],
+                frame=_frame(board, shared.origins, own),
+            )
+        )
+    for opening in shared.openings:
+        if not any(opening in level.openings for level in levels):
+            raise DesignError(f"outer opening {opening.edges} lies across the cut, which isn't resolved here")
+    return levels
+
+
 # The dungeon: links, passages, and the entrance.
 
 
@@ -1147,25 +1659,76 @@ def _target(levels: list[Resolved], own: Resolved, link: AreaConnection) -> tupl
     raise DesignError(f"link target {link.to_key!r} is no surveyed key")
 
 
-def _ends(level: Resolved, key: str, directions: tuple[str | None, ...]) -> list[tuple[Cell, str]]:
+def _ends(level: Resolved, key: str, directions: tuple[str | None, ...]) -> list[tuple[Cell, Symbol]]:
     cells = set(level.areas[key])
     first = min(cells, key=cell_order)
-    ends: list[tuple[Cell, str]] = []
+    ends: list[tuple[Cell, Symbol]] = []
     for symbol, symbol_cells, _edge in level.board.symbols:
-        if symbol.kind not in LINK_KINDS or symbol.direction not in directions:
+        if symbol.kind not in LINK_KINDS:
             continue
         touches = any(cell in cells or any(neighbour(cell, side) in cells for side in SIDES) for cell in symbol_cells)
-        if touches:
-            end = min(symbol_cells, key=lambda cell: (-chebyshev(cell, first), cell_order(cell)))
-            ends.append((end, symbol.kind))
+        if not touches or symbol.direction not in directions:
+            continue
+        end = min(symbol_cells, key=lambda cell: (-chebyshev(cell, first), cell_order(cell)))
+        ends.append((end, symbol))
     return sorted(ends, key=lambda item: cell_order(item[0]))
 
 
+def _panel_at(level: Resolved, cell: Cell) -> int:
+    """The index, in placement order, of the panel a board cell of the level lies on."""
+    for index, (panel, (ox, oy)) in enumerate(level.origins.items()):
+        width, height = level.board.sizes[panel]
+        if ox <= cell[0] < ox + width and oy <= cell[1] < oy + height:
+            return index
+    raise DesignError(f"cell {cell} lies on none of level {level.spec.number}'s panels")
+
+
+def _made(levels: list[Resolved], level: Resolved, key: str, target: Resolved, target_key: str) -> bool:
+    """Whether the trace already makes a prose connection through floor, doors, or passages.
+
+    The walk starts on the area's cells, crosses the level's passable edges and doors and its passages, and
+    goes through corridor only, never another area, until it reaches the target area.
+    """
+    by_number = {item.spec.number: item for item in levels}
+    goal = {(target.spec.number, cell) for cell in target.areas.get(target_key, [])}
+    start = [(level.spec.number, cell) for cell in level.areas[key]]
+    seen = set(start)
+    queue = deque(start)
+    while queue:
+        number, cell = queue.popleft()
+        here = by_number[number]
+        steps: list[tuple[int, Cell]] = []
+        for side in SIDES:
+            if here.level_letter(cell, side) in PASSABLE + DOORS:
+                steps.append((number, neighbour(cell, side)))
+        for passage in here.passages:
+            if parse_cell(passage.cell) == cell:
+                steps.append((passage.to_level, parse_cell(passage.to_cell)))
+        for step in steps:
+            if step in goal:
+                return True
+            other = by_number[step[0]]
+            if step not in seen and other.level_cells.get(step[1]) == "." and step[1] not in other.area_of:
+                seen.add(step)
+                queue.append(step)
+    return False
+
+
+def _stairs(symbol: Symbol, first: bool) -> Literal["stairs_up", "stairs_down"]:
+    """The kind of one end of a link with no direction made by stairs or a ladder, as Links says."""
+    if symbol.direction is not None:
+        return _STAIRS[symbol.direction]
+    return "stairs_down" if first else "stairs_up"
+
+
 def link_levels(levels: list[Resolved]) -> None:
-    """Realize each prose link to another level as transitions, as Links says.
+    """Realize each prose link as transitions, as Links says.
 
     A connection and its reverse between the same two areas by the same means
     are one link, made from the connection that comes first in survey order.
+    A connection the trace already makes through floor, doors, or passages
+    isn't a link. A link to an area on another panel of the same level has no
+    direction.
 
     Args:
         levels: The dungeon's resolved levels, in survey order.
@@ -1175,41 +1738,55 @@ def link_levels(levels: list[Resolved]) -> None:
         for area in level.spec.areas:
             for link in area.links:
                 target, key = _target(levels, level, link)
-                if target is level:
+                if _made(levels, level, area.key, target, key):
                     continue
                 ends = frozenset({(level.spec.number, area.key), (target.spec.number, key)})
                 if (ends, link.via) in made:
                     continue
                 made.add((ends, link.via))
-                way = "down" if target.spec.number > level.spec.number else "up"
-                back = "up" if way == "down" else "down"
-                starts = _ends(level, area.key, (way, None))
-                finishes = _ends(target, key, (back, None))
+                same = target is level
+                if same:
+                    here = _panel_at(level, min(level.areas[area.key], key=cell_order))
+                    there = _panel_at(level, min(level.areas[key], key=cell_order))
+                    if here == there:
+                        raise DesignError(f"{area.key!r} and {key!r} share a panel but the trace doesn't join them")
+                    starts = _ends(level, area.key, ("up", "down", None))
+                    finishes = _ends(target, key, ("up", "down", None))
+                    way = back = None
+                else:
+                    way = "down" if target.spec.number > level.spec.number else "up"
+                    back = "up" if way == "down" else "down"
+                    starts = _ends(level, area.key, (way, None))
+                    finishes = _ends(target, key, (back, None))
                 if not starts or len(finishes) > len(starts):
                     raise DesignError(f"link from {area.key!r} to {key!r} needs a symbol at each end for every end")
                 target_first = min(target.areas[key], key=cell_order)
-                for index, (start, kind) in enumerate(starts):
+                for index, (start, symbol) in enumerate(starts):
                     finish = finishes[index][0] if index < len(finishes) else target_first
-                    if kind in ("stairs", "ladder"):
+                    if symbol.kind in ("stairs", "ladder"):
+                        if way is None or back is None:
+                            if index >= len(finishes):
+                                raise DesignError(f"stairs from {area.key!r} to {key!r} need a symbol at each end")
+                            first = _panel_at(level, start) < _panel_at(target, finish)
+                            kind, kind_back = _stairs(symbol, first), _stairs(finishes[index][1], not first)
+                        else:
+                            kind, kind_back = _STAIRS[way], _STAIRS[back]
                         level.transitions.append(
                             Transition(
-                                cell=cell_key(start),
-                                kind=_STAIRS[way],
-                                to_level=target.spec.number,
-                                to_cell=cell_key(finish),
+                                cell=cell_key(start), kind=kind, to_level=target.spec.number, to_cell=cell_key(finish)
                             )
                         )
                         if index < len(finishes):
                             target.transitions.append(
                                 Transition(
                                     cell=cell_key(finish),
-                                    kind=_STAIRS[back],
+                                    kind=kind_back,
                                     to_level=level.spec.number,
                                     to_cell=cell_key(start),
                                 )
                             )
                     else:
-                        kind_name = "trapdoor" if kind in ("trapdoor", "hinged_floor") else "chute"
+                        kind_name = "trapdoor" if symbol.kind in ("trapdoor", "hinged_floor") else "chute"
                         level.transitions.append(
                             Transition(
                                 cell=cell_key(start),
@@ -1337,17 +1914,21 @@ def _entrance_cell(opening: Opening, area: set[Cell]) -> Cell:
     raise DesignError("the entrance area touches its opening but not the north or west cell at its middle")
 
 
-def level_model(level: Resolved) -> Level:
-    """The truth format's level.
+def level_model(level: Resolved, frames: dict[int, tuple[int, int, int, int]]) -> Level:
+    """The truth format's level, on its own grid.
 
     Args:
         level: The resolved level, with its transitions and passages.
+        frames: Each level's grid on its board, by level number, to place destinations on their levels' grids.
 
     Returns:
         The level.
     """
-    board = level.board
-    rows = tuple("".join(level.level_cells.get((x, y), "#") for x in range(board.width)) for y in range(board.height))
+    x0, y0, width, height = frames[level.spec.number]
+
+    def place(cell: Cell, number: int | None = None) -> str:
+        fx, fy, _width, _height = frames[level.spec.number if number is None else number]
+        return cell_key((cell[0] - fx, cell[1] - fy))
 
     def letter(cell: Cell, side: str) -> str:
         other = neighbour(cell, side)
@@ -1358,31 +1939,74 @@ def level_model(level: Resolved) -> Level:
             raise DesignError(f"level edge {eid(cell, side)} touches the level's floor but has no reading")
         return found
 
-    vertical = tuple(
-        "".join(letter((x, y), "west") for x in range(board.width)) + letter((board.width - 1, y), "east")
-        for y in range(board.height)
-    )
-    horizontal = (
-        *tuple("".join(letter((x, y), "north") for x in range(board.width)) for y in range(board.height)),
-        "".join(letter((x, board.height - 1), "south") for x in range(board.width)),
-    )
+    columns = range(x0, x0 + width)
+    rows = range(y0, y0 + height)
+    last_x, last_y = x0 + width - 1, y0 + height - 1
     return Level(
         number=level.spec.number,
         verdict="traced",
         panels=tuple(
-            LevelPanel(panel=panel, origin=origin, rotation=board.turns[panel])
+            LevelPanel(panel=panel, origin=(origin[0] - x0, origin[1] - y0), rotation=level.board.turns[panel])
             for panel, origin in level.origins.items()
         ),
-        cells=rows,
-        edges=EdgeGrids(vertical=vertical, horizontal=horizontal),
-        areas={key: Area(cells=tuple(cell_key(cell) for cell in cells)) for key, cells in level.areas.items()},
-        keys=tuple(
-            PlacedKey(label=item.label, cell=cell_key(item.cell), area=item.key, moved=item.moved)
-            for item in level.placed
+        cells=tuple("".join(level.level_cells.get((x, y), "#") for x in columns) for y in rows),
+        edges=EdgeGrids(
+            vertical=tuple(
+                "".join(letter((x, y), "west") for x in columns) + letter((last_x, y), "east") for y in rows
+            ),
+            horizontal=(
+                *tuple("".join(letter((x, y), "north") for x in columns) for y in rows),
+                "".join(letter((x, last_y), "south") for x in columns),
+            ),
         ),
-        transitions=tuple(level.transitions),
-        passages=tuple(level.passages),
+        areas={key: Area(cells=tuple(place(cell) for cell in cells)) for key, cells in level.areas.items()},
+        keys=tuple(
+            PlacedKey(label=item.label, cell=place(item.cell), area=item.key, moved=item.moved) for item in level.placed
+        ),
+        transitions=tuple(
+            transition.model_copy(
+                update={
+                    "cell": place(parse_cell(transition.cell)),
+                    "to_cell": place(parse_cell(transition.to_cell), transition.to_level),
+                }
+            )
+            for transition in level.transitions
+        ),
+        passages=tuple(
+            passage.model_copy(
+                update={
+                    "cell": place(parse_cell(passage.cell)),
+                    "to_cell": place(parse_cell(passage.to_cell), passage.to_level),
+                }
+            )
+            for passage in level.passages
+        ),
+        locked_doors=tuple(f"{place((edge[0], edge[1]))}:{edge[2]}" for edge in level.locked),
     )
+
+
+def frames_of(levels: list[Resolved]) -> dict[int, tuple[int, int, int, int]]:
+    """Each level's grid on its board, by level number.
+
+    Args:
+        levels: The resolved levels.
+
+    Returns:
+        `(x, y, width, height)` for each level.
+    """
+    return {level.spec.number: level.frame or (0, 0, level.board.width, level.board.height) for level in levels}
+
+
+def _groups(levels: Iterable[LevelSpec]) -> list[tuple[LevelSpec, ...]]:
+    """The levels in survey order, those that share a panel gathered into one group at the first one's place."""
+    groups: list[list[LevelSpec]] = []
+    for level in levels:
+        group = next((group for group in groups if any(set(level.panels) & set(other.panels) for other in group)), None)
+        if group is None:
+            groups.append([level])
+        else:
+            group.append(level)
+    return [tuple(group) for group in groups]
 
 
 def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance | None]:
@@ -1392,10 +2016,23 @@ def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance | None]:
         spec: The map.
 
     Returns:
-        The resolved traced levels in survey order, and the entrance, or `None` when every level falls back.
+        The resolved traced levels in survey order, and the entrance on its level's grid, or `None` when every level
+        falls back.
     """
-    levels = [LevelRules(spec, level).resolve() for level in spec.dungeon.levels if level.fallback is None]
+    levels: list[Resolved] = []
+    for group in _groups(level for level in spec.dungeon.levels if level.fallback is None):
+        if len(group) == 1:
+            levels.append(LevelRules(spec, group[0]).resolve())
+        else:
+            levels.extend(resolve_shared(spec, group))
+    order_of = {level.number: index for index, level in enumerate(spec.dungeon.levels)}
+    levels.sort(key=lambda level: order_of[level.spec.number])
     for level in levels:
         fold_passages(level)
     link_levels(levels)
-    return levels, entrance(levels, spec.entrance_key) if levels else None
+    if not levels:
+        return levels, None
+    found = entrance(levels, spec.entrance_key)
+    x0, y0, _width, _height = frames_of(levels)[found.level]
+    cell = parse_cell(found.cell)
+    return levels, found.model_copy(update={"cell": cell_key((cell[0] - x0, cell[1] - y0))})

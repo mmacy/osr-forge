@@ -1,0 +1,29 @@
+{
+  "name": "undercroft",
+  "title": "The undercroft",
+  "features": [
+    "several_levels_one_page",
+    "two_levels_joined_by_door",
+    "two_levels_joined_by_open_floor",
+    "levels_meet_at_door",
+    "corridor_bends_across_cut",
+    "passage_at_floor_edge",
+    "corridor_off_frame"
+  ],
+  "damage": [],
+  "images": [
+    {
+      "file": "undercroft.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

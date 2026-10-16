@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "title": "The gatehouse, apart",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-gatehouse-apart",
+      "name": "The gatehouse",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1,
+            2
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Gate hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Porter's room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Guardroom",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Stable",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Tack room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}

@@ -1,0 +1,39 @@
+{
+  "name": "gatehouse-joined",
+  "title": "The gatehouse, joined",
+  "features": [
+    "halves_joined_at_offset",
+    "halves_gap_at_fold",
+    "halves_legend_compass_one_half",
+    "corridor_off_frame"
+  ],
+  "damage": [],
+  "images": [
+    {
+      "file": "gatehouse-west.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    },
+    {
+      "file": "gatehouse-east.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

@@ -25,22 +25,25 @@ from osrforge.contracts.stages import (
     TownInfo,
 )
 from osrforge.tracing.synthetic import SyntheticImage, SyntheticManifest
-from osrforge.tracing.synthetic._draw import draw_page
+from osrforge.tracing.synthetic._draw import draw_page, draw_regions
 from osrforge.tracing.synthetic._maps import MAPS
-from osrforge.tracing.synthetic._plan import seed_cells
-from osrforge.tracing.synthetic._resolve import Resolved, level_model, resolve_dungeon
+from osrforge.tracing.synthetic._resolve import (
+    DesignError,
+    Resolved,
+    frames_of,
+    level_model,
+    panel_model,
+    resolve_dungeon,
+)
 from osrforge.tracing.synthetic._sheets import draw_sheet
-from osrforge.tracing.synthetic._spec import TEN_FEET, MapSpec
+from osrforge.tracing.synthetic._spec import TEN_FEET, MapSpec, RegionSpec
 from osrforge.tracing.truth import (
     Dungeon,
     GeometryTruth,
     Legend,
     Level,
-    Outline,
     Page,
     PageImage,
-    Panel,
-    PanelRegion,
     Region,
     Registration,
     save_geometry_truth,
@@ -82,6 +85,25 @@ def _proposals(level: Resolved) -> tuple[MapEdgeProposal, ...]:
     return tuple(proposals)
 
 
+def _check_panel_order(spec: MapSpec, registrations: dict[str, Registration]) -> None:
+    """Make sure each level lists its panels in page order, the order Panels and the level's grid places them in.
+
+    Panels go by page, and on one page by the top edge of their frames, highest first, then left to right.
+    """
+    regions = {region.id: region for region in spec.regions}
+
+    def place(panel_id: str) -> tuple[int, float, float]:
+        panel = next(panel for panel in spec.panels if panel.id == panel_id)
+        first = regions[panel.regions[0][0]]
+        corners = registrations[first.id].corners
+        return (first.page, min(point[1] for point in corners[0]), min(row[0][0] for row in corners))
+
+    for level in spec.dungeon.levels:
+        places = [place(panel) for panel in level.panels]
+        if places != sorted(places):
+            raise DesignError(f"level {level.number} doesn't list its panels in page order")
+
+
 def build(spec: MapSpec, out_dir: Path) -> None:
     """Write one map's directory.
 
@@ -96,23 +118,29 @@ def build(spec: MapSpec, out_dir: Path) -> None:
     (target / "stages").mkdir()
     registrations: dict[str, Registration] = {}
     images: dict[str, SyntheticImage] = {}
+    sheets: dict[str, list[RegionSpec]] = {}
     for region in spec.regions:
-        if region.image in images:
-            raise ValueError(f"image {region.image} holds two regions, which the generator doesn't draw")
-        seed = zlib.crc32(region.image.encode())
-        data, registration, look = draw_page(region, seed)
-        (target / "images" / region.image).write_bytes(data)
-        registrations[region.id] = registration
-        images[region.image] = SyntheticImage(file=region.image, ink=look.ink, paper=look.paper)
-    for sheet in spec.sheets:
-        if sheet.image in images:
-            raise ValueError(f"image {sheet.image} holds two pictures, which the generator doesn't draw")
-        data, ink, paper = draw_sheet(sheet)
-        (target / "images" / sheet.image).write_bytes(data)
-        images[sheet.image] = SyntheticImage(file=sheet.image, ink=ink, paper=paper)
+        sheets.setdefault(region.image, []).append(region)
+    for image, sheet in sheets.items():
+        seed = zlib.crc32(image.encode())
+        if len(sheet) == 1:
+            data, registration, look = draw_page(sheet[0], seed)
+            drawn = {sheet[0].id: registration}
+        else:
+            data, drawn, look = draw_regions(sheet, seed)
+        (target / "images" / image).write_bytes(data)
+        registrations |= drawn
+        images[image] = SyntheticImage(file=image, ink=look.ink, paper=look.paper)
+    for picture in spec.sheets:
+        if picture.image in images:
+            raise ValueError(f"image {picture.image} holds two pictures, which the generator doesn't draw")
+        data, ink, paper = draw_sheet(picture)
+        (target / "images" / picture.image).write_bytes(data)
+        images[picture.image] = SyntheticImage(file=picture.image, ink=ink, paper=paper)
+    _check_panel_order(spec, registrations)
     resolved, entrance = resolve_dungeon(spec)
     traced = {level.spec.number: level for level in resolved}
-    level_of = {panel: level.number for level in spec.dungeon.levels for panel in level.panels}
+    frames = frames_of(resolved)
     regions = tuple(
         Region(
             id=region.id,
@@ -146,29 +174,7 @@ def build(spec: MapSpec, out_dir: Path) -> None:
         for sheet in spec.sheets
         if sheet.verdict is not None
     )
-    panels = tuple(
-        Panel(
-            id=panel.id,
-            regions=tuple(PanelRegion(region=region, origin=origin) for region, origin in panel.regions),
-            scale_feet=panel.scale_feet,
-            cells=panel.plan.cells,
-            edges=panel.plan.edges,
-            partial=panel.plan.partial,
-            cave=panel.plan.cave,
-            marks=panel.plan.marks,
-            outlines=(
-                Outline(
-                    dungeon=spec.dungeon.id,
-                    level=level_of[panel.id],
-                    rects=panel.plan.rects,
-                    seeds=seed_cells(panel.plan),
-                    open_ground=panel.plan.open_ground,
-                ),
-            ),
-            symbols=panel.plan.symbols,
-        )
-        for panel in spec.panels
-    )
+    panels = tuple(panel_model(spec, panel) for panel in spec.panels)
     pages: dict[int, list[str]] = {}
     for picture in [*spec.regions, *(sheet for sheet in spec.sheets if sheet.verdict is not None)]:
         pages.setdefault(picture.page, [])
@@ -189,7 +195,7 @@ def build(spec: MapSpec, out_dir: Path) -> None:
                 name=spec.dungeon.name,
                 entrance=entrance,
                 levels=tuple(
-                    level_model(traced[level.number])
+                    level_model(traced[level.number], frames)
                     if level.fallback is None
                     else Level(number=level.number, verdict="fallback", reason=level.fallback)
                     for level in spec.dungeon.levels

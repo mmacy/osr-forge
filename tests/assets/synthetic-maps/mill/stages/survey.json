@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "title": "The mill",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-mill",
+      "name": "The mill",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1,
+            2
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Mill room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Grain bins",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Miller's office",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Loft",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Hopper",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}
