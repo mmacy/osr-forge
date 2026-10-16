@@ -13,8 +13,6 @@ import pytest
 from osrforge.errors import LedgerStopError, ProviderError
 from osrforge.providers.ledger import Ledger, Reservation
 
-CHUNK = "chunk: claude-provider"
-
 CLAUDE_LEDGER = {
     "stop_usd": 160.0,
     "limit_usd": 200.0,
@@ -76,7 +74,6 @@ def clef_path(tmp_path: Path) -> Path:
     return write_ledger(tmp_path / "clef-ledger.json", CLEF_LEDGER)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_reserve_and_settle_keep_every_existing_entry(claude_path: Path):
     ledger = Ledger(claude_path, cost_key="cost_usd")
     index = ledger.open(CLAUDE_ENTRY)
@@ -92,7 +89,6 @@ def test_reserve_and_settle_keep_every_existing_entry(claude_path: Path):
     assert index == 2
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_reservation_counts_at_its_worst_case_until_it_is_settled(claude_path: Path):
     ledger = Ledger(claude_path, cost_key="cost_usd")
     index = ledger.open(CLAUDE_ENTRY)
@@ -112,7 +108,6 @@ def test_a_reservation_counts_at_its_worst_case_until_it_is_settled(claude_path:
     assert after["spent_usd"] == pytest.approx(0.016624 + 0.02)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_refuses_a_reservation_that_would_pass_the_stop(claude_path: Path):
     ledger = Ledger(claude_path, cost_key="cost_usd", stop_usd=0.1)
     index = ledger.open(CLAUDE_ENTRY)
@@ -129,7 +124,6 @@ def test_refuses_a_reservation_that_would_pass_the_stop(claude_path: Path):
     ledger.settle(reservation, 0.0)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_open_reserved_writes_nothing_on_a_refusal_and_one_entry_otherwise(claude_path: Path):
     ledger = Ledger(claude_path, cost_key="cost_usd", stop_usd=0.1)
     before = claude_path.read_bytes()
@@ -145,7 +139,6 @@ def test_open_reserved_writes_nothing_on_a_refusal_and_one_entry_otherwise(claud
     assert load(claude_path)["entries"][2] == {**CLAUDE_ENTRY, "cost_usd": pytest.approx(0.01)}
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_amounts_are_whole_micro_dollars_written_to_six_places(tmp_path: Path):
     """0.1 + 0.2 is 0.30000000000000004 in floats; in micro-dollars it reaches a stop of 0.3 exactly."""
     path = write_ledger(tmp_path / "ledger.json", {**CLAUDE_LEDGER, "spent_usd": 0.1, "entries": []})
@@ -159,14 +152,12 @@ def test_amounts_are_whole_micro_dollars_written_to_six_places(tmp_path: Path):
     assert after["spent_usd"] == 0.223457
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_stop_comes_from_the_file_unless_a_setting_overrides_it(claude_path: Path, clef_path: Path):
     assert Ledger(claude_path, cost_key="cost_usd").stop_usd == 160.0
     assert Ledger(clef_path, cost_key="usd", count_key="requests").stop_usd == 8.0
     assert Ledger(claude_path, cost_key="cost_usd", stop_usd=5.0).stop_usd == 5.0
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_per_run_entry_counts_the_requests_settled_against_it(clef_path: Path):
     ledger = Ledger(clef_path, cost_key="usd", count_key="requests")
     index = ledger.open(CLEF_ENTRY)
@@ -180,7 +171,6 @@ def test_a_per_run_entry_counts_the_requests_settled_against_it(clef_path: Path)
     assert after["spent_usd"] == pytest.approx(0.168562 + 0.00024)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_concurrent_requests_lose_no_charge(claude_path: Path):
     threads, per_thread, cost = 8, 25, 0.001
 
@@ -200,7 +190,6 @@ def test_concurrent_requests_lose_no_charge(claude_path: Path):
     assert sum(entry["cost_usd"] for entry in after["entries"]) == pytest.approx(after["spent_usd"], abs=1e-6)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_missing_or_malformed_ledger_is_a_provider_error(tmp_path: Path):
     with pytest.raises(ProviderError):
         Ledger(tmp_path / "absent.json", cost_key="cost_usd").spent()
@@ -211,7 +200,6 @@ def test_a_missing_or_malformed_ledger_is_a_provider_error(tmp_path: Path):
     assert Ledger(path, cost_key="cost_usd", stop_usd=1.0).stop_usd == 1.0
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_file_keeps_its_shape_for_the_other_writers(claude_path: Path):
     """The shared ledger is read by re-pod's scripts too, so the four top-level keys stay and entries stay a list."""
     ledger = Ledger(claude_path, cost_key="cost_usd")

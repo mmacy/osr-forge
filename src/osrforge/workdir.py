@@ -272,7 +272,7 @@ class StageTracker:
         Args:
             request: The request's usage.
         """
-        raise NotImplementedError("chunk: claude-provider")
+        self.requests.append(request)
 
 
 @contextmanager
@@ -313,7 +313,7 @@ def track_stage(workdir: Workdir, stage: Stage) -> Generator[StageTracker]:
             finished_at=datetime.now(UTC),
             usage=tracker.usage,
         )
-        workdir.write_run(run.with_stage(stage, status))
+        workdir.write_run(_with_requests(run, tracker).with_stage(stage, status))
         raise
     status = StageStatus(
         status="completed",
@@ -321,7 +321,11 @@ def track_stage(workdir: Workdir, stage: Stage) -> Generator[StageTracker]:
         finished_at=datetime.now(UTC),
         usage=tracker.usage,
     )
-    run = run.with_stage(stage, status)
+    run = _with_requests(run, tracker).with_stage(stage, status)
     if tracker.provider is not None and tracker.model_id is not None:
         run = run.with_model(tracker.provider, tracker.model_id)
     workdir.write_run(run)
+
+
+def _with_requests(run: RunMeta, tracker: StageTracker) -> RunMeta:
+    return run.model_copy(update={"requests": (*run.requests, *tracker.requests)})

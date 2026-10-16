@@ -797,6 +797,7 @@ version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
+    { name = "httpx2" },
     { name = "jsonschema" },
     { name = "numpy" },
     { name = "openai" },
@@ -815,7 +816,6 @@ entra = [
 [package.dev-dependencies]
 dev = [
     { name = "azure-identity" },
-    { name = "httpx2" },
     { name = "mkdocs" },
     { name = "mkdocs-gen-files" },
     { name = "mkdocs-literate-nav" },
@@ -839,6 +839,7 @@ docs = [
 requires-dist = [
     { name = "anthropic", specifier = ">=1" },
     { name = "azure-identity", marker = "extra == 'entra'", specifier = ">=1" },
+    { name = "httpx2", specifier = ">=2,<3" },
     { name = "jsonschema", specifier = ">=4" },
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "openai", specifier = ">=2.44" },
@@ -853,7 +854,6 @@ provides-extras = ["entra"]
 [package.metadata.requires-dev]
 dev = [
     { name = "azure-identity", specifier = ">=1.25.3" },
-    { name = "httpx2", specifier = ">=2" },
     { name = "mkdocs", specifier = ">=1.6.1" },
     { name = "mkdocs-gen-files", specifier = "==0.5.0" },
     { name = "mkdocs-literate-nav", specifier = "==0.6.1" },

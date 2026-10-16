@@ -39,6 +39,7 @@ dependencies = [
     "openai>=2.44",
     "numpy>=2.5.4",
     "anthropic>=1",
+    "httpx2>=2,<3",
 ]
 
 [project.optional-dependencies]
@@ -61,7 +62,6 @@ dev = [
     "types-pyyaml>=6.0.12.20260518",
     "types-jsonschema>=4.26.0.20260518",
     "azure-identity>=1.25.3",
-    "httpx2>=2",
     { include-group = "docs" },
 ]
 # The documentation site's toolchain (mkdocs-material + mkdocstrings and the
@@ -112,5 +112,6 @@ typeCheckingMode = "standard"
 strict = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "tools/answer_keys/tests"]
+pythonpath = ["."]
 addopts = "-q"

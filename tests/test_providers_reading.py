@@ -54,7 +54,6 @@ from osrforge.providers.reading import (
 )
 from osrforge.workdir import track_stage
 
-CHUNK = "chunk: claude-provider"
 MODEL = "claude-sonnet-5-5"
 
 SCHEMA: dict[str, object] = {
@@ -111,7 +110,6 @@ def make_request(
 # ---------------------------------------------------------------- the pixel digest and the keys
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_pixel_digest_hashes_pixels_not_bytes():
     png = png_bytes(1)
     digest = pixel_digest(png)
@@ -136,7 +134,6 @@ def test_pixel_digest_hashes_pixels_not_bytes():
     assert pixel_digest(buffer.getvalue()) != digest
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_key_is_a_stable_hash_of_pixels_and_parameters():
     key = make_request().key(MODEL)
     assert len(key) == 64 and all(c in "0123456789abcdef" for c in key)
@@ -147,7 +144,6 @@ def test_key_is_a_stable_hash_of_pixels_and_parameters():
     assert other_pixels.key(MODEL) != key
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_key_changes_with_every_parameter_the_plan_names():
     base = make_request()
     key = base.key(MODEL)
@@ -166,7 +162,6 @@ def test_key_changes_with_every_parameter_the_plan_names():
     assert len(set(variants.values())) == len(variants)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_shared_key_covers_the_cached_prefix_only():
     first = make_request(question=(CROP, QUESTION))
     second = make_request(question=(ImagePart(png=png_bytes(9)), TextPart(text="Another item.")))
@@ -206,7 +201,6 @@ def test_reading_usage_adds_every_field():
 # ---------------------------------------------------------------- the request body
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_request_body_places_a_breakpoint_after_the_system_prompt_and_each_shared_part():
     body = request_body(make_request(), MODEL)
     assert body["model"] == MODEL
@@ -232,7 +226,6 @@ def test_request_body_places_a_breakpoint_after_the_system_prompt_and_each_share
     assert blocks[3] == {"type": "text", "text": QUESTION.text}
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_request_body_marks_only_the_last_block_of_a_shared_part():
     body = request_body(make_request(shared=((INSTRUCTIONS, PAGE_A),)), MODEL)
     blocks = body["messages"][0]["content"]
@@ -243,7 +236,6 @@ def test_request_body_marks_only_the_last_block_of_a_shared_part():
     assert no_shared["system"][0]["cache_control"] == {"type": "ephemeral"}
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_request_body_of_a_retry_follows_the_original_with_the_answer_and_the_fault():
     retry = Retry(answer='{"rows": ["F"]}', fault="2 rows expected, 1 given")
     body = request_body(make_request(retry=retry), MODEL)
@@ -257,7 +249,6 @@ def test_request_body_of_a_retry_follows_the_original_with_the_answer_and_the_fa
 # ---------------------------------------------------------------- prices
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_cost_matches_two_requests_the_model_comparison_paid_for():
     """The rows are from `~/.re-pod/map-plan/model-compare/results.jsonl`: Sonnet high W1 and Opus low W1."""
     sonnet = ReadingUsage(input_tokens=1665, output_tokens=4161, cache_read_tokens=1841, cache_write_tokens=0)
@@ -268,7 +259,6 @@ def test_cost_matches_two_requests_the_model_comparison_paid_for():
         cost_usd("claude-haiku-5-5", sonnet)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_reservation_is_the_input_at_the_cache_write_price_and_max_tokens_at_the_output_price():
     kind = RequestKind(name="probe", system="abc", schema={"type": "object"}, effort="low", max_tokens=1000)
     request = ReadingRequest(
@@ -289,12 +279,17 @@ def test_the_reservation_is_the_input_at_the_cache_write_price_and_max_tokens_at
 
 
 class FakeStream:
-    """One streamed response: a first event after a short wait, then the final message."""
+    """One streamed response: a first event after a short wait, then the final message.
+
+    Like the SDK's stream, it has one iterator, so `get_final_message` after a
+    partial iteration resumes the same stream instead of starting it again.
+    """
 
     def __init__(self, client: FakeClient, index: int, message: Any) -> None:
         self.client = client
         self.index = index
         self.message = message
+        self._events = self._generate()
 
     def __enter__(self) -> FakeStream:
         return self
@@ -302,14 +297,17 @@ class FakeStream:
     def __exit__(self, *_: object) -> None:
         return None
 
-    def __iter__(self):
+    def _generate(self):
         time.sleep(0.05)
         self.client.log("first_event", self.index)
         yield SimpleNamespace(type="message_start")
         yield SimpleNamespace(type="message_stop")
 
+    def __iter__(self):
+        return self._events
+
     def get_final_message(self) -> Any:
-        for _ in self:
+        for _ in self._events:
             pass
         self.client.log("final", self.index)
         return self.message
@@ -392,7 +390,6 @@ def provider(
     )
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_read_returns_the_answer_with_its_cache_use_and_settles_the_ledger(tmp_path: Path):
     reader, client, path = provider(tmp_path, [final_message(cache_write=0, cache_read=1841)])
     response = reader.read(make_request())
@@ -416,7 +413,6 @@ def test_read_returns_the_answer_with_its_cache_use_and_settles_the_ledger(tmp_p
     assert ledger["spent_usd"] == pytest.approx(cost_usd(MODEL, response.usage))
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_read_reserves_the_worst_case_and_refuses_past_the_stop(tmp_path: Path):
     request = make_request()
     worst = worst_case_usd(MODEL, request)
@@ -432,7 +428,6 @@ def test_read_reserves_the_worst_case_and_refuses_past_the_stop(tmp_path: Path):
     assert len(client.bodies) == 1
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 @pytest.mark.parametrize("stop_reason", ["max_tokens", "refusal"])
 def test_a_stop_at_max_tokens_or_a_refusal_is_a_failure_that_is_still_paid_for(tmp_path: Path, stop_reason: str):
     reader, _, path = provider(tmp_path, [final_message(stop_reason=stop_reason)])
@@ -447,7 +442,6 @@ def test_a_stop_at_max_tokens_or_a_refusal_is_a_failure_that_is_still_paid_for(t
     assert "pending" not in ledger["entries"][0]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_an_answer_that_does_not_fit_the_schema_is_a_schema_error(tmp_path: Path):
     reader, _, path = provider(tmp_path, [final_message(data={"rows": "not a list"})])
     with pytest.raises(SchemaValidationError):
@@ -455,7 +449,6 @@ def test_an_answer_that_does_not_fit_the_schema_is_a_schema_error(tmp_path: Path
     assert "pending" not in json.loads(path.read_text(encoding="utf-8"))["entries"][0]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_connection_failures_are_retried_then_raised_without_the_key(tmp_path: Path):
     failure = APIConnectionError(request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages"))
     reader, client, path = provider(tmp_path, [failure] * 5)
@@ -469,14 +462,14 @@ def test_connection_failures_are_retried_then_raised_without_the_key(tmp_path: P
     assert ledger["entries"][0]["cost_usd"] == pytest.approx(worst_case_usd(MODEL, make_request()))
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_read_all_sends_the_first_request_of_each_shared_part_alone(tmp_path: Path):
     """Two pages with three items each share the instructions: one request warms each part before the rest read it."""
     requests = [
         make_request(
-            shared=((INSTRUCTIONS,), (page,)), question=(ImagePart(png=png_bytes(10 + i)), TextPart(text=f"Item {i}"))
+            shared=((INSTRUCTIONS,), (page,)),
+            question=(ImagePart(png=png_bytes(10 + 3 * page_index + i)), TextPart(text=f"Item {3 * page_index + i}")),
         )
-        for page in (PAGE_A, PAGE_B)
+        for page_index, page in enumerate((PAGE_A, PAGE_B))
         for i in range(3)
     ]
     answers = {f"Item {i}": final_message(data={"rows": [f"Item {i}"]}) for i in range(6)}
@@ -505,7 +498,6 @@ def test_read_all_sends_the_first_request_of_each_shared_part_alone(tmp_path: Pa
             assert order[("first_event", first)] < order[("start", other)], (part, first, other)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_read_all_returns_each_failure_in_its_place(tmp_path: Path):
     requests = [make_request(question=(ImagePart(png=png_bytes(20 + i)), TextPart(text=f"Item {i}"))) for i in range(3)]
     answers = {"Item 0": final_message(), "Item 1": final_message(stop_reason="max_tokens"), "Item 2": final_message()}
@@ -515,7 +507,6 @@ def test_read_all_returns_each_failure_in_its_place(tmp_path: Path):
     assert isinstance(results[1], ReadingFailure)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_settings_from_env_need_the_key_and_the_ledger(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     for name in ("ANTHROPIC_API_KEY", "OSRFORGE_CLAUDE_LEDGER", "OSRFORGE_CLAUDE_MODEL", "OSRFORGE_CLAUDE_LEDGER_STOP"):
         monkeypatch.delenv(name, raising=False)
@@ -567,7 +558,6 @@ RESPONSE = ReadingResponse(
 )
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_record_then_replay_round_trip(tmp_path: Path):
     request = make_request()
     recorder = RecordingReadingProvider(StubReader([RESPONSE]), tmp_path, MODEL)
@@ -601,7 +591,6 @@ def test_record_then_replay_round_trip(tmp_path: Path):
     assert replayed.read_all([request, same_pixels]) == [RESPONSE, RESPONSE]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_replay_misses_and_failures(tmp_path: Path):
     request = make_request()
     failure = ReadingFailure("probe stopped at max_tokens", stop_reason="max_tokens")
@@ -623,7 +612,6 @@ def test_replay_misses_and_failures(tmp_path: Path):
     assert isinstance(results[0], ReadingFailure) and isinstance(results[1], FixtureMissError)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_replay_revalidates_against_the_kind_schema(tmp_path: Path):
     request = make_request()
     RecordingReadingProvider(StubReader([RESPONSE]), tmp_path, MODEL).read(request)
@@ -635,7 +623,6 @@ def test_replay_revalidates_against_the_kind_schema(tmp_path: Path):
         RecordedReadingProvider(tmp_path, MODEL).read(request)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_replay_refuses_a_recording_whose_body_the_code_no_longer_builds(tmp_path: Path):
     """The key still matches, so only the stored body shows that the request's rendering changed."""
     request = make_request()
@@ -648,7 +635,6 @@ def test_replay_refuses_a_recording_whose_body_the_code_no_longer_builds(tmp_pat
         RecordedReadingProvider(tmp_path, MODEL).read(request)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_recording_through_the_adapter_stores_what_the_adapter_sent(tmp_path: Path):
     reader, client, _ = provider(tmp_path, [final_message(cache_write=1841, cache_read=0)])
     recorder = RecordingReadingProvider(reader, tmp_path / "recordings", MODEL)
@@ -670,7 +656,6 @@ def test_providers_satisfy_the_protocol(tmp_path: Path):
 # ---------------------------------------------------------------- run.json
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_run_json_records_each_request_with_its_cache_use(tmp_path: Path):
     """The stage name is a stand-in: the tracing stage's own name arrives with the wiring chunk."""
     workdir = fabricate_workdir(tmp_path / "mod.forge", page_count=1)

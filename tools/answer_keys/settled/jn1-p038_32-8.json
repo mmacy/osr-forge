@@ -1,0 +1,78 @@
+{
+ "map": "jn1-p038",
+ "window": [
+  32,
+  8,
+  12,
+  12
+ ],
+ "crop": "../crops/jn1-p038_32-8_window.png",
+ "cells": [
+  "####....#...",
+  "##..#..##...",
+  "##..#..##.##",
+  "#####..##..#",
+  "#####..##..#",
+  "#####..#..##",
+  "#####.....##",
+  ".........###",
+  "........####",
+  "############",
+  "#...#..##..#",
+  "#...#..##..#"
+ ],
+ "vertical": [
+  "----wooowwooo",
+  "--wowwow-wooo",
+  "--wowwow-ww-w",
+  "-----wow-wwww",
+  "-----wow-woww",
+  "-----wowwow-w",
+  "-----woooow-w",
+  "ooooooooow--w",
+  "oooooooow---w",
+  "------------w",
+  "-woowwow-woww",
+  "-woowwow-woww"
+ ],
+ "horizontal": [
+  "----oooo-www",
+  "--wwwoow-ooo",
+  "--oo-oo--dww",
+  "--ww-ww--ow-",
+  "-----ww--ow-",
+  "-----oo-wow-",
+  "-----oowoo--",
+  "wwwwwoooow--",
+  "oooooooow---",
+  "wwwwwwww----",
+  "-www-ww--ww-",
+  "-ooo-oo--oo-",
+  "-ooowoowwoow"
+ ],
+ "partial": [
+  "35,8",
+  "42,11",
+  "40,12",
+  "42,13",
+  "40,15",
+  "39,16",
+  "40,19"
+ ],
+ "outside": [],
+ "checked": {
+  "37,11": "../crops/items/jn1-p038_32-8/37-11.png",
+  "37,11:north": "../crops/items/jn1-p038_32-8/37-11_north.png",
+  "36,11:east": "../crops/items/jn1-p038_32-8/36-11_east.png",
+  "41,10:north": "../crops/items/jn1-p038_32-8/41-10_north.png",
+  "35,8": "../crops/items/jn1-p038_32-8/35-8.png",
+  "35,9": "../crops/items/jn1-p038_32-8/35-9.png",
+  "39,12": "../crops/items/jn1-p038_32-8/39-12.png",
+  "42,11": "../crops/items/jn1-p038_32-8/42-11.png",
+  "42,13": "../crops/items/jn1-p038_32-8/42-13.png",
+  "40,19": "../crops/items/jn1-p038_32-8/40-19.png",
+  "34,8": "../crops/items/jn1-p038_32-8/34-8.png",
+  "43,9": "../crops/items/jn1-p038_32-8/43-9.png"
+ },
+ "notes": "Filled from the classifier's reading and corrected item by item from zoomed crops (the items under `checked`). Lairs around rooms 16 to 20 and a. The stairs symbol between two bars at (37,11) is floor; its bars are drawn lines and are settled as walls. The pillar dots in 16 are floor. The woods and the contour lines are overlays on rock."
+}
