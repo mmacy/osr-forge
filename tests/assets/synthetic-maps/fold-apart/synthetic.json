@@ -1,0 +1,50 @@
+{
+  "name": "fold-apart",
+  "title": "The fold, apart",
+  "features": [
+    "corridor_off_frame"
+  ],
+  "damage": [
+    {
+      "change": "passage_moved",
+      "dungeon": "the-fold-apart",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": null,
+      "cell": "10,5",
+      "side": "east",
+      "to_cell": "9,5",
+      "to_side": "north",
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "fold-west.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    },
+    {
+      "file": "fold-east.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

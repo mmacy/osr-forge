@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "map_reading": "read",
+  "levels": [
+    {
+      "dungeon_id": "the-hollow-hill",
+      "level_number": 1,
+      "map_pages": [
+        1
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "2",
+          "b": "3",
+          "door": "door"
+        },
+        {
+          "a": "3",
+          "b": "4",
+          "door": "secret_door"
+        }
+      ],
+      "entrance_key": null
+    }
+  ]
+}

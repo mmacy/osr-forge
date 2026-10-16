@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "hobbs-farmstead",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "1",
+      "description": "A low farmhouse with shuttered windows.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "2",
+      "description": "Stalls line the barn's west wall.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "3",
+      "description": "A platform with a roof sits in the branches of an old oak.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "4",
+      "description": "A narrow house stands on an island inside a moat.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

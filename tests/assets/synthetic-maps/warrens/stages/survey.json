@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "title": "The warrens",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-warrens",
+      "name": "The warrens",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Meeting hall",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Store",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Den",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Twin guardrooms",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Kitchen",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "6",
+              "name": "Pantry",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "7",
+              "name": "Chapel",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "8",
+              "name": "Treasury",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "9",
+              "name": "Workshop",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}

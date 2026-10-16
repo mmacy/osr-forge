@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "map_reading": "read",
+  "levels": [
+    {
+      "dungeon_id": "the-warrens",
+      "level_number": 1,
+      "map_pages": [
+        1
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "7",
+          "b": "8",
+          "door": "door"
+        },
+        {
+          "a": "5",
+          "b": "6",
+          "door": "door"
+        },
+        {
+          "a": "2",
+          "b": "7",
+          "door": "door"
+        },
+        {
+          "a": "1",
+          "b": "4",
+          "door": "door"
+        },
+        {
+          "a": "1",
+          "b": "2",
+          "door": "door"
+        },
+        {
+          "a": "1",
+          "b": "3",
+          "door": "door"
+        },
+        {
+          "a": "1",
+          "b": "9",
+          "door": "door"
+        }
+      ],
+      "entrance_key": null
+    }
+  ]
+}

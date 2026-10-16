@@ -1,0 +1,50 @@
+{
+  "name": "fold-joined",
+  "title": "The fold, joined",
+  "features": [
+    "corridor_off_frame"
+  ],
+  "damage": [
+    {
+      "change": "halves_offset_changed",
+      "dungeon": null,
+      "level": null,
+      "panel": null,
+      "edge": null,
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": 0
+    }
+  ],
+  "images": [
+    {
+      "file": "fold-west.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    },
+    {
+      "file": "fold-east.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

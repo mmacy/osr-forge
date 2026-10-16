@@ -1,0 +1,70 @@
+{
+  "name": "warrens",
+  "title": "The warrens",
+  "features": [
+    "key_off_floor",
+    "key_printed_twice",
+    "keys_stacked",
+    "key_with_leader_line",
+    "letter_alone",
+    "letter_under_two_keys",
+    "letter_suffix",
+    "corridor_off_frame"
+  ],
+  "damage": [
+    {
+      "change": "key_moved",
+      "dungeon": "the-warrens",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": "7",
+      "cell": null,
+      "side": null,
+      "to_cell": "5,8",
+      "to_side": null,
+      "pair": null
+    },
+    {
+      "change": "wall_removed",
+      "dungeon": null,
+      "level": null,
+      "panel": "warrens",
+      "edge": "4,6:south",
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": null
+    },
+    {
+      "change": "door_kind_changed",
+      "dungeon": null,
+      "level": null,
+      "panel": "warrens",
+      "edge": "22,3:east",
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "warrens.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    }
+  ]
+}

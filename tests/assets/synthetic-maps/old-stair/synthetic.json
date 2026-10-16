@@ -1,0 +1,66 @@
+{
+  "name": "old-stair",
+  "title": "The old stair",
+  "features": [
+    "stairs_with_direction",
+    "stairs_without_direction",
+    "two_staircases_one_link",
+    "wide_open_stairway_only_way_in"
+  ],
+  "damage": [
+    {
+      "change": "transition_moved",
+      "dungeon": "the-old-stair",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": null,
+      "cell": "12,12",
+      "side": null,
+      "to_cell": "9,12",
+      "to_side": null,
+      "pair": null
+    },
+    {
+      "change": "refusal_flipped",
+      "dungeon": "the-old-stair",
+      "level": 2,
+      "panel": null,
+      "edge": null,
+      "label": null,
+      "cell": null,
+      "side": null,
+      "to_cell": null,
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "old-stair-1.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    },
+    {
+      "file": "old-stair-2.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

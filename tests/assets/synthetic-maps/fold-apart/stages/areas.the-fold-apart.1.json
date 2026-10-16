@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-fold-apart",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "1",
+      "description": "A corridor leads east from the door.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1,
+        2
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "2",
+      "description": "A corridor leads west from the door.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1,
+        2
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

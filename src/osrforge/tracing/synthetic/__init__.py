@@ -294,8 +294,9 @@ def generate(out_dir: Path) -> tuple[str, ...]:
     `images/<file>` for each image, `stages/survey.json`,
     `stages/areas.<dungeon>.<level>.json` for every level, refused and
     fallen-back levels included, and `stages/mapread.json` with its knob
-    `read`. Running it twice writes the same bytes for every file except the
-    JPEG images, whose decoded pixels are the same.
+    `read`. A `README.md` beside the maps says what they are and how to
+    regenerate them. Running it twice writes the same bytes for every file
+    except the JPEG images, whose decoded pixels are the same.
 
     Args:
         out_dir: The directory to write under. It's created if missing, and a
@@ -304,7 +305,10 @@ def generate(out_dir: Path) -> tuple[str, ...]:
     Returns:
         The map names, sorted.
     """
-    raise NotImplementedError("chunk: synth-core")
+    # The modules that draw the maps import this module's models, so they're imported only when maps are written.
+    from osrforge.tracing.synthetic._write import write_maps
+
+    return write_maps(out_dir)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -323,7 +327,3 @@ def main(argv: list[str] | None = None) -> int:
     names = generate(Path(arguments[0]))
     print("\n".join(names))
     return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
