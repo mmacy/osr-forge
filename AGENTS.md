@@ -18,7 +18,7 @@ Work is divided into chunks that the lead role packets to coder roles, with acce
 - Format with `ruff format`, lint with `ruff check`, type-check with `pyright`, test with `pytest` (not unittest).
 - Type hints use built-in generics (`list[str]`, `dict[str, int]`). Do not import `List`/`Dict`/`Tuple` from `typing` and do not use `from __future__ import annotations`.
 - Docstrings are Google style, written in Markdown. Maximum line length 120.
-- Live model runs (the extraction runner, the eval sweep) need the `OSRFORGE_FOUNDRY_*` environment variables (see the README's provider table). When they aren't set, derive them from the authenticated Azure CLI session instead of asking: discover the Azure OpenAI resource with `az cognitiveservices account list`, its deployments with `az cognitiveservices account deployment list`, and a key with `az cognitiveservices account keys list`; export the values into the process environment only. Never write credentials, keys, endpoints, or resource names into the repository — this file records the method, nothing more.
+- Live model runs (the extraction runner, the eval sweep) need the `OSRFORGE_FOUNDRY_*` environment variables (see the README's provider table). When they aren't set, derive them from the authenticated Azure CLI session instead of asking: discover the Azure OpenAI resource with `az cognitiveservices account list`, its deployments with `az cognitiveservices account deployment list`, and a key with `az cognitiveservices account keys list`; export the values into the process environment only. The Claude provider's live check (`tools/live/claude_cache_check.py`) needs `ANTHROPIC_API_KEY` and `OSRFORGE_CLAUDE_LEDGER`, and the API key is in the `ANTHROPIC_API_KEY=` line of `~/repos/re-pod/.env`, which git ignores. Every live Claude request is charged to the ledger that `OSRFORGE_CLAUDE_LEDGER` names, and the shared ledger is `~/.re-pod/map-plan/claude-ledger.json`. The Clef provider's live check (`tools/live/clef_check.py`) needs `OSRFORGE_CLEF_ACCOUNT_ID` and `OSRFORGE_CLEF_LEDGER`, and takes its token from `OSRFORGE_CLEF_TOKEN` or the wrangler login; the shared ledger is `~/.re-pod/map-plan/clef-ledger.json`. Never write credentials, keys, endpoints, or resource names into the repository — this file records the method, nothing more.
 
 ## Greenfield discipline
 
@@ -38,8 +38,8 @@ The version lives in `pyproject.toml` alone and the bump procedure is: edit the 
 ## Invariants the spec imposes
 
 - **Assembly purity.** `adventure.json`, `report.json`, and previews are a deterministic function of cached stage outputs plus `overrides.yaml`. LLM calls happen only in the extraction stages; correcting a draft never re-rolls the model.
-- **Provider isolation.** Pipeline code never imports a vendor SDK; all model access goes through the `ModelProvider` protocol. Vendor specifics (Azure AI Foundry, `gpt-5.4`) live in adapters only.
-- **No network in tests.** Unit and pipeline tests run against `FixtureProvider` recordings; live-model calls happen only in the on-demand eval harness, never in CI.
+- **Provider isolation.** Pipeline code never imports a vendor SDK; all model access goes through the `ModelProvider` protocol, or, in the tracing stage, the `ReadingProvider` and `DecisionProvider` protocols. Vendor specifics live in adapters only: Azure AI Foundry and `gpt-5.4` in `providers/foundry.py`, the `anthropic` library in `providers/claude.py`, and the Workers AI endpoint in `providers/clef.py`.
+- **No network in tests.** Unit and pipeline tests run against `FixtureProvider` fixtures and the tracing providers' recordings. Live-model calls happen only in the on-demand eval harness and the live checks under `tools/live/`, never in CI.
 - **osrlib stays outside.** osr-forge depends on osrlib; nothing here is a candidate for merging into it (osrlib is sans-I/O and frozen-API).
 
 ## Licensing

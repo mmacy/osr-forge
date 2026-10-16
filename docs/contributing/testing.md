@@ -26,6 +26,28 @@ The request builders (for example
 public and pure for exactly this reason: the pipeline and the fixture tests
 must build fingerprint-identical requests without duplicating prompt code.
 
+## Recordings: the tracing providers' replay
+
+The tracing stage's providers have their own replay, because their requests
+are drawn at run time: the stage cuts crops from map images and marks items
+on them, and a different PNG encoder must still find the answer. A
+*recording* is one answer filed under its key, the sha256 of the request's
+decoded pixels ([`pixel_digest`][osrforge.providers.base.pixel_digest]) and
+its parameters ([`ReadingRequest.key`][osrforge.providers.reading.ReadingRequest.key]
+and [`DecisionRequest.key`][osrforge.providers.decisions.DecisionRequest.key]).
+[`RecordedReadingProvider`][osrforge.providers.reading.RecordedReadingProvider]
+replays Claude's answers and
+[`RecordingReadingProvider`][osrforge.providers.reading.RecordingReadingProvider]
+writes them, and the Clef pair is in [`osrforge.providers.decisions`][]. A
+recording file names its kind or tag and the first twelve characters of its
+key, like a fixture, and holds the request's exact body with each image's
+data replaced by its pixel digest, so a reviewer reads every parameter and
+the repository stays small. No test calls Claude or Clef: the live checks
+under `tools/live/` are run by hand and charge the cost ledgers. Recordings
+of a private corpus member's maps may contain the module's text or picture,
+so they live in the owner's private corpus directory, never in the
+repository.
+
 ## The re-record rule
 
 Editing an extraction prompt, a request schema, or the

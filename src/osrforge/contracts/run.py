@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from osrforge.settings import ConversionSettings
 from osrforge.versioning import SCHEMA_VERSION, osrforge_version
 
-__all__ = ["RunMeta", "Stage", "StageState", "StageStatus", "TokenUsage"]
+__all__ = ["RequestUsage", "RunMeta", "Stage", "StageState", "StageStatus", "TokenUsage"]
 
 
 class TokenUsage(BaseModel):
@@ -57,6 +57,26 @@ StageState = Literal["pending", "running", "completed", "failed"]
 """One stage's lifecycle state."""
 
 
+class RequestUsage(BaseModel):
+    """One tracing request's usage, as `run.json` records it.
+
+    The tracing stage records one of these per request it sends, so a reader
+    can see which requests read the prompt cache and which wrote it.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    stage: Stage
+    kind: str
+    """The request kind's name."""
+
+    model_id: str
+    input_tokens: int = Field(default=0, ge=0)
+    output_tokens: int = Field(default=0, ge=0)
+    cache_read_tokens: int = Field(default=0, ge=0)
+    cache_write_tokens: int = Field(default=0, ge=0)
+
+
 class StageStatus(BaseModel):
     """One stage's status entry in `run.json`."""
 
@@ -92,6 +112,8 @@ class RunMeta(BaseModel):
     provider: str | None = None
     model_id: str | None = None
     stages: dict[Stage, StageStatus]
+    requests: tuple[RequestUsage, ...] = ()
+    """Each tracing request's usage, in the order the requests were sent."""
 
     def with_stage(self, stage: Stage, status: StageStatus) -> RunMeta:
         """Return a copy with one stage's status replaced.
