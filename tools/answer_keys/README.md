@@ -32,7 +32,7 @@ To see what a reading says, add `--overlay x0,y0` to draw a 12 by 12 window of i
 
 ## Score it
 
-A *settled window* is a 12 by 12 window of one map whose cells and edges a person settled from zoomed crops. The format is in `score.py`. The Chaotic Caves windows this work settled are in `settled/`, and the crops they point at are under `~/.re-pod/map-plan/osr-suite/classifier/crops/`.
+A *settled window* is a 12 by 12 window of one map whose cells and edges a person settled from zoomed crops. The format is in `score.py`. The Chaotic Caves windows this work settled are in `settled/`, and the crops they point at are under `~/.re-pod/map-plan/osr-suite/classifier/crops/`. A window's `checked` paths are relative to `~/.re-pod/map-plan/osr-suite/classifier/settled/`, where the windows were settled, so they don't resolve from the repository.
 
 ```text
 uv run python -m tools.answer_keys.score <readings dir> tools/answer_keys/settled --diffs
@@ -48,7 +48,7 @@ The fit takes the ink mask of the region and keeps the thin runs: ink no wider t
 
 The fit reports, per axis, the pitch, the shear, how many lines it found and kept, the root mean square and largest residual in pixels and in cells, and the share of lines within a tenth of a cell. The region's grid spans the rectangle the spec names.
 
-On the seven regions this work fitted (the five Chaotic Caves regions and the two Palace levels), the rms residual is under 0.04 cells and the largest residual under 0.1 cells, and every detected line lies within a tenth of a cell of the fit. The shear is zero on the Chaotic Caves maps, which are digital drawings, and up to 0.005 on the Palace scans.
+On the seven regions this work fitted (the five Chaotic Caves regions and the two Palace levels), the rms residual is under 0.04 cells and the largest residual under 0.1 cells, and every detected line lies within a tenth of a cell of the fit. The shear is at most 0.0005 on the Chaotic Caves maps, which are digital drawings, and up to 0.005 on the Palace scans.
 
 ## The rules
 
@@ -87,4 +87,4 @@ The confidence of a blocked or open edge comes from how far the ink measure sits
 
 ## Tests
 
-`tests/` runs on the committed Chaotic Caves images: each map's grid fit meets the figures above, each reading loads through the truth models, and each reading scores at least the floor named in the test against its settled window. `uv run pytest` runs them with the rest of osr-forge's tests.
+`tests/` runs on the committed Chaotic Caves images: each map's grid fit has an rms residual under 0.05 cells, a largest residual under 0.1 cells, and every detected line within a tenth of a cell, each reading loads through the truth models, and each reading scores at least the floor named in the test against its settled window. `uv run pytest` runs them with the rest of osr-forge's tests.
