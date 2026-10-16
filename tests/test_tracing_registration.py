@@ -4,10 +4,9 @@ Every number here comes from the registration measurement's reference fit, run i
 committed Chaotic Caves, Monkey Isle, and minimod images, the synthetic maps, and perturbed copies of pages 47
 and 38. Each threshold has the measured figures beside it.
 
-The tests over the committed real images, the perturbed copies, and synth-core's maps need only this chunk. The
-tests over maps that a later generator chunk draws carry that chunk's name in their reason as well: synth-styles
-for the gridless and warped maps, and synth-joins for the halves with a gap at the fold and an offset. A test
-that needs such a map stays marked until both chunks are merged.
+The tests over the committed real images, the perturbed copies, and the synthetic maps on main need only this
+chunk. The test over the halves with a gap at the fold and an offset, which synth-joins draws, carries that
+chunk's name in its reason as well, and stays marked until both chunks are merged.
 """
 
 import json
@@ -33,7 +32,6 @@ from osrforge.tracing.registration import (
 from osrforge.tracing.truth import GeometryTruth, Region, Registration
 
 CHUNK = "chunk: registration"
-WITH_STYLES = "chunk: registration, chunk: synth-styles"
 WITH_JOINS = "chunk: registration, chunk: synth-joins"
 
 ASSETS = Path(__file__).parent / "assets"
@@ -452,10 +450,10 @@ def check_against_truth(item: SyntheticMap, region: Region, fit: RegionFit) -> t
 
 @pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_every_synthetic_region_that_should_register_does():
-    """Every registered region of the committed set, in both styles synth-core draws: the TSR blue JPEG maps with
-    their bowed pitch, skew, blur, and grain, and the clean black and white PNG maps with hatched rock. The grid is
-    printed on floor only, so a map's coverage counts its floor cells, its frame, and its labels, and the reference
-    fit over the true grids gives 0.815 (fold-east) to 1.0."""
+    """Every registered region of the committed set, in every style the generator draws: the TSR blue JPEG maps
+    with their bowed pitch, skew, blur, and grain, the clean black and white PNG maps with hatched rock, and the
+    dark rock and cave maps. The grid is printed on floor only, so a map's coverage counts its floor cells, its
+    frame, and its labels, and the reference fit over synth-core's true grids gives 0.815 (fold-east) to 1.0."""
     items = synthetic_maps()
     assert items, "no synthetic maps are committed"
     for item in items:
@@ -464,13 +462,21 @@ def test_every_synthetic_region_that_should_register_does():
             by_image.setdefault(region.image, []).append(region)
         for image, regions in by_image.items():
             fits = register_image(item.path / "images" / image)
+            # A region refused after the reading for its style or scale still registers when it has a grid, as
+            # greyrock-country's valley at a quarter mile to the square does. Its answer has no corners, so it is
+            # checked by its existence alone.
             expected = [region for region in regions if region.verdict == "registered"]
-            assert len(registered(fits)) == len(expected), (item.path.name, image, [fit.rect for fit in fits])
+            refused_with_grid = [region for region in regions if region.verdict == "refused" and region.columns > 0]
+            assert len(registered(fits)) == len(expected) + len(refused_with_grid), (
+                item.path.name,
+                image,
+                [fit.rect for fit in fits],
+            )
             for region in expected:
                 check_against_truth(item, region, fit_for(fits, region))
 
 
-@pytest.mark.xfail(reason=WITH_STYLES, strict=True)
+@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_gridless_synthetic_map_yields_no_region():
     items = maps_with("reject_no_grid")
     assert items, "no synthetic map shows reject_no_grid"
@@ -480,7 +486,7 @@ def test_the_gridless_synthetic_map_yields_no_region():
                 assert registered(register_image(item.image(region))) == [], (item.path.name, region.id)
 
 
-@pytest.mark.xfail(reason=WITH_STYLES, strict=True)
+@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_warped_synthetic_map_fails_registration():
     """The warped map's answer records its region as unregistered. Its warp is at least the 0.6 of a pitch over
     two periods that the perturbed copy of page 47 tests, where the reference fit's coverage is 0.549."""

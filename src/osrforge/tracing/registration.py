@@ -259,9 +259,10 @@ def register_image(image: Path) -> tuple[RegionFit, ...]:
     by `INK_MARGIN`, so a grid line on grey fill counts and the inside of a
     solid wall doesn't. Each framed drawing with a printed grid is one
     region, found without any rectangle given by hand, and two drawings on
-    one image at different pitches are two regions with a fit each. A
-    drawing with no grid yields no region, so an image of a gridless map
-    yields an empty tuple.
+    one image at different pitches are two regions with a fit each, because
+    each drawing's pitch is found on its own, not from one pitch estimated
+    over the whole image. A drawing with no grid yields no region, so an
+    image of a gridless map yields an empty tuple.
 
     Each region gets one fit over the whole region: a separate x and y
     pitch, a shear, and a smooth, low-order correction for scan drift, never
@@ -270,8 +271,10 @@ def register_image(image: Path) -> tuple[RegionFit, ...]:
     fitted grid when the gate passes. A copy of a map bowed by three tenths of
     a pitch, or stretched by 4% from top to bottom, registers, because the
     drift correction follows it. A copy with part of its grid shifted by half
-    a pitch, and a copy warped by a sine of 0.6 of a pitch over two periods,
-    don't.
+    a pitch doesn't. The gate has a limit: a warp whose crests and troughs lie
+    about half a pitch apart can register on a lattice shifted by half a
+    pitch, with corners about half a cell off, and no part of the gate
+    catches it.
 
     Args:
         image: The image file, as the workdir's `maps/` directory stores it
