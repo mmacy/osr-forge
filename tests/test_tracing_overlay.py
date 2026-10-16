@@ -12,8 +12,6 @@ from osrforge.tracing.overlay import OVERLAY_COLORS, render_overlay
 from osrforge.tracing.truth import GeometryTruth
 from tracing_support import demo_truth
 
-pytestmark = pytest.mark.xfail(reason="chunk: overlay", strict=True)
-
 WHITE = (255, 255, 255)
 LINE_COLORS = {OVERLAY_COLORS[name] for name in ("wall", "window", "printed_line", "door", "locked", "secret")}
 
