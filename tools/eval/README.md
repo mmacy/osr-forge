@@ -4,7 +4,8 @@ The on-demand measurement half of the spec's "extraction changes are measured,
 not vibed": a corpus of freely licensed adventures with verified structural
 ground truth — authored from the printed module under the independence
 discipline ([`AUTHORING.md`](AUTHORING.md)) — scored on the seven pinned metric
-families. Evals are never per-commit CI — extraction is nondeterministic run
+families, and, for a member with geometry truth, by the geometry scorer
+(`osrforge.tracing.score`). Evals are never per-commit CI — extraction is nondeterministic run
 to run and live runs cost real money — but the *scorer* is deterministic
 package code (`osrforge.evals`), fully unit-tested, with the JN1 pinned
 baseline in CI at zero network.
@@ -26,6 +27,11 @@ A corpus member is a directory, `corpus/<module-id>/`, holding two files:
 - `truth.yaml` — verified structural ground truth, deliberately prose-free
   to keep the licensing surface thin: printed keys, creature names, and codes
   only.
+- `geometry.json` — the member's geometry truth, in the format of
+  `osrforge.tracing.truth`: what each map shows (cells, edges, key marks,
+  outlines, symbols) and the levels made from it under
+  `docs/tracing-conventions.md`. Phase 12 writes it for every committed
+  member, and the full-assertion test covers it then.
 
 Every *committed* member pins `sha256` and carries `license` and
 `truth_provenance`, with treasure asserted on every area — a repo test

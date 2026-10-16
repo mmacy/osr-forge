@@ -119,6 +119,22 @@ entrance on every dungeon; a repo test enforces it — so the gating
 scoreboard's meaning cannot silently thin out. Partial truth is for private
 (BYOM) corpora.
 
+## Geometry truth
+
+A member's geometry truth is `geometry.json`, in the format of
+`osrforge.tracing.truth`, and its conventions are `docs/tracing-conventions.md`.
+An answer key records a settled reading of each map's cells, edges, key marks,
+outlines, and symbols, and the reference resolution script derives the levels,
+areas, ownership, cuts, entrances, and links from that reading by the
+conventions. The settled reading comes from two independent readings, Clef's
+answers as a third, a settler that decides each disagreement from zoomed crops,
+and an adversarial pass that rechecks every settled call. For geometry, that
+pass and the owner's sample of about 50 settled calls per map style, plus every
+key placement the settler decided, take the place of the two checks below: a
+large level has hundreds of settled disagreements, and each one is a judgment
+call. The synthetic maps under `tests/assets/synthetic-maps/` are the exact
+case: their answers were written first and their pictures drawn from them.
+
 ## The adversarial verification pass
 
 Required before `publish` — it is the truth file's rubber-duck:

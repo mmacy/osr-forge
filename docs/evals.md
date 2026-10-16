@@ -2,7 +2,9 @@
 
 Extraction changes are measured, not vibed: a corpus of freely licensed
 adventures with verified structural ground truth, scored on seven pinned
-metric families, with the results on a committed scoreboard. Evals are
+metric families, with the results on a committed scoreboard. A member with
+geometry truth is also scored by the geometry scorer
+([`osrforge.tracing.score`][osrforge.tracing.score]). Evals are
 on-demand — never per-commit CI — because extraction is nondeterministic run
 to run and live runs cost real money; the *scorer* itself
 ([`osrforge.evals`][osrforge.evals]) is deterministic, fully unit-tested
