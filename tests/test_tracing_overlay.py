@@ -1,4 +1,7 @@
-"""The overlay renderer: each edge kind in its colour on the registered grid, labels, tints, and byte stability."""
+"""The overlay renderer: each edge kind in its colour on the registered grid, labels, tints, and byte stability.
+
+Chunk overlay depends on the truth format alone and can run alongside the other chunks.
+"""
 
 import io
 

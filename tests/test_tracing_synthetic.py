@@ -1,5 +1,8 @@
 """The synthetic maps: the committed set, its regeneration, its caches, its answers, its features, and its pictures.
 
+Chunk synth-core depends on chunk scorer, because these tests score every map, so five-foot and scorer merge first.
+Chunks synth-styles and synth-joins depend on synth-core and can run in either order after it.
+
 The set lives under `tests/assets/synthetic-maps/`. Each test here reads the
 committed set, so until the generator chunks land there is nothing to read
 and every test fails for that reason.
@@ -863,7 +866,6 @@ PREDICATES: dict[str, Callable[[SyntheticMap], bool]] = {
     ),
     "several_levels_one_page": lambda m: levels_on_page(m.truth),
     "halves_joined_at_offset": lambda m: any(pair.joined and pair.columns for pair in m.truth.half_pairs),
-    "halves_gap_at_fold": lambda m: any(pair.joined for pair in m.truth.half_pairs),
     "halves_apart_unequal_stretches": lambda m: bool(apart_pairs(m.truth)) and apart_passage_count(m.truth) >= 3,
     "halves_apart_door_ends_stretch": lambda m: door_ends_stretch(m.truth),
     "halves_apart_stretch_without_partner": lambda m: stretch_without_partner(m.truth),
@@ -1069,6 +1071,7 @@ def test_feature_table_is_complete():
         "gateway_no_door_between_towers",
         "wide_open_stairway_only_way_in",
         "overlay_contours_tracks_stream",
+        "halves_gap_at_fold",
     }
     assert set(TOUCHED_FAMILIES) == set(CHANGES)
     assert EdgeGrids(vertical=("ww",), horizontal=("w", "w")).width == 1

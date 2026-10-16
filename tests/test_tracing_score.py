@@ -1,5 +1,8 @@
 """The scorer: a perfect self-score, one family per single change, alignment, partly-floor cells, and repairs.
 
+Chunk scorer depends on chunk five-foot, because `score_trace` converts a 5-foot panel, so five-foot merges first.
+The synthetic chunks depend on the scorer.
+
 Every count below is taken from the grids in `tracing_support.demo_truth`.
 Panel `p1` has 34 edges that touch floor (16 vertical, 18 horizontal), `p1b`
 and `p2` have 4 each, so the universe is 42. Cave cell (4,3) touches 4 edges.

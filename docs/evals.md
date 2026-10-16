@@ -1,12 +1,6 @@
 # Evals
 
-Extraction changes are measured, not vibed: a corpus of freely licensed
-adventures with verified structural ground truth, scored on seven pinned
-metric families, with the results on a committed scoreboard. Phase 12 adds geometry truth beside `truth.yaml` and a scorer for it ([`osrforge.tracing.score`][osrforge.tracing.score]), and the harness runs that scorer once the tracing stage is wired in. Evals are
-on-demand — never per-commit CI — because extraction is nondeterministic run
-to run and live runs cost real money; the *scorer* itself
-([`osrforge.evals`][osrforge.evals]) is deterministic, fully unit-tested
-package code.
+Extraction changes are measured, not vibed: a corpus of freely licensed adventures with verified structural ground truth, scored on seven pinned metric families, with the results on a committed scoreboard. Phase 12 adds geometry truth beside `truth.yaml` and a scorer for it ([`osrforge.tracing.score`][osrforge.tracing.score]), and the harness runs that scorer once the tracing stage is wired in. Evals are on-demand, never per-commit CI, because extraction is nondeterministic run to run and live runs cost real money. The *scorer* itself ([`osrforge.evals`][osrforge.evals]) is deterministic, fully unit-tested package code.
 
 ## The corpus
 

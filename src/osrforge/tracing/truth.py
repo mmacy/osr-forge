@@ -568,9 +568,9 @@ class Compass(BaseModel):
     The level grid takes the map's north: panel placement turns each panel by
     the quarter turn that puts `north` at the top. A printed compass that isn't
     on a quarter turn records its `angle`, and `north` is the nearest quarter
-    turn, which the report flags. Exactly halfway, the lower multiple of 90
-    degrees wins, counting the top as 360 at 315 degrees: 45 is `top` and 315
-    is `left`.
+    turn, which the report flags. Exactly halfway, the quarter turn
+    counter-clockwise of the compass wins: 45 degrees is `top`, 135 `right`,
+    225 `bottom`, and 315 `left`.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -1217,7 +1217,10 @@ def _cell_order(text: str) -> tuple[float, float]:
     return order_key(parse_cell(text))
 
 
-def _canonical_panel(panel: Panel) -> Panel:
+def _canonical_panel(panel: Panel, north: PageSide) -> Panel:
+    def _cell_order(text: str) -> tuple[float, float]:
+        return order_key(parse_cell(text), north)
+
     return panel.model_copy(
         update={
             "partial": tuple(sorted(panel.partial, key=_cell_order)),
@@ -1273,7 +1276,8 @@ def canonical_form(truth: GeometryTruth) -> GeometryTruth:
     Returns:
         A document equal to `truth` apart from the order of its area cells,
         placed keys, transitions, passages, marks, symbols, partly-floor and
-        cave cells, and flags.
+        cave cells, and flags. A level's lists are ordered on the level grid,
+        and a panel's through the panel's compass in force.
     """
     dungeons = tuple(
         dungeon.model_copy(update={"levels": tuple(_canonical_level(level) for level in dungeon.levels)})
@@ -1282,7 +1286,9 @@ def canonical_form(truth: GeometryTruth) -> GeometryTruth:
     before = None if truth.before_repair is None else canonical_form(truth.before_repair)
     return truth.model_copy(
         update={
-            "panels": tuple(_canonical_panel(panel) for panel in truth.panels),
+            "panels": tuple(
+                _canonical_panel(panel, truth.north_in_force(panel.regions[0].region)) for panel in truth.panels
+            ),
             "dungeons": dungeons,
             "before_repair": before,
         }

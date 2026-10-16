@@ -1,5 +1,7 @@
 """The 5-foot conversion: phase choice, the cell and edge rules, narrow runs, and wall moves.
 
+Chunk five-foot depends on the truth format alone. The scorer chunk depends on it.
+
 Every expected grid below is worked by hand from "5-foot maps" in
 `docs/tracing-conventions.md`. The counts that choose each phase are written
 out in the docstrings so a reader can check them against the rule.

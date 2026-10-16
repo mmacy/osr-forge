@@ -1,13 +1,6 @@
 # The eval harness
 
-The on-demand measurement half of the spec's "extraction changes are measured,
-not vibed": a corpus of freely licensed adventures with verified structural
-ground truth — authored from the printed module under the independence
-discipline ([`AUTHORING.md`](AUTHORING.md)) — scored on the seven pinned metric
-families. Phase 12 adds geometry truth and a scorer for it (`osrforge.tracing.score`), which the harness runs once the tracing stage is wired in. Evals are never per-commit CI — extraction is nondeterministic run
-to run and live runs cost real money — but the *scorer* is deterministic
-package code (`osrforge.evals`), fully unit-tested, with the JN1 pinned
-baseline in CI at zero network.
+The on-demand measurement half of the spec's "extraction changes are measured, not vibed": a corpus of freely licensed adventures with verified structural ground truth, authored from the printed module under the independence discipline ([`AUTHORING.md`](AUTHORING.md)) and scored on the seven pinned metric families. Phase 12 adds geometry truth and a scorer for it (`osrforge.tracing.score`), which the harness runs once the tracing stage is wired in. Evals are never per-commit CI, because extraction is nondeterministic run to run and live runs cost real money, but the *scorer* is deterministic package code (`osrforge.evals`), fully unit-tested, with the JN1 pinned baseline in CI at zero network.
 
 ## The corpus
 
