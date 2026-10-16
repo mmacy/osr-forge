@@ -66,15 +66,18 @@ def placements_from_manifest(pages: Sequence[Page], images: Mapping[str, Image.I
     """Turn a page manifest into placements.
 
     Each page's images are drawn in manifest order. A hidden image gets the same rectangle as the next image on
-    its page, which covers it. The other images on a page get bands of equal height from the top. An image that
-    a page lists with `spread_with` and that the other page lists too is drawn across the fold, twice the page
-    width, left half on the lower-numbered page and right half on the higher.
+    its page, which covers it. The other images on a page get bands of equal height from the top. A spread image
+    is listed on both of its pages, each naming the other in `spread_with`, and is drawn across the fold, twice
+    the page width, left half on the lower-numbered page and right half on the higher.
     """
     by_number = {page.number: page for page in pages}
     placements: list[Placement] = []
     for page in pages:
         partner = by_number.get(page.spread_with) if page.spread_with is not None else None
         partner_files = {image.file for image in partner.images} if partner is not None else set()
+        if page.spread_with is not None:
+            assert partner is not None and partner.spread_with == page.number, f"page {page.number}: spread_with"
+            assert partner_files & {image.file for image in page.images}, f"page {page.number}: no spread image"
         groups: list[list[int]] = []
         pending: list[int] = []
         for i, image in enumerate(page.images):
