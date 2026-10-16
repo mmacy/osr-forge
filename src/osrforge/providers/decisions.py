@@ -23,13 +23,23 @@ repository; only the committed corpus members' and the synthetic maps'
 recordings are committed.
 """
 
+import base64
+import hashlib
+import io
+import json
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, cast, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from PIL import Image
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+from osrforge.errors import FixtureMissError, ProviderError
+from osrforge.providers.base import pixel_digest
+from osrforge.versioning import SCHEMA_VERSION
+from osrforge.workdir import write_json_artifact
 
 __all__ = [
     "JPEG_QUALITY",
@@ -69,6 +79,10 @@ the larger crops are re-encoded.
 
 JPEG_QUALITY = 90
 """The JPEG quality a large crop is re-encoded at. Part of every key."""
+
+
+def _canonical(value: object) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
 @dataclass(frozen=True)
@@ -125,7 +139,17 @@ class DecisionRequest:
         Returns:
             A 64-character sha256 hex digest.
         """
-        raise NotImplementedError("chunk: clef-provider")
+        identity = {
+            "model": self.model,
+            "tag": self.tag,
+            "image": pixel_digest(self.image),
+            "state": self.state,
+            "question": self.question,
+            "options": [[option_id, description] for option_id, description in self.options],
+            "jpeg_quality": JPEG_QUALITY,
+            "jpeg_threshold_bytes": JPEG_THRESHOLD_BYTES,
+        }
+        return hashlib.sha256(_canonical(identity)).hexdigest()
 
 
 class DecisionResponse(BaseModel):
@@ -220,7 +244,27 @@ def request_body(request: DecisionRequest, image_format: ImageFormat) -> bytes:
     Returns:
         The body bytes.
     """
-    raise NotImplementedError("chunk: clef-provider")
+    if image_format == "png":
+        content_type, data = "image/png", request.image
+    else:
+        content_type, data = "image/jpeg", _jpeg(request.image)
+    body = {
+        "model": request.model,
+        "images": [{"content_type": content_type, "base64": base64.standard_b64encode(data).decode("ascii")}],
+        "state": request.state,
+        "questions": {
+            request.tag: {"type": "choice", "instructions": request.question, "criteria": dict(request.options)}
+        },
+    }
+    return _canonical(body)
+
+
+def _jpeg(png: bytes) -> bytes:
+    with Image.open(io.BytesIO(png)) as image:
+        rgb = image.convert("RGB")
+    buffer = io.BytesIO()
+    rgb.save(buffer, "JPEG", quality=JPEG_QUALITY)
+    return buffer.getvalue()
 
 
 def encode_request(request: DecisionRequest) -> tuple[bytes, ImageFormat]:
@@ -234,7 +278,10 @@ def encode_request(request: DecisionRequest) -> tuple[bytes, ImageFormat]:
         [`JPEG_THRESHOLD_BYTES`][osrforge.providers.decisions.JPEG_THRESHOLD_BYTES]
         long, else the JPEG body and `"jpeg"`.
     """
-    raise NotImplementedError("chunk: clef-provider")
+    body = request_body(request, "png")
+    if len(body) <= JPEG_THRESHOLD_BYTES:
+        return body, "png"
+    return request_body(request, "jpeg"), "jpeg"
 
 
 def recording_filename(tag: str, key: str) -> str:
@@ -248,6 +295,70 @@ def recording_filename(tag: str, key: str) -> str:
         The filename.
     """
     return f"{tag}.{key[:12]}.json"
+
+
+class _RecordedImage(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    pixels: str
+    width: int
+    height: int
+
+
+class _RecordedRequest(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    model: ClefModel
+    state: str
+    question: str
+    options: list[tuple[str, str | None]]
+    image: _RecordedImage
+
+
+class _Recording(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: int
+    key: str
+    tag: str
+    request: _RecordedRequest
+    body_bytes: int
+    response: DecisionResponse
+
+
+def _recording_path(recordings: Path, request: DecisionRequest, key: str) -> Path:
+    return recordings / recording_filename(request.tag, key)
+
+
+def _load_recording(path: Path) -> _Recording:
+    try:
+        raw: Any = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ProviderError(f"recording {path} isn't JSON: {error}") from error
+    version: object = cast(dict[str, Any], raw).get("schema_version") if isinstance(raw, dict) else None
+    if version != SCHEMA_VERSION:
+        raise ProviderError(f"recording {path} has schema version {version}, expected {SCHEMA_VERSION}")
+    try:
+        return _Recording.model_validate(raw)
+    except ValidationError as error:
+        raise ProviderError(f"recording {path} is malformed: {error}") from error
+
+
+def _find_recording(recordings: Path, request: DecisionRequest, key: str) -> _Recording | None:
+    """Return the recording filed under the request's key, or `None` when there is none."""
+    path = _recording_path(recordings, request, key)
+    if not path.is_file():
+        return None
+    recording = _load_recording(path)
+    # The filename holds only the key's first twelve characters, so a different key can share it.
+    return recording if recording.key == key else None
+
+
+def _require_recording(recordings: Path, request: DecisionRequest, key: str) -> _Recording:
+    recording = _find_recording(recordings, request, key)
+    if recording is None:
+        raise FixtureMissError(f"no recording of the {request.tag!r} decision with key {key} in {recordings}")
+    return recording
 
 
 class RecordedDecisionProvider:
@@ -284,7 +395,7 @@ class RecordedDecisionProvider:
             ProviderError: If the recording's schema version isn't this
                 package's.
         """
-        raise NotImplementedError("chunk: clef-provider")
+        return _require_recording(self.recordings, request, request.key()).response
 
 
 class RecordingDecisionProvider:
@@ -312,7 +423,29 @@ class RecordingDecisionProvider:
         Returns:
             The inner provider's answer, unchanged.
         """
-        raise NotImplementedError("chunk: clef-provider")
+        response = self.inner.decide(request)
+        key = request.key()
+        with Image.open(io.BytesIO(request.image)) as image:
+            width, height = image.size
+        # The body the provider sent is the one encode_request builds, and its length is recorded beside its hash.
+        body, _ = encode_request(request)
+        recording = _Recording(
+            schema_version=SCHEMA_VERSION,
+            key=key,
+            tag=request.tag,
+            request=_RecordedRequest(
+                model=request.model,
+                state=request.state,
+                question=request.question,
+                options=list(request.options),
+                image=_RecordedImage(pixels=pixel_digest(request.image), width=width, height=height),
+            ),
+            body_bytes=len(body),
+            response=response,
+        )
+        self.recordings.mkdir(parents=True, exist_ok=True)
+        write_json_artifact(_recording_path(self.recordings, request, key), recording)
+        return response
 
 
 DriftKind = Literal["body", "choice", "probability"]
@@ -368,7 +501,39 @@ def drift_check(
     Raises:
         FixtureMissError: If a request has no recording.
     """
-    raise NotImplementedError("chunk: clef-provider")
+    # Every recording is found before anything is sent, so a missing one costs nothing.
+    keyed = [(request, request.key()) for request in requests]
+    recorded = [_require_recording(recordings, request, key).response for request, key in keyed]
+    drifts: list[Drift] = []
+    for (request, key), before in zip(keyed, recorded, strict=True):
+        after = provider.decide(request)
+        if after.body_sha256 != before.body_sha256:
+            drifts.append(
+                Drift(
+                    request.tag,
+                    key,
+                    "body",
+                    f"the body sent has sha256 {after.body_sha256}, the recording's has {before.body_sha256}",
+                )
+            )
+        if after.choice != before.choice:
+            drifts.append(
+                Drift(
+                    request.tag,
+                    key,
+                    "choice",
+                    f"the top answer was {before.choice!r} at {before.confidence:.4f} "
+                    f"and is now {after.choice!r} at {after.confidence:.4f}",
+                )
+            )
+        moved = [
+            f"{option} {before.probabilities.get(option, 0.0):.4f} to {after.probabilities.get(option, 0.0):.4f}"
+            for option in sorted(before.probabilities.keys() | after.probabilities.keys())
+            if abs(after.probabilities.get(option, 0.0) - before.probabilities.get(option, 0.0)) > tolerance
+        ]
+        if moved:
+            drifts.append(Drift(request.tag, key, "probability", f"moved more than {tolerance}: {'; '.join(moved)}"))
+    return tuple(drifts)
 
 
 def drift_sample(recordings: Path, requests: Sequence[DecisionRequest], size: int = 50) -> tuple[DecisionRequest, ...]:
@@ -391,4 +556,21 @@ def drift_sample(recordings: Path, requests: Sequence[DecisionRequest], size: in
     Returns:
         The chosen requests, sorted by key.
     """
-    raise NotImplementedError("chunk: clef-provider")
+    margins: dict[str, tuple[DecisionRequest, float]] = {}
+    for request in requests:
+        key = request.key()
+        if key in margins:
+            continue
+        recording = _find_recording(recordings, request, key)
+        if recording is not None:
+            margins[key] = (request, recording.response.margin)
+    if len(margins) <= size:
+        chosen = set(margins)
+    else:
+        closest = size // 2
+        by_margin = sorted(margins, key=lambda key: (margins[key][1], key))
+        chosen = set(by_margin[:closest])
+        rest = sorted(by_margin[closest:])
+        spread = size - closest
+        chosen.update(rest[index * len(rest) // spread] for index in range(spread))
+    return tuple(margins[key][0] for key in sorted(chosen))
