@@ -257,9 +257,11 @@ class ClaudeProvider:
 
     The constructor performs no I/O. Transport policy: at most five attempts
     per request, with bounded exponential backoff that honours `Retry-After`,
-    on 408, 409, 429, every 5xx, and connection failures. Any other 4xx,
-    including an auth failure, raises at once. The attempts share the
-    request's one reservation, settled once at the end. A malformed answer
+    on 408, 409, 429, every 5xx, and connection failures. An error event
+    inside a stream is retried like a 5xx; the SDK raises it with the
+    stream's own status, which is 200. Any other 4xx, including an auth
+    failure, raises at once. The attempts share the request's one
+    reservation, settled once at the end. A malformed answer
     isn't re-prompted here, because the tracing stage makes the one retry
     with its own recording. No error message contains the API key.
     """
