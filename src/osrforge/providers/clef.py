@@ -171,8 +171,9 @@ def wrangler_token(config_path: Path | None = None) -> str:
         The token.
 
     Raises:
-        ProviderError: If the file is missing or has no `oauth_token`. The
-            message names the path, never any of the file's values.
+        ProviderError: If the file is missing or can't be read, isn't
+            UTF-8, isn't valid TOML, or has no `oauth_token`. The message
+            names the path, never any of the file's values.
     """
     if config_path is None:
         config_dir = "Library/Preferences/.wrangler/config" if sys.platform == "darwin" else ".config/.wrangler/config"
@@ -317,9 +318,11 @@ class ClefProvider:
         [`estimate_cost`][osrforge.providers.clef.estimate_cost] against it
         before sending and settles at
         [`cost_usd`][osrforge.providers.clef.cost_usd] of the usage's input
-        and output tokens after. A request that fails after it was sent is
-        settled at its estimate. The
-        POST goes to [`ENDPOINT`][osrforge.providers.clef.ENDPOINT] with an
+        and output tokens after. A request whose sending was attempted is
+        settled at its estimate when no answer it can read arrives, also when no attempt
+        reached the service, so the ledger errs toward overcharging. If a
+        settle fails, the entry stays pending at the estimate. The POST goes
+        to [`ENDPOINT`][osrforge.providers.clef.ENDPOINT] with an
         `Authorization: Bearer` header and a JSON content type, and the
         answer is read from the envelope's `result`: its `model`, the one
         answer's `probabilities`, and `usage.input_tokens`.
@@ -335,8 +338,9 @@ class ClefProvider:
             LedgerStopError: If the reservation would pass the stop.
             ClefAuthError: If the service answers 401.
             ProviderError: On transport or rate-limit exhaustion, a 413
-                that stays after its retries, another 4xx, or an answer the
-                adapter can't read.
+                that stays after its retries, another 4xx, an answer the
+                adapter can't read, or a settle of the ledger that fails
+                after an answer.
         """
         body, image_format = encode_request(request)
         reservation = self._reserve(estimate_cost(request))
@@ -344,7 +348,7 @@ class ClefProvider:
             answer = self._send(request, body)
             response, output_tokens = _response(request, answer, image_format, hashlib.sha256(body).hexdigest())
         except BaseException as error:
-            # The request was sent, and nothing says what it cost, so the estimate stays on the ledger.
+            # Sending was attempted, and no answer says what it cost, so the estimate stays on the ledger.
             try:
                 self._ledger.settle(reservation, reservation.usd)
             except Exception as settle_error:
@@ -352,7 +356,13 @@ class ClefProvider:
                     f"settling its ledger reservation failed too, so the entry stays pending: {settle_error}"
                 )
             raise
-        self._ledger.settle(reservation, cost_usd(request.model, response.input_tokens, output_tokens))
+        try:
+            self._ledger.settle(reservation, cost_usd(request.model, response.input_tokens, output_tokens))
+        except Exception as error:
+            raise ProviderError(
+                f"the {request.tag!r} decision was answered, but settling its ledger reservation failed, "
+                f"so the entry stays pending at the estimate: {error}"
+            ) from error
         return response
 
     def _reserve(self, usd: float) -> Reservation:
