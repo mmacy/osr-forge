@@ -1,0 +1,66 @@
+{
+ "map": "jn1-p047",
+ "window": [
+  2,
+  4,
+  12,
+  12
+ ],
+ "crop": "../crops/jn1-p047_2-4_window.png",
+ "cells": [
+  "............",
+  "............",
+  "............",
+  "............",
+  "............",
+  "....####....",
+  "....####....",
+  "...######...",
+  "...######...",
+  "...######...",
+  "...######...",
+  "...######..."
+ ],
+ "vertical": [
+  "noooowoooooon",
+  "woooowoooooow",
+  "noooowoooooon",
+  "woooowoooooow",
+  "nooooooooooon",
+  "wowww---wwwow",
+  "wodww---wwdon",
+  "noww-----wwow",
+  "woww-----wwow",
+  "wodw-----wdon",
+  "noww-----wwow",
+  "woww-----wwow"
+ ],
+ "horizontal": [
+  "????????????",
+  "oooooooooooo",
+  "oooooooooooo",
+  "oooooooooooo",
+  "wwddwwddwnww",
+  "wwowwwwwwoww",
+  "oooo----oooo",
+  "ooow----wooo",
+  "wwo------oww",
+  "ooo------ooo",
+  "ooo------ooo",
+  "wwo------oww",
+  "????????????"
+ ],
+ "partial": [],
+ "outside": [],
+ "checked": {
+  "3,4:west": "../crops/items/jn1-p047_2-4/3-4_west.png",
+  "4,10:west": "../crops/items/jn1-p047_2-4/4-10_west.png",
+  "12,10:west": "../crops/items/jn1-p047_2-4/12-10_west.png",
+  "4,8:north": "../crops/items/jn1-p047_2-4/4-8_north.png",
+  "11,8:north": "../crops/items/jn1-p047_2-4/11-8_north.png",
+  "5,9:north": "../crops/items/jn1-p047_2-4/5-9_north.png",
+  "3,10:north": "../crops/items/jn1-p047_2-4/3-10_north.png",
+  "13,10:north": "../crops/items/jn1-p047_2-4/13-10_north.png"
+ },
+ "notes": "Upper floor, rooms 98 to 106. Paper outside the building reads as floor (columns 1 and 14, beyond the window). The void over the entranceway is rock; the two stair boxes in its top corners are floor with a drawn outline, settled as walls on their drawn sides. The top wall of 105 and 106 sits above line 4 and is left unsettled. The double doors at (4,8), (5,8), (8,8), (9,8) are one leaf per cell, each settled as a door."
+}

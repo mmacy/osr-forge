@@ -1,0 +1,79 @@
+{
+ "map": "jn1-p038",
+ "window": [
+  10,
+  56,
+  12,
+  12
+ ],
+ "crop": "../crops/jn1-p038_10-56_window.png",
+ "cells": [
+  ".#.##.......",
+  ".#.##.......",
+  "......##....",
+  ".###.###....",
+  ".###.####...",
+  "..##..######",
+  "..##..######",
+  ".###..#...#.",
+  ".#....#...#.",
+  "##..###.....",
+  "#######....#",
+  "#..####....#"
+ ],
+ "vertical": [
+  "wwww-wooooooo",
+  "wwww-wowwoooo",
+  "woosoow-woooo",
+  "ww--ww--woooo",
+  "ww--ww---woow",
+  "oow-wlw------",
+  "oow-wlw------",
+  "oww-wlwwoowwo",
+  "owwoolwwoowwo",
+  "--wow--wooolo",
+  "-------wooow-",
+  "-wow---wooow-"
+ ],
+ "horizontal": [
+  "o-o--wwooooo",
+  "o-o--oowoooo",
+  "owowwlwwoooo",
+  "owwwow--oooo",
+  "o---o---wooo",
+  "dw--ow---www",
+  "oo--ow------",
+  "ow--ow-www-w",
+  "owwwow-ooo-o",
+  "w-ooww-ooowo",
+  "--ww---oooow",
+  "-ww----oooo-",
+  "-oo----wwwo-"
+ ],
+ "partial": [
+  "10,64",
+  "11,63",
+  "12,66",
+  "17,56",
+  "17,57",
+  "17,58",
+  "18,59",
+  "18,60"
+ ],
+ "outside": [],
+ "checked": {
+  "11,56": "../crops/items/jn1-p038_10-56/11-56.png",
+  "11,57": "../crops/items/jn1-p038_10-56/11-57.png",
+  "17,57": "../crops/items/jn1-p038_10-56/17-57.png",
+  "12,66": "../crops/items/jn1-p038_10-56/12-66.png",
+  "10,64": "../crops/items/jn1-p038_10-56/10-64.png",
+  "11,63": "../crops/items/jn1-p038_10-56/11-63.png",
+  "13,58:west": "../crops/items/jn1-p038_10-56/13-58_west.png",
+  "15,63:west": "../crops/items/jn1-p038_10-56/15-63_west.png",
+  "21,65:west": "../crops/items/jn1-p038_10-56/21-65_west.png",
+  "19,66:west": "../crops/items/jn1-p038_10-56/19-66_west.png",
+  "15,58:north": "../crops/items/jn1-p038_10-56/15-58_north.png",
+  "12,65": "../crops/items/jn1-p038_10-56/12-65.png"
+ },
+ "notes": "Lairs with rooms 63 to 66 and 74, and the four one-cell rooms a to d behind locked doors (boxes with a dot, the legend's locked-door symbol) on a wall drawn 0.13 cells west of line 15. Room 64's door is locked too. The secret-door glyph beside 63 stands on line 13 with no wall drawn, and is settled as a secret door there. Contour lines cross the window and are neither walls nor water. The gray fill is rock. Filled from the classifier's reading and corrected item by item from zoomed crops; a first blind sketch of the cells from the window crop was wrong in 50 cells and was discarded."
+}
