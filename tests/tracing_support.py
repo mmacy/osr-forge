@@ -57,6 +57,7 @@ def region(
     rows: int,
     *,
     feet: int = 10,
+    north: str = "top",
     cut_off: tuple[str, ...] = (),
     legend_symbols: tuple[str, ...] = ("stairs", "locked_door"),
 ) -> Region:
@@ -69,7 +70,7 @@ def region(
         columns=columns,
         rows=rows,
         scale=Scale(feet=feet, printed=True, text=f"1 square = {feet} feet"),
-        compass=Compass(north="top", printed=True),
+        compass=Compass(north=north, printed=True),  # type: ignore[arg-type]
         legend=Legend(printed=True, symbols=legend_symbols),  # type: ignore[arg-type]
         cut_off=cut_off,  # type: ignore[arg-type]
         verdict="registered",
@@ -482,3 +483,83 @@ def shift_panel_east(truth: GeometryTruth, panel_id: str) -> GeometryTruth:
     shifted = dungeon.model_copy(update={"entrance": entrance, "levels": tuple(levels)})
     dungeons = tuple(shifted if candidate.id == dungeon_id else candidate for candidate in truth.dungeons)
     return rebuild(truth.model_copy(update={"dungeons": dungeons}))
+
+
+def rotated_pair() -> tuple[GeometryTruth, GeometryTruth]:
+    """A key whose one region has north at the left edge of the page, and a trace that read one more column.
+
+    The key's panel, in page orientation, is 3 squares by 2:
+
+    ```text
+    ..#
+    .##
+    ```
+
+    Its north is the page's left edge, so the level turns it 90 degrees
+    clockwise: page cell `(x, y)` lands at `(1 - y, x)`, and with the level's
+    one-cell margin at origin `(1, 1)`. The level is 4 by 5:
+
+    ```text
+    ####
+    #..#    (1,1) is page (0,1), (2,1) is page (0,0)
+    ##.#    (2,2) is page (1,0)
+    ####
+    ####
+    ```
+
+    The trace's registration found one more column at the page's west edge,
+    so its panel is 4 by 2 with a column of rock first, and on its level every
+    cell lies one row farther south. The scorer's alignment undoes that.
+    """
+    key_panel = Panel(
+        id="pl",
+        regions=(PanelRegion(region="rl", origin=(0, 0)),),
+        scale_feet=10,
+        cells=("..#", ".##"),
+        edges=EdgeGrids(vertical=("wow-", "ww--"), horizontal=("ww-", "ow-", "w--")),
+        marks=(Mark(text="1", cell="0,0"),),
+        outlines=(Outline(dungeon="turn", level=1, rects=((0, 0, 3, 2),), seeds=("0,0",)),),
+    )
+    key_level = Level(
+        number=1,
+        verdict="traced",
+        panels=(LevelPanel(panel="pl", origin=(1, 1), rotation=90),),
+        cells=("####", "#..#", "##.#", "####", "####"),
+        edges=EdgeGrids(
+            vertical=("-----", "-wow-", "--ww-", "-----", "-----"),
+            horizontal=("----", "-ww-", "-wo-", "--w-", "----", "----"),
+        ),
+        areas={"1": Area(cells=("1,1", "2,1", "2,2"))},
+        keys=(PlacedKey(label="1", cell="2,1", area="1"),),
+    )
+    trace_panel = Panel(
+        id="pl",
+        regions=(PanelRegion(region="rl", origin=(0, 0)),),
+        scale_feet=10,
+        cells=("#..#", "#.##"),
+        edges=EdgeGrids(vertical=("-wow-", "-ww--"), horizontal=("-ww-", "-ow-", "-w--")),
+        marks=(Mark(text="1", cell="1,0"),),
+        outlines=(Outline(dungeon="turn", level=1, rects=((1, 0, 3, 2),), seeds=("1,0",)),),
+    )
+    trace_level = Level(
+        number=1,
+        verdict="traced",
+        panels=(LevelPanel(panel="pl", origin=(1, 1), rotation=90),),
+        cells=("####", "####", "#..#", "##.#", "####", "####"),
+        edges=EdgeGrids(
+            vertical=("-----", "-----", "-wow-", "--ww-", "-----", "-----"),
+            horizontal=("----", "----", "-ww-", "-wo-", "--w-", "----", "----"),
+        ),
+        areas={"1": Area(cells=("1,2", "2,2", "2,3"))},
+        keys=(PlacedKey(label="1", cell="2,2", area="1"),),
+    )
+
+    def document(columns: int, panel: Panel, level: Level, entrance: str) -> GeometryTruth:
+        return GeometryTruth(
+            pages=(Page(number=1, images=(PageImage(file="rl.png"),)),),
+            regions=(region("rl", 1, columns, 2, north="left"),),
+            panels=(panel,),
+            dungeons=(Dungeon(id="turn", name="Turn", entrance=Entrance(level=1, cell=entrance), levels=(level,)),),
+        )
+
+    return document(3, key_panel, key_level, "1,1"), document(4, trace_panel, trace_level, "1,2")

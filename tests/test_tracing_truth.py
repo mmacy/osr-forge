@@ -6,10 +6,12 @@ import pytest
 from pydantic import ValidationError
 
 from osrforge.tracing.truth import (
+    Compass,
     EdgeGrids,
     Entrance,
     GeometryTruth,
     Level,
+    LevelPanel,
     Panel,
     PanelRegion,
     Passage,
@@ -21,9 +23,13 @@ from osrforge.tracing.truth import (
     order_key,
     parse_cell,
     parse_edge,
+    rotate_cell,
+    rotate_side,
+    rotated_size,
+    rotation_for,
     save_geometry_truth,
 )
-from tracing_support import demo_truth, five_foot_pair, set_edge, shift_panel_east
+from tracing_support import demo_truth, five_foot_pair, rotated_pair, set_edge, shift_panel_east
 
 
 def test_addresses_round_trip():
@@ -208,3 +214,66 @@ def test_support_helpers_keep_documents_valid():
     assert shifted.dungeons[0].entrance is not None
     assert shifted.dungeons[0].entrance.cell == "1,3"
     assert shifted.level("demo", 2).transitions[0].to_cell == "3,1"
+
+
+def test_rotation_helpers_follow_the_conventions():
+    assert [rotation_for(side) for side in ("top", "left", "bottom", "right")] == [0, 90, 180, 270]
+    # A 3 by 2 panel turned 90 degrees clockwise: page (x, y) lands at (1 - y, x).
+    assert rotate_cell((0, 1), (3, 2), 90) == (0, 0)
+    assert rotate_cell((0, 0), (3, 2), 90) == (1, 0)
+    assert rotate_cell((1, 0), (3, 2), 90) == (1, 1)
+    assert rotate_cell((2, 0), (3, 2), 90) == (1, 2)
+    assert rotate_cell((0, 0), (3, 2), 180) == (2, 1)
+    assert rotate_cell((0, 0), (3, 2), 270) == (0, 2)
+    assert rotate_cell((2, 1), (3, 2), 0) == (2, 1)
+    assert rotated_size((3, 2), 90) == (2, 3)
+    assert rotated_size((3, 2), 180) == (3, 2)
+    assert rotate_side("north", 90) == "east"
+    assert rotate_side("west", 90) == "north"
+    assert rotate_side("east", 270) == "north"
+    assert rotate_side("south", 180) == "north"
+
+
+def test_compass_angle_rounds_to_the_nearest_quarter_turn():
+    assert Compass(north="left", printed=True, angle=250).north == "left"
+    assert Compass(north="top", printed=True, angle=45).angle == 45
+    assert Compass(north="right", printed=True, angle=46).north == "right"
+    assert Compass(north="top", printed=True, angle=350).north == "top"
+    with pytest.raises(ValidationError, match="nearest quarter turn"):
+        Compass(north="right", printed=True, angle=45)
+    with pytest.raises(ValidationError, match="printed compass"):
+        Compass(north="top", printed=False, angle=10)
+    with pytest.raises(ValidationError, match="under 360"):
+        Compass(north="top", printed=True, angle=360)
+
+
+def test_level_panel_turn_must_match_the_compass():
+    truth = demo_truth()
+    level = truth.level("demo", 1)
+    turned = level.model_copy(
+        update={"panels": (LevelPanel(panel="p1", origin=(0, 0), rotation=90), *level.panels[1:])}
+    )
+    dungeons = (truth.dungeons[0].model_copy(update={"levels": (turned, truth.dungeons[0].levels[1])}),)
+    with pytest.raises(ValidationError, match="needs 0"):
+        GeometryTruth.model_validate(truth.model_copy(update={"dungeons": dungeons}).model_dump())
+
+
+def test_rotated_pair_agrees_with_the_helpers():
+    """Every cell and edge of the key's level is the panel's, turned 90 degrees and moved to the origin."""
+    for truth in rotated_pair():
+        panel = truth.panel("pl")
+        level = truth.level("turn", 1)
+        assert level.edges is not None
+        part = level.panels[0]
+        for y in range(panel.height):
+            for x in range(panel.width):
+                turned = rotate_cell((x, y), (panel.width, panel.height), part.rotation)
+                lx, ly = turned[0] + part.origin[0], turned[1] + part.origin[1]
+                assert level.cells[ly][lx] == panel.cells[y][x], (x, y)
+                for side in ("north", "east", "south", "west"):
+                    assert level.edges.at((lx, ly), rotate_side(side, part.rotation)) == panel.edges.at((x, y), side), (
+                        x,
+                        y,
+                        side,
+                    )
+        assert rotated_size((panel.width, panel.height), part.rotation) == (2, panel.width)

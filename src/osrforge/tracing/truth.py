@@ -61,6 +61,7 @@ __all__ = [
     "Region",
     "Registration",
     "Repair",
+    "Rotation",
     "Scale",
     "Side",
     "Style",
@@ -73,6 +74,10 @@ __all__ = [
     "order_key",
     "parse_cell",
     "parse_edge",
+    "rotate_cell",
+    "rotate_side",
+    "rotated_size",
+    "rotation_for",
     "save_geometry_truth",
 ]
 
@@ -208,14 +213,16 @@ def order_key(point: tuple[float, float], north: PageSide = "top") -> tuple[floa
     """The sort key that puts points in north-then-west order.
 
     The item farther north comes first, and of two equally far north, the one
-    farther west. North is where the map's compass points on the page, so the
-    key depends on it: with north at the top of the page, west is the left
-    edge, and with north at the left edge, west is the bottom.
+    farther west. On a level's grid north is the top, so the key is `(y, x)`.
+    For a point on a panel still in page orientation, `north` is where the
+    panel's compass points on the page, and the key gives the order the point
+    has once the panel is rotated onto the level: with north at the left edge
+    of the page, west is the bottom.
 
     Args:
         point: A grid point, such as a cell's centre `(x + 0.5, y + 0.5)` or an
             edge's midpoint.
-        north: The page side the map's north points to.
+        north: The page side the panel's north points to, `top` on a level grid.
 
     Returns:
         A pair that sorts ascending into north-then-west order.
@@ -228,6 +235,73 @@ def order_key(point: tuple[float, float], north: PageSide = "top") -> tuple[floa
     if north == "bottom":
         return (-y, -x)
     return (-x, y)
+
+
+Rotation = Literal[0, 90, 180, 270]
+"""A quarter turn clockwise, in degrees."""
+
+_ROTATION_FOR: dict[str, int] = {"top": 0, "right": 270, "bottom": 180, "left": 90}
+_SIDE_ORDER: tuple[str, ...] = ("north", "east", "south", "west")
+
+
+def rotation_for(north: PageSide) -> Rotation:
+    """The clockwise quarter turn that puts a page side at the top.
+
+    Args:
+        north: The page side a panel's north points to.
+
+    Returns:
+        0 for `top`, 90 for `left`, 180 for `bottom`, 270 for `right`.
+    """
+    return _ROTATION_FOR[north]  # type: ignore[return-value]
+
+
+def rotate_cell(cell: tuple[int, int], size: tuple[int, int], rotation: int) -> tuple[int, int]:
+    """Where a panel cell lands after the panel turns clockwise.
+
+    Args:
+        cell: The cell `(x, y)` in page orientation.
+        size: The panel's `(width, height)` in page orientation.
+        rotation: The quarter turn in degrees.
+
+    Returns:
+        The cell on the turned panel, whose own cell `(0, 0)` is its north-west corner.
+    """
+    x, y = cell
+    width, height = size
+    if rotation == 0:
+        return (x, y)
+    if rotation == 90:
+        return (height - 1 - y, x)
+    if rotation == 180:
+        return (width - 1 - x, height - 1 - y)
+    return (y, width - 1 - x)
+
+
+def rotate_side(side: str, rotation: int) -> str:
+    """Which side of a cell a side becomes after a clockwise quarter turn.
+
+    Args:
+        side: A side name.
+        rotation: The quarter turn in degrees.
+
+    Returns:
+        The side name on the turned panel: north becomes east under 90.
+    """
+    return _SIDE_ORDER[(_SIDE_ORDER.index(side) + rotation // 90) % 4]
+
+
+def rotated_size(size: tuple[int, int], rotation: int) -> tuple[int, int]:
+    """A panel's `(width, height)` after a clockwise quarter turn.
+
+    Args:
+        size: The size in page orientation.
+        rotation: The quarter turn in degrees.
+
+    Returns:
+        The size, swapped under 90 and 270.
+    """
+    return size if rotation in (0, 180) else (size[1], size[0])
 
 
 def _check_rows(rows: tuple[str, ...], letters: str, what: str) -> None:
@@ -486,15 +560,40 @@ class Scale(BaseModel):
 
 
 class Compass(BaseModel):
-    """Where north is on the page."""
+    """Where north is on the page.
+
+    The level grid takes the map's north: panel placement turns each panel by
+    the quarter turn that puts `north` at the top. A printed compass that isn't
+    on a quarter turn records its `angle`, and `north` is the nearest quarter
+    turn, which the report flags.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     north: PageSide
-    """The page side the map's north points to. `top` when the map prints no compass."""
+    """The page side the map's north points to, to the nearest quarter turn. `top` when the map prints no compass."""
 
     printed: bool
     """True when the map prints a compass. When false, the report flags the default."""
+
+    angle: float | None = None
+    """The printed compass's direction in degrees clockwise from the top of the page, when it isn't on a quarter turn:
+    0 is the top, 90 the right edge. `None` when the compass points along a page side or the map prints none."""
+
+    @model_validator(mode="after")
+    def _north_is_the_nearest_quarter_turn(self) -> Compass:
+        if self.angle is None:
+            return self
+        if not self.printed:
+            raise ValueError("a compass angle belongs to a printed compass")
+        if not 0 <= self.angle < 360:
+            raise ValueError(f"a compass angle is at least 0 and under 360 degrees, not {self.angle}")
+        turns, remainder = divmod(self.angle, 90)
+        index = int(turns) + (1 if remainder > 45 else 0)
+        nearest = ("top", "right", "bottom", "left")[index % 4]
+        if self.north != nearest:
+            raise ValueError(f"the nearest quarter turn to {self.angle} degrees is {nearest}, not {self.north}")
+        return self
 
 
 class Legend(BaseModel):
@@ -780,13 +879,18 @@ class Passage(BaseModel):
 
 
 class LevelPanel(BaseModel):
-    """Where a panel sits on a level's grid."""
+    """Where a panel sits on a level's grid, and how it was turned to put its north at the top."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     panel: str
     origin: tuple[int, int]
-    """The level cell where the panel's cell `(0, 0)` sits."""
+    """The level cell where the turned panel's north-west cell sits. Panel cell `c` lands on
+    `origin + rotate_cell(c, (panel.width, panel.height), rotation)`."""
+
+    rotation: Rotation = 0
+    """The clockwise quarter turn that put the panel's north at the top: `rotation_for` of its first region's
+    compass."""
 
 
 class Level(BaseModel):
@@ -794,7 +898,8 @@ class Level(BaseModel):
 
     A level's cells are floor only where the level owns them. Another level's
     floor and the outside are rock here. The grid has one cell of rock around
-    the floor on every side.
+    the floor on every side, and the map's north is its top, so osrlib's north
+    is the map's north.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -971,7 +1076,6 @@ class GeometryTruth(BaseModel):
         if len(set(dungeon_ids)) != len(dungeon_ids):
             raise ValueError(f"dungeon ids repeat: {dungeon_ids}")
         regions = set(region_ids)
-        panels = set(panel_ids)
         levels = {(dungeon.id, level.number) for dungeon in self.dungeons for level in dungeon.levels}
         for panel in self.panels:
             for part in panel.regions:
@@ -986,12 +1090,21 @@ class GeometryTruth(BaseModel):
             for region in pair.regions:
                 if region not in regions:
                     raise ValueError(f"a half pair names region {region!r}, which the document lacks")
+        regions_by_id = {region.id: region for region in self.regions}
+        panels_by_id = {panel.id: panel for panel in self.panels}
         for dungeon in self.dungeons:
             for level in dungeon.levels:
                 for part in level.panels:
-                    if part.panel not in panels:
+                    panel = panels_by_id.get(part.panel)
+                    if panel is None:
                         raise ValueError(
                             f"level {dungeon.id}/{level.number} names panel {part.panel!r}, which the document lacks"
+                        )
+                    north = regions_by_id[panel.regions[0].region].compass.north
+                    if part.rotation != rotation_for(north):
+                        raise ValueError(
+                            f"level {dungeon.id}/{level.number} places panel {part.panel!r} turned {part.rotation}, "
+                            f"but its north is {north}, which needs {rotation_for(north)}"
                         )
                 for transition in level.transitions:
                     if transition.to_dungeon is not None and transition.to_dungeon not in dungeon_ids:

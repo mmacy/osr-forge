@@ -342,7 +342,10 @@ PREDICATES: dict[str, Callable[[GeometryTruth], bool]] = {
     "walled_courtyard": lambda t: any(outline.open_ground for panel in t.panels for outline in panel.outlines),
     "farmstead_open_ground": lambda t: any(outline.open_ground for panel in t.panels for outline in panel.outlines),
     "five_foot_rooms_two_and_three_wide": lambda t: any(panel.scale_feet == 5 for panel in t.panels),
-    "rotated_page": lambda t: any(region.compass.north != "top" for region in t.regions),
+    "rotated_page": lambda t: (
+        any(region.compass.north != "top" for region in t.regions)
+        and any(part.rotation != 0 for d in t.dungeons for level in d.levels for part in level.panels)
+    ),
     "no_compass": lambda t: any(not region.compass.printed for region in t.regions),
     "legend_on_another_page": lambda t: any(region.legend.from_page is not None for region in t.regions),
     "image_hidden_under_shown": lambda t: any(image.hidden for page in t.pages for image in page.images),

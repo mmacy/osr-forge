@@ -20,6 +20,7 @@ from tracing_support import (
     five_foot_pair,
     rebuild,
     replace_level,
+    rotated_pair,
     set_edge,
     shift_panel_east,
 )
@@ -254,3 +255,15 @@ def test_before_and_after_repair():
     )
     assert (score.before.repairs.edges, score.before.repairs.per_level) == (0, {})
     assert set(FAMILIES) <= set(score.after.model_dump())
+
+
+def test_turned_panel_is_mapped_through_its_rotation():
+    """A panel with north at the page's left edge sits turned on its level, and an extra page column is a level row."""
+    key, trace = rotated_pair()
+    assert score_trace(key, key).after.imperfect_families() == ()
+    score = score_trace(trace, key)
+    assert score.after.imperfect_families() == ()
+    assert (score.after.floor.key_cells, score.after.floor.both) == (3, 3)
+    assert score.after.edges.all.total == 10
+    assert (score.after.keys.total, score.after.keys.right) == (1, 1)
+    assert score_trace(key, trace).after.imperfect_families() == ()

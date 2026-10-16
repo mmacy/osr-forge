@@ -422,9 +422,9 @@ def score_trace(trace: GeometryTruth, key: GeometryTruth) -> TraceScore:
     The floor, edges, and doors families compare the panels: the reading. The
     areas, keys, joins, reachability, entrance, transitions, passages, and
     repairs families compare the levels: the resolution. A level cell is
-    mapped through the panel it lies on: to that panel's own coordinates by the
-    trace's panel origin, across by the panel's offset, and onto the key's
-    level by the key's panel origin. A level that fell back in either document
+    mapped through the panel it lies on: back to that panel's page coordinates
+    by undoing the trace's panel origin and turn, across by the panel's
+    offset, and onto the key's level by the key's panel turn and origin. A level that fell back in either document
     scores in the verdicts family only.
 
     Args:

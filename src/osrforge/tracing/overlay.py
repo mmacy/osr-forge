@@ -37,7 +37,8 @@ def render_overlay(image: Image.Image, truth: GeometryTruth, region_id: str) -> 
     edge in its colour from `OVERLAY_COLORS`, at least 2 pixels wide, and a
     door's line is interrupted at the edge's middle by a short bar across it.
     Each mark's text is drawn at its cell's centre, and each area key of a
-    level that uses the panel is drawn at the area's first cell. The entrance
+    level that uses the panel is drawn at the area's first cell, mapped back
+    onto the panel through the panel's placement and turn. The entrance
     is a circle on its cell, each transition a triangle, and each passage a
     bar on its side. Everything is positioned through the region's
     registration, so the overlay lies on the printed map.
