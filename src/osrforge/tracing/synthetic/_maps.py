@@ -13,6 +13,7 @@ from osrforge.contracts.stages import AreaConnection
 from osrforge.tracing.synthetic import DamageSite
 from osrforge.tracing.synthetic._plan import Plan, Sketch
 from osrforge.tracing.synthetic._spec import AreaSpec, DungeonSpec, LevelSpec, MapSpec, PanelSpec, RegionSpec
+from osrforge.tracing.synthetic._style_maps import STYLE_MAPS
 from osrforge.tracing.truth import HalfPair, Style, SymbolKind
 
 
@@ -480,5 +481,6 @@ MAPS: tuple[Callable[[], MapSpec], ...] = (
     manor,
     fold_joined,
     fold_apart,
+    *STYLE_MAPS,
 )
 """Every map this generator draws."""

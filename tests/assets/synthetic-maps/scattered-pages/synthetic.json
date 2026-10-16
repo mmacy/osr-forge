@@ -1,0 +1,65 @@
+{
+  "name": "scattered-pages",
+  "title": "The scattered pages",
+  "features": [
+    "image_hidden_under_shown",
+    "page_spread",
+    "page_duplicate_image",
+    "page_blanked"
+  ],
+  "damage": [],
+  "images": [
+    {
+      "file": "scattered-first.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "file": "scattered-spread.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "file": "scattered-draft.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "file": "scattered-art.png",
+      "ink": [
+        28,
+        28,
+        28
+      ],
+      "paper": [
+        252,
+        251,
+        246
+      ]
+    }
+  ]
+}

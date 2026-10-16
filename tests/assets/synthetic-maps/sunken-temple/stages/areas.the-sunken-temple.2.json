@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-sunken-temple",
+  "level_number": 2,
+  "areas": [
+    {
+      "key": "3",
+      "description": "A pool of still water fills the south side of the hall.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "4",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        2
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "4",
+      "description": "An iron-bound door, locked, guards the reliquary.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "3",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        2
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

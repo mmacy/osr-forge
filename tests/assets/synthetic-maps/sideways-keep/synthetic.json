@@ -1,0 +1,38 @@
+{
+  "name": "sideways-keep",
+  "title": "The sideways keep",
+  "features": [
+    "rotated_page",
+    "corridor_off_frame"
+  ],
+  "damage": [
+    {
+      "change": "key_moved",
+      "dungeon": "the-sideways-keep",
+      "level": 1,
+      "panel": null,
+      "edge": null,
+      "label": "3",
+      "cell": null,
+      "side": null,
+      "to_cell": "8,6",
+      "to_side": null,
+      "pair": null
+    }
+  ],
+  "images": [
+    {
+      "file": "sideways-keep.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

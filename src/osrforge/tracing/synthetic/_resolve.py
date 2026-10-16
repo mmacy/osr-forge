@@ -24,7 +24,8 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from osrforge.contracts.stages import AreaConnection
-from osrforge.tracing.synthetic._plan import SIDES, Plan, canonical, neighbour
+from osrforge.tracing.fivefoot import convert_five_foot
+from osrforge.tracing.synthetic._plan import SIDES, Plan, canonical, neighbour, seed_cells
 from osrforge.tracing.synthetic._spec import AreaSpec, LevelSpec, MapSpec, PanelSpec, RegionSpec
 from osrforge.tracing.truth import (
     Area,
@@ -34,14 +35,19 @@ from osrforge.tracing.truth import (
     Level,
     LevelPanel,
     Mark,
+    Outline,
+    Panel,
+    PanelRegion,
     Passage,
     PlacedKey,
+    Rotation,
     Side,
     Symbol,
     Transition,
     cell_key,
     parse_cell,
     parse_edge,
+    rotation_for,
 )
 
 type Cell = tuple[int, int]
@@ -162,6 +168,9 @@ class Board:
     ground_rects: list[tuple[int, int, int, int]] = field(default_factory=list[tuple[int, int, int, int]])
     legends: set[str] = field(default_factory=set[str])
     """The symbols that the legends of the level's regions explain."""
+
+    turns: dict[str, Rotation] = field(default_factory=dict[str, Rotation])
+    """Each panel's quarter turn onto the level."""
 
     def letter(self, cell: Cell, side: str) -> str:
         """The reading's letter on one side of a cell, `-` where no panel reads it."""
@@ -950,8 +959,54 @@ def _owned(plan: Plan) -> set[Cell]:
     return owned
 
 
+def _turn(spec: MapSpec, panel: PanelSpec) -> Rotation:
+    """The quarter turn that puts a panel's north at the top: its first region's printed compass, or none."""
+    region = next(region for region in spec.regions if region.id == panel.regions[0][0])
+    return rotation_for(region.compass.north) if region.compass.printed else 0
+
+
+def _reading(spec: MapSpec, panel: PanelSpec) -> Plan:
+    """A panel's reading as the rules after placement see it: converted to 10-foot cells, then turned."""
+    plan = panel.plan
+    if panel.scale_feet == 5:
+        converted = convert_five_foot(
+            Panel(
+                id=panel.id,
+                regions=tuple(PanelRegion(region=region, origin=origin) for region, origin in panel.regions),
+                scale_feet=5,
+                cells=plan.cells,
+                edges=plan.edges,
+                partial=plan.partial,
+                cave=plan.cave,
+                marks=plan.marks,
+                outlines=(
+                    Outline(
+                        dungeon="d", level=1, rects=plan.rects, seeds=seed_cells(plan), open_ground=plan.open_ground
+                    ),
+                ),
+                symbols=plan.symbols,
+            )
+        ).panel
+        outline = converted.outlines[0]
+        plan = Plan(
+            width=converted.width,
+            height=converted.height,
+            cells=converted.cells,
+            edges=converted.edges,
+            marks=converted.marks,
+            symbols=converted.symbols,
+            rects=outline.rects,
+            open_ground=outline.open_ground,
+            seeds=outline.seeds,
+            partial=converted.partial,
+            cave=converted.cave,
+        )
+    return plan.turned(_turn(spec, panel))
+
+
 def _board(spec: MapSpec, level: LevelSpec) -> tuple[Board, dict[str, Cell]]:
     panels = [next(panel for panel in spec.panels if panel.id == name) for name in level.panels]
+    plans = {panel.id: _reading(spec, panel) for panel in panels}
     starts: list[Cell] = []
     for index, panel in enumerate(panels):
         if index == 0:
@@ -959,15 +1014,15 @@ def _board(spec: MapSpec, level: LevelSpec) -> tuple[Board, dict[str, Cell]]:
             continue
         before = panels[index - 1]
         pair = _apart_pair(spec, before, panel)
-        x = starts[-1][0] + before.plan.width + 2
+        x = starts[-1][0] + plans[before.id].width + 2
         y = starts[-1][1] + pair.rows if pair is not None else 0
         starts.append((x, y))
     xs: list[int] = []
     ys: list[int] = []
     for panel, (px, py) in zip(panels, starts, strict=True):
-        xs += [px, px + panel.plan.width - 1]
-        ys += [py, py + panel.plan.height - 1]
-        for x, y in _owned(panel.plan):
+        xs += [px, px + plans[panel.id].width - 1]
+        ys += [py, py + plans[panel.id].height - 1]
+        for x, y in _owned(plans[panel.id]):
             xs += [px + x - 1, px + x + 1]
             ys += [py + y - 1, py + y + 1]
     shift = (-min(xs), -min(ys))
@@ -977,7 +1032,8 @@ def _board(spec: MapSpec, level: LevelSpec) -> tuple[Board, dict[str, Cell]]:
     for panel, (px, py) in zip(panels, starts, strict=True):
         ox, oy = px + shift[0], py + shift[1]
         origins[panel.id] = (ox, oy)
-        plan = panel.plan
+        board.turns[panel.id] = _turn(spec, panel)
+        plan = plans[panel.id]
         for y in range(plan.height):
             for x in range(plan.width):
                 board.cells[(ox + x, oy + y)] = plan.cells[y][x]
@@ -1313,7 +1369,10 @@ def level_model(level: Resolved) -> Level:
     return Level(
         number=level.spec.number,
         verdict="traced",
-        panels=tuple(LevelPanel(panel=panel, origin=origin, rotation=0) for panel, origin in level.origins.items()),
+        panels=tuple(
+            LevelPanel(panel=panel, origin=origin, rotation=board.turns[panel])
+            for panel, origin in level.origins.items()
+        ),
         cells=rows,
         edges=EdgeGrids(vertical=vertical, horizontal=horizontal),
         areas={key: Area(cells=tuple(cell_key(cell) for cell in cells)) for key, cells in level.areas.items()},
@@ -1326,17 +1385,17 @@ def level_model(level: Resolved) -> Level:
     )
 
 
-def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance]:
-    """Work out every level of a map's dungeon, its links and passages, and its entrance.
+def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance | None]:
+    """Work out every traced level of a map's dungeon, its links and passages, and its entrance.
 
     Args:
         spec: The map.
 
     Returns:
-        The resolved levels in survey order, and the entrance.
+        The resolved traced levels in survey order, and the entrance, or `None` when every level falls back.
     """
-    levels = [LevelRules(spec, level).resolve() for level in spec.dungeon.levels]
+    levels = [LevelRules(spec, level).resolve() for level in spec.dungeon.levels if level.fallback is None]
     for level in levels:
         fold_passages(level)
     link_levels(levels)
-    return levels, entrance(levels, spec.entrance_key)
+    return levels, entrance(levels, spec.entrance_key) if levels else None

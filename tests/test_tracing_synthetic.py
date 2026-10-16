@@ -896,7 +896,9 @@ PREDICATES: dict[str, Callable[[SyntheticMap], bool]] = {
     [
         pytest.param(
             name,
-            marks=() if FEATURE_CHUNK[name] == CORE else pytest.mark.xfail(reason=FEATURE_CHUNK[name], strict=True),
+            marks=()
+            if FEATURE_CHUNK[name] in (CORE, STYLES_CHUNK)
+            else pytest.mark.xfail(reason=FEATURE_CHUNK[name], strict=True),
         )
         for name in FEATURES
     ],
@@ -909,7 +911,6 @@ def test_feature_coverage(feature: str):
         assert any(predicate(item) for item in holders), f"no map that declares {feature} shows it"
 
 
-@pytest.mark.xfail(reason=STYLES_CHUNK, strict=True)
 def test_set_has_every_style_and_the_halves_share_their_images():
     """Every style appears, and the joined and apart versions of the halves are drawn from the same two images."""
     items = loaded_maps()
