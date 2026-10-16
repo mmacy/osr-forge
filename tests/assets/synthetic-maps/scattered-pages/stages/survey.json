@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "title": "The scattered pages",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-scattered-pages",
+      "name": "The scattered pages",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1,
+            4
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Archive",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "map_pages": [
+            2,
+            3
+          ],
+          "areas": [
+            {
+              "key": "2",
+              "name": "Gallery stair",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2,
+                3
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Far gallery",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                2,
+                3
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}

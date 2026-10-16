@@ -1,0 +1,93 @@
+{
+  "name": "greyrock-country",
+  "title": "Greyrock country",
+  "features": [
+    "refuse_hex",
+    "refuse_isometric",
+    "refuse_side_view",
+    "refuse_outdoor",
+    "refuse_town",
+    "refuse_quarter_mile"
+  ],
+  "damage": [],
+  "images": [
+    {
+      "file": "greyrock-wilds.png",
+      "ink": [
+        28,
+        28,
+        28
+      ],
+      "paper": [
+        252,
+        251,
+        246
+      ]
+    },
+    {
+      "file": "greyrock-hexes.png",
+      "ink": [
+        28,
+        28,
+        28
+      ],
+      "paper": [
+        252,
+        251,
+        246
+      ]
+    },
+    {
+      "file": "greyrock-village.png",
+      "ink": [
+        28,
+        28,
+        28
+      ],
+      "paper": [
+        252,
+        251,
+        246
+      ]
+    },
+    {
+      "file": "greyrock-valley.png",
+      "ink": [
+        24,
+        24,
+        24
+      ],
+      "paper": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "file": "greyrock-tower.png",
+      "ink": [
+        28,
+        28,
+        28
+      ],
+      "paper": [
+        252,
+        251,
+        246
+      ]
+    },
+    {
+      "file": "greyrock-section.png",
+      "ink": [
+        28,
+        28,
+        28
+      ],
+      "paper": [
+        252,
+        251,
+        246
+      ]
+    }
+  ]
+}

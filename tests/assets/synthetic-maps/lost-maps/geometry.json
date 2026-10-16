@@ -1,0 +1,111 @@
+{
+ "dungeons": [
+  {
+   "id": "the-lost-crypt",
+   "levels": [
+    {
+     "areas": {},
+     "cells": [],
+     "flags": [],
+     "keys": [],
+     "locked_doors": [],
+     "number": 1,
+     "panels": [],
+     "passages": [],
+     "reason": "its map has no grid to register",
+     "transitions": [],
+     "verdict": "fallback"
+    },
+    {
+     "areas": {},
+     "cells": [],
+     "flags": [],
+     "keys": [],
+     "locked_doors": [],
+     "number": 2,
+     "panels": [],
+     "passages": [],
+     "reason": "its map's grid is warped past registering",
+     "transitions": [],
+     "verdict": "fallback"
+    }
+   ],
+   "name": "The lost crypt"
+  }
+ ],
+ "half_pairs": [],
+ "pages": [
+  {
+   "blanked": false,
+   "images": [
+    {
+     "file": "lost-sketch.png",
+     "hidden": false
+    }
+   ],
+   "number": 1
+  },
+  {
+   "blanked": false,
+   "images": [
+    {
+     "file": "lost-warped.png",
+     "hidden": false
+    }
+   ],
+   "number": 2
+  }
+ ],
+ "panels": [],
+ "regions": [
+  {
+   "columns": 0,
+   "compass": {
+    "north": "top",
+    "printed": true
+   },
+   "cut_off": [],
+   "id": "sketch",
+   "image": "lost-sketch.png",
+   "legend": {
+    "printed": false,
+    "symbols": []
+   },
+   "page": 1,
+   "reason": "the map has no grid",
+   "rows": 0,
+   "scale": {
+    "feet": 10,
+    "printed": false
+   },
+   "style": "no_grid",
+   "verdict": "unregistered"
+  },
+  {
+   "columns": 24,
+   "compass": {
+    "north": "top",
+    "printed": true
+   },
+   "cut_off": [],
+   "id": "warped",
+   "image": "lost-warped.png",
+   "legend": {
+    "printed": false,
+    "symbols": []
+   },
+   "page": 2,
+   "reason": "the map's grid is warped",
+   "rows": 16,
+   "scale": {
+    "feet": 10,
+    "printed": true,
+    "text": "1 SQUARE = 10 FEET"
+   },
+   "style": "black_white",
+   "verdict": "unregistered"
+  }
+ ],
+ "repairs": [],
+ "schema_version": 1
+}

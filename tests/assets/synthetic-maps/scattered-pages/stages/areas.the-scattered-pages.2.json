@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-scattered-pages",
+  "level_number": 2,
+  "areas": [
+    {
+      "key": "2",
+      "description": "The stairs from the archive come down beside a shallow pool.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        2,
+        3
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "3",
+      "description": "The long passage ends in a square gallery.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        2,
+        3
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

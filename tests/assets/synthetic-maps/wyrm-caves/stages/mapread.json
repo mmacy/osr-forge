@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "map_reading": "read",
+  "levels": [
+    {
+      "dungeon_id": "the-wyrm-caves",
+      "level_number": 1,
+      "map_pages": [
+        1
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "2",
+          "b": "3",
+          "door": "none"
+        }
+      ],
+      "entrance_key": null
+    }
+  ]
+}

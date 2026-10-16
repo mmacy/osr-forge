@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-scattered-pages",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "1",
+      "description": "Stairs in the archive go down to the long gallery.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "2",
+          "direction": "down",
+          "via": "stairs",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1,
+        4
+      ],
+      "confidence": 1.0
+    }
+  ]
+}
