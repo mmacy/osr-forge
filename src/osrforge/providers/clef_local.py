@@ -37,7 +37,7 @@ import urllib.request
 from collections.abc import Callable, Mapping
 from typing import Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from osrforge.errors import ProviderError
 from osrforge.providers.clef import ClefProvider, ClefSettings, Transport
@@ -107,6 +107,11 @@ class LocalClefSettings(BaseModel):
     timeout_seconds: float = Field(default=300.0, gt=0)
     """How long one attempt may take. The first request after the server loads the model can take seconds."""
 
+    @field_validator("base_url")
+    @classmethod
+    def _strip_trailing_slash(cls, value: str) -> str:
+        return value.rstrip("/")
+
     @classmethod
     def from_env(cls) -> LocalClefSettings:
         """Build settings from `OSRFORGE_CLEF_LOCAL_URL` and `OSRFORGE_CLEF_LOCAL_MODEL`, each optional.
@@ -115,7 +120,7 @@ class LocalClefSettings(BaseModel):
             The settings, with a trailing slash stripped from the URL. When `OSRFORGE_CLEF_LOCAL_MODEL` is set, it
             names the server's model for `clef-flash`.
         """
-        base_url = os.environ.get(LOCAL_URL_ENV, "").strip().rstrip("/") or _DEFAULT_URL
+        base_url = os.environ.get(LOCAL_URL_ENV, "").strip() or _DEFAULT_URL
         model = os.environ.get(LOCAL_MODEL_ENV, "").strip() or "clef-flash"
         return cls(base_url=base_url, models={"clef-flash": model})
 
@@ -219,6 +224,11 @@ class LocalClefProvider:
                 self._sleep(_BACKOFF_SECONDS * 2.0 ** (attempt - 1))
             try:
                 status, answer = self._transport(url, body, headers)
+            except TimeoutError as error:
+                raise ProviderError(
+                    f"the {request.tag!r} decision to {url} timed out after {self.settings.timeout_seconds:g} seconds "
+                    f"({error}); the server may be busy or hung"
+                ) from error
             except OSError as error:
                 last_error = error
                 failure = f"the connection failed: {error}"
@@ -273,6 +283,11 @@ def _urllib_transport(timeout_seconds: float) -> Transport:
         except urllib.error.HTTPError as error:
             with error:
                 return error.code, error.read()
+        except urllib.error.URLError as error:
+            # A timeout while connecting arrives wrapped, and the provider treats it as the timeout it is.
+            if isinstance(error.reason, TimeoutError):
+                raise error.reason from error
+            raise
         except http.client.HTTPException as error:
             # A connection dropped mid-answer surfaces as an HTTPException, which isn't an OSError.
             raise OSError(f"{type(error).__name__}: {error}") from error
@@ -321,18 +336,22 @@ def _response(request: DecisionRequest, answer: bytes, image_format: ImageFormat
     model = result.get("model")
     if not isinstance(model, str) or not model:
         raise ProviderError(f"{where} doesn't name the model that answered")
+    input_tokens = usage.get("input_tokens")
+    if not isinstance(input_tokens, int) or isinstance(input_tokens, bool) or input_tokens < 0:
+        raise ProviderError(f"{where} reports input tokens that aren't a count: {input_tokens!r}")
     try:
         return DecisionResponse.model_validate(
             {
                 "probabilities": probabilities,
                 "model_id": f"local:{model}",
-                "input_tokens": usage.get("input_tokens"),
+                "input_tokens": input_tokens,
                 "format": image_format,
                 "body_sha256": body_sha256,
             }
         )
     except ValidationError as error:
-        raise ProviderError(f"{where} can't be read: {error}") from error
+        problems = "; ".join(str(problem["msg"]) for problem in error.errors())
+        raise ProviderError(f"{where} can't be read: {problems}") from error
 
 
 def _object(value: object) -> dict[str, object] | None:

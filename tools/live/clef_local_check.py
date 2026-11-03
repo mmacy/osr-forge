@@ -42,7 +42,7 @@ def main() -> int:
     except ProviderError as error:
         print(f"the request failed: {type(error).__name__}: {error}")
         return 1
-    print(f"answer from {response.model_id}: {response.choice} at {response.confidence:.4f}")
+    print(f"answer: {response.choice} at {response.confidence:.4f}")
     for option, probability in sorted(response.probabilities.items()):
         print(f"  {option}: {probability:.4f}")
     print(f"model id: {response.model_id}")

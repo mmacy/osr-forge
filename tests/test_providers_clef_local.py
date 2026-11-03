@@ -244,3 +244,30 @@ def test_the_environment_chooses_the_backend(monkeypatch: pytest.MonkeyPatch, tm
 
 def test_the_local_backend_is_a_decision_provider():
     assert issubclass(LocalClefProvider, decisions.DecisionProvider)
+
+
+def test_a_timeout_raises_at_once_and_names_the_timeout_and_the_url():
+    decider, transport, sleeps = provider([TimeoutError("timed out"), (200, answer())])
+    with pytest.raises(ProviderError) as excinfo:
+        decider.decide(make_request())
+    assert len(transport.calls) == 1
+    assert sleeps == []
+    assert "timed out after 300 seconds" in str(excinfo.value)
+    assert "http://localhost:11434/v1/systemone" in str(excinfo.value)
+
+
+def test_a_trailing_slash_on_the_base_url_is_stripped():
+    settings = LocalClefSettings(base_url="http://h:9000/")
+    assert settings.base_url == "http://h:9000"
+    decider, transport, _ = provider([(200, answer())], settings)
+    decider.decide(make_request())
+    assert transport.calls[0][0] == "http://h:9000/v1/systemone"
+
+
+def test_an_answer_without_input_tokens_gives_a_one_line_error():
+    reply = json.dumps({"model": "clef-flash", "answers": {"edge": {"probabilities": PROBABILITIES}}, "usage": {}})
+    decider, _, _ = provider([(200, reply.encode())])
+    with pytest.raises(ProviderError) as excinfo:
+        decider.decide(make_request())
+    assert "input tokens" in str(excinfo.value)
+    assert "\n" not in str(excinfo.value)
