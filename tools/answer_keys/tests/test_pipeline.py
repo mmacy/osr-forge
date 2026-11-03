@@ -337,6 +337,14 @@ def test_edge_names_and_keys_round_trip():
         assert readings.edge_name(readings.edge_key(name), 10, 10) == name
 
 
+def test_frame_edges_make_the_classifier_abstain():
+    assert readings._on_frame(("v", 0, 3), 10, 10)
+    assert readings._on_frame(("v", 10, 3), 10, 10)
+    assert readings._on_frame(("h", 4, 10), 10, 10)
+    assert not readings._on_frame(("v", 5, 3), 10, 10)
+    assert not readings._on_frame(("h", 4, 5), 10, 10)
+
+
 def test_items_mark_disputes_between_the_readers():
     items = readings.Items(width=2, height=1)
     items.cells = {

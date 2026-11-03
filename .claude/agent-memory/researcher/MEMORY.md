@@ -1,3 +1,4 @@
 - [Batch window reads: shapes and cost](batch-window-reads.md) — Sonnet 5.5 high-effort window reads cost $0.012 to $0.022 in batches; half the first answers were malformed; batches take 6 to 60 minutes
 - [Classifier specs for synthetic maps](classifier-synthetic-specs.md) — faint synthetic grid lines need line_ink_max about 222; hatched outsides need levels.hatched
 - [Worktree merge without stash](worktree-merge-no-stash.md) — to take origin/main under uncommitted work: commit a temp, reset --hard to base, merge, checkout the temp's files
+- [Clef token expiry](clef-token-expiry.md) — refresh with wrangler whoami before a long Clef run; failed requests are charged at their estimate

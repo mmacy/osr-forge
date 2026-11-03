@@ -435,7 +435,9 @@ def _shell_dungeons(key: KeySpec) -> tuple[Dungeon, ...]:
     )
 
 
-def combine(keys: list[KeySpec], out: Path, resolve_with: Path | None) -> dict[str, Any]:
+def combine(
+    keys: list[KeySpec], out: Path, resolve_with: Path | None, cases: list[str] | None = None
+) -> dict[str, Any]:
     """Join the region documents of one member, resolve them, and write the key.
 
     Args:
@@ -471,6 +473,7 @@ def combine(keys: list[KeySpec], out: Path, resolve_with: Path | None) -> dict[s
     if resolve_with is None:
         save_geometry_truth(out, reading)
         log["resolved"] = False
+        log["provenance"] = str(write_provenance(keys, out, cases or [], False))
         return log
     survey, contents, mapread = load_caches(resolve_with)
     try:
@@ -481,6 +484,7 @@ def combine(keys: list[KeySpec], out: Path, resolve_with: Path | None) -> dict[s
         return log
     save_geometry_truth(out, canonical_form(resolved))
     log["resolved"] = True
+    log["provenance"] = str(write_provenance(keys, out, cases or [], True))
     log["levels"] = [
         f"{d.id}/{level.number}: {level.verdict}" + (f" ({level.reason})" if level.reason else "")
         for d in resolved.dungeons
@@ -489,24 +493,83 @@ def combine(keys: list[KeySpec], out: Path, resolve_with: Path | None) -> dict[s
     return log
 
 
-def provenance_text(keys: list[KeySpec], spend: dict[str, float], notes: list[str]) -> str:
-    """The provenance block for a member's manifest, as YAML text."""
+def map_figures(key: KeySpec) -> dict[str, Any]:
+    """One map's figures for the provenance: its spend by stage and its counts of items, disputes, and calls."""
+    from .batches import BatchStore
+
+    figures: dict[str, Any] = {"map": key.id}
+    claude = 0.0
+    for stage in ("windows", "marks", "wholemap", "settle", "adversary", "resettle"):
+        store = BatchStore(key.directory / stage)
+        spent = store.spent()
+        if spent:
+            figures[f"{stage}_usd"] = spent
+            claude += spent
+    figures["claude_usd"] = round(claude, 6)
+    clef = key.directory / "clef" / "answers.jsonl"
+    if clef.exists():
+        rows = [json.loads(line) for line in clef.read_text().splitlines() if line.strip()]
+        figures["clef_requests"] = len(rows)
+        figures["clef_usd"] = round(sum(row["cost_usd"] for row in rows), 6)
+    items_file = key.directory / "items.json"
+    if items_file.exists():
+        items = json.loads(items_file.read_text())
+        for kind in ("cells", "edges"):
+            table = items[kind]
+            figures[kind] = len(table)
+            figures[f"{kind}_disputed"] = sum(1 for item in table.values() if item["status"] == "disputed")
+        figures["marks"] = len(items["marks"])
+        figures["marks_disputed"] = sum(1 for item in items["marks"] if item["status"] == "disputed")
+        figures["symbols"] = len(items["symbols"])
+        figures["symbols_disputed"] = sum(1 for item in items["symbols"] if item["status"] == "disputed")
+    final_file = key.directory / "final.json"
+    if final_file.exists():
+        final = json.loads(final_file.read_text())
+        figures["settled_calls"] = sum(1 for call in final.values() if call.get("settled") is not None)
+        figures["adversarial_checks"] = sum(1 for call in final.values() if "adversarial" in call)
+        figures["challenged"] = sum(1 for call in final.values() if call.get("challenged"))
+        figures["changed_by_challenge"] = sum(
+            1 for call in final.values() if call.get("challenged") and call.get("value") != call.get("settled")
+        )
+    return figures
+
+
+def write_provenance(keys: list[KeySpec], out: Path, cases: list[str], resolved: bool) -> Path:
+    """Write `geometry-provenance.yaml` beside a key: what made it, which checks ran, what it cost, and the cases
+    it depends on."""
+    figures = [map_figures(key) for key in keys]
+    claude = round(sum(f["claude_usd"] for f in figures), 4)
+    clef = round(sum(f.get("clef_usd", 0.0) for f in figures), 4)
     lines = [
-        "geometry_truth_provenance:",
-        f'  authored: "{date.today().isoformat()}"',
-        "  instrument: >-",
-        "    Two independent readings per map: Claude Sonnet 5.5 (claude-sonnet-5-5) at high effort reading 12 by 12",
-        "    cell windows with grid ticks through tools/answer_keys/reader.py (not the tracing stage's code), and",
-        "    the ink classifier tools/answer_keys/classify.py. Clef on Workers AI read every edge that touches floor",
-        "    as a third reading. Each disagreement was settled in a fresh Sonnet request at high effort that",
-        "    carried a zoomed crop, a wider crop, and the readings that disagreed. The resolution layer comes",
-        "    from tools/answer_keys/resolve.py and docs/tracing-conventions.md.",
-        "  verified: >-",
-        "    An adversarial pass of fresh Sonnet requests at high effort rechecked every settled call and the",
-        "    agreed edges in caves, at diagonals, and around keys; a challenged call was settled once more with",
-        "    the challenge among its readings. Owner sample: PENDING, in the sample app.",
+        "# The provenance of geometry.json beside this file. Written by tools/answer_keys/assemble.py.",
+        f'authored: "{date.today().isoformat()}"',
+        "instrument: >-",
+        "  Two independent readings per map: Claude Sonnet 5.5 (claude-sonnet-5-5) at high effort reading 12 by 12",
+        "  cell windows with grid ticks through tools/answer_keys/reader.py, which isn't the tracing stage's code,",
+        "  and the ink classifier tools/answer_keys/classify.py. Clef on Workers AI answered every edge that",
+        "  touches floor as a third reading. Each disagreement was settled in a fresh Sonnet request at high",
+        "  effort that carried a zoomed crop, a wider crop, and the readings that disagreed. The resolution layer",
+        "  "
+        + (
+            "comes from tools/answer_keys/resolve.py by docs/tracing-conventions.md."
+            if resolved
+            else "is not filled in."
+        ),
+        "verified: >-",
+        "  An adversarial pass of fresh Sonnet requests at high effort rechecked every settled call and the",
+        "  agreed edges in caves, at diagonals, and around keys; a challenged call was settled once more in a",
+        "  fresh request with the challenge among its readings, and that value is the key's. Owner sample:",
+        "  PENDING, in the sample app (tools/answer_keys/sample_app.py).",
+        f"spend_usd: {{claude: {claude:.4f}, clef: {clef:.4f}}}",
+        "maps:",
     ]
-    for note in notes:
-        lines.append(f"    {note}")
-    lines.append(f"  spend_usd: {{claude: {spend.get('claude', 0.0):.4f}, clef: {spend.get('clef', 0.0):.4f}}}")
-    return "\n".join(lines) + "\n"
+    for f in figures:
+        lines.append(f"  - {json.dumps(f)}")
+    lines.append("cases:")
+    for case in cases:
+        lines.append(f"  - {case}")
+    if not cases:
+        lines.append("  []")
+    path = out.with_name("geometry-provenance.yaml")
+    path.write_text("\n".join(lines) + "\n")
+    return path

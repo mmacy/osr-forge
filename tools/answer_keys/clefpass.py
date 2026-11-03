@@ -25,6 +25,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 from pydantic import SecretStr
 
+from osrforge.errors import ClefAuthError
 from osrforge.providers.clef import ClefProvider, ClefSettings, cost_usd, wrangler_token
 from osrforge.providers.decisions import DecisionRequest
 
@@ -206,7 +207,7 @@ def run_clef(ctx: MapContext, workers: int, cap: float) -> dict[str, Any]:
     )
     provider = ClefProvider(settings)
     lock = threading.Lock()
-    spent = {"usd": 0.0, "answered": 0, "failed": 0, "refused": 0}
+    spent: dict[str, Any] = {"usd": 0.0, "answered": 0, "failed": 0, "refused": 0}
     stop = threading.Event()
 
     def ask(item: tuple[str, tuple[int, int], str | None]) -> None:
@@ -236,6 +237,10 @@ def run_clef(ctx: MapContext, workers: int, cap: float) -> dict[str, Any]:
         try:
             response = provider.decide(request)
         except Exception as error:
+            if isinstance(error, ClefAuthError):
+                # The wrangler token has expired: every further request would fail and be charged its estimate.
+                stop.set()
+                spent["auth_error"] = True
             with lock:
                 spent["failed"] += 1
                 with (out.parent / "errors.jsonl").open("a") as handle:
