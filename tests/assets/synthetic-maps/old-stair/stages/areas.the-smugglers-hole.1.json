@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-smugglers-hole",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "5",
+      "description": "Crates of contraband. A door in the west wall opens on the old stair.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "6",
+      "description": "The west side of the lookout lies open to the old stair's landing.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

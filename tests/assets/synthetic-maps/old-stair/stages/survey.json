@@ -67,6 +67,38 @@
           ]
         }
       ]
+    },
+    {
+      "id": "the-smugglers-hole",
+      "name": "The smugglers' hole",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "5",
+              "name": "Smugglers' store",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "6",
+              "name": "Lookout",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "monster_names": [],

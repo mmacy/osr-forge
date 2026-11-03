@@ -33,7 +33,7 @@ from osrforge.tracing.synthetic._resolve import (
     frames_of,
     level_model,
     panel_model,
-    resolve_dungeon,
+    resolve_map,
 )
 from osrforge.tracing.synthetic._sheets import draw_sheet
 from osrforge.tracing.synthetic._spec import TEN_FEET, LevelSpec, MapSpec, RegionSpec
@@ -98,10 +98,11 @@ def _check_panel_order(spec: MapSpec, registrations: dict[str, Registration]) ->
         corners = registrations[first.id].corners
         return (first.page, min(point[1] for point in corners[0]), min(row[0][0] for row in corners))
 
-    for level in spec.dungeon.levels:
-        places = [place(panel) for panel in level.panels]
-        if places != sorted(places):
-            raise DesignError(f"level {level.number} doesn't list its panels in page order")
+    for dungeon in spec.dungeons:
+        for level in dungeon.levels:
+            places = [place(panel) for panel in level.panels]
+            if places != sorted(places):
+                raise DesignError(f"level {dungeon.id}/{level.number} doesn't list its panels in page order")
 
 
 def _fallback_reason(spec: MapSpec, level: LevelSpec) -> str:
@@ -155,9 +156,9 @@ def build(spec: MapSpec, out_dir: Path) -> None:
         (target / "images" / picture.image).write_bytes(data)
         images[picture.image] = SyntheticImage(file=picture.image, ink=ink, paper=paper)
     _check_panel_order(spec, registrations)
-    resolved, entrance = resolve_dungeon(spec)
-    traced = {level.spec.number: level for level in resolved}
-    frames = frames_of(resolved)
+    found = resolve_map(spec)
+    traced = {(level.dungeon.id, level.spec.number): level for _dungeon, levels, _entrance in found for level in levels}
+    frames = frames_of(list(traced.values()))
     regions = tuple(
         Region(
             id=region.id,
@@ -206,62 +207,67 @@ def build(spec: MapSpec, out_dir: Path) -> None:
         regions=regions,
         panels=panels,
         half_pairs=spec.half_pairs,
-        dungeons=(
+        dungeons=tuple(
             Dungeon(
-                id=spec.dungeon.id,
-                name=spec.dungeon.name,
+                id=dungeon.id,
+                name=dungeon.name,
                 entrance=entrance,
                 levels=tuple(
-                    level_model(traced[level.number], frames)
+                    level_model(traced[(dungeon.id, level.number)], frames)
                     if level.panels
                     else Level(number=level.number, verdict="fallback", reason=_fallback_reason(spec, level))
-                    for level in spec.dungeon.levels
+                    for level in dungeon.levels
                 ),
-            ),
+            )
+            for dungeon, _levels, entrance in found
         ),
     )
     save_geometry_truth(target / "geometry.json", truth)
     page_of = {region.id: region.page for region in spec.regions}
     regions_of = {panel.id: [region for region, _origin in panel.regions] for panel in spec.panels}
     map_pages = {
-        level.number: level.pages
+        (dungeon.id, level.number): level.pages
         or tuple(sorted({page_of[region] for panel in level.panels for region in regions_of[panel]}))
-        for level in spec.dungeon.levels
+        for dungeon in spec.dungeons
+        for level in dungeon.levels
     }
     survey = SurveyIndex(
         title=spec.title,
         hooks=(),
         town=TownInfo(name="", description=""),
-        dungeons=(
+        dungeons=tuple(
             SurveyDungeon(
-                id=spec.dungeon.id,
-                name=spec.dungeon.name,
+                id=dungeon.id,
+                name=dungeon.name,
                 levels=tuple(
                     SurveyLevel(
                         number=level.number,
-                        map_pages=map_pages[level.number],
+                        map_pages=map_pages[(dungeon.id, level.number)],
                         areas=tuple(
                             SurveyArea(
-                                key=area.key, name=area.name, kind=area.kind, source_pages=map_pages[level.number]
+                                key=area.key,
+                                name=area.name,
+                                kind=area.kind,
+                                source_pages=map_pages[(dungeon.id, level.number)],
                             )
                             for area in level.areas
                         ),
                     )
-                    for level in spec.dungeon.levels
+                    for level in dungeon.levels
                 ),
-            ),
+            )
+            for dungeon in spec.dungeons
         ),
         monster_names=(),
     )
     write_json_artifact(target / "stages" / "survey.json", survey)
-    for level in spec.dungeon.levels:
+    for dungeon, level in [(item, level) for item in spec.dungeons for level in item.levels]:
+        number = (dungeon.id, level.number)
         connections = (
-            _connections(traced[level.number])
-            if level.number in traced
-            else {area.key: list(area.links) for area in level.areas}
+            _connections(traced[number]) if number in traced else {area.key: list(area.links) for area in level.areas}
         )
         content = LevelContent(
-            dungeon_id=spec.dungeon.id,
+            dungeon_id=dungeon.id,
             level_number=level.number,
             areas=tuple(
                 AreaContent(
@@ -271,25 +277,28 @@ def build(spec: MapSpec, out_dir: Path) -> None:
                     treasure=(),
                     features=(),
                     connections=tuple(connections[area.key]),
-                    source_pages=map_pages[level.number],
+                    source_pages=map_pages[number],
                     confidence=1.0,
                 )
                 for area in level.areas
             ),
         )
-        write_json_artifact(target / "stages" / f"areas.{spec.dungeon.id}.{level.number}.json", content)
+        write_json_artifact(target / "stages" / f"areas.{dungeon.id}.{level.number}.json", content)
     reading = MapReading(
         map_reading="read",
         levels=tuple(
             MapLevelReading(
-                dungeon_id=spec.dungeon.id,
+                dungeon_id=dungeon.id,
                 level_number=level.number,
-                map_pages=map_pages[level.number],
+                map_pages=map_pages[(dungeon.id, level.number)],
                 status="read",
-                proposals=_proposals(traced[level.number]) if level.number in traced else (),
+                proposals=_proposals(traced[(dungeon.id, level.number)])
+                if (dungeon.id, level.number) in traced
+                else (),
                 entrance_key=spec.entrance_key if any(area.key == spec.entrance_key for area in level.areas) else None,
             )
-            for level in spec.dungeon.levels
+            for dungeon in spec.dungeons
+            for level in dungeon.levels
         ),
     )
     write_json_artifact(target / "stages" / "mapread.json", reading)

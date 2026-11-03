@@ -61,6 +61,9 @@ type EdgeId = tuple[int, int, str]
 
 type Point = tuple[float, float]
 
+type LevelKey = tuple[str, int]
+"""A level as its dungeon's id and its number."""
+
 PASSABLE = "op"
 DOORS = "dls"
 BLOCKED = "wndls"
@@ -177,10 +180,10 @@ class Board:
     turns: dict[str, Rotation] = field(default_factory=dict[str, Rotation])
     """Each panel's quarter turn onto the level."""
 
-    seeds: list[tuple[Cell, int]] = field(default_factory=list[tuple[Cell, int]])
+    seeds: list[tuple[Cell, LevelKey]] = field(default_factory=list[tuple[Cell, LevelKey]])
     """Each outline's seed cells, with the outline's level."""
 
-    outlines: dict[Cell, set[int]] = field(default_factory=dict[Cell, set[int]])
+    outlines: dict[Cell, set[LevelKey]] = field(default_factory=dict[Cell, set[LevelKey]])
     """The levels whose outlines hold each owned cell."""
 
     sizes: dict[str, Cell] = field(default_factory=dict[str, Cell])
@@ -252,6 +255,7 @@ class Resolved:
     """One level's answer, and what the caches and the other levels need from it."""
 
     spec: LevelSpec
+    dungeon: DungeonSpec
     board: Board
     origins: dict[str, Cell]
     areas: dict[str, list[Cell]]
@@ -342,20 +346,33 @@ def _floor_bfs(board: Board, starts: Iterable[Cell], letters: str, allowed: set[
 class LevelRules:
     """The rules for one level, or for levels that share their panels, up to the areas and doors."""
 
-    def __init__(self, spec: MapSpec, level: LevelSpec, members: tuple[LevelSpec, ...] = ()) -> None:
+    def __init__(
+        self,
+        spec: MapSpec,
+        dungeon: DungeonSpec,
+        level: LevelSpec,
+        members: tuple[tuple[DungeonSpec, LevelSpec], ...] = (),
+    ) -> None:
         """Copy the level's panels onto its grid and find what the drawing shows.
 
         Args:
             spec: The map.
+            dungeon: The level's dungeon, or the first member's.
             level: The level, or for levels that share their panels, one level made of all their areas in survey
                 order.
-            members: The levels that share the panels, when `level` stands for them, in survey order.
+            members: The levels that share the panels, each with its dungeon, when `level` stands for them, in
+                survey order.
         """
         self.spec = spec
+        self.dungeon = dungeon
         self.level = level
         self.members = members
         self.keys: dict[str, AreaSpec] = {area.key: area for area in level.areas}
-        numbers = frozenset(member.number for member in members) if members else frozenset({level.number})
+        numbers = (
+            frozenset((member.id, item.number) for member, item in members)
+            if members
+            else frozenset({(dungeon.id, level.number)})
+        )
         self.board, self.origins = _board(spec, level, numbers)
         board = self.board
         self.crossing: set[Cell] = set()
@@ -618,7 +635,7 @@ class LevelRules:
                 raise DesignError("a key on open ground taking a structure of several rooms isn't resolved here")
             target = self.nearest_floor(cell, self.spaces[self.structures[index][0]])
             placed.append(Placed(label=label, key=key, cell=target, moved=target != cell))
-        dungeon_words = {word.lower() for word in re.split(r"[^0-9A-Za-z]+", self.spec.dungeon.name) if word}
+        dungeon_words = {word.lower() for word in re.split(r"[^0-9A-Za-z]+", self.dungeon.name) if word}
         for label, cell in letters:
             if board.outside(cell) or label.lower() in dungeon_words:
                 continue
@@ -981,6 +998,7 @@ class LevelRules:
             raise DesignError("a locked door read without the legend's symbol isn't resolved by this generator")
         resolved = Resolved(
             spec=self.level,
+            dungeon=self.dungeon,
             board=board,
             origins=self.origins,
             areas={key: sorted(cells, key=cell_order) for key, cells in areas.items()},
@@ -1091,13 +1109,18 @@ def panel_model(spec: MapSpec, panel: PanelSpec) -> Panel:
         DesignError: If several levels use the panel without an outline each.
     """
     plan = panel.plan
-    users = [level.number for level in spec.dungeon.levels if panel.id in level.panels]
+    users = [
+        (dungeon.id, level.number) for dungeon in spec.dungeons for level in dungeon.levels if panel.id in level.panels
+    ]
+    first = spec.dungeons[0].id
     if panel.outlines:
-        if sorted(outline.level for outline in panel.outlines) != users or plan.open_ground:
+        if sorted((outline.dungeon or first, outline.level) for outline in panel.outlines) != sorted(users) or (
+            plan.open_ground
+        ):
             raise DesignError(f"panel {panel.id!r} needs one outline for each level that uses it, and no open ground")
         outlines = tuple(
             Outline(
-                dungeon=spec.dungeon.id,
+                dungeon=outline.dungeon or first,
                 level=outline.level,
                 rects=outline.rects,
                 seeds=tuple(cell_key(cell) for cell in outline.seeds),
@@ -1109,8 +1132,8 @@ def panel_model(spec: MapSpec, panel: PanelSpec) -> Panel:
             raise DesignError(f"panel {panel.id!r} is used by levels {users} but has one outline")
         outlines = (
             Outline(
-                dungeon=spec.dungeon.id,
-                level=users[0],
+                dungeon=users[0][0],
+                level=users[0][1],
                 rects=plan.rects,
                 seeds=seed_cells(plan),
                 open_ground=plan.open_ground,
@@ -1191,7 +1214,7 @@ def _turn(spec: MapSpec, panel: PanelSpec) -> Rotation:
     return rotation_for(region.compass.north) if region.compass.printed else 0
 
 
-def _board(spec: MapSpec, level: LevelSpec, numbers: frozenset[int]) -> tuple[Board, dict[str, Cell]]:
+def _board(spec: MapSpec, level: LevelSpec, numbers: frozenset[LevelKey]) -> tuple[Board, dict[str, Cell]]:
     """Copy a level's panels onto its grid, the floor inside the outlines of the levels in `numbers` being owned."""
     panels = [next(panel for panel in spec.panels if panel.id == name) for name in level.panels]
     readings = [resolution_plan(spec, panel) for panel in panels]
@@ -1208,7 +1231,7 @@ def _board(spec: MapSpec, level: LevelSpec, numbers: frozenset[int]) -> tuple[Bo
     xs: list[int] = []
     ys: list[int] = []
     for (plan, outlines), (px, py) in zip(readings, starts, strict=True):
-        own = [outline for outline in outlines if outline.level in numbers]
+        own = [outline for outline in outlines if (outline.dungeon, outline.level) in numbers]
         xs += [px, px + plan.width - 1]
         ys += [py, py + plan.height - 1]
         for x, y in _owned(plan, own):
@@ -1221,7 +1244,7 @@ def _board(spec: MapSpec, level: LevelSpec, numbers: frozenset[int]) -> tuple[Bo
     for panel, (plan, outlines), (px, py) in zip(panels, readings, starts, strict=True):
         ox, oy = px + shift[0], py + shift[1]
         origins[panel.id] = (ox, oy)
-        own = [outline for outline in outlines if outline.level in numbers]
+        own = [outline for outline in outlines if (outline.dungeon, outline.level) in numbers]
         board.turns[panel.id] = _turn(spec, panel)
         for y in range(plan.height):
             for x in range(plan.width):
@@ -1236,10 +1259,11 @@ def _board(spec: MapSpec, level: LevelSpec, numbers: frozenset[int]) -> tuple[Bo
         for outline in own:
             board.ground_rects += [(ox + x, oy + y, w, h) for x, y, w, h in outline.open_ground]
             board.seeds += [
-                ((ox + parse_cell(seed)[0], oy + parse_cell(seed)[1]), outline.level) for seed in outline.seeds
+                ((ox + parse_cell(seed)[0], oy + parse_cell(seed)[1]), (outline.dungeon, outline.level))
+                for seed in outline.seeds
             ]
             for x, y in _owned(plan, [outline]):
-                board.outlines.setdefault((ox + x, oy + y), set()).add(outline.level)
+                board.outlines.setdefault((ox + x, oy + y), set()).add((outline.dungeon, outline.level))
         board.sizes[panel.id] = (plan.width, plan.height)
         for mark in plan.marks:
             cell = parse_cell(mark.cell)
@@ -1368,7 +1392,9 @@ def _step_cost(board: Board, step: Cell, letter: str, mouth: bool) -> int:
     return max(costs)
 
 
-def partition(board: Board, mouths: Iterable[EdgeId], sources: list[tuple[Cell, int, int]]) -> dict[Cell, int]:
+def partition(
+    board: Board, mouths: Iterable[EdgeId], sources: list[tuple[Cell, int, LevelKey]]
+) -> dict[Cell, LevelKey]:
     """The level each owned cell goes to, as Who owns a cell says.
 
     The walk grows from every source at once over every cell of the panels,
@@ -1386,8 +1412,8 @@ def partition(board: Board, mouths: Iterable[EdgeId], sources: list[tuple[Cell, 
         The owner of each owned floor or water cell. A cell inside one outline goes to that outline's level.
     """
     mouth_edges = set(mouths)
-    best: dict[Cell, tuple[int, int, int, int, int]] = {}
-    heap: list[tuple[tuple[int, int, int, int, int], Cell]] = []
+    best: dict[Cell, tuple[int, int, int, int, LevelKey]] = {}
+    heap: list[tuple[tuple[int, int, int, int, LevelKey], Cell]] = []
     for cell, rank, level in sources:
         label = (0, rank, cell[1], cell[0], level)
         if cell not in best or label < best[cell]:
@@ -1409,7 +1435,7 @@ def partition(board: Board, mouths: Iterable[EdgeId], sources: list[tuple[Cell, 
             if step not in best or reached < best[step]:
                 best[step] = reached
                 heapq.heappush(heap, (reached, step))
-    owners: dict[Cell, int] = {}
+    owners: dict[Cell, LevelKey] = {}
     for cell in board.owned:
         levels = board.outlines[cell]
         owner = next(iter(levels)) if len(levels) == 1 else best[cell][4]
@@ -1431,7 +1457,7 @@ def _parts(board: Board, cells: set[Cell]) -> int:
     return parts
 
 
-type FarCell = tuple[int, Cell]
+type FarCell = tuple[LevelKey, Cell]
 """A passage's far cell, with the level whose grid it is on."""
 
 
@@ -1443,14 +1469,16 @@ class Cut:
     passage's cell, side, level, destination, and destination level.
     """
 
-    def __init__(self, rules: LevelRules, shared: Resolved, owner: dict[Cell, int], survey: list[int]) -> None:
+    def __init__(
+        self, rules: LevelRules, shared: Resolved, owner: dict[Cell, LevelKey], survey: list[LevelKey]
+    ) -> None:
         """Make the cut's vestibules and passages.
 
         Args:
             rules: The rules that resolved the shared board.
             shared: The board's areas, worked out over every level's keys.
             owner: Each owned cell's level after the final partition and the areas.
-            survey: The level numbers in survey order.
+            survey: The levels in survey order, those of different dungeons in their dungeons' survey order.
         """
         self.board = rules.board
         self.owner = owner
@@ -1460,7 +1488,7 @@ class Cut:
         self.link_cells = {
             cell for symbol, cells, _edge in self.board.symbols if symbol.kind in LINK_KINDS for cell in cells
         }
-        self.pairs: list[tuple[Cell, str, int, Cell, int]] = []
+        self.pairs: list[tuple[Cell, str, LevelKey, Cell, LevelKey]] = []
         self.far: set[FarCell] = set()
         self.dropped: set[EdgeId] = set()
         self.quiet: set[EdgeId] = set()
@@ -1512,7 +1540,7 @@ class Cut:
         self.far |= far
         return True
 
-    def _qualifying(self, cell: Cell, door: EdgeId, leaving: int) -> list[str]:
+    def _qualifying(self, cell: Cell, door: EdgeId, leaving: LevelKey) -> list[str]:
         """The sides of a cell that qualify for its pair as a door's vestibule, or none when the vestibule is refused.
 
         A placed key on the cell isn't resolved here, since the cell would leave the key's area.
@@ -1577,7 +1605,7 @@ class Cut:
         self.dropped.add(door)
         self._pair(first, second, keep_or_drop=True)
 
-    def _free(self, cell: Cell, side: str, joining: int) -> bool:
+    def _free(self, cell: Cell, side: str, joining: LevelKey) -> bool:
         """Whether no pair across another passable edge or door of the cut would use a vestibule side's far cells."""
         far = {(joining, neighbour(cell, side)), (self.owner[neighbour(cell, side)], cell)}
         own = {eid(cell, other) for other in SIDES}
@@ -1607,35 +1635,42 @@ def _frame(board: Board, origins: dict[str, Cell], cells: Iterable[Cell]) -> tup
     return (min(xs), min(ys), max(xs) - min(xs) + 1, max(ys) - min(ys) + 1)
 
 
-def resolve_shared(spec: MapSpec, members: tuple[LevelSpec, ...]) -> list[Resolved]:
+def resolve_shared(spec: MapSpec, members: tuple[tuple[DungeonSpec, LevelSpec], ...]) -> list[Resolved]:
     """Resolve levels whose floors meet on the panels they share, and cut them apart.
 
     The keys and areas are worked out once over every level's keys, so a
     room is never split by ownership. The final partition then gives each
     owned cell a level, each area goes whole to its key's level, and the cut
-    between the levels makes its vestibules and passages.
+    between the levels makes its vestibules and passages. Levels of different
+    dungeons are cut apart the same way, and a passage across that cut names
+    the other dungeon.
 
     Args:
         spec: The map.
-        members: The levels, in survey order, each placing the same panels.
+        members: The levels, each with its dungeon, in survey order, each placing the same panels.
 
     Returns:
         One resolved level for each member, in survey order.
     """
-    if len({member.panels for member in members}) != 1:
+    if len({level.panels for _dungeon, level in members}) != 1:
         raise DesignError("levels that share a panel but not all their panels aren't resolved here")
+    keys_in_order = [area.key for _dungeon, level in members for area in level.areas]
+    if len(set(keys_in_order)) != len(keys_in_order):
+        raise DesignError("levels that share a panel and repeat a key aren't resolved here")
     shared_spec = LevelSpec(
-        number=members[0].number,
-        areas=tuple(area for member in members for area in member.areas),
-        panels=members[0].panels,
+        number=members[0][1].number,
+        areas=tuple(area for _dungeon, level in members for area in level.areas),
+        panels=members[0][1].panels,
     )
-    rules = LevelRules(spec, shared_spec, members)
+    rules = LevelRules(spec, members[0][0], shared_spec, members)
     shared = rules.resolve()
     board = rules.board
     if board.partner:
         raise DesignError("halves left apart on panels that several levels share aren't resolved here")
-    level_of_key = {area.key: member.number for member in members for area in member.areas}
-    sources = [(item.cell, 0, level_of_key[item.key]) for item in shared.placed]
+    level_of_key: dict[str, LevelKey] = {
+        area.key: (dungeon.id, level.number) for dungeon, level in members for area in level.areas
+    }
+    sources: list[tuple[Cell, int, LevelKey]] = [(item.cell, 0, level_of_key[item.key]) for item in shared.placed]
     sources += [(cell, 1, level) for cell, level in board.seeds]
     owner = partition(board, rules.mouths, sources)
     for item in shared.placed:
@@ -1644,9 +1679,9 @@ def resolve_shared(spec: MapSpec, members: tuple[LevelSpec, ...]) -> list[Resolv
     for key, cells in shared.areas.items():
         for cell in cells:
             owner[cell] = level_of_key[key]
-    cut = Cut(rules, shared, owner, [member.number for member in members])
+    cut = Cut(rules, shared, owner, [(dungeon.id, level.number) for dungeon, level in members])
     walls: set[EdgeId] = set(cut.edges()) | cut.dropped
-    keeper: dict[EdgeId, int] = {}
+    keeper: dict[EdgeId, LevelKey] = {}
     for edge in shared.locked:
         first, second = edge_cells(edge)
         if edge not in cut.dropped:
@@ -1654,9 +1689,9 @@ def resolve_shared(spec: MapSpec, members: tuple[LevelSpec, ...]) -> list[Resolv
             if cut.owner[second] != keeper[edge]:
                 raise DesignError(f"locked door {edge} lies on the cut without a vestibule or a drop")
     levels: list[Resolved] = []
-    for member in members:
-        number = member.number
-        own = {cell for cell, level in cut.owner.items() if level == number}
+    for dungeon, member in members:
+        here: LevelKey = (dungeon.id, member.number)
+        own = {cell for cell, level in cut.owner.items() if level == here}
         keys = {area.key for area in member.areas}
         level_cells = {cell: letter for cell, letter in shared.level_cells.items() if cell in own}
         for cell in own - level_cells.keys():
@@ -1665,6 +1700,7 @@ def resolve_shared(spec: MapSpec, members: tuple[LevelSpec, ...]) -> list[Resolv
         levels.append(
             Resolved(
                 spec=member,
+                dungeon=dungeon,
                 board=board,
                 origins=shared.origins,
                 areas=areas,
@@ -1673,12 +1709,18 @@ def resolve_shared(spec: MapSpec, members: tuple[LevelSpec, ...]) -> list[Resolv
                 overrides={**shared.overrides, **dict.fromkeys(walls, "w")},
                 level_cells=level_cells,
                 passages=[
-                    Passage(cell=cell_key(cell), side=_SIDE_NAMES[side], to_level=to_level, to_cell=cell_key(other))
-                    for cell, side, level, other, to_level in cut.pairs
-                    if level == number
+                    Passage(
+                        cell=cell_key(cell),
+                        side=_SIDE_NAMES[side],
+                        to_level=there[1],
+                        to_cell=cell_key(other),
+                        to_dungeon=None if there[0] == dungeon.id else there[0],
+                    )
+                    for cell, side, level, other, there in cut.pairs
+                    if level == here
                 ],
                 area_of={cell: key for cell, key in cut.area_of.items() if key in keys},
-                locked=[edge for edge in shared.locked if keeper.get(edge) == number],
+                locked=[edge for edge in shared.locked if keeper.get(edge) == here],
                 frame=_frame(board, shared.origins, own),
             )
         )
@@ -1805,7 +1847,7 @@ def _made(levels: list[Resolved], level: Resolved, key: str, target: Resolved, t
         for passage in here.passages:
             same = passage.to_level == number == target.spec.number
             crossing = number == level.spec.number and passage.to_level == target.spec.number
-            if parse_cell(passage.cell) == cell and (same or crossing):
+            if parse_cell(passage.cell) == cell and passage.to_dungeon is None and (same or crossing):
                 steps.append((passage.to_level, parse_cell(passage.to_cell)))
         for step in steps:
             if step in goal:
@@ -2164,20 +2206,22 @@ def _entrance_cell(opening: Opening, area: set[Cell]) -> Cell:
     return opening.inside[min(touching, key=lambda index: (abs(2 * index - (count - 1)), index))]
 
 
-def level_model(level: Resolved, frames: dict[int, tuple[int, int, int, int]]) -> Level:
+def level_model(level: Resolved, frames: dict[LevelKey, tuple[int, int, int, int]]) -> Level:
     """The truth format's level, on its own grid.
 
     Args:
         level: The resolved level, with its transitions and passages.
-        frames: Each level's grid on its board, by level number, to place destinations on their levels' grids.
+        frames: Each level's grid on its board, by dungeon and level number, to place destinations on their levels'
+            grids.
 
     Returns:
         The level.
     """
-    x0, y0, width, height = frames[level.spec.number]
+    own: LevelKey = (level.dungeon.id, level.spec.number)
+    x0, y0, width, height = frames[own]
 
-    def place(cell: Cell, number: int | None = None) -> str:
-        fx, fy, _width, _height = frames[level.spec.number if number is None else number]
+    def place(cell: Cell, there: LevelKey = own) -> str:
+        fx, fy, _width, _height = frames[there]
         return cell_key((cell[0] - fx, cell[1] - fy))
 
     def letter(cell: Cell, side: str) -> str:
@@ -2217,7 +2261,9 @@ def level_model(level: Resolved, frames: dict[int, tuple[int, int, int, int]]) -
             transition.model_copy(
                 update={
                     "cell": place(parse_cell(transition.cell)),
-                    "to_cell": place(parse_cell(transition.to_cell), transition.to_level),
+                    "to_cell": place(
+                        parse_cell(transition.to_cell), (transition.to_dungeon or level.dungeon.id, transition.to_level)
+                    ),
                 }
             )
             for transition in level.transitions
@@ -2226,7 +2272,9 @@ def level_model(level: Resolved, frames: dict[int, tuple[int, int, int, int]]) -
             passage.model_copy(
                 update={
                     "cell": place(parse_cell(passage.cell)),
-                    "to_cell": place(parse_cell(passage.to_cell), passage.to_level),
+                    "to_cell": place(
+                        parse_cell(passage.to_cell), (passage.to_dungeon or level.dungeon.id, passage.to_level)
+                    ),
                 }
             )
             for passage in level.passages
@@ -2235,8 +2283,8 @@ def level_model(level: Resolved, frames: dict[int, tuple[int, int, int, int]]) -
     )
 
 
-def frames_of(levels: list[Resolved]) -> dict[int, tuple[int, int, int, int]]:
-    """Each level's grid on its board, by level number.
+def frames_of(levels: list[Resolved]) -> dict[LevelKey, tuple[int, int, int, int]]:
+    """Each level's grid on its board, by dungeon and level number.
 
     Args:
         levels: The resolved levels.
@@ -2244,45 +2292,60 @@ def frames_of(levels: list[Resolved]) -> dict[int, tuple[int, int, int, int]]:
     Returns:
         `(x, y, width, height)` for each level.
     """
-    return {level.spec.number: level.frame or (0, 0, level.board.width, level.board.height) for level in levels}
+    return {
+        (level.dungeon.id, level.spec.number): level.frame or (0, 0, level.board.width, level.board.height)
+        for level in levels
+    }
 
 
-def _groups(levels: Iterable[LevelSpec]) -> list[tuple[LevelSpec, ...]]:
+def _groups(levels: Iterable[tuple[DungeonSpec, LevelSpec]]) -> list[tuple[tuple[DungeonSpec, LevelSpec], ...]]:
     """The levels in survey order, those that share a panel gathered into one group at the first one's place."""
-    groups: list[list[LevelSpec]] = []
-    for level in levels:
-        group = next((group for group in groups if any(set(level.panels) & set(other.panels) for other in group)), None)
+    groups: list[list[tuple[DungeonSpec, LevelSpec]]] = []
+    for item in levels:
+        group = next(
+            (group for group in groups if any(set(item[1].panels) & set(other.panels) for _d, other in group)), None
+        )
         if group is None:
-            groups.append([level])
+            groups.append([item])
         else:
-            group.append(level)
+            group.append(item)
     return [tuple(group) for group in groups]
 
 
-def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance | None]:
-    """Work out every traced level of a map's dungeon, its links and passages, and its entrance.
+def resolve_map(spec: MapSpec) -> list[tuple[DungeonSpec, list[Resolved], Entrance | None]]:
+    """Work out every traced level of a map's dungeons, their links and passages, and each dungeon's entrance.
+
+    Levels whose floors meet on the panels they share are resolved together and cut apart, whether they belong to
+    one dungeon or to several.
 
     Args:
         spec: The map.
 
     Returns:
-        The resolved traced levels in survey order, and the entrance on its level's grid, or `None` when every level
-        falls back.
+        For each dungeon in survey order: the dungeon, its resolved traced levels in survey order, and its entrance
+        on its level's grid, or `None` when every level falls back.
     """
-    levels: list[Resolved] = []
-    for group in _groups(level for level in spec.dungeon.levels if level.panels):
+    traced = [(dungeon, level) for dungeon in spec.dungeons for level in dungeon.levels if level.panels]
+    resolved: list[Resolved] = []
+    for group in _groups(traced):
         if len(group) == 1:
-            levels.append(LevelRules(spec, group[0]).resolve())
+            resolved.append(LevelRules(spec, group[0][0], group[0][1]).resolve())
         else:
-            levels.extend(resolve_shared(spec, group))
-    order_of = {level.number: index for index, level in enumerate(spec.dungeon.levels)}
-    levels.sort(key=lambda level: order_of[level.spec.number])
-    for level in levels:
+            resolved.extend(resolve_shared(spec, group))
+    order_of = {(dungeon.id, level.number): index for index, (dungeon, level) in enumerate(traced)}
+    resolved.sort(key=lambda level: order_of[(level.dungeon.id, level.spec.number)])
+    for level in resolved:
         fold_passages(level)
-    link_levels(levels, spec.dungeon)
-    if not levels:
-        return levels, None
-    found = entrance(levels, spec.entrance_key)
-    x0, y0, _width, _height = frames_of(levels)[found.level]
-    cell = parse_cell(found.cell)
-    return levels, found.model_copy(update={"cell": cell_key((cell[0] - x0, cell[1] - y0))})
+    frames = frames_of(resolved)
+    found: list[tuple[DungeonSpec, list[Resolved], Entrance | None]] = []
+    for dungeon in spec.dungeons:
+        levels = [level for level in resolved if level.dungeon is dungeon]
+        link_levels(levels, dungeon)
+        if not levels:
+            found.append((dungeon, levels, None))
+            continue
+        start = entrance(levels, spec.entrance_key)
+        x0, y0, _width, _height = frames[(dungeon.id, start.level)]
+        cell = parse_cell(start.cell)
+        found.append((dungeon, levels, start.model_copy(update={"cell": cell_key((cell[0] - x0, cell[1] - y0))})))
+    return found
