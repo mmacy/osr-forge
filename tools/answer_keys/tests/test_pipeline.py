@@ -539,6 +539,13 @@ def test_final_values_take_the_resettled_value_over_the_settled_one(tmp_path):
     (tmp_path / "m" / "resettle" / "calls.json").write_text(json.dumps(resettled))
     final = settler.final_values(ctx)
     assert final["e:1,1:west"]["value"] == "w" and final["e:1,1:west"]["challenged"] is True
+    (tmp_path / "m" / "recheck").mkdir(parents=True)
+    (tmp_path / "m" / "recheck" / "calls.json").write_text(
+        json.dumps({"e:2,1:west": {"value": "d", "reason": "owner", "job": "q", "kind": "edge", "readings": []}})
+    )
+    rechecked = settler.final_values(ctx)
+    assert rechecked["e:2,1:west"]["value"] == "d" and rechecked["e:2,1:west"]["before_recheck"] == "o"
+    assert rechecked["e:1,1:west"]["value"] == "w"
     assert final["e:1,1:west"]["adversarial"] == "o" and final["e:1,1:west"]["settled"] == "w"
     assert final["e:2,1:west"]["value"] == "o" and final["e:2,1:west"]["challenged"] is False
     # An agreed edge the adversary challenged and the re-settling upheld the challenge on: the key changes.

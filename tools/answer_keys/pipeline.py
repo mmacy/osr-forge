@@ -61,7 +61,7 @@ def _wait(collect: Callable[[], dict[str, int]], interval: float, limit: float) 
 def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Namespace) -> None:
     """Run one stage for one map."""
     ctx = context(key)
-    batch_stage = stage in ("windows", "marks", "wholemap", "settle", "adversary")
+    batch_stage = stage in ("windows", "marks", "wholemap", "settle", "adversary", "recheck")
     api = client() if batch_stage else None
     book = ledger() if batch_stage else Ledger(LEDGER_PATH, cost_key="cost_usd")
     if stage == "windows":
@@ -148,6 +148,24 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
                 batch = store.submit(api, book, f"{stage} {key.id} retries")
                 print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: {stage} spent ${store.spent():.4f}")
+    elif stage == "recheck":
+        from .recheck import collect_recheck, submit_recheck
+
+        if args.sample is None:
+            raise SystemExit("recheck needs --sample, the sample file the owner checked")
+        if action == "submit":
+            batch, count = submit_recheck(ctx, args.sample, api, book)
+            print(f"{key.id}: recheck batch {batch}, {count} items")
+        else:
+
+            def collect():
+                return collect_recheck(ctx, api, book)
+
+            counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
+            print(f"{key.id}: recheck {counts}")
+            if counts.get("retries"):
+                batch = BatchStore(key.directory / "recheck").submit(api, book, f"recheck {key.id} retries")
+                print(f"{key.id}: retry batch {batch}")
     elif stage == "assemble":
         from .assemble import assemble
 
@@ -178,6 +196,7 @@ def main(argv: list[str] | None = None) -> int:
         "--stages", type=Path, default=None, help="combine: the directory whose stages/ the resolver reads"
     )
     parser.add_argument("--cases", action="append", default=[], help="combine: a case the key depends on, repeatable")
+    parser.add_argument("--sample", type=Path, default=None, help="recheck: the sample file whose verdicts to act on")
     args = parser.parse_args(argv)
     words = list(args.maps)
     stages = {
@@ -188,6 +207,7 @@ def main(argv: list[str] | None = None) -> int:
         "disagree",
         "settle",
         "adversary",
+        "recheck",
         "assemble",
         "sample",
         "score",

@@ -735,11 +735,12 @@ def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: boo
 
 
 def final_values(ctx: MapContext) -> dict[str, dict[str, Any]]:
-    """Every call's final value: the re-settled value where the adversary's challenge was re-settled, else the
-    settler's, with the adversary's value beside it."""
+    """Every call's final value: the owner's recheck where there is one, else the re-settled value where the
+    adversary's challenge was re-settled, else the settler's, with the adversary's value beside it."""
     settled = _load_calls(ctx, "settle")
     adversary = _load_calls(ctx, "adversary")
     resettled = _load_calls(ctx, "resettle")
+    rechecked = _load_calls(ctx, "recheck")
     out: dict[str, dict[str, Any]] = {}
     for name, call in settled.items():
         final = dict(call)
@@ -768,6 +769,21 @@ def final_values(ctx: MapContext) -> dict[str, dict[str, Any]]:
             final["value"] = resettled[name]["value"]
             final["reason"] = resettled[name]["reason"]
         out[name] = final
+    # The owner's recheck has the last word: its value replaces the call's, and the earlier value is kept beside it.
+    for name, call in rechecked.items():
+        final = out.get(name)
+        if final is None:
+            final = {
+                "kind": call["kind"],
+                "readings": call["readings"],
+                "settled": None,
+                "reason": "",
+                "category": "recheck",
+            }
+            out[name] = final
+        final["before_recheck"] = final.get("value")
+        final["value"] = call["value"]
+        final["recheck_reason"] = call["reason"]
     return out
 
 
