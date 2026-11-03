@@ -3,19 +3,20 @@
 Every number here comes from the registration measurement's reference fit, run in a scratch copy over the
 committed Chaotic Caves, Monkey Isle, and minimod images, the synthetic maps, and perturbed copies of pages 47
 and 38. Each threshold has the measured figures beside it.
-
-The tests over the committed real images, the perturbed copies, and the synthetic maps on main need only this
-chunk. The test over the halves with a gap at the fold and an offset, which synth-joins draws, carries that
-chunk's name in its reason as well, and stays marked until both chunks are merged.
 """
 
+import functools
 import json
+import math
+import tempfile
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
 import pytest
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from osrforge.tracing.registration import (
     COVERAGE_MINIMUM,
@@ -30,9 +31,6 @@ from osrforge.tracing.registration import (
     register_image,
 )
 from osrforge.tracing.truth import GeometryTruth, Region, Registration
-
-CHUNK = "chunk: registration"
-WITH_JOINS = "chunk: registration, chunk: synth-joins"
 
 ASSETS = Path(__file__).parent / "assets"
 CHAOTIC_CAVES = ASSETS / "chaotic-caves" / "maps"
@@ -218,7 +216,6 @@ def test_half_alignment_model():
         HalfAlignment(rows=0, columns=(0, 1), gaps=(0.0, 1.0))
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 @pytest.mark.parametrize("real", REAL_MAPS, ids=lambda real: real.path.name)
 def test_each_committed_real_map_registers_as_measured(real: RealMap):
     fits = register_image(real.path)
@@ -236,13 +233,11 @@ def test_each_committed_real_map_registers_as_measured(real: RealMap):
         assert fit.gate.detected_lines >= LINE_COUNT_FLOOR * lines, fit.gate
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_gridless_map_yields_no_region():
     """minimod's page 4 is a raster map with no grid: the reference fit's coarse pitch there is 8.5 px."""
     assert register_image(MINIMOD / "0004.png") == ()
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_same_image_registers_the_same_way_twice():
     path = CHAOTIC_CAVES / "p047.png"
     first = register_image(path)
@@ -250,7 +245,6 @@ def test_the_same_image_registers_the_same_way_twice():
     assert [fit.model_dump_json() for fit in first] == [fit.model_dump_json() for fit in second]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_bow_registers_through_the_drift_correction(tmp_path: Path):
     """Page 47's columns bowed by 0.3 of its 75 px pitch, 22.5 px at the middle. The reference fit's affine stage
     alone leaves lines 8.4 px off; the drift correction explains 0.975 of the lines within a tenth, with
@@ -267,7 +261,6 @@ def test_a_bow_registers_through_the_drift_correction(tmp_path: Path):
     assert abs(columns - 16) <= GRID_TOLERANCE and abs(rows - 16) <= GRID_TOLERANCE
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_stretch_registers_through_the_drift_correction(tmp_path: Path):
     """Page 38 with its pitch growing 4% from top to bottom, a feed-speed drift. The reference fit's affine stage
     explains 0.828 of the lines within a tenth and the drift correction 0.999, with coverage 0.939."""
@@ -277,7 +270,6 @@ def test_a_stretch_registers_through_the_drift_correction(tmp_path: Path):
     check_gate(registered(fits)[0])
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_half_pitch_shift_fails_registration(tmp_path: Path):
     """Page 47 with its right 45% moved down half a pitch. Two paths fail it. The reference fit first takes
     37.5 px as the pitch, finds neighbouring lines two indices apart, refits at 75 px, rejects 41 of 179 lines,
@@ -296,7 +288,6 @@ def test_a_half_pitch_shift_fails_registration(tmp_path: Path):
         assert fit.verdict == "unregistered", fit.gate
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_sine_warp_fails_through_the_coverage(tmp_path: Path):
     """Page 47 warped by a sine of 0.6 of a pitch over two periods across the image. The reference fit registers
     the tiles that survive detection, 15 by 17 cells with a share of 0.987, and only the coverage sees what the
@@ -309,10 +300,10 @@ def test_a_sine_warp_fails_through_the_coverage(tmp_path: Path):
     assert registered(fits) == [], [(fit.rect, fit.gate) for fit in fits]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_two_drawings_at_two_pitches_are_two_regions(tmp_path: Path):
     """Page 47 beside a copy of itself scaled by 0.6 with Lanczos, tops aligned, with 100 px of white between
-    them: two registered regions in page order, at 75 and 45 px."""
+    them: two registered regions in page order, at 75 px on the left and 45 px on the right. The copy's grid
+    starts higher on the image, so it comes first."""
     with Image.open(CHAOTIC_CAVES / "p047.png") as page:
         big = page.convert("RGB")
     small = big.resize((round(big.width * 0.6), round(big.height * 0.6)), Image.Resampling.LANCZOS)
@@ -323,9 +314,11 @@ def test_two_drawings_at_two_pitches_are_two_regions(tmp_path: Path):
     canvas.save(path)
     fits = register_image(path)
     assert [fit.verdict for fit in fits] == ["registered", "registered"], [(fit.rect, fit.reason) for fit in fits]
-    assert fits[0].rect[0] < fits[1].rect[0]
-    assert fits[0].rect[2] <= big.width and fits[1].rect[0] >= big.width
-    for fit, pitch in zip(fits, (75.0, 45.0), strict=True):
+    assert [(fit.rect[1], fit.rect[0]) for fit in fits] == sorted((fit.rect[1], fit.rect[0]) for fit in fits)
+    left = [fit for fit in fits if fit.rect[2] <= big.width]
+    right = [fit for fit in fits if fit.rect[0] >= big.width]
+    assert len(left) == 1 and len(right) == 1, [fit.rect for fit in fits]
+    for fit, pitch in ((left[0], 75.0), (right[0], 45.0)):
         check_gate(fit)
         assert fit.pitch is not None
         assert abs(fit.pitch[0] - pitch) <= PITCH_TOLERANCE * pitch, fit.pitch
@@ -397,12 +390,13 @@ def grid_point(registration: Registration, pixel: tuple[float, float]) -> tuple[
 
 
 def fit_for(fits: tuple[RegionFit, ...], region: Region) -> RegionFit:
-    """The registered fit whose rectangle holds the centre of the region's true grid."""
+    """The registered fit whose rectangle holds the centre of the region's true grid, and of several the smallest,
+    which is an inset's own fit when the inset lies inside another region's frame."""
     assert region.registration is not None
     cx, cy = region.registration.pixel((region.columns / 2, region.rows / 2))
     holding = [fit for fit in registered(fits) if fit.rect[0] <= cx < fit.rect[2] and fit.rect[1] <= cy < fit.rect[3]]
-    assert len(holding) == 1, [(fit.rect, fit.verdict, fit.reason) for fit in fits]
-    return holding[0]
+    assert holding, [(fit.rect, fit.verdict, fit.reason) for fit in fits]
+    return min(holding, key=lambda fit: (fit.rect[2] - fit.rect[0]) * (fit.rect[3] - fit.rect[1]))
 
 
 def check_against_truth(item: SyntheticMap, region: Region, fit: RegionFit) -> tuple[int, int]:
@@ -448,7 +442,6 @@ def check_against_truth(item: SyntheticMap, region: Region, fit: RegionFit) -> t
     return di, dj
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_every_synthetic_region_that_should_register_does():
     """Every registered region of the committed set, in every style the generator draws: the TSR blue JPEG maps
     with their bowed pitch, skew, blur, and grain, the clean black and white PNG maps with hatched rock, and the
@@ -476,7 +469,6 @@ def test_every_synthetic_region_that_should_register_does():
                 check_against_truth(item, region, fit_for(fits, region))
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_gridless_synthetic_map_yields_no_region():
     items = maps_with("reject_no_grid")
     assert items, "no synthetic map shows reject_no_grid"
@@ -486,7 +478,6 @@ def test_the_gridless_synthetic_map_yields_no_region():
                 assert registered(register_image(item.image(region))) == [], (item.path.name, region.id)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_warped_synthetic_map_fails_registration():
     """The warped map's answer records its region as unregistered. Its warp is at least the 0.6 of a pitch over
     two periods that the perturbed copy of page 47 tests, where the reference fit's coverage is 0.549."""
@@ -536,7 +527,6 @@ class Aligned:
         return true_columns + self.columns_shift
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_fold_maps_align_their_rows_and_offer_the_true_offset():
     """fold-joined and fold-apart print the same drawing in two halves with no gap: the west half's grid reaches
     its right image edge at index 10.02 and the east half's first line lies at -0.5 px, so the candidates from
@@ -556,7 +546,6 @@ def test_the_fold_maps_align_their_rows_and_offer_the_true_offset():
         assert abs(alignment.gaps[alignment.columns.index(expected)]) <= GAP_TOLERANCE, (item.path.name, alignment)
 
 
-@pytest.mark.xfail(reason=WITH_JOINS, strict=True)
 def test_halves_with_a_gap_at_the_fold_offer_the_true_offset():
     """The halves synth-joins draws, joined at an offset with a gap at the fold and left apart with unequal
     stretches: the rows line up as the answer records and the true offset is among the three candidates."""
@@ -577,7 +566,6 @@ def test_halves_with_a_gap_at_the_fold_offer_the_true_offset():
                 assert alignment.gaps[alignment.columns.index(expected)] >= -GAP_TOLERANCE
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_align_halves_refuses_an_unregistered_half(tmp_path: Path):
     path = CHAOTIC_CAVES / "p047.png"
     fit = registered(register_image(path))[0]
@@ -586,3 +574,221 @@ def test_align_halves_refuses_an_unregistered_half(tmp_path: Path):
         align_halves(path, unregistered, path, fit)
     with pytest.raises(ValueError):
         align_halves(path, fit, path, unregistered)
+
+
+SCAN_ROUNDS = 2
+"""How many perturbed scans each synthetic image with a registered region gets, each from its own seed."""
+
+SCAN_MISS_LIMIT = 0.05
+"""The largest share of perturbed regions that may fail to register. A failure is safe, because the level falls back,
+but every one loses a level the stage could have traced. The chunk's first build missed 6 of these 64 scans, and 14
+more registered wrong. Four of the misses were sunken-temple, whose 1 px grid lines fade below the ink margin once a
+resample splits them. Over 200 random scans in the chunk's review, it missed 13.5%."""
+
+
+@dataclass(frozen=True)
+class Scan:
+    """A scan's distortions of a drawing, in the ranges a scanned module page shows."""
+
+    bow: float
+    """Pitches. Rows bend by this much at the middle when `bow_axis` is 0, and columns when it's 1."""
+
+    bow_axis: int
+    stretch: float
+    """The share by which the pitch grows from the top of the image to the bottom."""
+
+    scale: float
+    rotation: float
+    """Degrees, clockwise."""
+
+    blur: float
+    """Pixels, the radius of a Gaussian blur."""
+
+    quality: int
+    """The JPEG quality the scan is saved at."""
+
+    @classmethod
+    def draw(cls, seed: int) -> Scan:
+        rng = np.random.default_rng(seed)
+        return cls(
+            bow=float(rng.uniform(-0.3, 0.3)),
+            bow_axis=int(rng.integers(2)),
+            stretch=float(rng.uniform(-0.04, 0.04)),
+            scale=float(rng.uniform(0.8, 1.25)),
+            rotation=float(rng.uniform(-1.0, 1.0)),
+            blur=float(rng.uniform(0.0, 1.0)),
+            quality=int(rng.integers(70, 96)),
+        )
+
+
+Mapping = Callable[[npt.NDArray[np.float64], npt.NDArray[np.float64]], tuple[npt.NDArray[np.float64], ...]]
+
+
+def scanned(rgb: npt.NDArray[np.uint8], scan: Scan, pitch: float) -> tuple[Image.Image, Mapping]:
+    """The image as the scan distorts it, and the map from a pixel of the drawing to its pixel in the scan."""
+    height, width = rgb.shape[:2]
+    bow, stretch, scale = scan.bow * pitch, scan.stretch, scan.scale
+    turn = math.radians(scan.rotation)
+    cos, sin = math.cos(turn), math.sin(turn)
+    out_width, out_height = round(width * scale), round(height * scale)
+    cx, cy, ox, oy = width / 2, height / 2, out_width / 2, out_height / 2
+
+    def forward(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64]) -> tuple[npt.NDArray[np.float64], ...]:
+        if scan.bow_axis == 0:
+            y = y + bow * 4 * (x / width) * (1 - x / width)
+        else:
+            x = x + bow * 4 * (y / height) * (1 - y / height)
+        y = y + stretch * y * y / (2 * height)
+        dx, dy = (x - cx) * scale, (y - cy) * scale
+        return ox + cos * dx - sin * dy, oy + sin * dx + cos * dy
+
+    def inverse(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64]) -> tuple[npt.NDArray[np.float64], ...]:
+        dx, dy = x - ox, y - oy
+        x = (cos * dx + sin * dy) / scale + cx
+        y = (-sin * dx + cos * dy) / scale + cy
+        if stretch != 0:
+            a = stretch / (2 * height)
+            y = (-1 + np.sqrt(np.maximum(1 + 4 * a * y, 0))) / (2 * a)
+        if scan.bow_axis == 0:
+            y = y - bow * 4 * (x / width) * (1 - x / width)
+        else:
+            x = x - bow * 4 * (y / height) * (1 - y / height)
+        return x, y
+
+    yy, xx = np.mgrid[0:out_height, 0:out_width].astype(np.float64)
+    sx, sy = inverse(xx, yy)
+    x0, y0 = np.floor(sx).astype(int), np.floor(sy).astype(int)
+    fx, fy = (sx - x0)[..., None], (sy - y0)[..., None]
+    inside = (x0 >= 0) & (y0 >= 0) & (x0 + 1 < width) & (y0 + 1 < height)
+    x0, y0 = np.clip(x0, 0, width - 2), np.clip(y0, 0, height - 2)
+    source = rgb.astype(np.float32)
+    value = (
+        source[y0, x0] * (1 - fx) * (1 - fy)
+        + source[y0, x0 + 1] * fx * (1 - fy)
+        + source[y0 + 1, x0] * (1 - fx) * fy
+        + source[y0 + 1, x0 + 1] * fx * fy
+    )
+    value = np.where(inside[..., None], value, 255)
+    image = Image.fromarray(np.clip(np.round(value), 0, 255).astype(np.uint8))
+    if scan.blur > 0.05:
+        image = image.filter(ImageFilter.GaussianBlur(scan.blur))
+    return image, forward
+
+
+@dataclass(frozen=True)
+class ScanResult:
+    seed: int | None
+    map: str
+    image: str
+    region: str
+    scan: Scan
+    outcome: str
+    """`right`, `missed` (no registered fit holds the region), or `wrong`."""
+
+    detail: str
+
+
+def judge(item: SyntheticMap, region: Region, fits: tuple[RegionFit, ...], forward: Mapping) -> tuple[str, str]:
+    """Whether the region's registered fit, if any, holds its true grid moved by the scan, as check_against_truth
+    asks of an unperturbed map."""
+    assert region.registration is not None
+    corners = np.array(region.registration.corners, dtype=np.float64)
+    xs, ys = forward(corners[..., 0], corners[..., 1])
+    true = Registration(
+        corners=tuple(
+            tuple((float(x), float(y)) for x, y in zip(row_x, row_y, strict=True))
+            for row_x, row_y in zip(xs, ys, strict=True)
+        )
+    )
+    cx, cy = true.pixel((region.columns / 2, region.rows / 2))
+    holding = [fit for fit in registered(fits) if fit.rect[0] <= cx < fit.rect[2] and fit.rect[1] <= cy < fit.rect[3]]
+    if not holding:
+        return "missed", str([(fit.rect, fit.verdict, fit.reason) for fit in fits])
+    fit = min(holding, key=lambda fit: (fit.rect[2] - fit.rect[0]) * (fit.rect[3] - fit.rect[1]))
+    assert fit.registration is not None
+    floor = floor_corners(item.truth, region)
+    offsets: set[tuple[int, int]] = set()
+    worst = 0.0
+    for j, row in enumerate(true.corners):
+        for i, corner in enumerate(row):
+            if (i, j) in floor:
+                gi, gj = grid_point(fit.registration, corner)
+                ri, rj = round(gi), round(gj)
+                offsets.add((ri - i, rj - j))
+                worst = max(worst, abs(gi - ri), abs(gj - rj))
+    detail = (
+        f"grid {grid_of(fit)} against {(region.columns, region.rows)}, offsets {sorted(offsets)}, worst {worst:.3f}"
+    )
+    if len(offsets) != 1:
+        return "wrong", detail
+    (di, dj) = offsets.pop()
+    holds = (
+        0 <= di <= GRID_TOLERANCE
+        and 0 <= dj <= GRID_TOLERANCE
+        and fit.registration.columns - di - region.columns in range(GRID_TOLERANCE + 1)
+        and fit.registration.rows - dj - region.rows in range(GRID_TOLERANCE + 1)
+    )
+    return ("right" if holds and worst <= CORNER_TOLERANCE else "wrong"), detail
+
+
+def scan_one(item: SyntheticMap, image: str, regions: list[Region], scan: Scan, seed: int | None) -> list[ScanResult]:
+    pitch = min(
+        (region.registration.corners[0][-1][0] - region.registration.corners[0][0][0]) / region.columns
+        for region in regions
+        if region.registration is not None
+    )
+    picture, forward = scanned(load_rgb(item.path / "images" / image), scan, pitch)
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / "scan.jpg"
+        picture.save(path, quality=scan.quality)
+        fits = register_image(path)
+    results = []
+    for region in regions:
+        outcome, detail = judge(item, region, fits, forward)
+        results.append(ScanResult(seed, item.path.name, image, region.id, scan, outcome, detail))
+    return results
+
+
+FIXED_SCANS = [
+    ("sunken-temple", "sunken-temple-2.png", Scan(0.0, 0, 0.04, 1.0, 0.0, 0.0, 95)),
+    ("scattered-pages", "scattered-spread.png", Scan(0.0, 0, -0.04, 1.0, 0.0, 0.0, 95)),
+]
+"""Scans the chunk's review found registering at twice and four times the printed pitch, half a cell off."""
+
+
+@functools.cache
+def scan_results() -> tuple[ScanResult, ...]:
+    """Every synthetic image with a registered region, scanned `SCAN_ROUNDS` times from fixed seeds, plus the fixed
+    scans."""
+    cases: list[tuple[SyntheticMap, str, list[Region]]] = []
+    for item in synthetic_maps():
+        by_image: dict[str, list[Region]] = {}
+        for region in item.truth.regions:
+            if region.verdict == "registered":
+                by_image.setdefault(region.image, []).append(region)
+        cases.extend((item, image, regions) for image, regions in sorted(by_image.items()))
+    results: list[ScanResult] = []
+    for round_ in range(SCAN_ROUNDS):
+        for index, (item, image, regions) in enumerate(cases):
+            seed = round_ * len(cases) + index
+            results.extend(scan_one(item, image, regions, Scan.draw(seed), seed))
+    by_name = {(item.path.name, image): (item, regions) for item, image, regions in cases}
+    for name, image, scan in FIXED_SCANS:
+        item, regions = by_name[(name, image)]
+        results.extend(scan_one(item, image, regions, scan, None))
+    return tuple(results)
+
+
+def test_a_scanned_map_never_registers_a_wrong_grid():
+    """A region that registers holds its true grid, moved by the scan, as an unperturbed map must: a 2 or 4 times
+    pitch, a grid cut short, or a bow the drift correction doesn't follow all fail here."""
+    wrong = [result for result in scan_results() if result.outcome == "wrong"]
+    assert not wrong, "\n".join(f"{r.seed} {r.map}/{r.image}/{r.region} {r.scan}: {r.detail}" for r in wrong)
+
+
+def test_most_scanned_maps_register():
+    results = scan_results()
+    missed = [result for result in results if result.outcome == "missed"]
+    assert len(missed) <= SCAN_MISS_LIMIT * len(results), "\n".join(
+        f"{r.seed} {r.map}/{r.image}/{r.region} {r.scan}: {r.detail}" for r in missed
+    )
