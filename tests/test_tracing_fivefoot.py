@@ -141,6 +141,25 @@ def test_marks_symbols_and_outlines_convert_to_containing_cells():
     assert result.panel.regions == ten.panels[0].regions
 
 
+def test_a_leader_end_that_converts_to_rock_moves_to_floor_or_is_dropped():
+    """Phase (0, 0): 4 blocked segments on 10-foot vertical lines against 2, and 6 on horizontal ones against 2.
+
+    Leader square (2, 0) is floor, but its cell (1, 0) has one floor square of four, so it's rock. The nearest floor
+    cell within one cell of it is (0, 0). Leader square (6, 0) is floor in rock cell (3, 0), and no cell within one
+    cell of (3, 0) is floor or water, so mark 2 loses its leader line. Mark 2 is printed on rock square (5, 1), which
+    lies in cell (2, 0).
+    """
+    source = panel(
+        ("...###.#", "..######", "########", "########"),
+        ("woow--ww-", "wow------", "---------", "---------"),
+        ("www---w-", "oow---w-", "ww------", "--------", "--------"),
+        marks=(Mark(text="1", cell="0,0", leader_to="2,0"), Mark(text="2", cell="5,1", leader_to="6,0")),
+    )
+    result = convert_five_foot(source)
+    assert result.panel.cells == (".###", "####")
+    assert result.panel.marks == (Mark(text="1", cell="0,0", leader_to="0,0"), Mark(text="2", cell="2,0"))
+
+
 def test_mark_on_an_unmoved_off_grid_segment_goes_to_its_floor_square_side():
     """Ruling A. A locked door on vertical line 1 at row 0 lies between floor (0,0) and water (1,0).
 
