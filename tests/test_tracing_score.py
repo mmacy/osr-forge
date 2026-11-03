@@ -266,3 +266,45 @@ def test_turned_panel_is_mapped_through_its_rotation():
     assert score.after.edges.all.total == 10
     assert (score.after.keys.total, score.after.keys.right) == (1, 1)
     assert score_trace(key, trace).after.imperfect_families() == ()
+
+
+DUNGEON_PASSAGES = "chunk: dungeon-passages"
+
+
+def with_passage_into(truth: GeometryTruth, to_dungeon: str | None) -> GeometryTruth:
+    """The document with a copy of dungeon `demo` as `demo-b`, and the passage at 5,1 east on demo's level 1 naming
+    `to_dungeon` as its destination's dungeon. Its destination level and cell are unchanged, and demo-b holds the
+    same level 1."""
+    demo = truth.dungeons[0]
+    copy = demo.model_copy(update={"id": "demo-b", "name": "Demo B"})
+    level = truth.level("demo", 1)
+    passages = tuple(
+        passage.model_copy(update={"to_dungeon": to_dungeon})
+        if (passage.cell, passage.side) == ("5,1", "east")
+        else passage
+        for passage in level.passages
+    )
+    levels = tuple(item.model_copy(update={"passages": passages}) if item.number == 1 else item for item in demo.levels)
+    return GeometryTruth.model_validate(
+        truth.model_copy(update={"dungeons": (demo.model_copy(update={"levels": levels}), copy)}).model_dump()
+    )
+
+
+@pytest.mark.xfail(reason=DUNGEON_PASSAGES, strict=True)
+def test_a_passage_destination_names_its_dungeon():
+    """The trace's passage leads to the same level number and cell, but in demo, not demo-b, so it's wrong. The key
+    itself scores perfect."""
+    key = with_passage_into(demo_truth(), "demo-b")
+    assert score_trace(key, key).after.imperfect_families() == ()
+    score = score_trace(with_passage_into(demo_truth(), None), key)
+    assert "passages" in score.after.imperfect_families()
+    assert score.after.passages.right == score.after.passages.total - 1
+
+
+@pytest.mark.xfail(reason=DUNGEON_PASSAGES, strict=True)
+def test_reachability_stops_at_a_passage_into_another_dungeon():
+    """In the key, demo's only way to the panel beyond 5,1 is the passage, which leads into demo-b, so demo's walk
+    doesn't reach that panel's area. The trace keeps the passage within demo and reaches it, an area too many."""
+    key = with_passage_into(demo_truth(), "demo-b")
+    score = score_trace(with_passage_into(demo_truth(), None), key)
+    assert "reachability" in score.after.imperfect_families()
