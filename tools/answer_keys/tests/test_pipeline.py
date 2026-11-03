@@ -872,3 +872,16 @@ def test_a_levels_printed_keys_count_once_and_only_for_its_own_level(tmp_path, m
     # "1" names a key of both of the map's levels, so it counts for neither; "9" is a key of a level not on the map.
     assert letters.printed_key_cells(ctx, [], {}) == {"a/1": {(1, 1)}, "b/1": {(1, 1)}}
     assert letters.CROSSING == "opdls"
+
+
+def test_a_cave_mouths_inner_cell_is_the_one_inside_the_levels_outline(monkeypatch):
+    from osrforge.tracing.truth import Symbol
+
+    symbols = [Symbol(kind="cave_mouth", edge="3,2:west"), Symbol(kind="pillar", cells=("1,1",))]
+    monkeypatch.setattr(assemble, "_final_symbols", lambda *_args: symbols)
+    monkeypatch.setattr(readings, "load_items", lambda _ctx: None)
+    owned = {"a/1": {(0, 2), (1, 2), (2, 2)}, "b/1": {(3, 2), (4, 2)}, "c/1": {(2, 2), (3, 2)}}
+    cells = [["."] * 5 for _ in range(4)]
+    inner = letters.mouth_inner_cells(None, cells, {}, owned)  # type: ignore[arg-type]
+    # The mouth between 2,2 and 3,2 is a's from inside 2,2 and b's from inside 3,2; c holds both sides.
+    assert inner == {"a/1": [(2, 2)], "b/1": [(3, 2)]}

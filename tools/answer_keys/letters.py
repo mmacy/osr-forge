@@ -11,7 +11,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any
 
-from osrforge.tracing.truth import EdgeGrids, parse_cell
+from osrforge.tracing.truth import EdgeGrids, parse_cell, parse_edge
 
 from .keyspec import MapContext
 from .marks import wholemap_answer
@@ -241,6 +241,28 @@ def printed_key_cells(ctx: MapContext, cells: list[list[str]], final: dict[str, 
     return out
 
 
+def mouth_inner_cells(
+    ctx: MapContext, cells: list[list[str]], final: dict[str, dict[str, Any]], owned: dict[str, set]
+) -> dict[str, list[tuple[int, int]]]:
+    """Each level's cave mouths, as the cell just inside each: the mouth's cell that lies in the level's outline
+    while the cell across it doesn't."""
+    from .assemble import _final_symbols
+    from .readings import load_items
+
+    width, height = len(cells[0]), len(cells)
+    out: dict[str, list[tuple[int, int]]] = {}
+    for symbol in _final_symbols(load_items(ctx), final, width, height):
+        if symbol.kind != "cave_mouth" or symbol.edge is None:
+            continue
+        (x, y), side = parse_edge(symbol.edge)
+        dx, dy = dict(_SIDES)[side]
+        for level, cells_of in owned.items():
+            for here, there in (((x, y), (x + dx, y + dy)), ((x + dx, y + dy), (x, y))):
+                if here in cells_of and there not in cells_of:
+                    out.setdefault(level, []).append(here)
+    return out
+
+
 def outline_state(
     ctx: MapContext, cells: list[list[str]], edges: EdgeGrids, final: dict[str, dict[str, Any]]
 ) -> OutlineState:
@@ -300,11 +322,19 @@ def outline_state(
     # Then the trim: whatever lies beyond a level's slope leaves its outline, however it got there.
     for level, paths in slopes.items():
         owned[level] = slope_side(owned[level], [parse_cell(text) for text in seeds[level]], paths)
-    # A level's outline always holds the cells where its own keys are printed.
+    # A level's outline always holds the cells where its own keys are printed, except a key printed within two
+    # cells of one of the level's cave mouths on its outer side, which the key-placement rules move inside.
     if len(levels) > 1:
+        inner = mouth_inner_cells(ctx, cells, final, owned)
         for level, printed in printed_key_cells(ctx, cells, final).items():
-            if level in owned:
-                owned[level] |= printed
+            if level not in owned:
+                continue
+            for cell in printed:
+                outside_mouth = cell not in owned[level] and any(
+                    max(abs(cell[0] - x), abs(cell[1] - y)) <= 2 for x, y in inner.get(level, [])
+                )
+                if not outside_mouth:
+                    owned[level].add(cell)
     state = OutlineState(levels=levels, owned=owned, seeds=seeds, open_ground=open_ground)
     if len(levels) > 1:
         asked = {name[2:].split("|")[0] for name in final if name.startswith("o:")}
