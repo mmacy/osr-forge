@@ -799,21 +799,37 @@ class LevelRules:
         return keyed, doors
 
     def _entrance_chamber(self, area: AreaSpec, placed: list[Placed], run_cells: dict[Cell, int]) -> list[Cell]:
+        """The unkeyed floor an unprinted entrance key takes, as Keys and areas says.
+
+        Its opening is the one nearest the area its prose connects it to, by walking distance from the cell just
+        inside the opening, among the outer openings that lead into unkeyed floor: floor in no open space that
+        holds a placed key. The key takes floor up to the first door, keyed area, or unlabelled narrow run of three
+        or more cells.
+        """
         targets = [link.to_key for link in area.links if link.to_key in self.keys]
         if not targets:
             raise DesignError(f"entrance {area.key!r} has no prose connection to an area of its level")
         target_cells = [item.cell for item in placed if item.key == targets[0]]
         if not target_cells or not self.openings:
             raise DesignError(f"entrance {area.key!r} has no opening or no target")
+        keyed_spaces = {self.space_of[item.cell] for item in placed if item.cell in self.space_of}
+        unkeyed: list[int] = []
+        for index, opening in enumerate(self.openings):
+            keyed = {self.space_of[cell] in keyed_spaces for cell in opening.inside}
+            if len(keyed) > 1:
+                raise DesignError(f"opening {opening.edges} leads into keyed and unkeyed floor at once")
+            if keyed == {False}:
+                unkeyed.append(index)
+        if not unkeyed:
+            raise DesignError(f"entrance {area.key!r} has no outer opening into unkeyed floor")
         distance = self.walking(target_cells)
         ranked = sorted(
-            (distance.get(opening.start, 10**9), order(opening.middle), index)
-            for index, opening in enumerate(self.openings)
+            (distance.get(self.openings[index].start, 10**9), order(self.openings[index].middle), index)
+            for index in unkeyed
         )
         if len(ranked) > 1 and ranked[0][0] == ranked[1][0]:
             raise DesignError(f"entrance {area.key!r} is equally near two openings")
         opening = self.openings[ranked[0][2]]
-        keyed_spaces = {self.space_of[item.cell] for item in placed if item.cell in self.space_of}
         allowed = {
             cell
             for cell in self.walkable
