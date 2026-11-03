@@ -532,7 +532,8 @@ def test_keys_on_open_ground_on_an_inner_door_and_footings_across_water():
     to the side first in north-then-west order, the cottage. The cottage and the byre are one walled structure, joined
     by that door, and it has key 2, so key 3 on the open ground beside the byre takes no structure: it takes the
     open-ground floor within two cells of its label, as key 1 does, the cells they both reach going to the nearer by
-    walking distance. The water cell between the two footings becomes floor."""
+    walking distance. The byre, an unlabelled walled room, joins area 2 through their door. The water cell between the
+    two footings becomes floor."""
     survey_index = survey("h", [(1, [("1", "Yard shrine"), ("2", "Cottage"), ("3", "Byre")])])
     contents = {("h", 1): content("h", 1, [("1", "A shrine.", []), ("2", "A cottage.", []), ("3", "A byre.", [])])}
     outline = Outline(dungeon="h", level=1, rects=((0, 0, 12, 8),), seeds=("1,1",), open_ground=((0, 0, 12, 8),))
@@ -543,7 +544,7 @@ def test_keys_on_open_ground_on_an_inner_door_and_footings_across_water():
     level = level_of(result, 1)
     keys = {(k.label, k.cell, k.area, k.moved) for k in level.keys}
     assert keys == {("1", "11,2", "1", False), ("2", "6,4", "2", True), ("3", "8,2", "3", False)}
-    assert set(level.areas["2"].cells) == {f"{x},{y}" for x in (4, 5, 6) for y in (3, 4, 5)}
+    assert set(level.areas["2"].cells) == {f"{x},{y}" for x in (4, 5, 6, 7, 8, 9) for y in (3, 4, 5)}
     assert set(level.areas["3"].cells) == {f"{x},{y}" for x in (6, 7, 8, 9) for y in (1, 2)}
     assert set(level.areas["1"].cells) == {f"{x},{y}" for x in (10, 11, 12) for y in (1, 2, 3, 4)}
     assert "8,4" not in level.areas["3"].cells and "8,4" not in level.areas["1"].cells
