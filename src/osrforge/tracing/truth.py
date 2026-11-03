@@ -795,7 +795,7 @@ class Panel(BaseModel):
         for mark in self.marks:
             _check_cells_in([mark.cell], self.cells, f"{what} mark {mark.text!r}", CELL_LETTERS)
             if mark.leader_to is not None:
-                _check_cells_in([mark.leader_to], self.cells, f"{what} mark {mark.text!r} leader", CELL_LETTERS)
+                _check_cells_in([mark.leader_to], self.cells, f"{what} mark {mark.text!r} leader")
         for symbol in self.symbols:
             _check_cells_in(symbol.cells, self.cells, f"{what} {symbol.kind}", CELL_LETTERS)
             if symbol.edge is not None:
