@@ -888,3 +888,56 @@ def test_a_cave_mouths_inner_cell_is_the_one_inside_the_levels_outline(monkeypat
     inner = letters.mouth_inner_cells(None, cells, {}, owned)  # type: ignore[arg-type]
     # The mouth between 2,2 and 3,2 is a's from inside 2,2 and b's from inside 3,2; c holds both sides.
     assert inner == {"a/1": [(2, 2)], "b/1": [(3, 2)]}
+
+
+class _GridWorld:
+    """Just enough of `world.World` for the join round's gap search, on one panel."""
+
+    def __init__(self, rows: list[str], walls: set[tuple[int, int, str]] = frozenset()) -> None:  # type: ignore[assignment]
+        self.rows = rows
+        self.walls = set(walls)
+
+    def across(self, cell, side):
+        dx, dy = {"north": (0, -1), "south": (0, 1), "west": (-1, 0), "east": (1, 0)}[side]
+        x, y = cell[1] + dx, cell[2] + dy
+        return ("p", x, y) if 0 <= y < len(self.rows) and 0 <= x < len(self.rows[0]) else None
+
+    def edge(self, cell, side):
+        other = self.across(cell, side)
+        if (cell[1], cell[2], side) in self.walls or (
+            other
+            and (other[1], other[2], {"east": "west", "west": "east", "north": "south", "south": "north"}[side])
+            in self.walls
+        ):
+            return "w"
+        return "o" if other and self.is_floor(cell) and self.is_floor(other) else "w"
+
+    def is_floor(self, cell):
+        return self.rows[cell[2]][cell[1]] == "."
+
+    def is_water(self, cell):
+        return False
+
+    def cell(self, cell):
+        return (cell[1], cell[2])
+
+    def order(self, cell):
+        return (0, cell[2], cell[1])
+
+
+def test_a_join_gap_is_the_cheapest_way_through_rock_and_walls():
+    from tools.answer_keys import joins
+
+    world = _GridWorld(["..#..", "#####"])
+    floor = {("p", x, 0) for x in (0, 1, 3, 4)}
+    one, other = {("p", 0, 0), ("p", 1, 0)}, {("p", 3, 0), ("p", 4, 0)}
+    gap = joins._gap(world, ("d", 1), floor, one, other, ("1", "2"), "passage")
+    assert (gap.cost, gap.cells, gap.edges) == (1, [(2, 0)], [])
+    walled = _GridWorld(["....."], {(1, 0, "east")})
+    floor = {("p", x, 0) for x in range(5)}
+    gap = joins._gap(walled, ("d", 1), floor, {("p", 0, 0)}, {("p", 4, 0)}, ("1", "2"), "door")
+    assert (gap.cost, gap.cells, gap.edges) == (1, [], ["2,0:west"])
+    # Rock wider than the cap leaves the join as the key has it.
+    far = _GridWorld(["." + "#" * 7 + "."])
+    gap = joins._gap(far, ("d", 1), {("p", 0, 0), ("p", 8, 0)}, {("p", 0, 0)}, {("p", 8, 0)}, ("1", "2"), "passage")
+    assert gap.cost is None and gap.cells == []

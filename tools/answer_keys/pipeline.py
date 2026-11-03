@@ -255,9 +255,23 @@ def main(argv: list[str] | None = None) -> int:
         "sample",
         "score",
         "combine",
+        "joins",
     }
     action = None
-    if words and words[-1] in ("submit", "collect", "export", "correct", "edges", "reask", "resample"):
+    if words and words[-1] in (
+        "submit",
+        "collect",
+        "export",
+        "correct",
+        "edges",
+        "reask",
+        "resample",
+        "measure",
+        "cells",
+        "check",
+        "check-collect",
+        "resettle",
+    ):
         action = words.pop()
     if not words or words[-1] not in stages:
         parser.error("the last words name a stage and, for a batch stage, submit or collect")
@@ -272,6 +286,49 @@ def main(argv: list[str] | None = None) -> int:
         if args.out is None:
             parser.error("sample needs --out")
         print(build_sample([context(specs[map_id]) for map_id in words], args.out, args.size, args.seed))
+        return 0
+    if stage == "joins":
+        from .joins import (
+            collect_check,
+            join_gaps,
+            load_gaps,
+            resolved,
+            save_gaps,
+            submit_check,
+            submit_edges,
+            submit_gaps,
+            submit_resettle,
+        )
+
+        contexts = [context(specs[map_id]) for map_id in words]
+        if action == "measure":
+            if args.stages is None:
+                parser.error("joins measure needs --stages, the directory whose stages/ the resolver reads")
+            resolver, contents = resolved([specs[map_id] for map_id in words], args.stages, lenient=True)
+            for gap in resolver.passed_over:
+                print(f"passed over for the measure: {gap}")
+            gaps = join_gaps(resolver, contents)
+            for ctx in contexts:
+                save_gaps(ctx, gaps)
+            for gap in gaps:
+                print(
+                    f"{gap.level} {gap.areas[0]}-{gap.areas[1]} ({gap.via}) on {gap.panel}: cost {gap.cost}, "
+                    f"cells {gap.cells}, edges {gap.edges}"
+                )
+            print(f"{len(gaps)} joins not made, {sum(1 for gap in gaps if gap.cost is not None)} with a gap")
+            return 0
+        book, api = ledger(), client()
+        for ctx in contexts:
+            if action == "cells":
+                print(f"{ctx.key.id}: join cells {submit_gaps(ctx, load_gaps(ctx), 'cells', api, book)}")
+            elif action == "edges":
+                print(f"{ctx.key.id}: join edges {submit_edges(ctx, api, book)}")
+            elif action == "check":
+                print(f"{ctx.key.id}: join check {submit_check(ctx, api, book)}")
+            elif action == "check-collect":
+                print(f"{ctx.key.id}: join check {collect_check(ctx, api, book)}")
+            elif action == "resettle":
+                print(f"{ctx.key.id}: join re-settling {submit_resettle(ctx, api, book)}")
         return 0
     if stage == "recheck" and action == "resample":
         from .recheck import recheck_sample
