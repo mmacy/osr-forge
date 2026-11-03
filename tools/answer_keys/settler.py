@@ -52,7 +52,8 @@ SETTLE_SYSTEM = (
     "A symbol or a label inside a cell leaves it floor.\n\n"
     "Edges. An edge is one side of a cell. Its letter: o open (nothing but the thin grid line, floor continues), "
     "p printed open line (a dashed, dotted, or dash-dot line, a fence, or an archway a party walks through), w "
-    "wall (a heavy line, or the boundary between floor and rock, or between floor and water), n window (a wall "
+    "wall (a heavy line, or the boundary between floor and rock; an edge between floor and water is o unless a "
+    "wall line is drawn along the bank, because the water is impassable on its own), n window (a wall "
     "with the map's window symbol), d door (the map's door symbol), l locked door, s secret door. An edge "
     "between floor and rock is w. A thin printed grid line is never a wall. Lines drawn over the map (contours, "
     "trees, tracks, skylights, stream hatching) aren't walls, and neither is the drawing's own frame: where floor "
@@ -84,7 +85,8 @@ ADVERSARY_SYSTEM = (
     "A symbol or a label inside a cell leaves it floor.\n\n"
     "Edges. An edge is one side of a cell. Its letter: o open (nothing but the thin grid line, floor continues), "
     "p printed open line (a dashed, dotted, or dash-dot line, a fence, or an archway a party walks through), w "
-    "wall (a heavy line, or the boundary between floor and rock, or between floor and water), n window (a wall "
+    "wall (a heavy line, or the boundary between floor and rock; an edge between floor and water is o unless a "
+    "wall line is drawn along the bank, because the water is impassable on its own), n window (a wall "
     "with the map's window symbol), d door (the map's door symbol), l locked door, s secret door. An edge "
     "between floor and rock is w. A thin printed grid line is never a wall. Lines drawn over the map (contours, "
     "trees, tracks, skylights, stream hatching) aren't walls, and neither is the drawing's own frame: where floor "
@@ -338,6 +340,19 @@ def outline_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]
                 "readings": readings,
             }
         )
+    for name in water_bank_edges(cells, edges, final):
+        readings = [("the key so far", "wall")]
+        out.append(
+            {
+                "id": f"e:{name}",
+                "kind": "edge",
+                "text": f"edge {name}, {_describe_edge(name)}, between floor and water: an edge between floor and "
+                f"water is o unless a wall line is drawn along the bank, because the water is impassable on its own. "
+                f"Which "
+                f"letter? Readings: {_readings_text(readings)}.",
+                "readings": readings,
+            }
+        )
     for item in state.open_ground_items:
         rect = item["rect"]
         readings = [("the whole-map read", f"open ground of level {item['level']}")]
@@ -357,6 +372,32 @@ def outline_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]
             }
         )
     return out
+
+
+def water_bank_edges(cells: list[list[str]], edges: Any, final: dict[str, dict[str, Any]]) -> list[str]:
+    """The edges between a floor cell and a water cell that the key reads as a wall and the settler hasn't been
+    asked about as a bank: the readings called the bank a wall before the prompts said the water is impassable
+    on its own."""
+    width, height = len(cells[0]), len(cells)
+    out = []
+    for y in range(height):
+        for x in range(width):
+            if cells[y][x] != ".":
+                continue
+            for side, (dx, dy) in (("east", (1, 0)), ("south", (0, 1)), ("west", (-1, 0)), ("north", (0, -1))):
+                nx, ny = x + dx, y + dy
+                if not (0 <= nx < width and 0 <= ny < height) or cells[ny][nx] != "~":
+                    continue
+                if edges.at((x, y), side) != "w":
+                    continue
+                name = f"{x},{y}:{side}"
+                canonical = f"{nx},{ny}:{ {'east': 'west', 'west': 'east', 'south': 'north', 'north': 'south'}[side] }"
+                if side in ("east", "south"):
+                    name, canonical = canonical, name
+                if f"e:{name}" in final and final[f"e:{name}"].get("bank"):
+                    continue
+                out.append(name)
+    return sorted(set(out))
 
 
 def _symbol_text(symbol: dict[str, Any] | None) -> str:
