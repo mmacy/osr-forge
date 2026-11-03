@@ -528,8 +528,8 @@ def submit_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, led
         return store.submit(client, ledger, f"settle {ctx.key.id}"), count
     settled = _load_calls(ctx, "settle")
     adversary = _load_calls(ctx, "adversary")
-    if adversary and any(call["challenged"] for call in adversary.values()):
-        pending = [name for name, call in adversary.items() if call["challenged"] and "resettled" not in call]
+    pending = [name for name, call in adversary.items() if call["challenged"] and "resettled" not in call]
+    if pending:
         resettle = []
         for name in pending:
             base = settled.get(name)
