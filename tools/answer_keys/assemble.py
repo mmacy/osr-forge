@@ -148,18 +148,19 @@ def _unique_marks(marks: list[Mark]) -> list[Mark]:
 def _final_symbols(items: Items, final: dict[str, dict[str, Any]], width: int, height: int) -> list[Symbol]:
     symbols: list[Symbol] = []
     for index, item in enumerate(items.symbols):
-        if item["status"] == "agreed":
-            symbol = item["reading1"]
-        else:
-            one = item["reading1"] or item["reading2"]
-            place = one["cells"][0] if one["cells"] else parse_edge(one["edge"])[0]
-            place_text = place if isinstance(place, str) else f"{place[0]},{place[1]}"
-            call = final.get(f"s:{place_text}|{index}")
-            if call is None:
-                continue
+        one = item["reading1"] or item["reading2"]
+        place = one["cells"][0] if one["cells"] else parse_edge(one["edge"])[0]
+        place_text = place if isinstance(place, str) else f"{place[0]},{place[1]}"
+        call = final.get(f"s:{place_text}|{index}")
+        if call is not None:
+            # A settled symbol, or an agreed one the adversarial pass challenged and the settler decided again.
             symbol = _parse_value_symbol(call["value"])
             if symbol is None:
                 continue
+        elif item["status"] == "agreed":
+            symbol = item["reading1"]
+        else:
+            continue
         inside = all(0 <= parse_cell(c)[0] < width and 0 <= parse_cell(c)[1] < height for c in symbol["cells"])
         if symbol["kind"] == "cave_mouth":
             (x, y), _side = parse_edge(symbol["edge"])

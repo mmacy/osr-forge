@@ -363,6 +363,17 @@ def test_submit_sends_parts_under_the_size_limit_and_releases_reservations_on_fa
     assert [len(r) for r in client3.messages.batches.created] == [2]
     assert store3.pending() == ["c"]
 
+    # A collect resends only the jobs it queued: the ids it names, never every pending job.
+    store4 = batches.BatchStore(tmp_path / "store4")
+    for name in ("a", "b", "c"):
+        store4.add_job(name, params, {"window": [0, 0, 3, 2]})
+    assert store4.added == ["a", "b", "c"]
+    client4 = _FakeClient([])
+    assert store4.submit(client4, _FakeLedger(), "test", ids=["b"]) == "batch_1"
+    assert [len(r) for r in client4.messages.batches.created] == [1]
+    assert store4.pending() == ["a", "c"]
+    assert store4.submit(client4, _FakeLedger(), "test", ids=[]) is None
+
     class _Refusing:
         def create(self, requests):
             raise RuntimeError("413")
@@ -646,4 +657,5 @@ def test_the_calls_around_a_cave_mouth_are_always_checked():
     cells = settler._mouth_cells(items)
     assert {"4,5", "5,5", "3,4", "6,6"} <= cells and "9,9" not in cells and "8,8" not in cells
     assert settler._touches("e:5,5:west", cells) and settler._touches("c:6,4", cells)
-    assert not settler._touches("c:9,9", cells) and not settler._touches("s:5,5|0", cells)
+    assert settler._touches("s:5,5|0", cells) and not settler._touches("c:9,9", cells)
+    assert not settler._touches("s:9,9|1", cells)

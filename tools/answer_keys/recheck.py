@@ -92,15 +92,25 @@ def submit_recheck(ctx: MapContext, sample_path: Path, client: Any, ledger: Any)
     return store.submit(client, ledger, f"recheck {ctx.key.id}"), count
 
 
-def collect_recheck(ctx: MapContext, client: Any, ledger: Any) -> dict[str, int]:
-    """Collect the recheck's answers into `recheck/calls.json` and rewrite `final.json`."""
+def collect_recheck(ctx: MapContext, client: Any, ledger: Any) -> dict[str, Any]:
+    """Collect the recheck's answers into `recheck/calls.json` and rewrite `final.json`.
+
+    The result lists the retries' job ids under `retry_ids`, so the caller sends those alone.
+    """
     store = BatchStore(ctx.key.directory / "recheck")
     counts = store.collect(client, ledger)
-    result = {"calls": 0, "retries": 0, "open": counts["open"], "errored": counts["errored"], "challenged": 0}
+    result: dict[str, Any] = {
+        "calls": 0,
+        "retries": 0,
+        "open": counts["open"],
+        "errored": counts["errored"],
+        "challenged": 0,
+    }
     calls = _load_calls(ctx, "recheck")
     _harvest(store, calls, False, result)
     _save_calls(ctx, "recheck", calls)
     write_final(ctx)
+    result["retry_ids"] = list(store.added)
     return result
 
 

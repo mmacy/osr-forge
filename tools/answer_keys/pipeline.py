@@ -80,7 +80,7 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
             print(f"{key.id}: windows {counts}")
             if counts["retries"] or counts["fresh"]:
-                batch = store.submit(api, book, f"windows {key.id} retries")
+                batch = store.submit(api, book, f"windows {key.id} retries", ids=store.added)
                 print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: windows spent ${store.spent():.4f}")
     elif stage == "marks":
@@ -98,7 +98,7 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
             print(f"{key.id}: marks {counts}")
             if counts.get("retries"):
-                batch = store.submit(api, book, f"marks {key.id} retries")
+                batch = store.submit(api, book, f"marks {key.id} retries", ids=store.added)
                 print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: marks spent ${store.spent():.4f}")
     elif stage == "wholemap":
@@ -116,7 +116,7 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
             print(f"{key.id}: wholemap {counts}")
             if counts.get("retries"):
-                batch = store.submit(api, book, f"wholemap {key.id} retries")
+                batch = store.submit(api, book, f"wholemap {key.id} retries", ids=store.added)
                 print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: wholemap spent ${store.spent():.4f}")
     elif stage == "clef":
@@ -147,7 +147,7 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             if counts.get("retries"):
                 # A retry may belong to the adversarial store or, for a re-settling, to the resettle store.
                 for retry_store in (store, BatchStore(key.directory / "resettle")):
-                    batch = retry_store.submit(api, book, f"{stage} {key.id} retries")
+                    batch = retry_store.submit(api, book, f"{stage} {key.id} retries", ids=counts["retry_ids"])
                     if batch is not None:
                         print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: {stage} spent ${store.spent():.4f}")
@@ -167,7 +167,9 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
             print(f"{key.id}: recheck {counts}")
             if counts.get("retries"):
-                batch = BatchStore(key.directory / "recheck").submit(api, book, f"recheck {key.id} retries")
+                batch = BatchStore(key.directory / "recheck").submit(
+                    api, book, f"recheck {key.id} retries", ids=counts["retry_ids"]
+                )
                 print(f"{key.id}: retry batch {batch}")
     elif stage == "assemble":
         from .assemble import assemble

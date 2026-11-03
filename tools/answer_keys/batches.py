@@ -17,6 +17,7 @@ import io
 import json
 import math
 import time
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -131,6 +132,8 @@ class BatchStore:
         self.jobs = directory / "jobs"
         self.answers = directory / "answers"
         self.index = directory / "batches.json"
+        self.added: list[str] = []
+        """The jobs this store object wrote, so a collect resends only the retries it queued."""
 
     def _batches(self) -> dict[str, Any]:
         if self.index.exists():
@@ -156,6 +159,7 @@ class BatchStore:
         path = self.jobs / f"{custom_id}.json"
         if not path.exists():
             path.write_text(json.dumps({"custom_id": custom_id, "meta": meta, "params": params}))
+            self.added.append(custom_id)
         return path
 
     def job(self, custom_id: str) -> dict[str, Any]:
@@ -188,7 +192,9 @@ class BatchStore:
         done = self.answered() | self.in_flight()
         return [custom_id for custom_id in self.job_ids() if custom_id not in done]
 
-    def submit(self, client: Any, ledger: Ledger, label: str, limit: int | None = None) -> str | None:
+    def submit(
+        self, client: Any, ledger: Ledger, label: str, limit: int | None = None, ids: Sequence[str] | None = None
+    ) -> str | None:
         """Send the pending jobs, reserving each job's worst case first, in batches under the API's size limit.
 
         The Batches API takes a request body of at most 256 MB, so the jobs are sent in batches whose job files
@@ -200,11 +206,15 @@ class BatchStore:
             ledger: The Claude ledger.
             label: The ledger entry's label.
             limit: Send at most this many jobs, or every pending job.
+            ids: Send only pending jobs among these, such as the retries a collect queued; `None` sends any.
 
         Returns:
             The last batch id, or `None` when nothing was pending.
         """
         pending = self.pending()
+        if ids is not None:
+            wanted = set(ids)
+            pending = [custom_id for custom_id in pending if custom_id in wanted]
         if limit is not None:
             pending = pending[:limit]
         if not pending:

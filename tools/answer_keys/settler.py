@@ -95,7 +95,9 @@ ADVERSARY_SYSTEM = (
     "wall or a grid line doesn't change the edge.\n\n"
     "Labels are answered as 'text@x,y' (the text exactly as printed, and the cell under its centre) or none. "
     "Symbols are answered as 'kind@x,y;x,y', or 'cave_mouth@x,y:side', with |up or |down when the map shows a "
-    "direction, or none.\n\n"
+    "direction, or none. A cave_mouth stands on the edge where the cave's passage opens into the ground outside, "
+    "the gap in the heavy cave-wall line; an entrance letter or arrow printed at or beside the gap marks it and "
+    "isn't the mouth's place, and the cells it's printed on are floor.\n\n"
     "Give every item's id exactly as listed, challenged true when your value differs from the recorded one, "
     "your value, and a reason under 30 words."
 )
@@ -259,22 +261,9 @@ def settle_items(items: Items, cells_settled: dict[str, str] | None) -> list[dic
         for index, symbol in enumerate(items.symbols):
             if symbol["status"] != "disputed":
                 continue
-            one = symbol["reading1"] or symbol["reading2"]
-            place = one["cells"][0] if one["cells"] else parse_edge(one["edge"])[0]
-            place_text = place if isinstance(place, str) else f"{place[0]},{place[1]}"
-            readings = [
-                ("the first symbol read", _symbol_text(symbol["reading1"])),
-                ("the second symbol read", _symbol_text(symbol["reading2"])),
-            ]
-            out.append(
-                {
-                    "id": f"s:{place_text}|{index}",
-                    "kind": "symbol",
-                    "text": f"symbol at or beside cell {place_text}: which symbol, if any, stands there, and which "
-                    f"cells does it cover? Readings: {_readings_text(readings)}.",
-                    "readings": readings,
-                }
-            )
+            item = _symbol_item(items, index)
+            if item is not None:
+                out.append(item)
         return out
     for name in items.disputed("edges"):
         entry = items.edges[name]
@@ -396,6 +385,29 @@ def water_bank_edges(cells: list[list[str]], edges: Any, final: dict[str, dict[s
                     name, canonical = canonical, name
                 out.append(name)
     return sorted(set(out))
+
+
+def _symbol_item(items: Items, index: int) -> dict[str, Any] | None:
+    """The settling item for a symbol of the table, by its index."""
+    if not 0 <= index < len(items.symbols):
+        return None
+    symbol = items.symbols[index]
+    one = symbol["reading1"] or symbol["reading2"]
+    if one is None:
+        return None
+    place = one["cells"][0] if one["cells"] else parse_edge(one["edge"])[0]
+    place_text = place if isinstance(place, str) else f"{place[0]},{place[1]}"
+    readings = [
+        ("the first symbol read", _symbol_text(symbol["reading1"])),
+        ("the second symbol read", _symbol_text(symbol["reading2"])),
+    ]
+    return {
+        "id": f"s:{place_text}|{index}",
+        "kind": "symbol",
+        "text": f"symbol at or beside cell {place_text}: which symbol, if any, stands there, and which "
+        f"cells does it cover? Readings: {_readings_text(readings)}.",
+        "readings": readings,
+    }
 
 
 def _symbol_text(symbol: dict[str, Any] | None) -> str:
@@ -643,6 +655,8 @@ def _rebuild_item(ctx: MapContext, items: Items, name: str) -> dict[str, Any] | 
     for item in settle_items(items, None):
         if item["id"] == name:
             return item
+    if kind == "s" and "|" in name:
+        return _symbol_item(items, int(name.rsplit("|", 1)[1]))
     if kind in ("o", "g"):
         for item in outline_items(ctx, items, {}):
             if item["id"] == name:
@@ -711,6 +725,14 @@ def adversary_items(ctx: MapContext, items: Items, settled: dict[str, dict[str, 
         item = _rebuild_item(ctx, items, f"c:{name}")
         if item is not None:
             agreed.append({**item, "recorded": _recorded_text("cell", entry["claude"][0]), "category": category})
+    # Agreed cave mouths: both readers may have put the mouth on the entrance arrow instead of the gap.
+    for index, symbol in enumerate(items.symbols):
+        one = symbol["reading1"]
+        if symbol["status"] != "agreed" or not one or one.get("kind") != "cave_mouth" or not one.get("edge"):
+            continue
+        item = _symbol_item(items, index)
+        if item is not None and item["id"] not in settled:
+            agreed.append({**item, "recorded": _symbol_text(one), "category": "cave"})
     # The calls around a cave mouth are always checked: an entrance letter or arrow printed in the mouth reads as
     # ink, and a mouth read as a wall with rock beyond it closes the lair.
     must = [item for item in agreed if _touches(item["id"], mouths)]
@@ -742,6 +764,8 @@ def _touches(item_id: str, cells: set[str]) -> bool:
     if item_id.startswith("e:"):
         a, b = edge_cells(edge_key(item_id[2:]))
         return bool({f"{a[0]},{a[1]}", f"{b[0]},{b[1]}"} & cells)
+    if item_id.startswith("s:"):
+        return item_id[2:].split("|")[0] in cells
     return False
 
 
@@ -751,11 +775,21 @@ def _recorded_text(kind: str, value: str) -> str:
     return value
 
 
-def collect_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, ledger: Any) -> dict[str, int]:
-    """Collect a stage's answers into its calls file, queueing one retry for each malformed answer."""
+def collect_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, ledger: Any) -> dict[str, Any]:
+    """Collect a stage's answers into its calls file, queueing one retry for each malformed answer.
+
+    The result counts the calls, retries, open batches, errors, and challenges, and lists the retries' job ids
+    under `retry_ids`, so the caller sends those alone and not every job the store still holds.
+    """
     adversary = stage == "adversary"
     counts = store.collect(client, ledger)
-    result = {"calls": 0, "retries": 0, "open": counts["open"], "errored": counts["errored"], "challenged": 0}
+    result: dict[str, Any] = {
+        "calls": 0,
+        "retries": 0,
+        "open": counts["open"],
+        "errored": counts["errored"],
+        "challenged": 0,
+    }
     calls = _load_calls(ctx, stage)
     _harvest(store, calls, adversary, result)
     if adversary:
@@ -770,6 +804,8 @@ def collect_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, le
                 if name in calls:
                     calls[name]["resettled"] = call["value"]
         result["challenged"] = sum(1 for call in calls.values() if call.get("challenged"))
+        result["retry_ids"] = [*store.added, *resettle_store.added]
+    result.setdefault("retry_ids", list(store.added))
     _save_calls(ctx, stage, calls)
     if stage == "settle":
         for call in calls.values():
@@ -778,7 +814,7 @@ def collect_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, le
     return result
 
 
-def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: bool, result: dict[str, int]) -> None:
+def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: bool, result: dict[str, Any]) -> None:
     for custom_id in store.job_ids():
         answer = store.answer(custom_id)
         if answer is None:
