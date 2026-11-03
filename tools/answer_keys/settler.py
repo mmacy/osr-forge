@@ -284,7 +284,8 @@ def settle_items(items: Items, cells_settled: dict[str, str] | None) -> list[dic
             letters.add(entry["clef"]["choice"])
         if all(side == "#" for side in sides):
             continue
-        if "#" in sides and not letters & set(DOOR_LETTERS):
+        if "#" in sides and not letters & set(DOOR_LETTERS + "n"):
+            # Floor against rock is a wall without a question, unless a reader saw a door or a window symbol.
             continue
         readings = [("the classifier", LETTER_WORDS.get(entry["classifier"], entry["classifier"]))]
         readings += [("Claude's window read", LETTER_WORDS.get(letter, letter)) for letter in entry["claude"]]

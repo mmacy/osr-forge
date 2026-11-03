@@ -82,7 +82,8 @@ def final_edges(
             unread += 1
         if letter == "-":
             letter = "w"
-        if (occupied_a != occupied_b) and letter not in "dls":
+        if (occupied_a != occupied_b) and letter not in "dlsn":
+            # Between floor and rock an edge is a wall, unless a reader saw a door or a window symbol on it.
             if letter != "w":
                 derived += 1
             letter = "w"

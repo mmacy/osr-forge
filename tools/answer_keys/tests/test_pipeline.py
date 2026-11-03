@@ -442,6 +442,10 @@ def test_settle_items_run_cells_first_then_edges_with_rock_sides_derived():
     assert "Clef read open (p=0.9)" in second[0]["text"]
     third = settler.settle_items(items, {"0,0": ".", "1,0": ".", "0,1": ".", "1,1": "#"})
     assert [item["id"] for item in third] == ["e:1,0:west", "e:0,0:south"]
+    # A window read on an edge between floor and rock is asked, because the key keeps the letter.
+    items.edges["1,0:west"] = {"classifier": "w", "claude": ["n"], "status": "disputed"}
+    fourth = settler.settle_items(items, {"0,0": ".", "1,0": "#", "0,1": ".", "1,1": "#"})
+    assert [item["id"] for item in fourth] == ["e:1,0:west", "e:0,0:south"]
 
 
 def test_check_answer_validates_each_kind():
