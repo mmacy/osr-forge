@@ -60,7 +60,7 @@
         {
           "to_key": "4",
           "direction": "down",
-          "via": "trapdoor",
+          "via": "passage",
           "door_stuck": false,
           "door_locked": false,
           "to_level": null

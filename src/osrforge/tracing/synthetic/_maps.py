@@ -771,7 +771,7 @@ def watchtower() -> MapSpec:
             "2",
             "Store",
             "A trapdoor in the floor drops into the deep cellar.",
-            links=_ways(("4", "down", "trapdoor")),
+            links=(AreaConnection(to_key="4", direction="down"),),
         ),
         AreaSpec("3", "Watch room", "Arrow slits look out on the road."),
         AreaSpec("4", "Deep cellar", "Casks of sour wine."),
