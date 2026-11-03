@@ -261,6 +261,10 @@ def old_stair() -> MapSpec:
     The second level lies above the first. The only prose for the stairs is the upper hall's, which says they go
     down, and the conventions follow it over the levels' numbers. That connection names no means, and a trapdoor
     beside the hall records no direction, so only the hall's stairs, which record the way down, decide its means.
+
+    A second dungeon, the smugglers' hole, is drawn beside the first level on its page, and the two dungeons'
+    floors meet: at a door from the stair hall into the smugglers' store, and across an open edge between the
+    landing and the smugglers' lookout. A cut separates them, and its passages name the other dungeon.
     """
     upper = Sketch(20, 14)
     upper.room("h", 8, 0, 3, 2).room("h", 5, 2, 9, 5).mark("1", (9, 4))
@@ -270,7 +274,10 @@ def old_stair() -> MapSpec:
     upper.room("r2", 6, 10, 7, 3).mark("2", (9, 11))
     upper.symbol("stairs", (6, 11), (6, 12), run="ns")
     upper.symbol("stairs", (12, 11), (12, 12), run="ns")
-    upper.outline((0, 0, 20, 14))
+    upper.room("store", 14, 3, 4, 3).edge((13, 4), "east", "d").mark("5", (16, 4))
+    upper.run("way", (18, 4), (19, 4)).edge((17, 4), "east", "d").edge((19, 4), "east", "o")
+    upper.run("tunnel", (16, 6), (16, 9)).edge((16, 5), "south", "d").edge((16, 9), "south", "d")
+    upper.room("lookout", 13, 10, 5, 3).edge((12, 10), "east", "o").mark("6", (15, 11))
     lower = Sketch(16, 10)
     lower.room("r3", 2, 2, 9, 5).water(5, 5, 3, 2).mark("3", (6, 3))
     lower.symbol("stairs", (2, 3), (2, 4), direction="down", run="ns")
@@ -291,8 +298,17 @@ def old_stair() -> MapSpec:
             legend=("stairs", "trapdoor"),
         ),
     )
+    whole = ((0, 0, 20, 14),)
     panels = (
-        PanelSpec("upper", (("upper", (0, 0)),), upper_plan),
+        PanelSpec(
+            "upper",
+            (("upper", (0, 0)),),
+            upper_plan,
+            outlines=(
+                OutlineSpec(1, whole, ((9, 1),), dungeon="the-old-stair"),
+                OutlineSpec(1, whole, ((16, 4),), dungeon="the-smugglers-hole"),
+            ),
+        ),
         PanelSpec("lower", (("lower", (0, 0)),), lower_plan),
     )
     first = (
@@ -316,6 +332,11 @@ def old_stair() -> MapSpec:
     dungeon = DungeonSpec(
         "the-old-stair", "The old stair", (LevelSpec(1, first, ("upper",)), LevelSpec(2, second, ("lower",)))
     )
+    smugglers = (
+        AreaSpec("5", "Smugglers' store", "Crates of contraband. A door in the west wall opens on the old stair."),
+        AreaSpec("6", "Lookout", "The west side of the lookout lies open to the old stair's landing."),
+    )
+    hole = DungeonSpec("the-smugglers-hole", "The smugglers' hole", (LevelSpec(1, smugglers, ("upper",)),))
     return MapSpec(
         name="old-stair",
         title="The old stair",
@@ -325,7 +346,7 @@ def old_stair() -> MapSpec:
             "two_staircases_one_link",
             "wide_open_stairway_only_way_in",
         ),
-        dungeons=(dungeon,),
+        dungeons=(dungeon, hole),
         regions=regions,
         panels=panels,
         damage=(
