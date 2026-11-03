@@ -366,6 +366,16 @@ def test_mark_on_a_door_names_the_edge_cell():
         Mark(text="7", cell="3,1", edge="2,1:east")
 
 
+@pytest.mark.xfail(strict=True, reason="chunk: leader-floor")
+def test_a_leader_line_ends_on_floor_or_water():
+    document = demo_truth().model_dump(mode="json")
+    document["panels"][0]["marks"][0]["leader_to"] = "2,2"
+    assert GeometryTruth.model_validate(document).panels[0].marks[0].leader_to == "2,2"
+    document["panels"][0]["marks"][0]["leader_to"] = "0,0"
+    with pytest.raises(ValidationError, match="leader"):
+        GeometryTruth.model_validate(document)
+
+
 def test_canonical_form_orders_lists_north_then_west(tmp_path: Path):
     truth = demo_truth()
     ordered = canonical_form(truth)

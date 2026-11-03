@@ -700,7 +700,7 @@ class Mark(BaseModel):
     """The door edge the mark is printed on, when it sits on one. Its cell is `cell`."""
 
     leader_to: str | None = None
-    """The cell a leader line from the mark ends on."""
+    """The floor or water cell a leader line from the mark ends on."""
 
     @model_validator(mode="after")
     def _edge_names_the_cell(self) -> Mark:
