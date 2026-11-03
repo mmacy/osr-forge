@@ -892,9 +892,14 @@ class Passage(BaseModel):
     """The side the party crosses. It's a wall in the level's edges."""
 
     to_level: int = Field(ge=1)
-    """The destination level of the same dungeon, or this level when the passage links two panels."""
+    """The destination level: of the same dungeon, or of the dungeon `to_dungeon` names. It's this level when the
+    passage links two panels."""
 
     to_cell: str
+
+    to_dungeon: str | None = None
+    """The destination's dungeon across a cut between dungeons, or `None` within the passage's own dungeon. It names
+    another dungeon of the document, whose level `to_level` is traced and whose `to_cell` is floor."""
 
 
 class LevelPanel(BaseModel):
