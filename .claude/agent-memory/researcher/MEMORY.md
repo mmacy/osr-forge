@@ -3,3 +3,4 @@
 - [Worktree merge without stash](worktree-merge-no-stash.md) — to take origin/main under uncommitted work: commit a temp, reset --hard to base, merge, checkout the temp's files
 - [Clef token and plan](clef-token-expiry.md) — never run wrangler; the token lasts an hour, the free plan about 1,250 requests a day; failed requests are charged at their estimate
 - [Structured answer checks](structured-answer-checks.md) — normalize answers of the right content in another form before refusing; retries on spelling cost an hour and $1.50 on page 38
+- [Log stamps from date](log-stamps-from-date.md) — stamp progress entries from `date` in the same command; event times from their artefacts
