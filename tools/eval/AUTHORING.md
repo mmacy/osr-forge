@@ -129,6 +129,8 @@ A member's geometry truth is `geometry.json`, in the format of `osrforge.tracing
 
 The settled reading comes from two independent readings (Claude reading windows of the map through a script that isn't the stage's code, and the classifier reading the ink), Clef's answer for each edge as a third, and a settler that decides each disagreement from zoomed crops in fresh requests. An adversarial pass then rechecks every settled call, and the edges every reader agreed on in caves, at diagonals, and around keys, in fresh requests that try to prove the calls wrong. The owner samples about 50 settled calls per map style, drawn from caves, diagonals, and keys, plus every key placement the settler decided, in a local app that shows each call's crops beside the readings. One error in the sample sends every call of that kind on that map back for a full recheck.
 
+A geometry key's provenance sits beside it in `geometry-provenance.yaml`, not in the manifest: when it was authored, the instrument, what verified it, which models gave each reading, the spend, and the conventions cases the key depends on. The manifest's `truth_provenance` keeps the module's other truth.
+
 For geometry, the adversarial pass and the owner's sample replace the fresh-agent recheck of every recorded fact and the sample of 10 areas or 10% in the two sections below, because a large level has hundreds of settled disagreements and each one is a judgment call. The synthetic maps under `tests/assets/synthetic-maps/` need none of this: their answers were written first and their pictures drawn from them.
 
 ## The adversarial verification pass
