@@ -5,7 +5,7 @@
   "areas": [
     {
       "key": "1",
-      "description": "The millstones stand idle. A ladder climbs to the loft.",
+      "description": "A hoist door opens on empty air. A ladder leads down to the mill room.",
       "encounters": [],
       "trap": null,
       "treasure": [],
@@ -21,15 +21,7 @@
         },
         {
           "to_key": "3",
-          "direction": "east",
-          "via": "door",
-          "door_stuck": false,
-          "door_locked": false,
-          "to_level": null
-        },
-        {
-          "to_key": "4",
-          "direction": "up",
+          "direction": "down",
           "via": "stairs",
           "door_stuck": false,
           "door_locked": false,
@@ -44,7 +36,7 @@
     },
     {
       "key": "2",
-      "description": "The slide from the hopper empties into the bins.",
+      "description": "A grain slide drops to the bins below.",
       "encounters": [],
       "trap": null,
       "treasure": [],
@@ -54,6 +46,14 @@
           "to_key": "1",
           "direction": "west",
           "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "4",
+          "direction": "down",
+          "via": "chute",
           "door_stuck": false,
           "door_locked": false,
           "to_level": null
@@ -67,35 +67,20 @@
     },
     {
       "key": "3",
-      "description": "A ledger lies open on the desk.",
+      "description": "The millstones stand idle. A ladder climbs to the loft.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [],
       "connections": [
         {
-          "to_key": "1",
-          "direction": "west",
+          "to_key": "4",
+          "direction": "east",
           "via": "door",
           "door_stuck": false,
           "door_locked": false,
           "to_level": null
-        }
-      ],
-      "source_pages": [
-        1,
-        2
-      ],
-      "confidence": 1.0
-    },
-    {
-      "key": "4",
-      "description": "A hoist door opens on empty air. A ladder leads down to the mill room.",
-      "encounters": [],
-      "trap": null,
-      "treasure": [],
-      "features": [],
-      "connections": [
+        },
         {
           "to_key": "5",
           "direction": "east",
@@ -106,7 +91,7 @@
         },
         {
           "to_key": "1",
-          "direction": "down",
+          "direction": "up",
           "via": "stairs",
           "door_stuck": false,
           "door_locked": false,
@@ -120,25 +105,40 @@
       "confidence": 1.0
     },
     {
-      "key": "5",
-      "description": "A grain slide drops to the bins below.",
+      "key": "4",
+      "description": "The slide from the hopper empties into the bins.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [],
       "connections": [
         {
-          "to_key": "4",
+          "to_key": "3",
           "direction": "west",
           "via": "door",
           "door_stuck": false,
           "door_locked": false,
           "to_level": null
-        },
+        }
+      ],
+      "source_pages": [
+        1,
+        2
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "5",
+      "description": "A ledger lies open on the desk.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
         {
-          "to_key": "2",
-          "direction": "down",
-          "via": "chute",
+          "to_key": "3",
+          "direction": "west",
+          "via": "door",
           "door_stuck": false,
           "door_locked": false,
           "to_level": null

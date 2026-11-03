@@ -47,14 +47,14 @@ class AreaSpec:
 class LevelSpec:
     """One surveyed level: its areas in survey order, and its panels in page order.
 
-    A level whose map can't be traced has no panels: `fallback` gives the
-    reason it falls back to synthesis, and `pages` its map pages.
+    A level whose map can't be traced has no panels: it falls back to
+    synthesis, `pages` gives its map pages, and the reason is that of the
+    first region on them that isn't registered.
     """
 
     number: int
     areas: tuple[AreaSpec, ...]
     panels: tuple[str, ...]
-    fallback: str | None = None
     pages: tuple[int, ...] = ()
 
 

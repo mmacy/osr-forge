@@ -10,7 +10,7 @@ the frame.
 
 from collections.abc import Callable
 
-from osrforge.contracts.stages import AreaConnection
+from osrforge.contracts.stages import AreaConnection, ConnectionVia, Direction
 from osrforge.tracing.synthetic import DamageSite, Feature
 from osrforge.tracing.synthetic._plan import Plan, Sketch
 from osrforge.tracing.synthetic._spec import (
@@ -480,9 +480,9 @@ def fold_apart() -> MapSpec:
     )
 
 
-def _ways(*links: tuple[str, str, str]) -> tuple[AreaConnection, ...]:
+def _ways(*links: tuple[str, Direction, ConnectionVia]) -> tuple[AreaConnection, ...]:
     """Prose connections, each as the target key, the compass direction, and the means."""
-    return tuple(AreaConnection(to_key=key, direction=direction, via=via) for key, direction, via in links)  # type: ignore[arg-type]
+    return tuple(AreaConnection(to_key=key, direction=direction, via=via) for key, direction, via in links)
 
 
 def undercroft() -> MapSpec:
@@ -621,15 +621,21 @@ _GATE_FOLD = 10
 
 
 def _gate_plan() -> Plan:
-    sketch = Sketch(21, 18)
-    sketch.room("hall", 4, 1, 13, 3).mark("1", (5, 2))
-    sketch.room("north", 7, 4, 7, 3).edge((12, 3), "south", "d").mark("2", (12, 5))
-    sketch.run("in", (0, 5), (6, 5)).edge((0, 5), "west", "o").edge((6, 5), "east", "d")
-    sketch.room("south", 7, 7, 7, 3).edge((9, 6), "south", "d").mark("3", (8, 8))
-    sketch.room("west", 4, 11, 6, 3).run("west", (10, 12), (11, 12)).mark("4", (6, 12))
-    sketch.run("dead", (5, 14), (5, 16), (10, 16)).edge((5, 13), "south", "d")
-    sketch.room("east", 12, 10, 6, 5).edge((11, 12), "east", "d").edge((12, 9), "south", "d").mark("5", (15, 12))
-    sketch.outline((0, 0, 21, 18))
+    """The gatehouse whole: the fold cuts column 10, which neither half registers.
+
+    Along the fold, the east half's guardroom (rows 2 to 6) meets two west rooms of different heights: the porter's
+    room (rows 1 to 3) and the hall (rows 4 to 8). The guardroom overlaps the hall by more rows, so the halves left
+    apart link it to the hall, though the porter's room lies farther north, and the porter's room is left without
+    a partner.
+    """
+    sketch = Sketch(21, 16)
+    sketch.room("porter", 4, 1, 6, 3).mark("2", (5, 2))
+    sketch.room("hall", 4, 4, 6, 5).edge((6, 3), "south", "d").mark("1", (8, 5))
+    sketch.run("in", (0, 6), (3, 6)).edge((0, 6), "west", "o").edge((3, 6), "east", "d")
+    sketch.room("guard", 10, 2, 6, 5).edge((9, 5), "east", "d").mark("3", (12, 5))
+    sketch.room("barracks", 6, 9, 9, 3).edge((6, 8), "south", "d").mark("4", (7, 10))
+    sketch.room("armoury", 6, 12, 9, 3).edge((9, 11), "south", "d").mark("5", (12, 13))
+    sketch.outline((0, 0, 21, 16))
     return sketch.build()
 
 
@@ -663,11 +669,11 @@ def _gate_regions(plan: Plan) -> tuple[RegionSpec, RegionSpec]:
 
 
 _GATE_AREAS = (
-    AreaSpec("1", "Gate hall", "The hall runs the width of the gatehouse."),
-    AreaSpec("2", "Porter's room", "A door in the south wall leads to the guardroom."),
+    AreaSpec("1", "Gate hall", "A door in the east wall leads to the guardroom."),
+    AreaSpec("2", "Porter's room", "A door in the south wall leads to the gate hall."),
     AreaSpec("3", "Guardroom", "Racks of pikes line the walls."),
-    AreaSpec("4", "Stable", "Stalls open on a short passage to the east."),
-    AreaSpec("5", "Tack room", "Saddles hang from pegs."),
+    AreaSpec("4", "Barracks", "Bunks stand in two rows."),
+    AreaSpec("5", "Armoury", "Empty weapon racks line the walls."),
 )
 
 _GATE_FEATURES: tuple[Feature, ...] = ("halves_gap_at_fold", "halves_legend_compass_one_half", "corridor_off_frame")
@@ -758,7 +764,7 @@ def watchtower() -> MapSpec:
         AreaSpec(
             "1",
             "Guardroom",
-            "A ladder in the north-west corner leads down to the well room in the cellar.",
+            "A ladder against the north wall leads down to the well room in the cellar.",
             links=_ways(("5", "down", "stairs")),
         ),
         AreaSpec(
@@ -790,14 +796,14 @@ def mill() -> MapSpec:
     The loft is on the first page and the ground floor on the second.
     """
     loft = Sketch(14, 9)
-    loft.room("loft", 0, 2, 7, 5).edge((0, 4), "west", "o").mark("4", (3, 4)).symbol("ladder", (5, 5), run="ns")
-    loft.room("hopper", 7, 2, 4, 3).edge((6, 3), "east", "d").mark("5", (8, 3)).symbol("slide", (9, 3), (10, 3))
+    loft.room("loft", 0, 2, 7, 5).edge((0, 4), "west", "o").mark("1", (3, 4)).symbol("ladder", (5, 5), run="ns")
+    loft.room("hopper", 7, 2, 4, 3).edge((6, 3), "east", "d").mark("2", (8, 3)).symbol("slide", (9, 3), (10, 3))
     loft.outline((0, 0, 14, 9))
     ground = Sketch(16, 11)
     ground.run("in", (0, 4), (1, 4)).edge((0, 4), "west", "o").edge((1, 4), "east", "o")
-    ground.room("mill", 2, 2, 7, 6).mark("1", (5, 4)).symbol("ladder", (7, 6), run="ns")
-    ground.room("bins", 9, 2, 5, 4).edge((8, 3), "east", "d").mark("2", (11, 3))
-    ground.room("office", 9, 6, 5, 3).edge((8, 7), "east", "d").mark("3", (11, 7))
+    ground.room("mill", 2, 2, 7, 6).mark("3", (5, 4)).symbol("ladder", (7, 6), run="ns")
+    ground.room("bins", 9, 2, 5, 4).edge((8, 3), "east", "d").mark("4", (11, 3))
+    ground.room("office", 9, 6, 5, 3).edge((8, 7), "east", "d").mark("5", (11, 7))
     ground.outline((0, 0, 16, 11))
     loft_plan, ground_plan = loft.build(), ground.build()
     legend: tuple[SymbolKind, ...] = ("ladder", "slide")
@@ -812,24 +818,24 @@ def mill() -> MapSpec:
     areas = (
         AreaSpec(
             "1",
-            "Mill room",
-            "The millstones stand idle. A ladder climbs to the loft.",
-            links=_ways(("4", "up", "stairs")),
-        ),
-        AreaSpec("2", "Grain bins", "The slide from the hopper empties into the bins."),
-        AreaSpec("3", "Miller's office", "A ledger lies open on the desk."),
-        AreaSpec(
-            "4",
             "Loft",
             "A hoist door opens on empty air. A ladder leads down to the mill room.",
-            links=_ways(("1", "down", "stairs")),
+            links=_ways(("3", "down", "stairs")),
         ),
         AreaSpec(
-            "5",
+            "2",
             "Hopper",
             "A grain slide drops to the bins below.",
-            links=_ways(("2", "down", "chute")),
+            links=_ways(("4", "down", "chute")),
         ),
+        AreaSpec(
+            "3",
+            "Mill room",
+            "The millstones stand idle. A ladder climbs to the loft.",
+            links=_ways(("1", "up", "stairs")),
+        ),
+        AreaSpec("4", "Grain bins", "The slide from the hopper empties into the bins."),
+        AreaSpec("5", "Miller's office", "A ledger lies open on the desk."),
     )
     dungeon = DungeonSpec("the-mill", "The mill", (LevelSpec(1, areas, ("loft", "ground")),))
     return MapSpec(
@@ -839,6 +845,7 @@ def mill() -> MapSpec:
         dungeon=dungeon,
         regions=regions,
         panels=panels,
+        entrance_key="3",
     )
 
 

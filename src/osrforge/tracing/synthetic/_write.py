@@ -36,7 +36,7 @@ from osrforge.tracing.synthetic._resolve import (
     resolve_dungeon,
 )
 from osrforge.tracing.synthetic._sheets import draw_sheet
-from osrforge.tracing.synthetic._spec import TEN_FEET, MapSpec, RegionSpec
+from osrforge.tracing.synthetic._spec import TEN_FEET, LevelSpec, MapSpec, RegionSpec
 from osrforge.tracing.truth import (
     Dungeon,
     GeometryTruth,
@@ -102,6 +102,23 @@ def _check_panel_order(spec: MapSpec, registrations: dict[str, Registration]) ->
         places = [place(panel) for panel in level.panels]
         if places != sorted(places):
             raise DesignError(f"level {level.number} doesn't list its panels in page order")
+
+
+def _fallback_reason(spec: MapSpec, level: LevelSpec) -> str:
+    """Why a level with no panel falls back, as Panels and the level's grid says.
+
+    It is the reason of the first region on the level's map pages, the pages in survey order and each page's
+    regions in page order, as the region records it.
+    """
+    if any(region.page in level.pages for region in spec.regions):
+        raise DesignError(f"level {level.number} has no panel but a registered region on its map pages")
+    for page in level.pages:
+        found = [sheet for sheet in spec.sheets if sheet.page == page and sheet.verdict is not None]
+        if len(found) > 1:
+            raise DesignError(f"page {page} has several regions whose page order the generator doesn't record")
+        if found and found[0].reason is not None:
+            return found[0].reason
+    raise DesignError(f"level {level.number} has no region on its map pages to give its reason")
 
 
 def build(spec: MapSpec, out_dir: Path) -> None:
@@ -196,8 +213,8 @@ def build(spec: MapSpec, out_dir: Path) -> None:
                 entrance=entrance,
                 levels=tuple(
                     level_model(traced[level.number], frames)
-                    if level.fallback is None
-                    else Level(number=level.number, verdict="fallback", reason=level.fallback)
+                    if level.panels
+                    else Level(number=level.number, verdict="fallback", reason=_fallback_reason(spec, level))
                     for level in spec.dungeon.levels
                 ),
             ),

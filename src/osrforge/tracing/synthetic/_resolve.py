@@ -227,6 +227,15 @@ class Opening:
         first, last = edge_middle(self.edges[0]), edge_middle(self.edges[-1])
         return ((first[0] + last[0]) / 2.0, (first[1] + last[1]) / 2.0)
 
+    @property
+    def start(self) -> Cell:
+        """The cell walking distance from the opening is measured from.
+
+        It is the floor cell just inside the middle edge, or inside the north
+        or west of the two middle edges when the opening's width is even.
+        """
+        return self.inside[(len(self.edges) - 1) // 2]
+
 
 @dataclass(frozen=True)
 class Placed:
@@ -798,7 +807,7 @@ class LevelRules:
             raise DesignError(f"entrance {area.key!r} has no opening or no target")
         distance = self.walking(target_cells)
         ranked = sorted(
-            (min(distance.get(cell, 10**9) for cell in opening.inside), order(opening.middle), index)
+            (distance.get(opening.start, 10**9), order(opening.middle), index)
             for index, opening in enumerate(self.openings)
         )
         if len(ranked) > 1 and ranked[0][0] == ranked[1][0]:
@@ -904,14 +913,27 @@ class LevelRules:
                 continue
             if first is None:
                 raise DesignError("a doorless structure needs a first key to face")
-            distance = self.walking([item.cell for item in placed if item.key == first])
+            first_cells = [item.cell for item in placed if item.key == first]
+            distance = self.walking(first_cells)
             candidates = [
                 (distance.get(neighbour(cell, side), 10**9), order(edge_middle(eid(cell, side))), eid(cell, side))
                 for cell, side in boundary
                 if board.letter(cell, side) == "w" and neighbour(cell, side) in self.walkable
             ]
             if not candidates:
-                raise DesignError("a doorless structure with no floor beyond its walls isn't resolved")
+                # The last resort: the wall edge whose outer cell is nearest the first key's cell on the level's
+                # grid, which the board is, so a structure on a panel without the first key still gets a door.
+                candidates = [
+                    (
+                        min(chebyshev(neighbour(cell, side), other) for other in first_cells),
+                        order(edge_middle(eid(cell, side))),
+                        eid(cell, side),
+                    )
+                    for cell, side in boundary
+                    if board.letter(cell, side) == "w"
+                ]
+            if not candidates:
+                raise DesignError("a doorless structure with no wall edge isn't resolved")
             doors[min(candidates)[2]] = "d"
         return doors
 
@@ -1537,7 +1559,7 @@ class Cut:
             self.quiet |= {eid(cell, other) for other in SIDES if other != door_side}
             return
         self.dropped.add(door)
-        self._pair(first, second, keep_or_drop=False)
+        self._pair(first, second, keep_or_drop=True)
 
     def _free(self, cell: Cell, side: str, joining: int) -> bool:
         """Whether no pair across another passable edge or door of the cut would use a vestibule side's far cells."""
@@ -1600,6 +1622,9 @@ def resolve_shared(spec: MapSpec, members: tuple[LevelSpec, ...]) -> list[Resolv
     sources = [(item.cell, 0, level_of_key[item.key]) for item in shared.placed]
     sources += [(cell, 1, level) for cell, level in board.seeds]
     owner = partition(board, rules.mouths, sources)
+    for item in shared.placed:
+        if owner.get(item.cell) != level_of_key[item.key]:
+            raise DesignError(f"key {item.label!r} is printed on another level's floor, which isn't resolved here")
     for key, cells in shared.areas.items():
         for cell in cells:
             owner[cell] = level_of_key[key]
@@ -1659,12 +1684,22 @@ def _target(levels: list[Resolved], own: Resolved, link: AreaConnection) -> tupl
     raise DesignError(f"link target {link.to_key!r} is no surveyed key")
 
 
-def _ends(level: Resolved, key: str, directions: tuple[str | None, ...]) -> list[tuple[Cell, Symbol]]:
+_MEANS: dict[str, tuple[str, ...]] = {
+    "stairs": ("stairs", "ladder"),
+    "trapdoor": ("trapdoor", "hinged_floor"),
+    "chute": ("chute", "slide"),
+}
+"""The symbols a link stands on, by the means its prose connection names."""
+
+
+def _ends(
+    level: Resolved, key: str, kinds: tuple[str, ...], directions: tuple[str | None, ...]
+) -> list[tuple[Cell, Symbol]]:
     cells = set(level.areas[key])
     first = min(cells, key=cell_order)
     ends: list[tuple[Cell, Symbol]] = []
     for symbol, symbol_cells, _edge in level.board.symbols:
-        if symbol.kind not in LINK_KINDS:
+        if symbol.kind not in kinds:
             continue
         touches = any(cell in cells or any(neighbour(cell, side) in cells for side in SIDES) for cell in symbol_cells)
         if not touches or symbol.direction not in directions:
@@ -1686,8 +1721,10 @@ def _panel_at(level: Resolved, cell: Cell) -> int:
 def _made(levels: list[Resolved], level: Resolved, key: str, target: Resolved, target_key: str) -> bool:
     """Whether the trace already makes a prose connection through floor, doors, or passages.
 
-    The walk starts on the area's cells, crosses the level's passable edges and doors and its passages, and
-    goes through corridor only, never another area, until it reaches the target area.
+    The walk starts on the area's cells and crosses the level's passable edges and doors through corridor only,
+    never another area. Within one level it also crosses the level's own passages, those of halves left apart.
+    To another level it crosses one passage to the target level, the pair of a cut, and walks on there the same
+    way to the target area.
     """
     by_number = {item.spec.number: item for item in levels}
     goal = {(target.spec.number, cell) for cell in target.areas.get(target_key, [])}
@@ -1702,7 +1739,9 @@ def _made(levels: list[Resolved], level: Resolved, key: str, target: Resolved, t
             if here.level_letter(cell, side) in PASSABLE + DOORS:
                 steps.append((number, neighbour(cell, side)))
         for passage in here.passages:
-            if parse_cell(passage.cell) == cell:
+            same = passage.to_level == number == target.spec.number
+            crossing = number == level.spec.number and passage.to_level == target.spec.number
+            if parse_cell(passage.cell) == cell and (same or crossing):
                 steps.append((passage.to_level, parse_cell(passage.to_cell)))
         for step in steps:
             if step in goal:
@@ -1725,10 +1764,14 @@ def link_levels(levels: list[Resolved]) -> None:
     """Realize each prose link as transitions, as Links says.
 
     A connection and its reverse between the same two areas by the same means
-    are one link, made from the connection that comes first in survey order.
-    A connection the trace already makes through floor, doors, or passages
-    isn't a link. A link to an area on another panel of the same level has no
-    direction.
+    are one link. A connection the trace already makes through floor, doors,
+    or passages isn't a link, and a link to another level by any means but
+    stairs, a ladder, a trapdoor, or a chute makes no transition. A link stands
+    on the symbols of its own means. Stairs and ladders make a transition at
+    each end, starting from the connection that comes first in survey order. A
+    trapdoor or chute makes one, at its end on the level above, or within one
+    level at the end whose area comes first in survey order. A link to an area
+    on another panel of the same level has no direction.
 
     Args:
         levels: The dungeon's resolved levels, in survey order.
@@ -1744,57 +1787,70 @@ def link_levels(levels: list[Resolved]) -> None:
                 if (ends, link.via) in made:
                     continue
                 made.add((ends, link.via))
-                same = target is level
-                if same:
-                    here = _panel_at(level, min(level.areas[area.key], key=cell_order))
-                    there = _panel_at(level, min(level.areas[key], key=cell_order))
-                    if here == there:
-                        raise DesignError(f"{area.key!r} and {key!r} share a panel but the trace doesn't join them")
-                    starts = _ends(level, area.key, ("up", "down", None))
-                    finishes = _ends(target, key, ("up", "down", None))
-                    way = back = None
-                else:
-                    way = "down" if target.spec.number > level.spec.number else "up"
-                    back = "up" if way == "down" else "down"
-                    starts = _ends(level, area.key, (way, None))
-                    finishes = _ends(target, key, (back, None))
-                if not starts or len(finishes) > len(starts):
-                    raise DesignError(f"link from {area.key!r} to {key!r} needs a symbol at each end for every end")
-                target_first = min(target.areas[key], key=cell_order)
-                for index, (start, symbol) in enumerate(starts):
-                    finish = finishes[index][0] if index < len(finishes) else target_first
-                    if symbol.kind in ("stairs", "ladder"):
-                        if way is None or back is None:
-                            if index >= len(finishes):
-                                raise DesignError(f"stairs from {area.key!r} to {key!r} need a symbol at each end")
-                            first = _panel_at(level, start) < _panel_at(target, finish)
-                            kind, kind_back = _stairs(symbol, first), _stairs(finishes[index][1], not first)
-                        else:
-                            kind, kind_back = _STAIRS[way], _STAIRS[back]
-                        level.transitions.append(
-                            Transition(
-                                cell=cell_key(start), kind=kind, to_level=target.spec.number, to_cell=cell_key(finish)
-                            )
-                        )
-                        if index < len(finishes):
-                            target.transitions.append(
-                                Transition(
-                                    cell=cell_key(finish),
-                                    kind=kind_back,
-                                    to_level=level.spec.number,
-                                    to_cell=cell_key(start),
-                                )
-                            )
-                    else:
-                        kind_name = "trapdoor" if symbol.kind in ("trapdoor", "hinged_floor") else "chute"
-                        level.transitions.append(
-                            Transition(
-                                cell=cell_key(start),
-                                kind=kind_name,
-                                to_level=target.spec.number,
-                                to_cell=cell_key(finish),
-                            )
-                        )
+                kinds = _MEANS.get(link.via)
+                if kinds is None and target is not level:
+                    continue
+                if kinds is None:
+                    raise DesignError(f"{area.key!r} names {key!r} on its own level by {link.via}, not made")
+                _realize(level, area.key, target, key, kinds, link.via)
+
+
+def _realize(level: Resolved, key: str, target: Resolved, target_key: str, kinds: tuple[str, ...], via: str) -> None:
+    """Make the transitions of one link, from `key` on `level` to `target_key` on `target`."""
+    one_way = via in ("trapdoor", "chute")
+    if one_way and (
+        target.spec.number < level.spec.number
+        or (
+            target is level
+            and [area.key for area in level.spec.areas].index(target_key)
+            < [area.key for area in level.spec.areas].index(key)
+        )
+    ):
+        level, key, target, target_key = target, target_key, level, key
+    if target is level:
+        here = _panel_at(level, min(level.areas[key], key=cell_order))
+        there = _panel_at(level, min(level.areas[target_key], key=cell_order))
+        if here == there:
+            raise DesignError(f"{key!r} and {target_key!r} share a panel but the trace doesn't join them")
+        way = back = None
+        starts = _ends(level, key, kinds, ("up", "down", None))
+        finishes = _ends(target, target_key, kinds, ("up", "down", None))
+    else:
+        way = "down" if target.spec.number > level.spec.number else "up"
+        back = "up" if way == "down" else "down"
+        starts = _ends(level, key, kinds, (way, None))
+        finishes = _ends(target, target_key, kinds, (back, None))
+    if not starts or len(finishes) > len(starts):
+        raise DesignError(f"link from {key!r} to {target_key!r} needs a symbol at each end for every end")
+    target_first = min(target.areas[target_key], key=cell_order)
+    for index, (start, symbol) in enumerate(starts):
+        finish = finishes[index][0] if index < len(finishes) else target_first
+        if not one_way:
+            if way is None or back is None:
+                if index >= len(finishes):
+                    raise DesignError(f"stairs from {key!r} to {target_key!r} need a symbol at each end")
+                first = _panel_at(level, start) < _panel_at(target, finish)
+                kind, kind_back = _stairs(symbol, first), _stairs(finishes[index][1], not first)
+            else:
+                kind, kind_back = _STAIRS[way], _STAIRS[back]
+            level.transitions.append(
+                Transition(cell=cell_key(start), kind=kind, to_level=target.spec.number, to_cell=cell_key(finish))
+            )
+            if index < len(finishes):
+                target.transitions.append(
+                    Transition(
+                        cell=cell_key(finish), kind=kind_back, to_level=level.spec.number, to_cell=cell_key(start)
+                    )
+                )
+        else:
+            level.transitions.append(
+                Transition(
+                    cell=cell_key(start),
+                    kind="trapdoor" if via == "trapdoor" else "chute",
+                    to_level=target.spec.number,
+                    to_cell=cell_key(finish),
+                )
+            )
 
 
 def fold_passages(level: Resolved) -> None:
@@ -1832,17 +1888,15 @@ def entrance(levels: list[Resolved], entrance_key: str | None) -> Entrance:
             ((level, area.key) for level, area in survey if area.name.lower() in ("entrance", "entranceway")), None
         )
     if chosen is None:
-        reached: dict[tuple[int, str], list[Opening]] = {}
+        reached: dict[tuple[int, str], list[tuple[int, tuple[float, float], Opening]]] = {}
         for level in levels:
             for candidate in level.openings:
-                for key in _walk_from(level, candidate):
-                    reached.setdefault((level.spec.number, key), []).append(candidate)
+                for key, steps in _walk_from(level, candidate).items():
+                    reached.setdefault((level.spec.number, key), []).append((steps, order(candidate.middle), candidate))
         for level, area in survey:
             if (level.spec.number, area.key) in reached:
                 ways = reached[(level.spec.number, area.key)]
-                if len(ways) > 1:
-                    raise DesignError(f"area {area.key!r} is reached from several outer openings")
-                chosen, opening = (level, area.key), ways[0]
+                chosen, opening = (level, area.key), min(ways, key=lambda way: (way[0], way[1]))[2]
                 break
     if chosen is None:
         outside_edges = [
@@ -1866,7 +1920,7 @@ def entrance(levels: list[Resolved], entrance_key: str | None) -> Entrance:
             return Entrance(level=level.spec.number, cell=cell_key(cells[0]))
         distance = _walk_level(level, [cells[0]])
         ranked = sorted(
-            (min(distance.get(cell, 10**9) for cell in candidate.inside), order(candidate.middle), index)
+            (distance.get(candidate.start, 10**9), order(candidate.middle), index)
             for index, candidate in enumerate(level.openings)
         )
         opening = level.openings[ranked[0][2]]
@@ -1878,40 +1932,42 @@ def _walk_level(level: Resolved, starts: list[Cell]) -> dict[Cell, int]:
     return _floor_bfs(level.board, starts, PASSABLE + DOORS, walkable)
 
 
-def _walk_from(level: Resolved, opening: Opening) -> list[str]:
-    """The areas a walk from an opening reaches across unkeyed floor alone, with no door or other area on the way."""
+def _walk_from(level: Resolved, opening: Opening) -> dict[str, int]:
+    """The areas a walk from an opening reaches across unkeyed floor alone, with no door or other area on the way.
+
+    The walk starts on the cells just inside the opening and crosses only passable edges between the level's own
+    floor cells. It reaches an area at the first of the area's cells it enters.
+
+    Returns:
+        Each area reached, with the fewest steps the walk takes to reach it.
+    """
     walkable = {cell for cell, letter in level.level_cells.items() if letter == "."}
-    seen: set[Cell] = set()
-    queue: deque[Cell] = deque(cell for cell in opening.inside if cell in walkable)
-    found: list[str] = []
+    distance = {cell: 0 for cell in opening.inside if cell in walkable}
+    queue: deque[Cell] = deque(distance)
+    found: dict[str, int] = {}
     while queue:
         cell = queue.popleft()
-        if cell in seen:
-            continue
-        seen.add(cell)
         if cell in level.area_of:
-            if level.area_of[cell] not in found:
-                found.append(level.area_of[cell])
+            found.setdefault(level.area_of[cell], distance[cell])
             continue
         for step in level.board.steps(cell, PASSABLE):
-            if step in walkable and step not in seen:
+            if step in walkable and step not in distance:
+                distance[step] = distance[cell] + 1
                 queue.append(step)
     return found
 
 
 def _entrance_cell(opening: Opening, area: set[Cell]) -> Cell:
+    """The entrance cell, as rule 3 of Entrances says.
+
+    It is the area's cell just inside the opening nearest the opening's middle, of two equally near the north or
+    west one, or the floor cell just inside the middle when the area touches no cell of the opening.
+    """
     count = len(opening.edges)
-    if count % 2 == 1:
-        middle = opening.inside[count // 2]
-        if middle in area:
-            return middle
-        if any(cell in area for cell in opening.inside):
-            raise DesignError("the entrance area touches its opening but not the opening's middle")
-        return middle
-    west_or_north = opening.inside[count // 2 - 1]
-    if west_or_north in area or not any(cell in area for cell in opening.inside):
-        return west_or_north
-    raise DesignError("the entrance area touches its opening but not the north or west cell at its middle")
+    touching = [index for index, cell in enumerate(opening.inside) if cell in area]
+    if not touching:
+        return opening.start
+    return opening.inside[min(touching, key=lambda index: (abs(2 * index - (count - 1)), index))]
 
 
 def level_model(level: Resolved, frames: dict[int, tuple[int, int, int, int]]) -> Level:
@@ -2020,7 +2076,7 @@ def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance | None]:
         falls back.
     """
     levels: list[Resolved] = []
-    for group in _groups(level for level in spec.dungeon.levels if level.fallback is None):
+    for group in _groups(level for level in spec.dungeon.levels if level.panels):
         if len(group) == 1:
             levels.append(LevelRules(spec, group[0]).resolve())
         else:

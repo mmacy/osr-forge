@@ -23,36 +23,6 @@
           "areas": [
             {
               "key": "1",
-              "name": "Mill room",
-              "source_label": null,
-              "kind": "room",
-              "source_pages": [
-                1,
-                2
-              ]
-            },
-            {
-              "key": "2",
-              "name": "Grain bins",
-              "source_label": null,
-              "kind": "room",
-              "source_pages": [
-                1,
-                2
-              ]
-            },
-            {
-              "key": "3",
-              "name": "Miller's office",
-              "source_label": null,
-              "kind": "room",
-              "source_pages": [
-                1,
-                2
-              ]
-            },
-            {
-              "key": "4",
               "name": "Loft",
               "source_label": null,
               "kind": "room",
@@ -62,8 +32,38 @@
               ]
             },
             {
-              "key": "5",
+              "key": "2",
               "name": "Hopper",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "3",
+              "name": "Mill room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "4",
+              "name": "Grain bins",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Miller's office",
               "source_label": null,
               "kind": "room",
               "source_pages": [

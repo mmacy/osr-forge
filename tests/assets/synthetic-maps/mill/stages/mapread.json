@@ -13,22 +13,22 @@
       "unread_reason": null,
       "proposals": [
         {
-          "a": "4",
-          "b": "5",
-          "door": "door"
-        },
-        {
           "a": "1",
           "b": "2",
           "door": "door"
         },
         {
-          "a": "1",
-          "b": "3",
+          "a": "3",
+          "b": "4",
+          "door": "door"
+        },
+        {
+          "a": "3",
+          "b": "5",
           "door": "door"
         }
       ],
-      "entrance_key": null
+      "entrance_key": "3"
     }
   ]
 }

@@ -53,7 +53,7 @@
             },
             {
               "key": "4",
-              "name": "Stable",
+              "name": "Barracks",
               "source_label": null,
               "kind": "room",
               "source_pages": [
@@ -63,7 +63,7 @@
             },
             {
               "key": "5",
-              "name": "Tack room",
+              "name": "Armoury",
               "source_label": null,
               "kind": "room",
               "source_pages": [

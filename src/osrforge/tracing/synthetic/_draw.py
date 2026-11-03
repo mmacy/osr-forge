@@ -803,6 +803,24 @@ def _turn_page(
     return np.ascontiguousarray(np.rot90(pixels, k=turns)), Registration(corners=corners)
 
 
+def _check_fold(region: RegionSpec, fold: Plan) -> None:
+    """Make sure the column a fold cuts holds nothing its sliver can't show.
+
+    Each half shows under half of the column, so a door across the column, a
+    mark, or a symbol in it would show in neither. Doors on the column's west
+    and east lines lie on the halves' grid lines, which the halves show.
+    """
+    column = 0 if "left" in region.cut_off else fold.width - 1
+    if any(fold.letter((column, y), side) in "dls" for y in range(fold.height) for side in ("north", "south")):
+        raise ValueError(f"region {region.id} has a door across the column its fold cuts")
+    for mark in fold.marks:
+        if parse_cell(mark.cell)[0] == column:
+            raise ValueError(f"region {region.id} has mark {mark.text!r} in the column its fold cuts")
+    for symbol in fold.symbols:
+        if any(parse_cell(cell)[0] == column for cell in symbol.cells):
+            raise ValueError(f"region {region.id} has a {symbol.kind} in the column its fold cuts")
+
+
 def draw_page(region: RegionSpec, seed: int) -> tuple[bytes, Registration, Look]:
     """Draw one region on its own page image.
 
@@ -823,6 +841,8 @@ def draw_page(region: RegionSpec, seed: int) -> tuple[bytes, Registration, Look]
     rotation = rotation_for(region.compass.north) if region.compass.printed else 0
     if rotation and region.fold is not None:
         raise ValueError(f"region {region.id} is a turned half, which the generator doesn't draw")
+    if region.fold is not None:
+        _check_fold(region, region.fold)
     plan = region.plan.turned(rotation)
     width, height = page_size(region, look, plan)
     registration = registration_for(

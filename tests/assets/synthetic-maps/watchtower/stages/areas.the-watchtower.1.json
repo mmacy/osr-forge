@@ -5,7 +5,7 @@
   "areas": [
     {
       "key": "1",
-      "description": "A ladder in the north-west corner leads down to the well room in the cellar.",
+      "description": "A ladder against the north wall leads down to the well room in the cellar.",
       "encounters": [],
       "trap": null,
       "treasure": [],
