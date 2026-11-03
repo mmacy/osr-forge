@@ -209,7 +209,8 @@ class LevelState:
     """The level grid's size, once `shift_levels` has set it."""
 
     passages: list[tuple[WCell, str, WCell, LevelId]] = field(default_factory=list)
-    """Each passage as its cell, its panel side, its destination cell, and the destination level."""
+    """Each passage as its cell, its panel side, its destination cell, and the destination level, which may be of
+    another dungeon."""
 
     transitions: list[Transition] = field(default_factory=list)
     verdict: str = "traced"
@@ -310,7 +311,7 @@ class Resolver:
     # ----- survey helpers -----
 
     def level_index(self, level_id: LevelId) -> int:
-        """A level's place in survey order."""
+        """A level's place in survey order, where every level of a dungeon comes before those of the next dungeon."""
         return self.level_order.index(level_id)
 
     def key_of(self, level_id: LevelId, key: str) -> SurveyKey | None:
@@ -1285,7 +1286,11 @@ class Resolver:
     # ----- cuts and passages -----
 
     def cuts(self) -> None:
-        """Wall off each cut between levels and lay its passages, vestibules first; then link the halves left apart."""
+        """Wall off each cut between levels and lay its passages, vestibules first; then link the halves left apart.
+
+        Levels of different dungeons whose floors meet are cut the same way, ordered by their dungeons' survey order,
+        and their passages name the other dungeon.
+        """
         world = self.world
         self.far_used = set()
         door_cuts: list[tuple[tuple[int, float, float], WCell, str, WCell]] = []
@@ -1876,6 +1881,7 @@ class Resolver:
                 side=self.to_level_side(level_id, cell, side),
                 to_level=to_level[1],
                 to_cell=cell_key(self.to_level(to_level, to_cell)),
+                to_dungeon=to_level[0] if to_level[0] != level_id[0] else None,
             )
             for cell, side, to_cell, to_level in state.passages
         )

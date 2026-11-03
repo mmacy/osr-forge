@@ -736,6 +736,111 @@ def test_keys_on_open_ground_on_an_inner_door_and_footings_across_water():
     assert level.cells[7][5] == "." and level.cells[7][4] == "~"
 
 
+DUNGEONS_OPEN = [
+    "+-+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+",
+    "|#|. . . . . . . .|#|",
+    "+-+ + + + + + + + +-+",
+    "|#|. . . .|. . . .|#|",
+    "+-+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+",
+]
+"""The caves' hall in the west and the keep's hall in the east, their floors meeting across an open edge in row 1."""
+
+DUNGEONS_DOOR = [
+    "+-+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+",
+    "|#|. . . .|. . . .|#|",
+    "+-+ + + + +-+ + + +-+",
+    "|#|. . . .d. . . .|#|",
+    "+-+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+",
+]
+"""The same two halls, walled apart, with a door between them in row 2."""
+
+
+def two_dungeons_fixture(rows):
+    """Two dungeons of one level each on one panel: the keep first in survey order and drawn east, the caves second
+    and drawn west. Both levels are number 1 and both halls are keyed 1, so only the dungeons' survey order tells the
+    two levels apart."""
+    survey_index = SurveyIndex(
+        title="borderland",
+        hooks=(),
+        town=TownInfo(name="town", description=""),
+        dungeons=tuple(
+            SurveyDungeon(
+                id=dungeon,
+                name=dungeon,
+                levels=(
+                    SurveyLevel(
+                        number=1,
+                        map_pages=(1,),
+                        areas=(SurveyArea(key="1", name="Hall", kind="room", source_pages=(1,)),),
+                    ),
+                ),
+            )
+            for dungeon in ("keep", "caves")
+        ),
+        monster_names=(),
+    )
+    contents = {(dungeon, 1): content(dungeon, 1, [("1", "A hall.", [])]) for dungeon in ("keep", "caves")}
+    mapread_cache = MapReading(
+        map_reading="read",
+        levels=tuple(
+            MapLevelReading(dungeon_id=dungeon, level_number=1, map_pages=(1,), status="read")
+            for dungeon in ("keep", "caves")
+        ),
+    )
+    outlines = (
+        Outline(dungeon="caves", level=1, rects=((0, 0, 5, 4),), seeds=("2,1",)),
+        Outline(dungeon="keep", level=1, rects=((5, 0, 5, 4),), seeds=("7,1",)),
+    )
+    truth = GeometryTruth(
+        pages=(Page(number=1, images=(PageImage(file="p.png"),)),),
+        regions=(region("p", 10, 4),),
+        panels=(panel("p", rows, [("1", "2,1", {}), ("1", "7,1", {})], outlines),),
+        dungeons=tuple(
+            Dungeon(id=dungeon, name=dungeon, levels=(Level(number=1, verdict="fallback", reason="x"),))
+            for dungeon in ("keep", "caves")
+        ),
+    )
+    result = resolve_document(truth, survey_index, contents, mapread_cache)
+    return result.level("keep", 1), result.level("caves", 1)
+
+
+def dungeon_passages(level):
+    return {(p.cell, p.side, p.to_level, p.to_cell, p.to_dungeon) for p in level.passages}
+
+
+def test_two_dungeons_meeting_across_an_open_edge_are_cut_with_a_pair_naming_the_other_dungeon():
+    """The halls' floors meet in the drawing, so the two dungeons' levels are cut as two levels are: the open edge
+    between them is a wall on both, with a pair of passages across it, each naming the other dungeon."""
+    keep, caves = two_dungeons_fixture(DUNGEONS_OPEN)
+    assert set(keep.areas["1"].cells) == {f"{x},{y}" for x in (5, 6, 7, 8) for y in (1, 2)}
+    assert set(caves.areas["1"].cells) == {f"{x},{y}" for x in (1, 2, 3, 4) for y in (1, 2)}
+    assert dungeon_passages(keep) == {("5,1", "west", 1, "4,1", "caves")}
+    assert dungeon_passages(caves) == {("4,1", "east", 1, "5,1", "keep")}
+    assert edges_of(keep).at((5, 1), "west") == "w" and edges_of(caves).at((4, 1), "east") == "w"
+    assert keep.cells[1][4] == "#" and caves.cells[1][5] == "#"
+
+
+def test_two_dungeons_meeting_at_a_door_give_a_vestibule_on_the_later_dungeons_side():
+    """The keep comes first in survey order, so the cell beyond the door on the caves' side becomes the keep's
+    corridor, the door stays on the keep, and the pair goes on the vestibule's side opposite the door, each passage
+    naming the other dungeon. The cell is rock on the caves' level and leaves the caves' hall."""
+    keep, caves = two_dungeons_fixture(DUNGEONS_DOOR)
+    assert keep.cells[2][4] == "." and caves.cells[2][4] == "#"
+    assert edges_of(keep).at((4, 2), "east") == "d"
+    assert edges_of(keep).at((4, 2), "north") == "w" and edges_of(keep).at((4, 2), "south") == "w"
+    assert dungeon_passages(keep) == {("4,2", "west", 1, "3,2", "caves")}
+    assert dungeon_passages(caves) == {("3,2", "east", 1, "4,2", "keep")}
+    assert "4,2" not in caves.areas["1"].cells and "4,2" not in keep.areas["1"].cells
+
+
 @pytest.mark.parametrize("rows", [TWO_LEVELS, VESTIBULE, UNPRINTED, GATEHOUSE, YARD])
 def test_pictures_parse_to_consistent_panels(rows):
     cells, edges = picture(rows)
