@@ -135,7 +135,7 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
 
         store = BatchStore(key.directory / stage)
         if action == "submit":
-            batch, count = submit_pass(ctx, stage, store, api, book)
+            batch, count = submit_pass(ctx, stage, store, api, book, args.jobs)
             print(f"{key.id}: {stage} batch {batch}, {count} items in {len(store.job_ids())} jobs")
         else:
 
@@ -189,6 +189,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--wait", action="store_true", help="poll until every open batch has ended")
     parser.add_argument("--interval", type=float, default=30.0, help="seconds between polls")
     parser.add_argument("--limit", type=float, default=3600.0, help="the most seconds to wait")
+    parser.add_argument(
+        "--jobs", type=int, default=None, help="settle or adversary submit: send at most this many jobs now"
+    )
     parser.add_argument("--workers", type=int, default=4, help="threads for the Clef pass")
     parser.add_argument("--cap", type=float, default=2.0, help="the most dollars this work may spend on Clef")
     parser.add_argument("--out", type=Path, default=None, help="where assemble or sample writes")

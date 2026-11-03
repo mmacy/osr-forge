@@ -538,12 +538,16 @@ def _add_jobs(ctx: MapContext, store: BatchStore, prefix: str, items: list[dict[
     return len(fresh)
 
 
-def submit_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, ledger: Any) -> tuple[str | None, int]:
+def submit_pass(
+    ctx: MapContext, stage: str, store: BatchStore, client: Any, ledger: Any, limit: int | None = None
+) -> tuple[str | None, int]:
     """Add the stage's jobs and send the pending ones.
 
     For `settle`: the first call sends the cell, label, and symbol items; once every cell is settled, the next
     call sends the edge items. For `adversary`: the settled calls and the agreed edges in caves, at diagonals,
     and around keys; once the pass has answered, the next call sends the re-settling of the challenged calls.
+    `limit` sends at most that many jobs now and leaves the rest pending for a later call, so a large pass can
+    go out in parts that each fit under the budget line with their worst case.
     """
     items = load_items(ctx)
     if stage == "settle":
@@ -564,7 +568,7 @@ def submit_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, led
                 # The outline round: every cell and edge is settled, so the outlines can be laid over them.
                 round_items += outline_items(ctx, items, final_values(ctx))
         count = _add_jobs(ctx, store, f"{ctx.key.id}__settle__", round_items, False)
-        return store.submit(client, ledger, f"settle {ctx.key.id}"), count
+        return store.submit(client, ledger, f"settle {ctx.key.id}", limit), count
     settled = _load_calls(ctx, "settle")
     adversary = _load_calls(ctx, "adversary")
     pending = [name for name, call in adversary.items() if call["challenged"] and "resettled" not in call]
@@ -586,10 +590,10 @@ def submit_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, led
             resettle.append(item)
         resettle_store = BatchStore(ctx.key.directory / "resettle")
         count = _add_jobs(ctx, resettle_store, f"{ctx.key.id}__resettle__", resettle, False)
-        return resettle_store.submit(client, ledger, f"resettle {ctx.key.id}"), count
+        return resettle_store.submit(client, ledger, f"resettle {ctx.key.id}", limit), count
     round_items = adversary_items(ctx, items, settled)
     count = _add_jobs(ctx, store, f"{ctx.key.id}__adversary__", round_items, True)
-    return store.submit(client, ledger, f"adversary {ctx.key.id}"), count
+    return store.submit(client, ledger, f"adversary {ctx.key.id}", limit), count
 
 
 def _rebuild_item(ctx: MapContext, items: Items, name: str) -> dict[str, Any] | None:

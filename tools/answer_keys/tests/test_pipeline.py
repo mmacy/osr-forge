@@ -352,6 +352,17 @@ def test_submit_sends_parts_under_the_size_limit_and_releases_reservations_on_fa
     assert [len(r) for r in client.messages.batches.created] == [1, 1, 1]
     assert [e["label"] for e in ledger.entries] == ["test part 1", "test part 2", "test part 3"]
 
+    # A job limit sends the first jobs and leaves the rest pending for a later call.
+    store3 = batches.BatchStore(tmp_path / "store3")
+    for name in ("a", "b", "c"):
+        store3.add_job(name, params, {"window": [0, 0, 3, 2]})
+    monkeypatch.setattr(batches, "BATCH_BYTES", 10**9)
+    ledger3 = _FakeLedger()
+    client3 = _FakeClient([])
+    assert store3.submit(client3, ledger3, "test", limit=2) == "batch_1"
+    assert [len(r) for r in client3.messages.batches.created] == [2]
+    assert store3.pending() == ["c"]
+
     class _Refusing:
         def create(self, requests):
             raise RuntimeError("413")
