@@ -12,6 +12,7 @@ this module shares nothing with them but the letters.
 """
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -25,6 +26,8 @@ __all__ = [
     "SYSTEM",
     "WindowAnswer",
     "check",
+    "normalize_addresses",
+    "normalize_edge",
     "parse",
     "retry_params",
     "window_params",
@@ -194,8 +197,37 @@ def window_params(crop_png_base64: str, window: Window, style_note: str, model: 
     }
 
 
+_SIDE_WORDS = {"n": "north", "e": "east", "s": "south", "w": "west"}
+_EDGE_FORMS = re.compile(r"^\s*(\d+)\s*,\s*(\d+)\s*[:, ]\s*([nesw])(?:orth|ast|outh|est)?\s*$", re.IGNORECASE)
+
+
+def normalize_edge(text: Any) -> str | None:
+    """An edge address written loosely (`4,69 north`, `4,69:n`, `17,25,e`) as `x,y:side`, or `None`."""
+    if not isinstance(text, str):
+        return None
+    match = _EDGE_FORMS.match(text)
+    if match is None:
+        return None
+    return f"{int(match.group(1))},{int(match.group(2))}:{_SIDE_WORDS[match.group(3).lower()]}"
+
+
+def normalize_addresses(answer: dict[str, Any]) -> None:
+    """Rewrite loosely written edge addresses in an answer's marks and symbols to `x,y:side`, in place."""
+    for mark in answer.get("marks", []) or []:
+        if isinstance(mark, dict) and mark.get("on_door") is not None:
+            mark["on_door"] = normalize_edge(mark["on_door"]) or mark["on_door"]
+    for symbol in answer.get("symbols", []) or []:
+        if isinstance(symbol, dict) and symbol.get("edge") is not None:
+            symbol["edge"] = normalize_edge(symbol["edge"]) or symbol["edge"]
+            if symbol.get("kind") == "cave_mouth" and symbol.get("cells") == []:
+                pass
+
+
 def check(answer: dict[str, Any], window: Window) -> list[str]:
     """List what is malformed in a window answer.
+
+    Loosely written edge addresses (`4,69 north`, `4,69:n`) are rewritten to `x,y:side` first, in place, so a
+    reading that differs only in that form isn't asked again.
 
     Args:
         answer: The parsed JSON answer.
@@ -204,6 +236,7 @@ def check(answer: dict[str, Any], window: Window) -> list[str]:
     Returns:
         One sentence per fault, empty when the answer is well formed.
     """
+    normalize_addresses(answer)
     faults: list[str] = []
     cells = answer.get("cells")
     vertical = answer.get("vertical")
@@ -254,6 +287,8 @@ def check(answer: dict[str, Any], window: Window) -> list[str]:
             continue
         if kind == "cave_mouth":
             edge = symbol.get("edge")
+            if symbol.get("cells") and normalize_edge(edge) is not None:
+                symbol["cells"] = []
             if symbol.get("cells"):
                 faults.append("a cave_mouth has an edge and no cells")
             try:

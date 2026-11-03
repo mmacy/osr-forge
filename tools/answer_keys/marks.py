@@ -23,7 +23,7 @@ from osrforge.tracing.truth import SYMBOL_KINDS, parse_cell, parse_edge
 
 from .batches import BatchStore
 from .keyspec import MapContext
-from .reader import MODEL, answer_text_of, parse_answer_text, retry_params
+from .reader import MODEL, answer_text_of, normalize_addresses, normalize_edge, parse_answer_text, retry_params
 from .tiles import GUTTER, TICK_COLOUR, Window, _font, render_window, window_starts
 
 __all__ = ["collect_marks", "collect_wholemap", "marks_windows", "submit_marks", "submit_wholemap"]
@@ -151,7 +151,8 @@ def marks_params(crop_png_base64: str, window: Window, style_note: str) -> dict[
 
 
 def check_marks(answer: dict[str, Any], window: Window) -> list[str]:
-    """What is malformed in a marks answer."""
+    """What is malformed in a marks answer, after loosely written edge addresses are rewritten in place."""
+    normalize_addresses(answer)
     faults: list[str] = []
 
     def inside(text: str, what: str) -> None:
@@ -179,6 +180,8 @@ def check_marks(answer: dict[str, Any], window: Window) -> list[str]:
             faults.append(f"symbol kind {kind!r} isn't in the list")
             continue
         if kind == "cave_mouth":
+            if symbol.get("cells") and normalize_edge(symbol.get("edge")) is not None:
+                symbol["cells"] = []
             try:
                 cell, _side = parse_edge(symbol.get("edge") or "")
             except ValueError:

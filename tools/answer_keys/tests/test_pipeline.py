@@ -148,6 +148,21 @@ def test_check_passes_a_well_formed_answer_and_names_each_fault():
     assert faults == []
 
 
+def test_loose_edge_addresses_are_normalized_instead_of_refused():
+    assert reader.normalize_edge("4,69 north") == "4,69:north"
+    assert reader.normalize_edge("4,69:n") == "4,69:north"
+    assert reader.normalize_edge("17,25,e") == "17,25:east"
+    assert reader.normalize_edge("north") is None
+    window = tiles.Window(5, 7, 3, 2)
+    answer = _answer(
+        marks=[{"text": "c", "cell": "5,7", "on_door": "5,7,w", "leader_to": None}],
+        symbols=[{"kind": "cave_mouth", "cells": ["5,8"], "edge": "5,8 n", "direction": None}],
+    )
+    assert reader.check(answer, window) == []
+    assert answer["marks"][0]["on_door"] == "5,7:west"
+    assert answer["symbols"][0] == {"kind": "cave_mouth", "cells": [], "edge": "5,8:north", "direction": None}
+
+
 def test_parse_turns_rows_into_absolute_cells_and_makes_rock_rock_edges_blank():
     window = tiles.Window(5, 7, 3, 2)
     parsed = reader.parse(_answer(), window)
