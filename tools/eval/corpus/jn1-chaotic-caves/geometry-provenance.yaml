@@ -26,4 +26,4 @@ prose_joins:
   - "roslof-manor/1: 24 of 25 prose joins made, not made: 77-78"
   - "roslof-manor/2: 7 of 7 prose joins made"
 cases:
-  - "11: page 38 (jn1-p038) is settled through every pass but isn't in this key: with a lair's slope cells kept only where an edge joins them to its ground, orc lair B has no outer opening and the hobgoblin lair none into unkeyed floor, because their cave mouths aren't among their openings (open); the page's earlier cases are ruled: 6 in pull request 102, 8 in 105, 9 in 109, and 10 in 114"
+  - "12: page 38 (jn1-p038) is settled through every pass but isn't in this key: the hobgoblin lair's survey name drops its printed letter, so its cave mouths mark nothing and its entrance key finds no outer opening into unkeyed floor (open); the page's earlier cases are ruled: 6 in pull request 102, 8 in 105, 9 in 109, 10 in 114, and 11 in 116"
