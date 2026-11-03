@@ -5,3 +5,4 @@
 - [Structured answer checks](structured-answer-checks.md) — normalize answers of the right content in another form before refusing; retries on spelling cost an hour and $1.50 on page 38
 - [Log stamps from date](log-stamps-from-date.md) — stamp progress entries from `date` in the same command; event times from their artefacts
 - [Prompt conventions from the generator](prompt-conventions-from-generator.md) — check the synthetic answers for each edge class before a prompt states its letter
+- [Reservations before sending](reservations-before-sending.md) — sum settled plus in-flight plus the new batch's worst case before sending; the budget counts reservations
