@@ -4,25 +4,66 @@ The owner checks a sample in the sample app, which writes a verdicts file beside
 (`sample.verdicts_path`). A map's key is approved when every call in its sample has a verdict and none is
 wrong. A `wrong` verdict sends every call of that category on that map back for a full recheck: a fresh
 settling round over all of them, in which the sampled call carries the owner's verdict and note as one more
-reading. An `unsure` call goes back to the settler alone, with the owner's note. A recheck's value is the call's
-final value from then on, and `fresh_sample` draws a new sample of the calls the recheck changed, for the owner
-to check again.
+reading. An `unsure` call goes back to the settler alone, with the owner's note. The recheck's prompt says the
+items are checked afresh, because most of them are calls every reader agreed on, and each cell item carries
+the pixel count of its floor share and its neighbours', so the half rule is decided by measure and not by eye.
 
-The recheck's requests go through the map's `recheck` batch store, and its calls to `recheck/calls.json`.
+A recheck's value is the call's final value from then on, unless the owner corrects the call: a correction of a
+call judged wrong is recorded with `record_corrections` and replaces whatever the recheck found.
+`recheck_sample` gathers every call whose value the recheck or a correction changed into a new sample, under
+new ids, for the owner to check again.
+
+The recheck's requests go through the map's `recheck` batch store, its calls to `recheck/calls.json`, and the
+corrections to `owner/calls.json`.
 """
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
-from .batches import BatchStore
-from .keyspec import MapContext
-from .readings import load_items
-from .sample import SampleSet, Verdicts, verdicts_path
-from .samples import categorize
-from .settler import _add_jobs, _harvest, _load_calls, _rebuild_item, _save_calls, final_values, write_final
+import numpy as np
 
-__all__ = ["collect_recheck", "recheck_items", "submit_recheck"]
+from osrforge.tracing.truth import CELL_LETTERS, parse_cell
+
+from .batches import BatchStore
+from .classify import cell_floor_shares
+from .keyspec import MapContext
+from .reader import READ_LETTERS
+from .readings import load_items
+from .run import map_materials
+from .sample import SampleCall, SampleSet, Verdicts, verdicts_path
+from .samples import categorize, sample_calls
+from .settler import (
+    RECHECK_SYSTEM,
+    _add_jobs,
+    _harvest,
+    _load_calls,
+    _rebuild_item,
+    _save_calls,
+    final_values,
+    write_final,
+)
+
+__all__ = [
+    "RECHECK_MARK",
+    "changed_calls",
+    "collect_recheck",
+    "recheck_items",
+    "recheck_sample",
+    "record_corrections",
+    "sample_call_id",
+    "submit_recheck",
+]
+
+RECHECK_MARK = "@recheck"
+"""The suffix that gives a call a new id in the sample of the calls a recheck changed."""
+
+
+def sample_call_id(sample_id: str) -> tuple[str, str]:
+    """A sample call's panel and call id: `b3-l1:c:4,28` and `b3-l1:c:4,28@recheck` both name `c:4,28`."""
+    panel, _, call_id = sample_id.partition(":")
+    return panel, call_id.split("@", 1)[0]
 
 
 def _verdicts(sample_path: Path) -> tuple[SampleSet, Verdicts]:
@@ -30,6 +71,47 @@ def _verdicts(sample_path: Path) -> tuple[SampleSet, Verdicts]:
     path = verdicts_path(sample_path)
     verdicts = Verdicts.model_validate(json.loads(path.read_text())) if path.exists() else Verdicts()
     return sample, verdicts
+
+
+_SHARES: dict[str, np.ndarray] = {}
+
+
+def _shares(ctx: MapContext) -> np.ndarray:
+    if ctx.key.id not in _SHARES:
+        _SHARES[ctx.key.id] = cell_floor_shares(map_materials(ctx.spec, ctx.rgb, ctx.fit), ctx.fit)
+    return _SHARES[ctx.key.id]
+
+
+def pixel_count_text(shares: np.ndarray, cell: tuple[int, int]) -> str:
+    """A cell's measured floor share and its eight neighbours', in words a settling request carries."""
+    x, y = cell
+    rows, columns = shares.shape
+
+    def percent(cx: int, cy: int) -> str:
+        if not (0 <= cx < columns and 0 <= cy < rows):
+            return "off the map"
+        return f"{round(100 * float(shares[cy, cx]))}"
+
+    block = ", ".join(" ".join(percent(x + dx, y + dy) for dx in (-1, 0, 1)) for dy in (-1, 0, 1))
+    return (
+        f"{percent(x, y)}% of cell {x},{y} is floor; the percent floor of the 3 by 3 cells around it, row by row "
+        f"from the north-west corner {x - 1},{y - 1}: {block}"
+    )
+
+
+def _label_edges(call_id: str, call: dict[str, Any]) -> list[str]:
+    """The edges around the cells a label call names: its own cell and every cell its readings put the label in."""
+    cells = {call_id[2:].split("|")[0]}
+    for _reader, value in call.get("readings", []):
+        place = str(value).rpartition("@")[2]
+        numbers = [part.strip() for part in place.split(",")]
+        if "@" in str(value) and len(numbers) % 2 == 0 and all(n.isdigit() for n in numbers):
+            cells |= {f"{numbers[i]},{numbers[i + 1]}" for i in range(0, len(numbers), 2)}
+    edges: set[str] = set()
+    for text in cells:
+        x, y = parse_cell(text)
+        edges |= {f"{x},{y}:west", f"{x + 1},{y}:west", f"{x},{y}:north", f"{x},{y + 1}:north"}
+    return sorted(edges)
 
 
 def recheck_items(ctx: MapContext, sample_path: Path) -> list[dict[str, Any]]:
@@ -41,13 +123,16 @@ def recheck_items(ctx: MapContext, sample_path: Path) -> list[dict[str, Any]]:
 
     Returns:
         Settling items: for each `wrong` verdict, every call of that category on this map, the sampled one with
-        the owner's verdict among its readings; for each `unsure` verdict, that call with the owner's note.
+        the owner's verdict among its readings; for each `unsure` verdict, that call with the owner's note. A note
+        on a label also goes with the edges around the label's cells. A cell item carries the pixel count of its
+        floor share.
     """
     sample, verdicts = _verdicts(sample_path)
     by_id = {call.id: call for call in sample.calls}
     items = load_items(ctx)
     final = final_values(ctx)
     wanted: dict[str, tuple[str, str]] = {}
+    notes: dict[str, str] = {}
     categories_to_recheck: set[str] = set()
     for verdict in verdicts.verdicts:
         call = by_id.get(verdict.call)
@@ -56,10 +141,16 @@ def recheck_items(ctx: MapContext, sample_path: Path) -> list[dict[str, Any]]:
         if verdict.settled != call.settled:
             # The verdict was given on an earlier value of the call; it doesn't carry over.
             continue
-        call_id = verdict.call.split(":", 1)[1]
+        call_id = sample_call_id(verdict.call)[1]
         wanted[call_id] = (verdict.verdict, verdict.note)
         if verdict.verdict == "wrong":
             categories_to_recheck.add(call.category)
+        if call_id.startswith("m:") and verdict.note:
+            # A note on a label may say the glyph is part of the drawing, such as an archway's bars: the edges
+            # around the cells the label was read in go back with it.
+            for edge in _label_edges(call_id, final.get(call_id, {})):
+                if f"e:{edge}" in final:
+                    notes[f"e:{edge}"] = verdict.note
     if categories_to_recheck:
         for name in final:
             kind_code, _, rest = name.partition(":")
@@ -69,14 +160,20 @@ def recheck_items(ctx: MapContext, sample_path: Path) -> list[dict[str, Any]]:
             category = categorize(ctx, rest.split("|")[0], kind)
             if category in categories_to_recheck and name not in wanted:
                 wanted[name] = ("category", "")
+    for name in notes:
+        wanted.setdefault(name, ("note", ""))
     out: list[dict[str, Any]] = []
     for name, (why, note) in sorted(wanted.items()):
         item = _rebuild_item(ctx, items, name)
         if item is None:
             continue
         readings = list(item["readings"])
+        if item["kind"] == "cell":
+            readings.append(("the pixel count", pixel_count_text(_shares(ctx), parse_cell(name[2:]))))
         if why in ("wrong", "unsure"):
             readings.append((f"the owner's verdict ({why})", note or "no note"))
+        if name in notes:
+            readings.append(("the owner's note on the label read near here", notes[name]))
         text = (
             item["text"].split(" Readings:")[0] + " Readings: " + "; ".join(f"{r} read {v}" for r, v in readings) + "."
         )
@@ -84,12 +181,14 @@ def recheck_items(ctx: MapContext, sample_path: Path) -> list[dict[str, Any]]:
     return out
 
 
-def submit_recheck(ctx: MapContext, sample_path: Path, client: Any, ledger: Any) -> tuple[str | None, int]:
-    """Add the recheck's jobs for a map and send the pending ones."""
+def submit_recheck(
+    ctx: MapContext, sample_path: Path, client: Any, ledger: Any, limit: int | None = None
+) -> tuple[str | None, int]:
+    """Add the recheck's jobs for a map and send the pending ones, at most `limit` of them now."""
     store = BatchStore(ctx.key.directory / "recheck")
     items = recheck_items(ctx, sample_path)
-    count = _add_jobs(ctx, store, f"{ctx.key.id}__recheck__", items, False)
-    return store.submit(client, ledger, f"recheck {ctx.key.id}"), count
+    count = _add_jobs(ctx, store, f"{ctx.key.id}__recheck__", items, False, RECHECK_SYSTEM)
+    return store.submit(client, ledger, f"recheck {ctx.key.id}", limit), count
 
 
 def collect_recheck(ctx: MapContext, client: Any, ledger: Any) -> dict[str, Any]:
@@ -105,6 +204,7 @@ def collect_recheck(ctx: MapContext, client: Any, ledger: Any) -> dict[str, Any]
         "open": counts["open"],
         "errored": counts["errored"],
         "challenged": 0,
+        "pending": len(store.pending()),
     }
     calls = _load_calls(ctx, "recheck")
     _harvest(store, calls, False, result)
@@ -114,13 +214,100 @@ def collect_recheck(ctx: MapContext, client: Any, ledger: Any) -> dict[str, Any]
     return result
 
 
-def changed_by_recheck(ctx: MapContext) -> list[str]:
-    """The ids of the calls whose recheck value differs from the value they had before."""
-    rechecked = _load_calls(ctx, "recheck")
-    final = final_values(ctx)
+def record_corrections(ctx: MapContext, sample_path: Path, values: dict[str, str]) -> dict[str, str]:
+    """Record the owner's value for calls the owner judged wrong in a sample.
+
+    Args:
+        ctx: The map.
+        sample_path: The sample file whose verdicts judged the calls.
+        values: The owner's value by call id, such as `{"c:4,28": "."}`.
+
+    Returns:
+        The values recorded, by call id.
+
+    Raises:
+        ValueError: If a call has no `wrong` verdict on this map in the sample, or the value isn't a letter of the
+            call's kind.
+    """
+    sample, verdicts = _verdicts(sample_path)
+    by_id = {call.id: call for call in sample.calls}
+    judged = {
+        sample_call_id(verdict.call)[1]: verdict
+        for verdict in verdicts.verdicts
+        if verdict.verdict == "wrong" and by_id.get(verdict.call) and by_id[verdict.call].panel == ctx.key.id
+    }
+    corrections = _load_calls(ctx, "owner")
+    for call_id, value in values.items():
+        verdict = judged.get(call_id)
+        if verdict is None:
+            raise ValueError(f"{ctx.key.id} {call_id}: the sample has no wrong verdict on it")
+        kind = {"c": "cell", "e": "edge"}.get(call_id[0])
+        if kind is None or value not in (CELL_LETTERS if kind == "cell" else READ_LETTERS):
+            raise ValueError(f"{ctx.key.id} {call_id}: {value!r} isn't a {kind or 'cell or edge'} letter")
+        corrections[call_id] = {
+            "value": value,
+            "kind": kind,
+            "note": verdict.note,
+            "sample": sample_path.name,
+            "judged": verdict.settled,
+        }
+    _save_calls(ctx, "owner", corrections)
+    write_final(ctx)
+    return {call_id: corrections[call_id]["value"] for call_id in values}
+
+
+def changed_calls(ctx: MapContext) -> list[str]:
+    """The ids of the calls whose value a recheck or an owner's correction changed."""
     changed = []
-    for name, call in rechecked.items():
-        before = final.get(name, {}).get("before_recheck")
-        if before is not None and before != call["value"]:
+    for name, call in final_values(ctx).items():
+        # The value before any of them: the recheck's `before_recheck` when there was one, else the owner's.
+        before = call.get("before_recheck", call.get("before_owner"))
+        if ("before_recheck" in call or "before_owner" in call) and before != call["value"]:
             changed.append(name)
-    return changed
+    return sorted(changed)
+
+
+def recheck_sample(contexts: list[MapContext], out: Path) -> dict[str, Any]:
+    """Write a sample of every call whose value a recheck or a correction changed, under new ids.
+
+    Each call's id is its first sample id with `RECHECK_MARK` added, so the owner's verdicts on the first sample
+    don't carry over, and its reason says what the value was before.
+
+    Args:
+        contexts: The maps the recheck covered.
+        out: The sample file to write; crops go beside it.
+
+    Returns:
+        Counts by map and category, and the file written.
+    """
+    calls: list[SampleCall] = []
+    counts: dict[str, int] = {}
+    for ctx in contexts:
+        changed = set(changed_calls(ctx))
+        final = final_values(ctx)
+        for call in sample_calls(ctx, ctx.key.member, ctx.spec.truth_style, every=True):
+            call_id = sample_call_id(call.id)[1]
+            if call_id not in changed:
+                continue
+            entry = final[call_id]
+            before = entry.get("before_recheck", entry.get("before_owner"))
+            source = "the owner's correction" if "before_owner" in entry else "the recheck"
+            for attribute in ("zoom", "wide"):
+                target = out.parent / f"{ctx.key.id}__{getattr(call, attribute)}"
+                if not target.exists():
+                    out.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(ctx.key.directory / "crops" / getattr(call, attribute), target)
+            calls.append(
+                call.model_copy(
+                    update={
+                        "id": f"{call.id}{RECHECK_MARK}",
+                        "zoom": f"{ctx.key.id}__{call.zoom}",
+                        "wide": f"{ctx.key.id}__{call.wide}",
+                        "reason": f"Changed by {source} from {before}. {call.reason}".strip(),
+                    }
+                )
+            )
+            key = f"{ctx.key.id} {call.category}"
+            counts[key] = counts.get(key, 0) + 1
+    out.write_text(json.dumps(SampleSet(calls=tuple(calls)).model_dump(mode="json"), indent=1) + "\n")
+    return {"written": str(out), "calls": len(calls), **counts}

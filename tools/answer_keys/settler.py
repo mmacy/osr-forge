@@ -50,7 +50,10 @@ SETTLE_SYSTEM = (
     "Cells. A cell is floor (.) when at least half of it is floor a party can stand on: a room, a corridor, a "
     "cave, or the ground of a yard. It is rock (#) otherwise: solid rock, the earth of a hill, the page's blank "
     "background, a void, or a shaft. It is water (~) when at least half of it is water the map draws as water. "
-    "A symbol or a label inside a cell leaves it floor.\n\n"
+    "A symbol or a label inside a cell leaves it floor. The cells of a diagonal run of floor stay joined edge to "
+    "edge: where two floor cells of a passage touch only at a corner, the one of the two cells beside both that "
+    "has more floor is floor, even under half. Where an item gives a pixel count of each cell's floor share, "
+    "decide the half rule and the diagonal rule by the count, not by eye.\n\n"
     "Edges. An edge is one side of a cell. Its letter: o open (nothing but the thin grid line, floor continues), "
     "p printed open line (a dashed, dotted, or dash-dot line, a fence, or an archway a party walks through), w "
     "wall (a heavy line, or the boundary between floor and rock; an edge between floor and water is o unless a "
@@ -79,8 +82,16 @@ SETTLE_SYSTEM = (
     "the kind, an @, and the cells it covers joined by ; as 'kind@x,y;x,y', or for a cave mouth the edge as "
     "'cave_mouth@x,y:side'. Add |up or |down after it when the map shows that direction for stairs, a ladder, "
     "a trapdoor, or a chute. Answer none when no symbol stands there.\n\n"
-    "Give every item's id exactly as listed, its answer, and a reason under 30 words."
+    "Where the map's legend explains a mark, call it by the legend's name in your reason. Give every item's id "
+    "exactly as listed, its answer, and a reason under 30 words."
 )
+
+RECHECK_SYSTEM = SETTLE_SYSTEM.replace(
+    "The readers disagree, so at least one is wrong; decide from the picture, not from the readers.",
+    "These items are checked afresh because the map's owner found an error among calls like them: the readers "
+    "may agree or disagree, and any of them may be wrong, so decide from the picture, not from the readers.",
+)
+"""The settler's prompt for a recheck after the owner's sample, whose items include calls every reader agreed on."""
 
 ADVERSARY_SYSTEM = (
     "You check the settled readings of printed tabletop dungeon maps and try to prove them wrong. Each request "
@@ -93,7 +104,10 @@ ADVERSARY_SYSTEM = (
     "Cells. A cell is floor (.) when at least half of it is floor a party can stand on: a room, a corridor, a "
     "cave, or the ground of a yard. It is rock (#) otherwise: solid rock, the earth of a hill, the page's blank "
     "background, a void, or a shaft. It is water (~) when at least half of it is water the map draws as water. "
-    "A symbol or a label inside a cell leaves it floor.\n\n"
+    "A symbol or a label inside a cell leaves it floor. The cells of a diagonal run of floor stay joined edge to "
+    "edge: where two floor cells of a passage touch only at a corner, the one of the two cells beside both that "
+    "has more floor is floor, even under half. Where an item gives a pixel count of each cell's floor share, "
+    "decide the half rule and the diagonal rule by the count, not by eye.\n\n"
     "Edges. An edge is one side of a cell. Its letter: o open (nothing but the thin grid line, floor continues), "
     "p printed open line (a dashed, dotted, or dash-dot line, a fence, or an archway a party walks through), w "
     "wall (a heavy line, or the boundary between floor and rock; an edge between floor and water is o unless a "
@@ -118,7 +132,8 @@ ADVERSARY_SYSTEM = (
     "Symbols are answered as 'kind@x,y;x,y', or 'cave_mouth@x,y:side', with |up or |down when the map shows a "
     "direction, or none. A cave_mouth stands on the edge where the cave's passage opens into the ground outside, "
     "the gap in the heavy cave-wall line; an entrance letter or arrow printed at or beside the gap marks it and "
-    "isn't the mouth's place, and the cells it's printed on are floor.\n\n"
+    "isn't the mouth's place, and the cells it's printed on are floor. Where the map's legend explains a mark, "
+    "call it by the legend's name in your reason.\n\n"
     "Give every item's id exactly as listed, challenged true when your value differs from the recorded one, "
     "your value, and a reason under 30 words."
 )
@@ -682,15 +697,24 @@ def _save_calls(ctx: MapContext, stage: str, calls: dict[str, dict[str, Any]]) -
     path.write_text(json.dumps(calls, indent=1, sort_keys=True) + "\n")
 
 
-def _add_jobs(ctx: MapContext, store: BatchStore, prefix: str, items: list[dict[str, Any]], adversary: bool) -> int:
-    """Add one job per group of items, skipping items that already have a job. Returns the items added."""
+def _add_jobs(
+    ctx: MapContext,
+    store: BatchStore,
+    prefix: str,
+    items: list[dict[str, Any]],
+    adversary: bool,
+    system: str | None = None,
+) -> int:
+    """Add one job per group of items, skipping items that already have a job. Returns the items added.
+
+    `system` replaces the settling prompt, as the recheck's does."""
     asked = set()
     for custom_id in store.job_ids():
         for item in store.job(custom_id)["meta"]["items"]:
             asked.add(item["id"])
     fresh = [item for item in items if item["id"] not in asked]
     existing = len([c for c in store.job_ids() if c.startswith(prefix)])
-    system = ADVERSARY_SYSTEM if adversary else SETTLE_SYSTEM
+    system = system or (ADVERSARY_SYSTEM if adversary else SETTLE_SYSTEM)
     schema = ADVERSARY_SCHEMA if adversary else SCHEMA
     for number, start in enumerate(range(0, len(fresh), ITEMS_PER_REQUEST), existing):
         batch = fresh[start : start + ITEMS_PER_REQUEST]
@@ -769,9 +793,27 @@ def submit_pass(
     return store.submit(client, ledger, f"adversary {ctx.key.id}", limit), count
 
 
+def asked_item(ctx: MapContext, name: str) -> dict[str, Any] | None:
+    """A call's item as the settler was first asked it, from the settling store's jobs, or `None`.
+
+    An outline or slope item depends on the calls settled before it, and a label item's id on the table it was
+    asked from, so recomputing either later can give another item or none; the asked one is the call's own."""
+    asked: dict[str, dict[str, Any]] = {}
+    store = BatchStore(ctx.key.directory / "settle")
+    for custom_id in store.job_ids():
+        for item in store.job(custom_id)["meta"]["items"]:
+            asked.setdefault(item["id"], item)
+    return asked.get(name)
+
+
 def _rebuild_item(ctx: MapContext, items: Items, name: str) -> dict[str, Any] | None:
-    """A settling item for a call id, with its readings from the table."""
+    """A settling item for a call id, with its readings from the table, or as it was first asked when the table
+    no longer gives it."""
     kind = name.split(":")[0]
+    if kind in ("l", "o", "g"):
+        item = asked_item(ctx, name)
+        if item is not None:
+            return {key: value for key, value in item.items() if key != "recorded"}
     if kind == "c":
         for item in settle_items(items, None):
             if item["id"] == name:
@@ -821,7 +863,7 @@ def _rebuild_item(ctx: MapContext, items: Items, name: str) -> dict[str, Any] | 
         for item in outline_items(ctx, items, {}):
             if item["id"] == name:
                 return item
-    return None
+    return asked_item(ctx, name)
 
 
 def adversary_items(ctx: MapContext, items: Items, settled: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1025,12 +1067,14 @@ def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: boo
 
 
 def final_values(ctx: MapContext) -> dict[str, dict[str, Any]]:
-    """Every call's final value: the owner's recheck where there is one, else the re-settled value where the
-    adversary's challenge was re-settled, else the settler's, with the adversary's value beside it."""
+    """Every call's final value: the owner's correction where there is one, else the recheck's value, else the
+    re-settled value where the adversary's challenge was re-settled, else the settler's, with the adversary's value
+    beside it."""
     settled = _load_calls(ctx, "settle")
     adversary = _load_calls(ctx, "adversary")
     resettled = _load_calls(ctx, "resettle")
     rechecked = _load_calls(ctx, "recheck")
+    corrected = _load_calls(ctx, "owner")
     out: dict[str, dict[str, Any]] = {}
     for name, call in settled.items():
         final = dict(call)
@@ -1093,6 +1137,15 @@ def final_values(ctx: MapContext) -> dict[str, dict[str, Any]]:
         final["before_recheck"] = final.get("value")
         final["value"] = call["value"]
         final["recheck_reason"] = call["reason"]
+    # The owner's correction of a call judged wrong in the sample is final: it replaces whatever the recheck found.
+    for name, call in corrected.items():
+        final = out.get(name)
+        if final is None:
+            final = {"kind": call["kind"], "readings": [], "settled": None, "reason": "", "category": "owner"}
+            out[name] = final
+        final["before_owner"] = final.get("value")
+        final["value"] = call["value"]
+        final["owner_note"] = call["note"]
     return out
 
 

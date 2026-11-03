@@ -152,13 +152,21 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
                         print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: {stage} spent ${store.spent():.4f}")
     elif stage == "recheck":
-        from .recheck import collect_recheck, submit_recheck
+        from .recheck import collect_recheck, record_corrections, submit_recheck
 
-        if args.sample is None:
+        if args.sample is None and action != "collect":
             raise SystemExit("recheck needs --sample, the sample file the owner checked")
         if action == "submit":
-            batch, count = submit_recheck(ctx, args.sample, api, book)
+            batch, count = submit_recheck(ctx, args.sample, api, book, args.jobs)
             print(f"{key.id}: recheck batch {batch}, {count} items")
+        elif action == "correct":
+            mine = {}
+            for text in args.set:
+                name, _, value = text.rpartition("=")
+                map_id, _, call_id = name.partition(":")
+                if map_id == key.id:
+                    mine[call_id] = value
+            print(f"{key.id}: corrections {record_corrections(ctx, args.sample, mine)}")
         else:
 
             def collect():
@@ -205,6 +213,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--cases", action="append", default=[], help="combine: a case the key depends on, repeatable")
     parser.add_argument("--sample", type=Path, default=None, help="recheck: the sample file whose verdicts to act on")
+    parser.add_argument(
+        "--set",
+        action="append",
+        default=[],
+        help="recheck correct: the owner's value for a call judged wrong, as <map id>:<call id>=<value>, repeatable",
+    )
     args = parser.parse_args(argv)
     words = list(args.maps)
     stages = {
@@ -222,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
         "combine",
     }
     action = None
-    if words and words[-1] in ("submit", "collect", "export"):
+    if words and words[-1] in ("submit", "collect", "export", "correct", "resample"):
         action = words.pop()
     if not words or words[-1] not in stages:
         parser.error("the last words name a stage and, for a batch stage, submit or collect")
@@ -237,6 +251,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.out is None:
             parser.error("sample needs --out")
         print(build_sample([context(specs[map_id]) for map_id in words], args.out, args.size, args.seed))
+        return 0
+    if stage == "recheck" and action == "resample":
+        from .recheck import recheck_sample
+
+        if args.out is None:
+            parser.error("recheck resample needs --out, the new sample file")
+        print(recheck_sample([context(specs[map_id]) for map_id in words], args.out))
         return 0
     if stage == "combine":
         from .assemble import combine

@@ -222,6 +222,30 @@ def cell_features(materials: Materials, fit: GridFit, hatch_runs: int) -> CellFe
     return CellFeatures(floor=floor, paper=paper, fill=fill, ink=ink, stair=stair)
 
 
+def cell_floor_shares(materials: Materials, fit: GridFit, samples: int = 24) -> np.ndarray:
+    """The share of each whole cell that is floor, among floor and fill: the half rule's measure.
+
+    Unlike `cell_features`, which reads a cell's interior after closing for the classifier's letter, this samples
+    the cell from side to side, so a diagonal wall's share of the cell counts in full.
+
+    Args:
+        materials: The image's masks.
+        fit: The grid fit.
+        samples: Points sampled along each axis of a cell.
+
+    Returns:
+        An array of shape `(rows, columns)`, each value from 0 to 1.
+    """
+    across = (np.arange(samples) + 0.5) / samples
+    u, v = np.meshgrid(across, across)
+    i = np.arange(fit.columns)[None, :, None, None] + u[None, None]
+    j = np.arange(fit.rows)[:, None, None, None] + v[None, None]
+    x, y = fit.corners(i, j)
+    floor = sample(materials.floor, x, y).mean(axis=(2, 3))
+    fill = sample(materials.fill, x, y).mean(axis=(2, 3))
+    return floor / np.maximum(floor + fill, 1e-6)
+
+
 EXTRA = 6
 """Positions sampled beyond each end of an edge, so a symbol that straddles the edge's end is still found."""
 

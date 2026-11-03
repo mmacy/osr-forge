@@ -680,3 +680,104 @@ def test_slope_answers_are_checked_and_bound_an_outline():
     # A line stopped short of the edge is carried on straight at both ends.
     assert letters.extend_path([(2, 1), (2, 2)], 5, 5) == [(2, 1), (2, 2), (2, 0), (2, 3), (2, 4)]
     assert letters.extend_path([(1, 1), (2, 2)], 4, 4) == [(1, 1), (2, 2), (0, 0), (3, 3)]
+
+
+# --- the recheck after the owner's sample --------------------------------------------------------------------
+
+
+def test_whole_cell_floor_shares_follow_the_half_rule_on_the_synthetic_manor(manor_context):
+    from tools.answer_keys.classify import cell_floor_shares
+    from tools.answer_keys.run import map_materials
+
+    ctx = manor_context
+    shares = cell_floor_shares(map_materials(ctx.spec, ctx.rgb, ctx.fit), ctx.fit)
+    answer = load_geometry_truth(ASSETS / "synthetic-maps" / "manor" / "geometry.json")
+    exact = np.array([[letter == "." for letter in row] for row in answer.panels[0].cells])
+    assert shares.shape == exact.shape
+    assert ((shares >= 0.5) == exact).sum() >= exact.size - 2
+
+
+def test_pixel_count_text_gives_the_cell_and_its_neighbours_in_percent():
+    from tools.answer_keys.recheck import pixel_count_text
+
+    shares = np.array([[1.0, 0.25, 0.0], [0.98, 0.454, 0.0], [0.33, 0.99, 0.53]])
+    text = pixel_count_text(shares, (1, 1))
+    assert text.startswith("45% of cell 1,1 is floor")
+    assert text.endswith("from the north-west corner 0,0: 100 25 0, 98 45 0, 33 99 53")
+    assert "off the map off the map off the map" in pixel_count_text(shares, (0, 0))
+
+
+def test_a_recheck_sample_id_names_the_same_call():
+    from tools.answer_keys.recheck import RECHECK_MARK, sample_call_id
+
+    assert sample_call_id("b3-l1:c:4,28") == ("b3-l1", "c:4,28")
+    assert sample_call_id(f"b3-l1:c:4,28{RECHECK_MARK}") == ("b3-l1", "c:4,28")
+    assert sample_call_id(f"m:e:9,13:west{RECHECK_MARK}") == ("m", "e:9,13:west")
+    assert sample_call_id("p:m:23,36|39") == ("p", "m:23,36|39")
+
+
+def test_a_label_note_goes_with_the_edges_around_the_cells_its_readings_name():
+    from tools.answer_keys.recheck import _label_edges
+
+    call = {"readings": [["the first label read", "no such label"], ["the second label read", "T@5,6,5,7"]]}
+    edges = _label_edges("m:5,6|3", call)
+    assert {"5,6:west", "6,6:west", "5,6:north", "5,7:north", "5,7:west", "6,7:west", "5,8:north"} == set(edges)
+    assert _label_edges("m:2,2|0", {}) == ["2,2:north", "2,2:west", "2,3:north", "3,2:west"]
+
+
+def _owner_sample(tmp_path, verdict):
+    from tools.answer_keys.sample import SampleCall, SampleSet
+
+    call = SampleCall(
+        id="m:c:1,1",
+        member="x",
+        map="m.png",
+        panel="m",
+        style="tsr_blue",
+        kind="cell",
+        category="diagonal",
+        item="1,1",
+        zoom="a.png",
+        wide="b.png",
+        readings=({"reader": "classifier", "value": "#"},),  # type: ignore[arg-type]
+        settled="#",
+    )
+    sample = tmp_path / "sample.json"
+    sample.write_text(json.dumps(SampleSet(calls=(call,)).model_dump(mode="json")))
+    (tmp_path / "sample.verdicts.json").write_text(
+        json.dumps({"verdicts": [{"call": "m:c:1,1", "settled": "#", "verdict": verdict, "note": "over half white"}]})
+    )
+    return sample
+
+
+def test_the_owners_correction_of_a_wrong_call_is_final_over_the_recheck(tmp_path):
+    from tools.answer_keys.recheck import changed_calls, record_corrections
+
+    key = KeySpec(id="m", specs=tmp_path, member="x", style_note="x", work=tmp_path, key=tmp_path / "g.json")
+    ctx = MapContext(key=key, spec=None, rgb=None, fit=None)  # type: ignore[arg-type]
+    for stage in ("settle", "recheck"):
+        (tmp_path / "m" / stage).mkdir(parents=True)
+    settled = {"c:1,1": {"value": "#", "reason": "a", "job": "j", "kind": "cell", "readings": [], "category": "x"}}
+    (tmp_path / "m" / "settle" / "calls.json").write_text(json.dumps(settled))
+    (tmp_path / "m" / "recheck" / "calls.json").write_text(
+        json.dumps({"c:1,1": {"value": "#", "reason": "b", "job": "q", "kind": "cell", "readings": []}})
+    )
+    assert changed_calls(ctx) == []
+    with pytest.raises(ValueError, match="no wrong verdict"):
+        record_corrections(ctx, _owner_sample(tmp_path, "unsure"), {"c:1,1": "."})
+    sample = _owner_sample(tmp_path, "wrong")
+    with pytest.raises(ValueError, match="isn't a cell letter"):
+        record_corrections(ctx, sample, {"c:1,1": "d"})
+    assert record_corrections(ctx, sample, {"c:1,1": "."}) == {"c:1,1": "."}
+    final = settler.final_values(ctx)["c:1,1"]
+    assert final["value"] == "." and final["before_owner"] == "#" and final["before_recheck"] == "#"
+    assert final["owner_note"] == "over half white"
+    assert changed_calls(ctx) == ["c:1,1"]
+
+
+def test_the_recheck_prompt_doesnt_tell_the_settler_the_readers_disagree():
+    assert "The readers disagree" in settler.SETTLE_SYSTEM
+    assert "The readers disagree" not in settler.RECHECK_SYSTEM
+    assert "checked afresh" in settler.RECHECK_SYSTEM
+    for prompt in (settler.SETTLE_SYSTEM, settler.ADVERSARY_SYSTEM, settler.RECHECK_SYSTEM):
+        assert "diagonal run of floor stay joined edge to edge" in prompt and "pixel count" in prompt

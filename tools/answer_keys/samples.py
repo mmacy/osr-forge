@@ -76,6 +76,17 @@ def categorize(ctx: MapContext, name: str, kind: str) -> str | None:
     return None
 
 
+def _current_mark(ctx: MapContext, rest: str) -> bool:
+    """Whether a label call `x,y|index` names a disputed label of the current table, as the assembly looks it up."""
+    cell, _, index = rest.partition("|")
+    marks = load_items(ctx).marks
+    if not index.isdigit() or int(index) >= len(marks):
+        return False
+    mark = marks[int(index)]
+    named = mark["reading1"] or mark["reading2"]
+    return bool(named) and named[0] == cell
+
+
 def _mark_cells(value: str) -> str:
     """A label reading's cells, `x,y` or several joined by `; `, from `text@x,y`, `x,y`, or `x,y,x,y`."""
     text = value.rpartition("@")[2] if "@" in value else value
@@ -92,12 +103,15 @@ def _reading_value(reader: str, value: str) -> str:
     return WORD_LETTERS.get(text, text)
 
 
-def sample_calls(ctx: MapContext, member: str, style: str) -> list[SampleCall]:
-    """Every settled call of a map that has a category, as sample calls with crops rendered."""
+def sample_calls(ctx: MapContext, member: str, style: str, every: bool = False) -> list[SampleCall]:
+    """Every settled call of a map that has a category, as sample calls with crops rendered.
+
+    `every` takes the calls every reader agreed on too, as a recheck's changes need. A call's reason is the one
+    given for the value the key records: the owner's note, the recheck's, the re-settling's, or the settler's."""
     final = final_values(ctx)
     calls = []
     for call_id, call in final.items():
-        if call.get("settled") is None:
+        if call.get("settled") is None and not every:
             continue
         kind_code, _, rest = call_id.partition(":")
         kind = {"c": "cell", "e": "edge", "m": "mark"}.get(kind_code)
@@ -105,6 +119,9 @@ def sample_calls(ctx: MapContext, member: str, style: str) -> list[SampleCall]:
             # Symbols and outline calls have no place in the sample's kinds.
             continue
         item = rest.split("|")[0]
+        if kind == "mark" and not _current_mark(ctx, rest):
+            # A label call from an earlier table that the assembly no longer applies.
+            continue
         category = categorize(ctx, item, kind)
         if category is None:
             continue
@@ -139,7 +156,10 @@ def sample_calls(ctx: MapContext, member: str, style: str) -> list[SampleCall]:
                 readings=readings,
                 settled=settled,
                 adversarial=adversarial,
-                reason=call.get("reason", ""),
+                reason=call.get("owner_note")
+                or call.get("recheck_reason")
+                or call.get("resettle_reason")
+                or call.get("reason", ""),
             )
         )
     return calls
