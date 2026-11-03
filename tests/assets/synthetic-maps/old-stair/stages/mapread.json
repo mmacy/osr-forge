@@ -29,6 +29,17 @@
         }
       ],
       "entrance_key": null
+    },
+    {
+      "dungeon_id": "the-smugglers-hole",
+      "level_number": 1,
+      "map_pages": [
+        1
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [],
+      "entrance_key": null
     }
   ]
 }

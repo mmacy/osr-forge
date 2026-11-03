@@ -105,6 +105,8 @@ class OutlineSpec:
     level: int
     rects: tuple[tuple[int, int, int, int], ...]
     seeds: tuple[Cell, ...]
+    dungeon: str | None = None
+    """The level's dungeon, or `None` for the map's first dungeon."""
 
 
 @dataclass(frozen=True)
@@ -157,7 +159,9 @@ class MapSpec:
     name: str
     title: str
     features: tuple[Feature, ...]
-    dungeon: DungeonSpec
+    dungeons: tuple[DungeonSpec, ...]
+    """The surveyed dungeons, in survey order."""
+
     regions: tuple[RegionSpec, ...]
     panels: tuple[PanelSpec, ...]
     half_pairs: tuple[HalfPair, ...] = ()

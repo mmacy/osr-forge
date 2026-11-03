@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "lair-j",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "1",
+      "description": "A low cave opens on the ravine. A door leads east to the den.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "2",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "2",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "2",
+      "description": "Gnawed bones litter the den.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "1",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

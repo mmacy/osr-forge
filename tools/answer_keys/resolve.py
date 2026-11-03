@@ -112,6 +112,11 @@ def level_number_in(text: str) -> int | None:
     return ORDINALS.get(other)
 
 
+def dungeon_words(name: str) -> list[str]:
+    """The whole words of a dungeon's printed name, in lower case."""
+    return [word.lower() for word in re.findall(r"[A-Za-z0-9']+", name)]
+
+
 class ConventionGap(Exception):
     """The conventions give no answer for an input, so the script stops and the case is logged."""
 
@@ -143,6 +148,9 @@ class Placed:
     letter: bool = False
     edge: tuple[WCell, str] | None = None
     leader: bool = False
+    mouth: WCell | None = None
+    """For a dungeon's letter that counts as the print of the dungeon's entrance key, the inner cell of the cave
+    mouth the letter marks."""
 
     @property
     def moved(self) -> bool:
@@ -299,6 +307,8 @@ class Resolver:
         self.owner: dict[WCell, LevelId] = {}
         self.outside: set[WCell] = set()
         self.mouth_owner: dict[tuple[WCell, str], tuple[LevelId, WCell]] = {}
+        self.marked_mouths: dict[tuple[WCell, str], tuple[LevelId, WCell]] = {}
+        """The cave mouths that a dungeon's letter marks, from both sides, with the level and the inner cell."""
         self.openings: dict[LevelId, list[Opening]] = {}
         self.assigned: dict[WCell, tuple[LevelId, str]] = {}
         self.corridor_runs: set[WCell] = set()
@@ -443,6 +453,8 @@ class Resolver:
                         break
                 if found:
                     break
+            if (cell, side) in self.marked_mouths:
+                found = self.marked_mouths[(cell, side)]
             if found is None:
                 owners = [
                     (self.level_index(self.owner[c]), self.owner[c], c)
@@ -565,6 +577,7 @@ class Resolver:
                         edge_cell, side = parse_edge(mark.edge)
                         edge = ((grid.id, *edge_cell), side)
                     self.placed.append(Placed(label, key, cell, placed_cell, letter, edge, mark.leader_to is not None))
+        self.mark_mouths()
 
     def match_label(self, label: str, candidates: list[LevelId], cell: WCell) -> SurveyKey | None:
         """The survey key a printed label names, among the levels drawn on its panel."""
@@ -579,6 +592,82 @@ class Resolver:
             return inside[0]
         raise ConventionGap(f"label {label!r} at {cell} matches keys on several levels: {[key.level for key in found]}")
 
+    def mark_mouths(self) -> None:
+        """Let each dungeon's letter printed within two cells of a cave mouth mark that mouth as the dungeon's.
+
+        The letter equals a whole word of the printed name of a dungeon drawn on its panel. The nearest mouth on the
+        panel, by Chebyshev distance to either of its cells, belongs to that dungeon's level, and its inner cell is the
+        one the level's outline holds. When the map prints none of the dungeon's entrance keys, the letter counts as
+        the print of the dungeon's entrance key, which `place_keys` moves inside the mouth. Every other letter stays
+        for `place_letters`.
+        """
+        world = self.world
+        mouths = world.cave_mouth_edges()
+        ordinary: list[tuple[str, WCell, Grid]] = []
+        marking: list[tuple[str, WCell, LevelId, WCell]] = []
+        for label, cell, grid in self.letters:
+            drawn = [level_id for level_id in self.level_order if level_id in self.outline_levels(grid)]
+            dungeons = list(dict.fromkeys(level_id[0] for level_id in drawn))
+            named = [d for d in dungeons if label.lower() in dungeon_words(self.dungeon_names[d])]
+            near: list[tuple[int, tuple[WCell, str]]] = []
+            for mouth_cell, side in mouths:
+                if mouth_cell[0] != grid.id:
+                    continue
+                cells = [c for c in (mouth_cell, world.across(mouth_cell, side)) if c is not None]
+                distance = min(chebyshev(world.cell(c), world.cell(cell)) for c in cells)
+                if distance <= 2:
+                    near.append((distance, (mouth_cell, side)))
+            if not named or not near:
+                ordinary.append((label, cell, grid))
+                continue
+            if len(named) > 1:
+                raise ConventionGap(f"letter {label!r} at {cell} names several dungeons: {named}")
+            nearest = min(distance for distance, _mouth in near)
+            closest = [mouth for distance, mouth in near if distance == nearest]
+            if len(closest) > 1:
+                raise ConventionGap(f"letter {label!r} at {cell} is equally near several cave mouths")
+            mouth_cell, side = closest[0]
+            other = world.across(mouth_cell, side)
+            sides = [c for c in (mouth_cell, other) if c is not None and world.letter(c) in ".~"]
+            levels = [level_id for level_id in drawn if level_id[0] == named[0]]
+            if len(levels) > 1:
+                levels = [
+                    level_id for level_id in levels if any(level_id in self.outlines_containing(c) for c in sides)
+                ]
+            if len(levels) != 1:
+                raise ConventionGap(
+                    f"letter {label!r} at {cell}: {named[0]} has no single level at the mouth on its panel"
+                )
+            level_id = levels[0]
+            inner = [c for c in sides if level_id in self.outlines_containing(c)]
+            if len(inner) != 1:
+                raise ConventionGap(
+                    f"letter {label!r} at {cell}: {level_id}'s outline holds both or neither side of its mouth"
+                )
+            self.marked_mouths[(mouth_cell, side)] = (level_id, inner[0])
+            if other is not None:
+                self.marked_mouths[(other, OPPOSITE[side])] = (level_id, inner[0])
+            marking.append((label, cell, level_id, inner[0]))
+        self.letters = ordinary
+        for label, cell, level_id, inner in marking:
+            keys = [key for other in self.level_order if other[0] == level_id[0] for key in self.keys[other]]
+            entrance_keys = [key for key in keys if self.is_entrance_title(key)]
+            if any(p.key in entrance_keys and p.mouth is None for p in self.placed):
+                continue
+            key = next((key for key in keys if self.is_entrance_key(key)), None)
+            if key is None:
+                key = next((key for key in keys if self.has_entrance_title(key)), None)
+            if key is None:
+                continue
+            if key.level != level_id:
+                raise ConventionGap(f"letter {label!r} at {cell}: its dungeon's entrance key is on {key.level}")
+            self.placed.append(Placed(label, key, cell, cell, mouth=inner))
+
+    @staticmethod
+    def outline_levels(grid: Grid) -> list[LevelId]:
+        """The levels whose outlines are drawn on a panel."""
+        return [(outline.dungeon, outline.level) for outline in grid.panel.outlines]
+
     def place_letters(self) -> None:
         """Join each printed letter to the key that names it, or leave it as a label."""
         world = self.world
@@ -591,8 +680,7 @@ class Resolver:
                 if not containing:
                     continue
                 level_id = containing[0]
-            dungeon_name = self.dungeon_names[level_id[0]]
-            if label.lower() in [word.lower() for word in re.findall(r"[A-Za-z0-9']+", dungeon_name)]:
+            if label.lower() in dungeon_words(self.dungeon_names[level_id[0]]):
                 continue
             naming = [key for key in self.keys[level_id] if self.names_letter(key, label)]
             if not naming:
@@ -643,6 +731,10 @@ class Resolver:
             cell = placed.mark_cell
             letter = world.letter(cell)
             owner = self.owner.get(cell)
+            if placed.mouth is not None:
+                if letter not in ".~" or owner != level_id:
+                    placed.cell = placed.mouth
+                continue
             if placed.edge is not None:
                 edge_cell, side = placed.edge
                 outer = any((edge_cell, side) in opening.edges for opening in self.openings.get(level_id, []))

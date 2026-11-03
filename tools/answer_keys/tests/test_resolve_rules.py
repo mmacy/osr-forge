@@ -886,3 +886,186 @@ def test_an_area_takes_only_its_own_levels_floor():
     assert {"7,1", "10,3"} <= set(two.areas["2"].cells)
     assert all(int(cell.split(",")[0]) >= 6 for cell in two.areas["2"].cells)
     assert passages(one) == {("6,2", "east", 2, "6,2")} and passages(two) == {("6,2", "west", 1, "6,2")}
+
+
+LAIR_TUNNEL = [
+    "+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+",
+    "|#|#|. . . . .|#|#|",
+    "+-+-+ + + + + +-+-+",
+    "|#|#|. . . . .|#|#|",
+    "+-+-+-+-+d+-+-+-+-+",
+    "|#|#|#|#|.|#|#|#|#|",
+    "+-+-+-+-+ +-+-+-+-+",
+    "|#|#|#|#|.|#|#|#|#|",
+    "+-+-+-+-+ +-+-+-+-+",
+    "|#|#|#|#|.|#|#|#|#|",
+    "+-+-+-+-+ +-+-+-+-+",
+    "|#|. . . . . . .|#|",
+    "+-+ + + + + + + +-+",
+    "|#|. . . . . . .|#|",
+    "+-+-+-+-+-+-+-+-+-+",
+]
+"""A lair's den, a door, and a three-cell tunnel to a cave mouth on the tunnel's south end, with the outside below."""
+
+LAIR_CHAMBER = [
+    *LAIR_TUNNEL[:7],
+    "|#|#|#|. . .|#|#|#|",
+    "+-+-+-+ + + +-+-+-+",
+    "|#|#|#|. . .|#|#|#|",
+    "+-+-+-+ + + +-+-+-+",
+    "|#|#|#|. . .|#|#|#|",
+    *LAIR_TUNNEL[12:],
+]
+"""The same lair with a 3 by 3 chamber inside the mouth in place of the tunnel."""
+
+
+def lair_fixture(rows, marks):
+    """One dungeon, Lair A, whose only level has an unprinted Entrance and a den keyed 2, with a cave mouth on the
+    south edge of cell (4,5). Its outline stops above the outside floor in rows 6 and 7."""
+    survey_index = survey("lair-a", [(1, [("1", "Entrance"), ("2", "Den")])])
+    survey_index = survey_index.model_copy(
+        update={"dungeons": (survey_index.dungeons[0].model_copy(update={"name": "Lair A"}),)}
+    )
+    contents = {("lair-a", 1): content("lair-a", 1, [("1", "The way in.", []), ("2", "A den.", [])])}
+    outline = Outline(dungeon="lair-a", level=1, rects=((0, 0, 9, 6),), seeds=("3,1",))
+    mouth = Symbol(kind="cave_mouth", edge="4,5:south")
+    truth = document(
+        [region("p", 9, 8, symbols=("cave_mouth",))],
+        [panel("p", rows, marks, (outline,), (mouth,))],
+        survey_index,
+    )
+    return resolve_document(truth, survey_index, contents, mapread("lair-a", [1]))
+
+
+def placed_keys(level):
+    x0, y0 = level.panels[0].origin
+    return {(k.label, k.cell, k.area, k.moved) for k in level.keys}, (x0, y0)
+
+
+def test_a_dungeon_letter_beside_a_cave_mouth_prints_the_unprinted_entrance_key_inside_the_mouth():
+    """The letter A is a whole word of Lair A and stands two cells from the mouth, and the map prints no entrance key,
+    so the letter counts as the Entrance's print. Printed on the outside, the key moves just inside the mouth and takes
+    the tunnel it stands in, which the rule for an unprinted entrance key couldn't give it: the tunnel is an unlabelled
+    narrow run, so no outer opening led into unkeyed floor. The entrance stands on that cell."""
+    result = lair_fixture(LAIR_TUNNEL, [("2", "3,1", {}), ("A", "6,7", {})])
+    level = level_of(result, 1)
+    keys, (x0, y0) = placed_keys(level)
+    assert keys == {("2", f"{x0 + 3},{y0 + 1}", "2", False), ("A", f"{x0 + 4},{y0 + 5}", "1", True)}
+    assert set(level.areas["1"].cells) == {f"{x0 + 4},{y0 + y}" for y in (3, 4, 5)}
+    entrance = result.dungeons[0].entrance
+    assert entrance is not None and (entrance.level, entrance.cell) == (1, f"{x0 + 4},{y0 + 5}")
+
+
+def test_a_dungeon_letter_beside_a_cave_mouth_stays_a_label_when_the_entrance_key_is_printed():
+    """With the Entrance printed in the tunnel, the letter marks the mouth but prints nothing, so it is no placed key
+    and the printed key stays where it is."""
+    result = lair_fixture(LAIR_TUNNEL, [("1", "4,4", {}), ("2", "3,1", {}), ("A", "6,7", {})])
+    level = level_of(result, 1)
+    keys, (x0, y0) = placed_keys(level)
+    assert keys == {("1", f"{x0 + 4},{y0 + 4}", "1", False), ("2", f"{x0 + 3},{y0 + 1}", "2", False)}
+    assert set(level.areas["1"].cells) == {f"{x0 + 4},{y0 + y}" for y in (3, 4, 5)}
+
+
+@pytest.mark.parametrize(("cell", "printed"), [("6,7", True), ("7,7", False)])
+def test_a_dungeon_letter_more_than_two_cells_from_any_cave_mouth_stays_a_label(cell, printed):
+    """At (7,7) the letter is three cells from both of the mouth's cells, so it stays a label, and the unprinted
+    Entrance takes the chamber through the rule for an unprinted entrance key. At (6,7), two cells away, the same
+    letter is the Entrance's print, placed just inside the mouth, and the area is the same chamber."""
+    result = lair_fixture(LAIR_CHAMBER, [("2", "3,1", {}), ("A", cell, {})])
+    level = level_of(result, 1)
+    keys, (x0, y0) = placed_keys(level)
+    expected = {("2", f"{x0 + 3},{y0 + 1}", "2", False)}
+    if printed:
+        expected.add(("A", f"{x0 + 4},{y0 + 5}", "1", True))
+    assert keys == expected
+    assert set(level.areas["1"].cells) == {f"{x0 + x},{y0 + y}" for x in (3, 4, 5) for y in (3, 4, 5)}
+
+
+LAIR_BESIDE_CAVES = [
+    "+-+-+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+-+",
+    "|#|. . .|#|#|#|#|#|#|#|",
+    "+-+ + + +-+-+-+-+-+-+-+",
+    "|#|. . .|#|#|#|#|#|#|#|",
+    "+-+-+d+-+-+-+-+-+-+-+-+",
+    "|#|#|.|#|#|#|. . . .|#|",
+    "+-+-+ +-+-+-+ + + + +-+",
+    "|#|#|.|#|#|#|. . . .|#|",
+    "+-+-+ +-+-+-+ + + + +-+",
+    "|#|#|. . . . . . . .|#|",
+    "+-+-+ +-+-+-+-+-+-+-+-+",
+    "|#|. . . .|#|#|#|#|#|#|",
+    "+-+ + + + +-+-+-+-+-+-+",
+    "|#|. . . .|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+-+",
+]
+"""Lair A's den and tunnel in the west, ending at a cave mouth on the south edge of (2,5), and the caves' hall in the
+east, whose corridor runs west along row 5 to the tunnel's end. The outside lies below the mouth."""
+
+
+def test_a_dungeon_letter_takes_its_mouth_whose_inner_cell_another_levels_outline_covers():
+    """The caves' outline also covers the mouth's inner cell (2,5), and the caves' key reaches it first in the first
+    partition, so without the letter the mouth would be the caves'. The letter A, a word of Lair A only, marks the mouth
+    as the lair's, whose outline holds (2,5), and prints the lair's Entrance there, so the cell, its area, and the
+    entrance are the lair's and the cell is rock on the caves' level."""
+    dungeons = (("caves", "Caves", [("1", "Hall")]), ("lair-a", "Lair A", [("1", "Entrance"), ("2", "Den")]))
+    survey_index = SurveyIndex(
+        title="borderland",
+        hooks=(),
+        town=TownInfo(name="town", description=""),
+        dungeons=tuple(
+            SurveyDungeon(
+                id=dungeon,
+                name=name,
+                levels=(
+                    SurveyLevel(
+                        number=1,
+                        map_pages=(1,),
+                        areas=tuple(
+                            SurveyArea(key=key, name=title, kind="cave", source_pages=(1,)) for key, title in keys
+                        ),
+                    ),
+                ),
+            )
+            for dungeon, name, keys in dungeons
+        ),
+        monster_names=(),
+    )
+    contents = {
+        (dungeon, 1): content(dungeon, 1, [(key, "A cave.", []) for key, _title in keys])
+        for dungeon, _n, keys in dungeons
+    }
+    mapread_cache = MapReading(
+        map_reading="read",
+        levels=tuple(
+            MapLevelReading(dungeon_id=dungeon, level_number=1, map_pages=(1,), status="read")
+            for dungeon, _name, _keys in dungeons
+        ),
+    )
+    outlines = (
+        Outline(dungeon="caves", level=1, rects=((2, 5, 9, 1), (5, 0, 6, 6)), seeds=("7,4",)),
+        Outline(dungeon="lair-a", level=1, rects=((0, 0, 4, 5), (0, 5, 3, 1)), seeds=("1,1",)),
+    )
+    marks = [("1", "7,4", {}), ("2", "1,1", {}), ("A", "4,7", {})]
+    mouth = Symbol(kind="cave_mouth", edge="2,5:south")
+    truth = GeometryTruth(
+        pages=(Page(number=1, images=(PageImage(file="p.png"),)),),
+        regions=(region("p", 11, 8, symbols=("cave_mouth",)),),
+        panels=(panel("p", LAIR_BESIDE_CAVES, marks, outlines, (mouth,)),),
+        dungeons=tuple(
+            Dungeon(id=dungeon, name=name, levels=(Level(number=1, verdict="fallback", reason="x"),))
+            for dungeon, name, _keys in dungeons
+        ),
+    )
+    result = resolve_document(truth, survey_index, contents, mapread_cache)
+    lair, caves = result.level("lair-a", 1), result.level("caves", 1)
+    keys, (x0, y0) = placed_keys(lair)
+    assert ("A", f"{x0 + 2},{y0 + 5}", "1", True) in keys
+    assert f"{x0 + 2},{y0 + 5}" in lair.areas["1"].cells
+    entrance = next(dungeon for dungeon in result.dungeons if dungeon.id == "lair-a").entrance
+    assert entrance is not None and (entrance.level, entrance.cell) == (1, f"{x0 + 2},{y0 + 5}")
+    cx, cy = caves.panels[0].origin
+    assert caves.cells[cy + 5][cx + 2] == "#"
