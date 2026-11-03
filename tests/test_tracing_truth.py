@@ -366,7 +366,6 @@ def test_mark_on_a_door_names_the_edge_cell():
         Mark(text="7", cell="3,1", edge="2,1:east")
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: leader-floor")
 def test_a_leader_line_ends_on_floor_or_water():
     document = demo_truth().model_dump(mode="json")
     document["panels"][0]["marks"][0]["leader_to"] = "2,2"
