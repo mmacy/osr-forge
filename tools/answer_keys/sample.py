@@ -12,7 +12,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-__all__ = ["Reader", "Reading", "SampleCall", "SampleSet", "Verdict", "Verdicts", "verdicts_path"]
+__all__ = ["CROP_TYPES", "Reader", "Reading", "SampleCall", "SampleSet", "Verdict", "Verdicts", "verdicts_path"]
+
+CROP_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
+"""The content type of each crop extension, matched without regard to case."""
 
 Reader = Literal["claude", "classifier", "clef"]
 """The three readings an answer key settles between."""
@@ -42,11 +45,19 @@ class SampleCall(BaseModel):
     map: str = Field(min_length=1)
     """The map image the call is on, such as `p038.png`."""
 
+    panel: str = Field(min_length=1)
+    """The id of the panel the item is on, which tells apart several panels or levels drawn on one map."""
+
     style: str = Field(min_length=1)
     """The map style, such as `tsr_blue`."""
 
     kind: Literal["cell", "edge", "key_placement"]
     """What the call decided: a cell's letter, an edge's letter, or where a key is placed."""
+
+    category: Literal["cave", "diagonal", "key", "key_placement"]
+    """Which part of the sample the call was drawn from: an item in a cave, on a diagonal, or around a key, or a key
+    placement the settler decided. When the owner finds an error, every call of the same category on the same map
+    goes back for a full recheck."""
 
     item: str = Field(min_length=1)
     """The item in its panel's coordinates: a cell `x,y`, an edge `x,y:side`, or a key's label."""
@@ -75,6 +86,8 @@ class SampleCall(BaseModel):
         path = PurePosixPath(value)
         if not value or path.is_absolute() or ".." in path.parts or "\\" in value:
             raise ValueError(f"a crop path is relative to the sample file and stays beside it, not {value!r}")
+        if path.suffix.lower() not in CROP_TYPES:
+            raise ValueError(f"a crop is a PNG or JPEG image, not {value!r}")
         return value
 
 
@@ -100,6 +113,9 @@ class Verdict(BaseModel):
 
     call: str = Field(min_length=1)
     """The call's id."""
+
+    settled: str = Field(min_length=1)
+    """The settled value the owner judged, so a verdict can't silently carry over to a changed call."""
 
     verdict: Literal["right", "wrong", "unsure"]
     """Whether the settled value is right."""
