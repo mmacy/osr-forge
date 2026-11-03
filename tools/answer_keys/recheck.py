@@ -30,7 +30,7 @@ from .batches import BatchStore
 from .classify import cell_floor_shares
 from .keyspec import MapContext
 from .reader import READ_LETTERS
-from .readings import load_items
+from .readings import edge_cells, edge_key, load_items
 from .run import map_materials
 from .sample import SampleCall, SampleSet, Verdicts, verdicts_path
 from .samples import categorize, sample_calls
@@ -260,8 +260,9 @@ def submit_reask(ctx: MapContext, call_ids: list[str], client: Any, ledger: Any)
     return store.submit(client, ledger, f"recheck reask {ctx.key.id}", ids=[custom_id]), len(items)
 
 
-def cell_edge_items(ctx: MapContext) -> tuple[list[dict[str, Any]], set[str]]:
-    """The edges of every cell a recheck or a correction turned from rock into floor, as settling items.
+def cell_edge_items(ctx: MapContext) -> list[dict[str, Any]]:
+    """The edges of every cell a recheck or a correction turned from rock into floor, and every changed edge
+    between two floor cells, as settling items.
 
     The recheck asks cells and edges in one round, so its edge answers assume the cells' earlier letters, and an
     edge against a cell that was rock was never settled at all. The settling order applies settled cells before it
@@ -269,7 +270,7 @@ def cell_edge_items(ctx: MapContext) -> tuple[list[dict[str, Any]], set[str]]:
     cells, with their pixel counts.
 
     Returns:
-        The items, and the recheck jobs whose answers on those edges the new answers supersede.
+        The items, each with the recheck job that answered it before, if any, under `earlier_job`.
     """
     from .letters import final_cells
     from .settler import _describe_edge, _readings_text
@@ -281,50 +282,57 @@ def cell_edge_items(ctx: MapContext) -> tuple[list[dict[str, Any]], set[str]]:
     rechecked = _load_calls(ctx, "recheck")
     shares = _shares(ctx)
     out: list[dict[str, Any]] = []
-    supersedes: set[str] = set()
     seen: set[str] = set()
-    for name in changed_calls(ctx):
+    pairs: list[tuple[tuple[int, int], tuple[int, int], str]] = []
+    changed = changed_calls(ctx)
+    for name in changed:
         if not name.startswith("c:") or final[name]["value"] == "#":
             continue
         x, y = parse_cell(name[2:])
-        for other, edge in (
-            ((x - 1, y), f"{x},{y}:west"),
-            ((x + 1, y), f"{x + 1},{y}:west"),
-            ((x, y - 1), f"{x},{y}:north"),
-            ((x, y + 1), f"{x},{y + 1}:north"),
-        ):
-            ox, oy = other
-            if not (0 <= ox < width and 0 <= oy < height) or cells[oy][ox] == "#" or edge in seen:
-                continue
-            seen.add(edge)
-            item = _rebuild_item(ctx, items, f"e:{edge}") or {
-                "id": f"e:{edge}",
-                "kind": "edge",
-                "text": f"edge {edge}, {_describe_edge(edge)}: which letter? Readings: none.",
-                "readings": [],
-            }
-            for cx, cy in ((x, y), other):
-                item = with_reading(
-                    item,
-                    "the key's cells",
-                    f"cell {cx},{cy} is {'floor' if cells[cy][cx] == '.' else 'water'}, "
-                    f"{round(100 * float(shares[cy, cx]))}% floor by pixel count",
-                )
-            earlier = rechecked.get(f"e:{edge}")
-            if earlier is not None:
-                item = with_reading(
-                    item, "an earlier recheck", f"{earlier['value']}, given before the cells were settled"
-                )
-                supersedes.add(earlier["job"])
-            item["text"] = item["text"].split(" Readings:")[0] + f" Readings: {_readings_text(item['readings'])}."
-            out.append(item)
-    return out, supersedes
+        pairs += [
+            ((x, y), (x - 1, y), f"{x},{y}:west"),
+            ((x, y), (x + 1, y), f"{x + 1},{y}:west"),
+            ((x, y), (x, y - 1), f"{x},{y}:north"),
+            ((x, y), (x, y + 1), f"{x},{y + 1}:north"),
+        ]
+    # A changed edge between two floor cells too: the recheck asked it without the key's cell letters.
+    for name in changed:
+        if name.startswith("e:") and "before_owner" not in final[name]:
+            a, b = edge_cells(edge_key(name[2:]))
+            pairs.append((a, b, name[2:]))
+    for (x, y), other, edge in pairs:
+        ox, oy = other
+        if not (0 <= ox < width and 0 <= oy < height) or not (0 <= x < width and 0 <= y < height):
+            continue
+        if cells[oy][ox] == "#" or cells[y][x] == "#" or edge in seen:
+            continue
+        seen.add(edge)
+        item = _rebuild_item(ctx, items, f"e:{edge}") or {
+            "id": f"e:{edge}",
+            "kind": "edge",
+            "text": f"edge {edge}, {_describe_edge(edge)}: which letter? Readings: none.",
+            "readings": [],
+        }
+        for cx, cy in ((x, y), other):
+            item = with_reading(
+                item,
+                "the key's cells",
+                f"cell {cx},{cy} is {'floor' if cells[cy][cx] == '.' else 'water'}, "
+                f"{round(100 * float(shares[cy, cx]))}% floor by pixel count",
+            )
+        earlier = rechecked.get(f"e:{edge}")
+        if earlier is not None:
+            item = with_reading(item, "an earlier recheck", f"{earlier['value']}, given without the key's cell letters")
+            item["earlier_job"] = earlier["job"]
+        item["text"] = item["text"].split(" Readings:")[0] + f" Readings: {_readings_text(item['readings'])}."
+        out.append(item)
+    return out
 
 
 def submit_cell_edges(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | None, int]:
     """Send `cell_edge_items` in fresh recheck requests that supersede the earlier answers on those edges."""
     store = BatchStore(ctx.key.directory / "recheck")
-    items, supersedes = cell_edge_items(ctx)
+    items = cell_edge_items(ctx)
     asked = {
         item["id"]
         for custom_id in store.job_ids()
@@ -338,7 +346,8 @@ def submit_cell_edges(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | 
         batch = items[first : first + 8]
         custom_id = f"{ctx.key.id}__recheck__zedges{number:03d}"
         params = _request(ctx, batch, RECHECK_SYSTEM, SCHEMA, False)
-        store.add_job(custom_id, params, {"map": ctx.key.id, "items": batch, "supersedes": sorted(supersedes)})
+        supersedes = sorted({item["earlier_job"] for item in batch if item.get("earlier_job")})
+        store.add_job(custom_id, params, {"map": ctx.key.id, "items": batch, "supersedes": supersedes})
         ids.append(custom_id)
     if not ids:
         return None, 0
@@ -398,18 +407,19 @@ def changed_calls(ctx: MapContext) -> list[str]:
     return sorted(changed)
 
 
-def effective_changes(ctx: MapContext, names: list[str]) -> tuple[list[str], list[str]]:
+def effective_changes(ctx: MapContext, names: list[str]) -> tuple[dict[str, tuple[str, str]], list[str]]:
     """Split changed calls into those whose change reaches the assembled cells and edges and those it doesn't.
 
     An edge call between floor and rock is a wall in the key whatever the call says, so a recheck that changes
-    such a call's letter changes nothing the key records.
+    such a call's letter changes nothing the key records. A call that had no value before the recheck is compared
+    with what the readings gave.
 
     Args:
         ctx: The map.
         names: Changed call ids.
 
     Returns:
-        The calls whose change reaches the key, and the rest.
+        The key's letter before and after for each call whose change reaches the key, and the rest.
     """
     from .letters import final_cells, final_edges
 
@@ -417,24 +427,31 @@ def effective_changes(ctx: MapContext, names: list[str]) -> tuple[list[str], lis
     after = final_values(ctx)
     before = {name: dict(call) for name, call in after.items()}
     for name in names:
-        call = before[name]
-        call["value"] = call.get("before_recheck", call.get("before_owner"))
+        earlier = before[name].get("before_recheck", before[name].get("before_owner"))
+        if earlier is None:
+            del before[name]
+        else:
+            before[name]["value"] = earlier
     letters = {}
     for label, final in (("after", after), ("before", before)):
         cells = final_cells(items, final, {})
         letters[label] = (cells, final_edges(items, cells, final, {}))
-    reach, inert = [], []
+    reach: dict[str, tuple[str, str]] = {}
+    inert = []
     for name in names:
         kind, _, rest = name.partition(":")
         if kind == "c":
             x, y = parse_cell(rest)
-            differs = letters["after"][0][y][x] != letters["before"][0][y][x]
+            pair = (letters["before"][0][y][x], letters["after"][0][y][x])
         elif kind == "e":
             cell, side = parse_edge(rest)
-            differs = letters["after"][1].at(cell, side) != letters["before"][1].at(cell, side)
+            pair = (letters["before"][1].at(cell, side), letters["after"][1].at(cell, side))
         else:
-            differs = True
-        (reach if differs else inert).append(name)
+            pair = (str(before.get(name, {}).get("value")), str(after[name]["value"]))
+        if pair[0] != pair[1]:
+            reach[name] = pair
+        else:
+            inert.append(name)
     return reach, inert
 
 
@@ -456,16 +473,15 @@ def recheck_sample(contexts: list[MapContext], out: Path) -> dict[str, Any]:
     counts: dict[str, Any] = {}
     for ctx in contexts:
         reach, inert = effective_changes(ctx, changed_calls(ctx))
-        changed = set(reach)
         if inert:
             counts[f"{ctx.key.id} changed with no effect on the key"] = inert
         final = final_values(ctx)
         for call in sample_calls(ctx, ctx.key.member, ctx.spec.truth_style, every=True, fallback="key"):
             call_id = sample_call_id(call.id)[1]
-            if call_id not in changed:
+            if call_id not in reach:
                 continue
             entry = final[call_id]
-            before = entry.get("before_recheck", entry.get("before_owner"))
+            before = reach[call_id][0]
             source = "the owner's correction" if "before_owner" in entry else "the recheck"
             for attribute in ("zoom", "wide"):
                 target = out.parent / f"{ctx.key.id}__{getattr(call, attribute)}"
