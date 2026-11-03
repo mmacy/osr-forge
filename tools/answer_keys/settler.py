@@ -451,7 +451,14 @@ def slope_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]])
             outside = []
             if state is not None:
                 owned = state.owned.get(level_id, set())
-                outside = [f"{label} at {cell}" for label, cell in keys if parse_cell(cell) not in owned]
+                # A key the rectangle itself doesn't reach is the whole-map read's miss, not the line's.
+                outside = [
+                    f"{label} at {cell}"
+                    for label, cell in keys
+                    if parse_cell(cell) not in owned
+                    and x0 <= parse_cell(cell)[0] < x1
+                    and y0 <= parse_cell(cell)[1] < y1
+                ]
             if not outside or len(earlier) >= 3:
                 continue
             item_id = f"{base_id}#{len(earlier) + 1}"
