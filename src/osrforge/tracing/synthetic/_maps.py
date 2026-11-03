@@ -864,7 +864,10 @@ def watchtower() -> MapSpec:
 def mill() -> MapSpec:
     """One level drawn as two panels on two pages, joined by a ladder and by a grain slide.
 
-    The loft is on the first page and the ground floor on the second.
+    The loft is on the first page and the ground floor on the second. The map doesn't print the Entrance key, and
+    both outer openings lead into keyed floor, the hoist door into the loft and the ground floor's door into the
+    mill room, so the key takes the unlabelled porch behind the mill room's south door, as any other unprinted key
+    would.
     """
     loft = Sketch(14, 9)
     loft.room("loft", 0, 2, 7, 5).edge((0, 4), "west", "o").mark("1", (3, 4)).symbol("ladder", (5, 5), run="ns")
@@ -875,6 +878,7 @@ def mill() -> MapSpec:
     ground.room("mill", 2, 2, 7, 6).mark("3", (5, 4)).symbol("ladder", (7, 6), run="ns")
     ground.room("bins", 9, 2, 5, 4).edge((8, 3), "east", "d").mark("4", (11, 3))
     ground.room("office", 9, 6, 5, 3).edge((8, 7), "east", "d").mark("5", (11, 7))
+    ground.room("porch", 3, 8, 3, 2).edge((4, 7), "south", "d")
     ground.outline((0, 0, 16, 11))
     loft_plan, ground_plan = loft.build(), ground.build()
     legend: tuple[SymbolKind, ...] = ("ladder", "slide")
@@ -907,6 +911,12 @@ def mill() -> MapSpec:
         ),
         AreaSpec("4", "Grain bins", "The slide from the hopper empties into the bins."),
         AreaSpec("5", "Miller's office", "A ledger lies open on the desk."),
+        AreaSpec(
+            "6",
+            "Entrance",
+            "Sacks wait in the porch. A door opens north into the mill room.",
+            links=_ways(("3", "north", "door")),
+        ),
     )
     dungeon = DungeonSpec("the-mill", "The mill", (LevelSpec(1, areas, ("loft", "ground")),))
     return MapSpec(
@@ -916,7 +926,6 @@ def mill() -> MapSpec:
         dungeons=(dungeon,),
         regions=regions,
         panels=panels,
-        entrance_key="3",
     )
 
 
