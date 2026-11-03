@@ -1,7 +1,7 @@
 """The synthetic maps this generator draws: the TSR blue and black-and-white maps and the features they show.
 
 Each function returns one map's spec. The answers aren't here: they're worked
-out from each map's reading by [`resolve_dungeon`][osrforge.tracing.synthetic._resolve.resolve_dungeon].
+out from each map's reading by [`resolve_map`][osrforge.tracing.synthetic._resolve.resolve_map].
 Coordinates in a sketch are cells of its own grid, `(x, y)` from the north-west,
 in 5-foot squares for a 5-foot region. A damage site's level cell is on the
 level's grid, which adds a margin of one cell where a level's floor reaches
@@ -93,7 +93,7 @@ def crypt() -> MapSpec:
             "steps_inside_level",
             "corridor_off_frame",
         ),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(region,),
         panels=(panel,),
         damage=(
@@ -148,7 +148,7 @@ def warrens() -> MapSpec:
             "letter_suffix",
             "corridor_off_frame",
         ),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(region,),
         panels=(panel,),
         damage=(
@@ -196,7 +196,7 @@ def ravine_lair() -> MapSpec:
             "letter_lair_label_outside",
             "overlay_contours_tracks_stream",
         ),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(region,),
         panels=(panel,),
         damage=(
@@ -248,7 +248,7 @@ def cave_entrance() -> MapSpec:
         name="cave-entrance",
         title="The hollow hill",
         features=("entrance_chamber_in_cave_mouth_unprinted_key",),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(region,),
         panels=(panel,),
         damage=(DamageSite(change="key_moved", dungeon="the-hollow-hill", level=1, label="3", to_cell="13,5"),),
@@ -325,7 +325,7 @@ def old_stair() -> MapSpec:
             "two_staircases_one_link",
             "wide_open_stairway_only_way_in",
         ),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=regions,
         panels=panels,
         damage=(
@@ -381,7 +381,7 @@ def farmstead() -> MapSpec:
             "windows",
             "overlay_contours_tracks_stream",
         ),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(region,),
         panels=(panel,),
         damage=(
@@ -421,7 +421,7 @@ def manor() -> MapSpec:
         name="manor",
         title="Greywall manor",
         features=("walled_courtyard", "gateway_no_door_between_towers", "windows"),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(region,),
         panels=(panel,),
         damage=(
@@ -464,7 +464,7 @@ def fold_joined() -> MapSpec:
         name="fold-joined",
         title="The fold, joined",
         features=("corridor_off_frame",),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(west, east),
         panels=(panel,),
         half_pairs=(HalfPair(regions=("west", "east"), joined=True, rows=0, columns=0),),
@@ -482,7 +482,7 @@ def fold_apart() -> MapSpec:
         name="fold-apart",
         title="The fold, apart",
         features=("corridor_off_frame",),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(west, east),
         panels=panels,
         half_pairs=(HalfPair(regions=("west", "east"), joined=False, rows=0),),
@@ -569,7 +569,7 @@ def undercroft() -> MapSpec:
             "passage_at_floor_edge",
             "corridor_off_frame",
         ),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(region,),
         panels=(panel,),
     )
@@ -630,7 +630,7 @@ def sunken_vaults() -> MapSpec:
         name="sunken-vaults",
         title="The sunken vaults",
         features=("several_levels_one_page", "levels_meet_at_locked_secret_door", "door_no_vestibule_fits"),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(region,),
         panels=(panel,),
     )
@@ -709,7 +709,7 @@ def gatehouse_joined() -> MapSpec:
         name="gatehouse-joined",
         title="The gatehouse, joined",
         features=("halves_joined_at_offset", *_GATE_FEATURES),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(west, east),
         panels=(panel,),
         half_pairs=(HalfPair(regions=("gate-west", "gate-east"), joined=True, rows=0, columns=1),),
@@ -736,7 +736,7 @@ def gatehouse_apart() -> MapSpec:
             "halves_apart_stretch_without_partner",
             *_GATE_FEATURES,
         ),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=(west, east),
         panels=panels,
         half_pairs=(HalfPair(regions=("gate-west", "gate-east"), joined=False, rows=0),),
@@ -804,7 +804,7 @@ def watchtower() -> MapSpec:
         name="watchtower",
         title="The watchtower",
         features=("panels_two_scales_one_page", "panels_trapdoor", "corridor_off_frame"),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=regions,
         panels=panels,
     )
@@ -862,7 +862,7 @@ def mill() -> MapSpec:
         name="mill",
         title="The mill",
         features=("panels_two_pages_ladder", "panels_slide", "corridor_off_frame"),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=regions,
         panels=panels,
         entrance_key="3",
@@ -905,7 +905,7 @@ def shrine() -> MapSpec:
         name="shrine",
         title="The shrine of the drowned",
         features=("inset", "corridor_off_frame"),
-        dungeon=dungeon,
+        dungeons=(dungeon,),
         regions=regions,
         panels=panels,
     )
