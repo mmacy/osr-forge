@@ -78,6 +78,9 @@ _MAX_BACKOFF_SECONDS = 30.0
 _RETRIED_STATUSES = frozenset({408, 409, 429})
 """The 4xx statuses the provider retries besides 413; it retries every 5xx too."""
 
+_REFUSED_STATUSES = frozenset({401, 403, 413, 429})
+"""The statuses for which the service runs no model, so a request that got only these costs nothing."""
+
 _TIMEOUT_SECONDS = 120.0
 
 _SERVICE_MESSAGE_CHARS = 500
@@ -346,13 +349,20 @@ class ClefProvider:
         """
         body, image_format = encode_request(request)
         reservation = self._reserve(estimate_cost(request))
+        statuses: list[int | None] = []
         try:
-            answer = self._send(request, body)
+            answer = self._send(request, body, statuses)
             response, output_tokens = _response(request, answer, image_format, hashlib.sha256(body).hexdigest())
         except BaseException as error:
-            # Sending was attempted, and no answer says what it cost, so the estimate stays on the ledger.
+            # No answer says what it cost. The service ran no model when it refused every attempt, so that costs
+            # nothing. Any other ending, a lost connection or a 5xx included, may have run one and keeps the estimate.
+            refused = (
+                isinstance(error, ProviderError)
+                and bool(statuses)
+                and all(status in _REFUSED_STATUSES for status in statuses)
+            )
             try:
-                self._ledger.settle(reservation, reservation.usd)
+                self._ledger.settle(reservation, 0.0 if refused else reservation.usd)
             except Exception as settle_error:
                 error.add_note(
                     f"settling its ledger reservation failed too, so the entry stays pending: {settle_error}"
@@ -377,8 +387,11 @@ class ClefProvider:
             entry = self._entry
         return self._ledger.reserve(entry, usd)
 
-    def _send(self, request: DecisionRequest, body: bytes) -> bytes:
-        """POST the body under the transport policy and return the 200 answer's bytes."""
+    def _send(self, request: DecisionRequest, body: bytes, statuses: list[int | None]) -> bytes:
+        """POST the body under the transport policy and return the 200 answer's bytes.
+
+        Appends each attempt's status to `statuses`, or `None` for an attempt that lost its connection.
+        """
         url = ENDPOINT.format(account_id=self.settings.account_id, model=request.model)
         headers = {
             "Authorization": f"Bearer {self.settings.token.get_secret_value()}",
@@ -395,8 +408,10 @@ class ClefProvider:
             except OSError as error:
                 last_error = error
                 failure = f"the connection failed: {error}"
+                statuses.append(None)
                 continue
             last_error = None
+            statuses.append(status)
             if status == 200:
                 return answer
             failure = self._describe(request, status, body, answer)
