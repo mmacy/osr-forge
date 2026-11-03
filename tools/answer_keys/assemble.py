@@ -419,6 +419,11 @@ def map_figures(key: KeySpec) -> dict[str, Any]:
         rows = [json.loads(line) for line in clef.read_text().splitlines() if line.strip()]
         figures["clef_requests"] = len(rows)
         figures["clef_usd"] = round(sum(row["cost_usd"] for row in rows), 6)
+        readers = sorted({row.get("model", "hosted clef on Workers AI") for row in rows})
+        figures["clef_reader"] = ", ".join(readers)
+    hosted = key.directory / "clef" / "answers-hosted.jsonl"
+    if hosted.exists():
+        figures["clef_hosted_record"] = sum(1 for line in hosted.read_text().splitlines() if line.strip())
     items_file = key.directory / "items.json"
     if items_file.exists():
         items = json.loads(items_file.read_text())
@@ -448,16 +453,26 @@ def write_provenance(keys: list[KeySpec], out: Path, cases: list[str], resolved:
     figures = [map_figures(key) for key in keys]
     claude = round(sum(f["claude_usd"] for f in figures), 4)
     clef = round(sum(f.get("clef_usd", 0.0) for f in figures), 4)
-    clef_read = [f["map"] for f in figures if f.get("clef_requests")]
+    by_reader: dict[str, list[str]] = {}
+    for f in figures:
+        if f.get("clef_requests"):
+            by_reader.setdefault(f["clef_reader"], []).append(f["map"])
     clef_unread = [f["map"] for f in figures if not f.get("clef_requests")]
+    parts = [
+        f"{reader} answered the edges of {', '.join(maps)} as a third reading"
+        for reader, maps in sorted(by_reader.items())
+    ]
     if clef_unread:
-        clef_text = (
-            f"Clef on Workers AI answered the edges of {', '.join(clef_read) or 'no map'} as a third reading, and "
-            f"none of {', '.join(clef_unread)}, whose readers were the two alone; its answers can be added later "
-            "with one more settling round."
+        parts.append(
+            f"no Clef read {', '.join(clef_unread)}, whose readers were the two alone; its answers can be added later "
+            "with one more settling round"
         )
-    else:
-        clef_text = "Clef on Workers AI answered every edge that touches floor as a third reading."
+    hosted_record = [f["map"] for f in figures if f.get("clef_hosted_record")]
+    if hosted_record:
+        parts.append(
+            f"hosted Clef's earlier answers on {', '.join(hosted_record)} are kept as a record beside the key's"
+        )
+    clef_text = "; ".join(parts) + "." if parts else "No Clef reading."
     lines = [
         "# The provenance of geometry.json beside this file. Written by tools/answer_keys/assemble.py.",
         f'authored: "{date.today().isoformat()}"',
