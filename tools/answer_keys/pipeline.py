@@ -145,8 +145,11 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
             print(f"{key.id}: {stage} {counts}")
             if counts.get("retries"):
-                batch = store.submit(api, book, f"{stage} {key.id} retries")
-                print(f"{key.id}: retry batch {batch}")
+                # A retry may belong to the adversarial store or, for a re-settling, to the resettle store.
+                for retry_store in (store, BatchStore(key.directory / "resettle")):
+                    batch = retry_store.submit(api, book, f"{stage} {key.id} retries")
+                    if batch is not None:
+                        print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: {stage} spent ${store.spent():.4f}")
     elif stage == "recheck":
         from .recheck import collect_recheck, submit_recheck
