@@ -318,10 +318,12 @@ class ClefProvider:
         [`estimate_cost`][osrforge.providers.clef.estimate_cost] against it
         before sending and settles at
         [`cost_usd`][osrforge.providers.clef.cost_usd] of the usage's input
-        and output tokens after. A request whose sending was attempted is
-        settled at its estimate when no answer it can read arrives, also when no attempt
-        reached the service, so the ledger errs toward overcharging. If a
-        settle fails, the entry stays pending at the estimate. The POST goes
+        and output tokens after. A request that ends with no answer it can
+        read is settled at zero when every attempt got 401, 403, 413, or 429,
+        because the service runs no model for those, and at its estimate
+        otherwise, also when no attempt reached the service, so the ledger
+        errs toward overcharging. Either way the entry counts the request.
+        If a settle fails, the entry stays pending at the estimate. The POST goes
         to [`ENDPOINT`][osrforge.providers.clef.ENDPOINT] with an
         `Authorization: Bearer` header and a JSON content type, and the
         answer is read from the envelope's `result`: its `model`, the one
