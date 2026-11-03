@@ -12,7 +12,9 @@ style, kind, category, and item, each reading, the settled value, the adversaria
 reason. It starts at the first call with no verdict, so the owner can stop and come back. Pressing `r` records the
 call as right, `w` as wrong, and `u` as unsure, and moves to the next call. The left and right arrow keys move
 between calls without recording anything, and `n` opens a note that the next verdict on that call records with
-it. The page shows how many calls have a verdict. Its words are in sentence case.
+it. Closing the note with Enter or Escape on a call that already has a verdict records that verdict again with the
+note, so a note added afterwards is saved, and the page says so. The page shows how many calls have a verdict. Its
+words are in sentence case.
 
 The server is a WSGI application from the standard library. Every request whose `Host` header names a host other
 than `127.0.0.1` or `localhost`, on any port, is a 403, so a page that points its own hostname at this machine
