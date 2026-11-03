@@ -71,8 +71,9 @@ is documented in [the workdir and artifacts](../reference/workdir-artifacts.md).
   and [`DecisionProvider`][osrforge.providers.decisions.DecisionProvider]
   protocols. The Azure AI Foundry specifics live in
   [`osrforge.providers.foundry`][], the `anthropic` library in
-  [`osrforge.providers.claude`][], and the Workers AI endpoint in
-  [`osrforge.providers.clef`][], and nowhere else. Tests run on
+  [`osrforge.providers.claude`][], the Workers AI endpoint in
+  [`osrforge.providers.clef`][], and a local System One server's endpoint in
+  [`osrforge.providers.clef_local`][], and nowhere else. Tests run on
   [`FixtureProvider`][osrforge.providers.fixtures.FixtureProvider] and on
   the tracing providers' recordings. See [testing](testing.md).
 
