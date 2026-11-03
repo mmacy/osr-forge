@@ -501,7 +501,7 @@ TWO_ROOMS = [
 """Two rooms on one panel with rock between them, one on each of two levels, and no symbol anywhere."""
 
 
-def two_rooms_fixture(via):
+def two_rooms_fixture(via, symbols=()):
     survey_index = survey("k", [(1, [("1", "Upper")]), (2, [("2", "Lower")])])
     contents = {
         ("k", 1): content("k", 1, [("1", "Upper.", [{"to_key": "2", "direction": "down", "via": via}])]),
@@ -512,7 +512,9 @@ def two_rooms_fixture(via):
         Outline(dungeon="k", level=2, rects=((3, 0, 4, 4),), seeds=("4,1",)),
     )
     truth = document(
-        [region("p", 7, 4)], [panel("p", TWO_ROOMS, [("1", "1,1", {}), ("2", "4,1", {})], outlines)], survey_index
+        [region("p", 7, 4)],
+        [panel("p", TWO_ROOMS, [("1", "1,1", {}), ("2", "4,1", {})], outlines, symbols)],
+        survey_index,
     )
     return resolve_document(truth, survey_index, contents, mapread("k", [1, 2]))
 
@@ -526,6 +528,35 @@ def test_a_link_by_a_door_to_another_level_makes_no_transition():
     by_stairs = two_rooms_fixture("stairs")
     assert transitions(level_of(by_stairs, 1)) == {("1,1", "stairs_down", 2, "4,1")}
     assert transitions(level_of(by_stairs, 2)) == {("4,1", "stairs_up", 1, "1,1")}
+
+
+def test_a_link_with_no_means_takes_the_means_of_the_one_kind_of_symbol_beside_its_area():
+    """The prose names no means (its `via` is `passage`), and the only link symbol beside the upper room is a stair,
+    so the link is by stairs: it stands on the stair, going down, and its other end lands on the lower room's first
+    cell, since the lower level has no stair."""
+    result = two_rooms_fixture("passage", (Symbol(kind="stairs", cells=("2,2",), direction="down"),))
+    assert transitions(level_of(result, 1)) == {("2,2", "stairs_down", 2, "4,1")}
+    assert transitions(level_of(result, 2)) == {("4,1", "stairs_up", 1, "2,2")}
+
+
+def test_a_link_with_no_means_and_no_symbol_makes_no_transition():
+    """The prose names no means and no link symbol touches or adjoins the upper room, so the link makes no
+    transition. The same reading by stairs makes one, so this is the rule and not an absence of links."""
+    result = two_rooms_fixture("passage")
+    assert level_of(result, 1).transitions == () and level_of(result, 2).transitions == ()
+    by_stairs = two_rooms_fixture("stairs")
+    assert transitions(level_of(by_stairs, 1)) == {("1,1", "stairs_down", 2, "4,1")}
+
+
+def test_a_link_with_no_means_and_symbols_of_two_means_makes_no_transition():
+    """The prose names no means, and a stair and a trapdoor both touch the upper room, so the link makes no
+    transition. With the trapdoor named in the prose instead, the link is by trapdoor and stands on it."""
+    symbols = (Symbol(kind="stairs", cells=("2,2",), direction="down"), Symbol(kind="trapdoor", cells=("1,2",)))
+    result = two_rooms_fixture("passage", symbols)
+    assert level_of(result, 1).transitions == () and level_of(result, 2).transitions == ()
+    by_trapdoor = two_rooms_fixture("trapdoor", symbols)
+    assert transitions(level_of(by_trapdoor, 1)) == {("1,2", "trapdoor", 2, "4,1")}
+    assert level_of(by_trapdoor, 2).transitions == ()
 
 
 YARD = [

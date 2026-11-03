@@ -1497,9 +1497,9 @@ class Resolver:
                         continue
                     if self.passages_make(level_id, area.key, target_level, target_key):
                         continue
-                    if connection.via not in LINK_VIAS:
+                    means = self.link_means(level_id, area.key, connection.via)
+                    if means is None:
                         continue
-                    means = LINK_VIAS[connection.via]
                     identity = (frozenset({(level_id, area.key), (target_level, target_key)}), means)
                     ends = ((level_id, area.key), (target_level, target_key))
                     if ends not in stated.setdefault(identity, []):
@@ -1509,6 +1509,35 @@ class Resolver:
             if means != "stairs" and len(directions) > 1 and self.link_start(target_end) < self.link_start(start):
                 start, target_end = target_end, start
             self.realize_link(Link(start, target_end, means))
+
+    def link_means(self, level_id: LevelId, key: str, via: str) -> LinkMeans | None:
+        """A link's means: the prose's, or, when the prose names none, that of the link symbols beside its area.
+
+        A connection whose `via` is `passage` names no means. It takes the means of the stair, ladder, trapdoor,
+        hinged-floor, chute, and slide symbols that touch or adjoin its area when they are all of one means. With no
+        such symbol, symbols of more than one means, or any other means the prose names, the link makes no transition.
+        """
+        if via in LINK_VIAS:
+            return LINK_VIAS[via]
+        if via != "passage":
+            return None
+        beside = self.symbol_kinds_beside(level_id, key)
+        found: list[LinkMeans] = [means for means, kinds in MEANS_SYMBOLS.items() if beside & set(kinds)]
+        return found[0] if len(found) == 1 else None
+
+    def symbol_kinds_beside(self, level_id: LevelId, key: str) -> set[str]:
+        """The kinds of the link symbols with a cell in an area or a cell that shares an edge with one."""
+        world = self.world
+        area = self.area_of(level_id, key)
+        kinds: set[str] = set()
+        for grid in self.levels[level_id].grids:
+            for symbol in grid.panel.symbols:
+                if symbol.kind not in LINK_SYMBOLS:
+                    continue
+                cells = [(grid.id, *parse_cell(text)) for text in symbol.cells]
+                if any(c in area or any(world.across(c, s) in area for s in SIDES) for c in cells):
+                    kinds.add(symbol.kind)
+        return kinds
 
     def link_start(self, end: tuple[LevelId, str]) -> tuple[int, tuple[int, int, int]]:
         """Where a link stated from both ends starts: the level above, else the area first in survey order."""
