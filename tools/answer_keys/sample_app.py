@@ -12,7 +12,9 @@ style, kind, category, and item, each reading, the settled value, the adversaria
 reason. It starts at the first call with no verdict, so the owner can stop and come back. Pressing `r` records the
 call as right, `w` as wrong, and `u` as unsure, and moves to the next call. The left and right arrow keys move
 between calls without recording anything, and `n` opens a note that the next verdict on that call records with
-it. The page shows how many calls have a verdict. Its words are in sentence case.
+it. Closing the note with Enter or Escape on a call that already has a verdict records that verdict again with the
+note, so a note added afterwards is saved, and the page says so. The page shows how many calls have a verdict. Its
+words are in sentence case.
 
 The server is a WSGI application from the standard library. Every request whose `Host` header names a host other
 than `127.0.0.1` or `localhost`, on any port, is a 403, so a page that points its own hostname at this machine
@@ -329,7 +331,7 @@ textarea[hidden] { display: none; }
       <button type="button" id="next">Next<kbd>&rarr;</kbd></button>
     </div>
     <textarea id="note" rows="3" hidden aria-label="Note"
-      placeholder="Note for this call's next verdict. Press Enter when done."></textarea>
+      placeholder="Note for this call's verdict. Press Enter when done."></textarea>
     <div id="message" role="status"></div>
   </section>
 </main>
@@ -413,6 +415,17 @@ function openNote() {
   $("note").focus();
 }
 
+async function send(call, verdict, note) {
+  const response = await fetch("/api/verdict", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ call: call.id, settled: call.settled, verdict: verdict, note: note }),
+  });
+  if (!response.ok) throw new Error("The server answered " + response.status + ".");
+  await response.json();
+  state.verdicts.set(call.id, { call: call.id, settled: call.settled, verdict: verdict, note: note });
+}
+
 async function record(verdict) {
   if (state.busy) return;
   state.busy = true;
@@ -420,14 +433,7 @@ async function record(verdict) {
   const call = state.calls[recordedAt];
   const note = state.notes.get(call.id) || "";
   try {
-    const response = await fetch("/api/verdict", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ call: call.id, settled: call.settled, verdict: verdict, note: note }),
-    });
-    if (!response.ok) throw new Error("The server answered " + response.status + ".");
-    await response.json();
-    state.verdicts.set(call.id, { call: call.id, settled: call.settled, verdict: verdict, note: note });
+    await send(call, verdict, note);
     if (recordedAt + 1 < state.calls.length) {
       state.index = recordedAt + 1;
       say("Recorded " + verdict + " on " + call.item + ".", false);
@@ -442,6 +448,27 @@ async function record(verdict) {
   }
 }
 
+// A call that already has a verdict keeps a changed note only if that verdict is recorded again with it.
+async function saveNote() {
+  const call = state.calls[state.index];
+  const verdict = state.verdicts.get(call.id);
+  const note = state.notes.get(call.id) || "";
+  if (!verdict || verdict.note === note) return;
+  if (state.busy) {
+    say("Note not saved. A verdict is still being recorded; close the note again.", true);
+    return;
+  }
+  state.busy = true;
+  try {
+    await send(call, verdict.verdict, note);
+    say("Saved the note with " + verdict.verdict + " on " + call.item + ".", false);
+  } catch (error) {
+    say("Note not saved. " + error.message, true);
+  } finally {
+    state.busy = false;
+  }
+}
+
 document.addEventListener("keydown", (event) => {
   if (event.ctrlKey || event.metaKey || event.altKey || state.calls.length === 0) return;
   if (event.target === $("note")) {
@@ -449,6 +476,7 @@ document.addEventListener("keydown", (event) => {
       event.preventDefault();
       $("note").blur();
       render();
+      saveNote();
     }
     return;
   }

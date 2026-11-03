@@ -177,13 +177,13 @@
      "transitions": [
       {
        "cell": "12,12",
-       "kind": "stairs_down",
+       "kind": "stairs_up",
        "to_cell": "10,3",
        "to_level": 2
       },
       {
        "cell": "6,13",
-       "kind": "stairs_down",
+       "kind": "stairs_up",
        "to_cell": "2,4",
        "to_level": 2
       }
@@ -327,13 +327,13 @@
      "transitions": [
       {
        "cell": "10,3",
-       "kind": "stairs_up",
+       "kind": "stairs_down",
        "to_cell": "12,12",
        "to_level": 1
       },
       {
        "cell": "2,4",
-       "kind": "stairs_up",
+       "kind": "stairs_down",
        "to_cell": "6,13",
        "to_level": 1
       }
@@ -479,7 +479,6 @@
       "6,11",
       "6,12"
      ],
-     "direction": "down",
      "kind": "stairs"
     },
     {
@@ -487,7 +486,6 @@
       "12,11",
       "12,12"
      ],
-     "direction": "down",
      "kind": "stairs"
     }
    ]
@@ -579,6 +577,7 @@
       "2,3",
       "2,4"
      ],
+     "direction": "down",
      "kind": "stairs"
     },
     {
@@ -586,7 +585,14 @@
       "10,3",
       "10,4"
      ],
+     "direction": "down",
      "kind": "stairs"
+    },
+    {
+     "cells": [
+      "8,6"
+     ],
+     "kind": "trapdoor"
     }
    ]
   }
@@ -1923,7 +1929,8 @@
    "legend": {
     "printed": true,
     "symbols": [
-     "stairs"
+     "stairs",
+     "trapdoor"
     ]
    },
    "page": 2,

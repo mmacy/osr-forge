@@ -8,7 +8,7 @@ other edge letters, a space for an open edge, and `.`, `#`, or `~` for a cell. A
 from typing import Literal
 
 import pytest
-from tools.answer_keys.resolve import Resolver, reading_of
+from tools.answer_keys.resolve import ConventionGap, Resolver, reading_of
 
 from osrforge.contracts.stages import (
     AreaConnection,
@@ -633,6 +633,64 @@ def test_a_level_only_link_with_no_symbol_of_its_means_lands_on_the_first_area()
     assert transitions(level_of(result, 2)) == {("4,1", "stairs_up", 1, "1,1")}
 
 
+GATEHOUSE = [
+    "+-+-+-+-+-+",
+    "|#|#|#|#|#|",
+    "+-+-+-+-+-+",
+    "|. . . .|#|",
+    "+ + + + +-+",
+    " . . . .|#|",
+    "+ + + + +-+",
+    "|. . . .|#|",
+    "+-+d+-+-+-+",
+    "|. . . .|#|",
+    "+ + + + +-+",
+    " . . . .|#|",
+    "+-+-+-+-+-+",
+    "|#|#|#|#|#|",
+    "+-+-+-+-+-+",
+]
+"""A hall above a lower room, joined by a door, each running off the map's west frame: the hall in row 2, nearer the
+hall's first cell, and the lower room in row 5."""
+
+
+def gatehouse_fixture(lower_key):
+    lower = [("3", "Guard room")] if lower_key else []
+    survey_index = survey("g", [(1, [("1", "Hall"), ("2", "Entrance"), *lower])])
+    areas = [
+        ("1", "A hall.", [{"to_key": "2", "direction": "south", "via": "door"}]),
+        ("2", "The way in.", [{"to_key": "1", "direction": "north", "via": "door"}]),
+    ]
+    marks = [("1", "2,2", {})]
+    if lower_key:
+        areas.append(("3", "A guard room.", []))
+        marks.append(("3", "2,4", {}))
+    contents = {("g", 1): content("g", 1, areas)}
+    outline = Outline(dungeon="g", level=1, rects=((0, 0, 5, 7),), seeds=("2,2",))
+    truth = document([region("p", 5, 7)], [panel("p", GATEHOUSE, marks, (outline,))], survey_index)
+    return truth, survey_index, contents
+
+
+def test_an_unprinted_entrance_key_takes_the_nearest_opening_into_unkeyed_floor():
+    """The unprinted key titled Entrance connects to area 1. The hall's own opening is nearer area 1's first cell, but
+    it leads into area 1, a keyed area, so the key takes the unkeyed floor of the lower room's opening, up to the
+    door."""
+    truth, survey_index, contents = gatehouse_fixture(lower_key=False)
+    result = resolve_document(truth, survey_index, contents, mapread("g", [1]))
+    level = level_of(result, 1)
+    x0, y0 = level.panels[0].origin
+    assert set(level.areas["1"].cells) == {f"{x0 + x},{y0 + y}" for x in range(4) for y in (1, 2, 3)}
+    assert set(level.areas["2"].cells) == {f"{x0 + x},{y0 + y}" for x in range(4) for y in (4, 5)}
+
+
+def test_an_unprinted_entrance_key_with_no_opening_into_unkeyed_floor_is_a_convention_gap():
+    """With key 3 printed in the lower room, both openings lead into keyed areas. The conventions give the key no floor
+    in that case and send it to no other rule, so the script stops."""
+    truth, survey_index, contents = gatehouse_fixture(lower_key=True)
+    with pytest.raises(ConventionGap, match="no outer opening leads into unkeyed floor"):
+        resolve_document(truth, survey_index, contents, mapread("g", [1]))
+
+
 YARD = [
     "+ + + + + + + + + + + + +",
     " . . . . . . . . . . . . ",
@@ -678,7 +736,7 @@ def test_keys_on_open_ground_on_an_inner_door_and_footings_across_water():
     assert level.cells[7][5] == "." and level.cells[7][4] == "~"
 
 
-@pytest.mark.parametrize("rows", [TWO_LEVELS, VESTIBULE, UNPRINTED, YARD])
+@pytest.mark.parametrize("rows", [TWO_LEVELS, VESTIBULE, UNPRINTED, GATEHOUSE, YARD])
 def test_pictures_parse_to_consistent_panels(rows):
     cells, edges = picture(rows)
     assert len(cells) == edges.height and len(cells[0]) == edges.width

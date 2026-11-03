@@ -207,7 +207,12 @@ def ravine_lair() -> MapSpec:
 
 
 def cave_entrance() -> MapSpec:
-    """A cave whose entrance chamber lies inside a cave mouth, under a key the map doesn't print."""
+    """A cave whose entrance chamber lies inside a cave mouth, under a key the map doesn't print.
+
+    A breach in the vault's east wall runs off the map, an outer opening nearer the hall than the cave mouth. It
+    leads into the keyed vault, so the entrance key takes the floor inside the cave mouth, the nearest opening
+    into unkeyed floor.
+    """
     sketch = Sketch(22, 13)
     sketch.room("hillside", 0, 0, 3, 13)
     for y in range(13):
@@ -219,6 +224,7 @@ def cave_entrance() -> MapSpec:
     sketch.run("p", (8, 6), (11, 6)).edge((7, 6), "east", "d").edge((11, 6), "east", "d")
     sketch.room("r2", 12, 4, 5, 5).mark("2", (14, 6))
     sketch.room("r3", 17, 4, 4, 5).edge((16, 6), "east", "l").mark("3", (19, 6))
+    sketch.run("r3", (21, 6)).edge((21, 6), "east", "o")
     sketch.room("r4", 17, 9, 4, 3).edge((19, 8), "south", "s").mark("4", (18, 10))
     sketch.outline((3, 0, 19, 13))
     sketch.ornament("track", (0.1, 9.6), (1.2, 8.4), (2.2, 6.6), (2.9, 6.5))
@@ -234,7 +240,7 @@ def cave_entrance() -> MapSpec:
             (AreaConnection(to_key="2", direction="east", via="door"),),
         ),
         AreaSpec("2", "Hall", "A rough hall with a locked door in its east wall."),
-        AreaSpec("3", "Vault", "Empty racks line the vault."),
+        AreaSpec("3", "Vault", "Empty racks line the vault. A breach in the east wall opens on the slope behind."),
         AreaSpec("4", "Hidden room", "Dust lies thick on a stone chest."),
     )
     dungeon = DungeonSpec("the-hollow-hill", "The hollow hill", (LevelSpec(1, areas, ("cave-entrance",)),))
@@ -250,26 +256,40 @@ def cave_entrance() -> MapSpec:
 
 
 def old_stair() -> MapSpec:
-    """Two levels on two pages: a wide stairway as the only way in, and two staircases serving one link."""
+    """Two levels on two pages: a wide stairway as the only way in, and two staircases serving one link.
+
+    The second level lies above the first. The only prose for the stairs is the upper hall's, which says they go
+    down, and the conventions follow it over the levels' numbers. That connection names no means, and a trapdoor
+    beside the hall records no direction, so only the hall's stairs, which record the way down, decide its means.
+    """
     upper = Sketch(20, 14)
     upper.room("h", 8, 0, 3, 2).room("h", 5, 2, 9, 5).mark("1", (9, 4))
     upper.edges("o", ((8, 0), "north"), ((9, 0), "north"), ((10, 0), "north"))
     upper.symbol("stairs", (8, 0), (9, 0), (10, 0), (8, 1), (9, 1), (10, 1), direction="up", run="ns")
     upper.run("c", (9, 7), (9, 9)).edge((9, 6), "south", "d").edge((9, 9), "south", "d")
     upper.room("r2", 6, 10, 7, 3).mark("2", (9, 11))
-    upper.symbol("stairs", (6, 11), (6, 12), direction="down", run="ns")
-    upper.symbol("stairs", (12, 11), (12, 12), direction="down", run="ns")
+    upper.symbol("stairs", (6, 11), (6, 12), run="ns")
+    upper.symbol("stairs", (12, 11), (12, 12), run="ns")
     upper.outline((0, 0, 20, 14))
     lower = Sketch(16, 10)
     lower.room("r3", 2, 2, 9, 5).water(5, 5, 3, 2).mark("3", (6, 3))
-    lower.symbol("stairs", (2, 3), (2, 4), run="ns")
-    lower.symbol("stairs", (10, 3), (10, 4), run="ns")
+    lower.symbol("stairs", (2, 3), (2, 4), direction="down", run="ns")
+    lower.symbol("stairs", (10, 3), (10, 4), direction="down", run="ns")
+    lower.symbol("trapdoor", (8, 6))
     lower.room("r4", 11, 2, 3, 5).edge((10, 5), "east", "d").mark("4", (12, 4))
     lower.outline((0, 0, 16, 10))
     upper_plan, lower_plan = upper.build(), lower.build()
     regions = (
         RegionSpec("upper", 1, "old-stair-1.jpg", "tsr_blue", upper_plan, "THE OLD STAIR, LEVEL 1", legend=("stairs",)),
-        RegionSpec("lower", 2, "old-stair-2.jpg", "tsr_blue", lower_plan, "THE OLD STAIR, LEVEL 2", legend=("stairs",)),
+        RegionSpec(
+            "lower",
+            2,
+            "old-stair-2.jpg",
+            "tsr_blue",
+            lower_plan,
+            "THE OLD STAIR, LEVEL 2",
+            legend=("stairs", "trapdoor"),
+        ),
     )
     panels = (
         PanelSpec("upper", (("upper", (0, 0)),), upper_plan),
@@ -280,16 +300,16 @@ def old_stair() -> MapSpec:
         AreaSpec(
             "2",
             "Landing",
-            "Two flights of stairs lead down from the landing to the lower hall.",
-            links=(AreaConnection(to_key="3", direction="down", via="stairs"),),
+            "Two flights of stairs climb from the landing to the upper hall.",
         ),
     )
     second = (
         AreaSpec(
             "3",
-            "Lower hall",
-            "The two flights from the landing arrive at either end of this hall, above a dark pool.",
-            links=(AreaConnection(to_key="2", direction="up", via="stairs"),),
+            "Upper hall",
+            "Two flights of stairs go down from either end of the hall to the landing. A trapdoor beside the cistern "
+            "is nailed shut.",
+            links=(AreaConnection(to_key="2", direction="down"),),
         ),
         AreaSpec("4", "Side room", "A heap of broken crates."),
     )

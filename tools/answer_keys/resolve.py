@@ -928,32 +928,38 @@ class Resolver:
         return None
 
     def entrance_key_area(self, key: SurveyKey) -> None:
-        """An unprinted entrance key takes the unkeyed floor one outer opening leads into."""
+        """An unprinted entrance key takes the unkeyed floor one outer opening leads into.
+
+        The opening is chosen among the outer openings that lead into unkeyed floor: the nearest to the key's connected
+        area by walking distance from the cell just inside it, or the first in north-then-west order when the prose
+        connects the key to no area.
+        """
         world = self.world
         level_id = key.level
         openings = self.openings.get(level_id, [])
         if not openings:
             raise ConventionGap(f"unprinted entrance key {key.key} on {level_id}: the level has no outer opening")
-        connected = self.connected_area(key)
-        if connected is not None:
-            target_first = world.first(self.area_of(level_id, connected[0]))
-            ranked = []
-            for opening in openings:
-                distances = world.walk([opening.middle(world)], world.walking_floor)
-                ranked.append((distances.get(target_first, 10**9), opening.order(world), opening))
-            opening = min(ranked, key=lambda item: item[:2])[2]
-        else:
-            opening = openings[0]
         floor = self.level_floor(level_id)
 
         def allowed(c: WCell) -> bool:
             return c in floor and c not in self.assigned and c not in self.corridor_runs
 
-        reached = world.walk(opening.inner_cells, world.open_floor, allowed)
-        if not reached:
+        leads = [(opening, world.walk(opening.inner_cells, world.open_floor, allowed)) for opening in openings]
+        leads = [(opening, reached) for opening, reached in leads if reached]
+        if not leads:
             raise ConventionGap(
-                f"unprinted entrance key {key.key} on {level_id}: its opening leads into no unkeyed floor"
+                f"unprinted entrance key {key.key} on {level_id}: no outer opening leads into unkeyed floor"
             )
+        connected = self.connected_area(key)
+        if connected is not None:
+            target_first = world.first(self.area_of(level_id, connected[0]))
+            ranked = []
+            for opening, reached in leads:
+                distances = world.walk([opening.middle(world)], world.walking_floor)
+                ranked.append((distances.get(target_first, 10**9), opening.order(world), reached))
+            reached = min(ranked, key=lambda item: item[:2])[2]
+        else:
+            reached = leads[0][1]
         self.assign(level_id, key.key, set(reached))
 
     def unprinted_key_area(self, key: SurveyKey, rooms: list[Space]) -> None:
