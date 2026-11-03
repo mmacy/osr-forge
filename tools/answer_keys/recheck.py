@@ -555,8 +555,9 @@ def submit_owner_note(
     note: str,
     client: Any,
     ledger: Any,
+    reader: str = "the map's owner",
 ) -> tuple[str | None, int]:
-    """Re-settle the cells of a rectangle, then named edges, with the owner's note among each item's readings.
+    """Re-settle the cells of a rectangle, then named calls, with the owner's note among each item's readings.
 
     Cells go first, each with its pixel count and its share with enclosed fill counted as floor; edges go in a later
     call, once the cells are settled, with the key's letters for both cells. The jobs supersede earlier recheck
@@ -583,21 +584,28 @@ def submit_owner_note(
             item = with_reading(
                 item, "the pixel count with fill enclosed by floor counted as floor", f"{round(100 * share)}%"
             )
-            items.append(with_reading(item, "the map's owner", note))
+            items.append(with_reading(item, reader, note))
     else:
         cells = final_cells(items_table, final_values(ctx), {})
         for name in edges:
-            item = _rebuild_item(ctx, items_table, f"e:{name}") or {
-                "id": f"e:{name}",
-                "kind": "edge",
-                "text": f"edge {name}: which letter? Readings: none.",
-                "readings": [],
-            }
-            for cx, cy in edge_cells(edge_key(name)):
-                letter = {".": "floor", "~": "water"}.get(cells[cy][cx], "rock")
-                count = pixel_count_text(_shares(ctx), (cx, cy)).split(";")[0]
-                item = with_reading(item, "the key's cells", f"cell {cx},{cy} is {letter}; {count}")
-            items.append(with_reading(item, "the map's owner", note))
+            if not name.startswith(("e:", "c:", "m:", "s:")):
+                name = f"e:{name}"
+            item = _rebuild_item(ctx, items_table, name)
+            if item is None and name.startswith("e:"):
+                item = {
+                    "id": name,
+                    "kind": "edge",
+                    "text": f"edge {name[2:]}: which letter? Readings: none.",
+                    "readings": [],
+                }
+            if item is None:
+                continue
+            if name.startswith("e:"):
+                for cx, cy in edge_cells(edge_key(name[2:])):
+                    letter = {".": "floor", "~": "water"}.get(cells[cy][cx], "rock")
+                    count = pixel_count_text(_shares(ctx), (cx, cy)).split(";")[0]
+                    item = with_reading(item, "the key's cells", f"cell {cx},{cy} is {letter}; {count}")
+            items.append(with_reading(item, reader, note))
     for item in items:
         item["text"] = item["text"].split(" Readings:")[0] + f" Readings: {_readings_text(item['readings'])}."
     prefix = f"{ctx.key.id}__recheck__zowner-{kind}"

@@ -1077,6 +1077,16 @@ def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: boo
     for custom_id in store.job_ids():
         for earlier in store.job(custom_id)["meta"].get("supersedes", []):
             superseding.setdefault(earlier, []).append(custom_id)
+    # A job that supersedes a superseding job supersedes what that one did too.
+    changed = True
+    while changed:
+        changed = False
+        for laters in superseding.values():
+            for later in list(laters):
+                for further in superseding.get(later, []):
+                    if further not in laters:
+                        laters.append(further)
+                        changed = True
     for custom_id in store.job_ids():
         answer = store.answer(custom_id)
         if answer is None:

@@ -973,3 +973,22 @@ def test_a_dungeons_letter_at_a_cave_mouth_puts_the_mouths_inner_cell_in_its_out
     monkeypatch.setattr(readings, "load_items", lambda _ctx: None)
     cells = [["."] * 8 for _ in range(8)]
     assert letters.lettered_mouths(ctx, cells, {}) == {"orc-b/1": {(4, 5)}}
+
+
+def test_supersession_runs_through_a_chain_of_jobs(tmp_path):
+    store = batches.BatchStore(tmp_path / "recheck")
+    item = [{"id": "c:1,1", "kind": "cell", "readings": []}]
+    store.add_job("m__a", {"model": "x"}, {"items": item})
+    store.add_job("m__c", {"model": "x"}, {"items": item, "supersedes": ["m__b"]})
+    store.add_job("m__b", {"model": "x"}, {"items": item, "supersedes": ["m__a"]})
+    store.answers.mkdir(parents=True)
+    for custom_id, value in (("m__a", "#"), ("m__b", "."), ("m__c", "~")):
+        text = json.dumps({"items": [{"id": "c:1,1", "answer": value, "reason": "r"}]})
+        message = {"content": [{"type": "text", "text": text}]}
+        (store.answers / f"{custom_id}.json").write_text(json.dumps({"message": message, "stop_reason": "end_turn"}))
+    calls: dict = {}
+    settler._harvest(store, calls, False, {"calls": 0, "retries": 0})
+    assert calls["c:1,1"]["value"] == "~"
+    again = {"calls": 0, "retries": 0}
+    settler._harvest(store, calls, False, again)
+    assert again["calls"] == 0 and calls["c:1,1"]["value"] == "~"

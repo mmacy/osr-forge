@@ -171,8 +171,8 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             print(f"{key.id}: cell edges batch {batch}, {count} items")
         elif action == "note":
             rect = tuple(int(part) for part in args.rect.split(",")) if args.rect else None
-            mine = [name.partition(":")[2].partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
-            batch, count = submit_owner_note(ctx, rect, mine, args.note, api, book)  # type: ignore[arg-type]
+            mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
+            batch, count = submit_owner_note(ctx, rect, mine, args.note, api, book, args.reader)  # type: ignore[arg-type]
             print(f"{key.id}: owner's note batch {batch}, {count} items")
         elif action == "reask":
             mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
@@ -242,6 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--sample", type=Path, default=None, help="recheck: the sample file whose verdicts to act on")
     parser.add_argument("--rect", default=None, help="recheck note: the cells to re-settle, as x,y,width,height")
     parser.add_argument("--note", default="", help="recheck note: the owner's note, as one reading of each item")
+    parser.add_argument("--reader", default="the map's owner", help="recheck note: whose note it is, as its reading")
     parser.add_argument(
         "--call",
         action="append",
