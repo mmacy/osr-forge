@@ -347,7 +347,6 @@ def test_a_rejection_that_stays_is_a_provider_error_naming_the_size_and_never_th
     assert TOKEN not in repr(decider.settings)
 
 
-REFUSED = pytest.mark.xfail(reason="chunk: clef-refused", strict=True)
 REFUSED_429 = (429, b'{"errors":[{"message":"you have used up your daily free allocation of 10,000 neurons"}]}')
 UNAUTHORIZED = (401, b'{"errors":[{"message":"unauthorized"}]}')
 
@@ -355,16 +354,15 @@ UNAUTHORIZED = (401, b'{"errors":[{"message":"unauthorized"}]}')
 @pytest.mark.parametrize(
     ("answers", "error", "charged"),
     [
-        pytest.param([UNAUTHORIZED], ClefAuthError, False, id="401", marks=REFUSED),
-        pytest.param([(403, b"forbidden")], ProviderError, False, id="403", marks=REFUSED),
-        pytest.param([(413, rejection(65536, 215942))] * 4, ProviderError, False, id="413-stays", marks=REFUSED),
-        pytest.param([REFUSED_429] * 5, ProviderError, False, id="429-stays", marks=REFUSED),
+        pytest.param([UNAUTHORIZED], ClefAuthError, False, id="401"),
+        pytest.param([(403, b"forbidden")], ProviderError, False, id="403"),
+        pytest.param([(413, rejection(65536, 215942))] * 4, ProviderError, False, id="413-stays"),
+        pytest.param([REFUSED_429] * 5, ProviderError, False, id="429-stays"),
         pytest.param(
             [REFUSED_429, (413, rejection(24000, 52428))] + [REFUSED_429] * 3,
             ProviderError,
             False,
             id="refusals-mixed",
-            marks=REFUSED,
         ),
         pytest.param([(503, b"busy")] * 5, ProviderError, True, id="5xx-stays"),
         pytest.param([OSError("reset")] * 5, ProviderError, True, id="no-connection"),
