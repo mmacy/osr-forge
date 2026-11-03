@@ -33,8 +33,6 @@ from osrforge.providers.decisions import (
     encode_request,
 )
 
-CHUNK = "chunk: clef-local"
-
 STATE = "Crop of a printed dungeon map in blue and white. A red box marks one cell edge."
 QUESTION = "What is drawn on the cell edge inside the red box?"
 OPTIONS = (
@@ -124,7 +122,6 @@ def expected_body(request: DecisionRequest, image: bytes, server_model: str = "c
     }
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_body_is_the_system_one_body_with_plain_image_strings():
     request = make_request()
     body = local_request_body(request, "png", "clef-flash")
@@ -134,7 +131,6 @@ def test_the_body_is_the_system_one_body_with_plain_image_strings():
     assert renamed["model"] == "my-clef"
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_decide_posts_to_the_local_server_and_returns_the_probabilities():
     decider, transport, _ = provider([(200, answer())])
     request = make_request()
@@ -152,7 +148,6 @@ def test_decide_posts_to_the_local_server_and_returns_the_probabilities():
     assert not any(name.lower() == "authorization" for name in headers)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_large_crop_goes_as_jpeg_as_it_would_to_the_hosted_service():
     request = make_request(image=png_bytes(7, (512, 512), noisy=True))
     hosted_body, hosted_format = encode_request(request)
@@ -164,7 +159,6 @@ def test_a_large_crop_goes_as_jpeg_as_it_would_to_the_hosted_service():
     assert sent == json.loads(hosted_body)["images"][0]["base64"]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_model_the_settings_dont_map_is_refused_before_sending():
     decider, transport, _ = provider([(200, answer())])
     with pytest.raises(ProviderError) as excinfo:
@@ -179,7 +173,6 @@ def test_a_model_the_settings_dont_map_is_refused_before_sending():
     assert json.loads(body)["model"] == "clef-27b"
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_connection_failures_and_5xx_are_retried_three_times_and_other_statuses_are_not():
     decider, transport, sleeps = provider([OSError("refused"), (503, b"loading"), (200, answer())])
     assert decider.decide(make_request()).choice == "open"
@@ -200,7 +193,6 @@ def test_connection_failures_and_5xx_are_retried_three_times_and_other_statuses_
     assert "400" in str(excinfo.value) and "cannot unmarshal" in str(excinfo.value)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_an_answer_that_cant_be_read_is_a_provider_error():
     for reply in (
         b"not json",
@@ -213,7 +205,6 @@ def test_an_answer_that_cant_be_read_is_a_provider_error():
             decider.decide(make_request())
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_local_answer_records_and_replays_with_its_backend_named(tmp_path: Path):
     decider, _, _ = provider([(200, answer())])
     request = make_request()
@@ -223,7 +214,6 @@ def test_a_local_answer_records_and_replays_with_its_backend_named(tmp_path: Pat
     assert replayed.model_id == "local:clef-flash"
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_environment_chooses_the_backend(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     for name in (BACKEND_ENV, LOCAL_URL_ENV, LOCAL_MODEL_ENV):
         monkeypatch.delenv(name, raising=False)
