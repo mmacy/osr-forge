@@ -80,16 +80,18 @@ COVERAGE_LINE_SHARE = 0.6
 INK_MARGIN = 20.0
 """How much darker than its local background a pixel must be to count as ink.
 
-The implementation sets this value. On the synthetic TSR blue maps the blurred
-grid lines are 16 to 47 darker than the paper beside them, and on 95 rows in
-100 the darkest pixel across a line is at least 32 darker; on the dark rock
-maps the lines are 27 darker. The reference fit's 35 loses part of every TSR
-line. At 15 and 25 the registration tests give the same results as at 20. At
-10 the scan grain of the TSR maps counts as ink, and the synthetic maps, the
-fold halves, and the bowed copy of page 47 fail; at 30 old-stair's upper page
-and the sunken temple's pages lose their regions; at 35 the fold halves lose
-theirs. 20 is the middle of the range that works. Whatever the value, the
-committed maps and the perturbed copies must stay on their sides of the gate.
+The implementation sets this value. A thin line is also judged as a line:
+its middle pixel is ink when its three pixels across are darker than the
+paper on either side of it by this margin together, so a faint line that a
+scan splits over two or three pixels still counts. On the synthetic TSR blue
+maps the blurred grid lines are 16 to 47 darker than the paper beside them,
+and on the dark rock maps 27. The reference fit's 35 loses part of every TSR
+line. Of 10, 15, 20, 25, and 30, only 20 passes every registration test. At
+10 the scan grain of the TSR maps counts as ink, the fold halves fail, and 27
+of the 64 scans the tests make miss. At 15 the shrine's grotto is lost and
+three scans go wrong; at 25 the grotto's worst corner is 0.269 cells; at 30
+nine scans miss. Whatever the value, the committed maps and the perturbed
+copies must stay on their sides of the gate.
 """
 
 BACKGROUND_RADIUS = 6
@@ -98,8 +100,8 @@ BACKGROUND_RADIUS = 6
 It reaches past the middle of the thickest line that must read as ink. At 4,
 the middle of the 9 px frame line between Chaotic Caves page 21's two maps is
 no longer ink, the line no longer splits them, and the page reads as one
-region of 37 by 50 cells. At 8 and 12 the registration tests give the same
-results as at 6.
+region. At 8 and at 12 the shrine's grotto or a fold half fails, and three
+scans go wrong.
 """
 
 FILL_DARKNESS = 80.0
@@ -107,9 +109,8 @@ FILL_DARKNESS = 80.0
 
 The TSR blue is 209 dark and the grey rock of page 21's Cave of Horrors 107,
 both fill at 80. At 50 the light grey rock of Chaotic Caves page 38, about 51
-dark, becomes fill: its rows down to the image's bottom edge then read as a
-frame, and the grid takes 80 rows where 78 are printed. At 120 and 160 the
-registration tests give the same results as at 80.
+dark, becomes fill, and its grid takes 80 rows where 78 are printed. At 120
+and at 160 the shrine's grotto fails the gate.
 """
 
 OFFSET_CANDIDATES = 3

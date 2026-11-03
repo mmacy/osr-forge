@@ -6,14 +6,19 @@ the y positions of the horizontal lines. An axis's fit has three stages:
 
 1. The *affine* stage projects every run pixel onto the axis after removing
    a shear, takes the pitch from the projection's autocorrelation, and fits
-   an origin and a pitch to the projection's peaks by least squares.
+   an origin and a pitch to the projection's peaks by least squares. Lines
+   printed at the fractions of the pitch divide it, so a scan that loses
+   every other faint line can't register at twice the printed pitch.
 2. The *bands* cut the region across the axis into strips about three
    pitches wide. Each peak of a band's projection that stands out is one
    detected line, indexed to the nearest fitted line or rejected.
+   Neighbouring lines that all lie a multiple of the same number of indices
+   apart multiply the pitch.
 3. The *drift* stage fits a degree-2 polynomial in the line index and the
-   position along the other axis to the indexed band peaks: the affine lines
-   plus a smooth, low-order bend for scan drift. Indexing and the bend are
-   refined together until the indexed peaks stop changing.
+   position along the other axis to the indexed band peaks, and to points on
+   a filled frame's edges when the region has them: the affine lines plus a
+   smooth, low-order bend for scan drift. Indexing and the bend are refined
+   together until the indexed peaks stop changing.
 
 A grid's corner `(i, j)` is where vertical line `i` meets horizontal line `j`.
 """
@@ -40,25 +45,56 @@ hatching is many ridges close together, so none of its ridges stands out."""
 PEAK_ISOLATION = 0.5
 """The most a profile may rise, as a share of a peak's height, between `PEAK_CLEARANCE` and `PEAK_WINDOW` of it."""
 
-PEAK_FLOOR = 0.3
-"""A band's peak weaker than this share of the band's median peak is a stroke, not a line."""
+PEAK_FLOOR = 0.1
+"""A band's peak weaker than this share of the band's median peak is a stroke, not a line.
+
+A line one cell long in a band three pitches wide is about a third as strong
+as one across it. At 0.3 a scan of gatehouse's west half that the tests make
+misses its corners by 0.13 cells; from 0 to 0.2 the tests give the same
+results.
+"""
+
+PHASE_TOLERANCE = 0.15
+"""Pitches. A line this close to a place on a lattice lies on it."""
+
+FINER_STRENGTH = 0.5
+"""A peak at a fraction of the pitch counts as a finer grid's line when it is at least this share of the lower
+quartile of the pitch's own lines. With no such rule, a scan of old-stair's lower page, with its stairs and pool, has
+its pitch divided by 3 and misses; from 0.25 to 0.75 the tests give the same results."""
+
+MULTIPLE_SHARE = 0.9
+"""The share of neighbouring band peaks that must lie a multiple of `n` indices apart for the pitch to be multiplied
+by `n`. A median of the gaps, as the reference fit took, multiplied scattered-spread's pitch by 4 on a scan: bands
+that cross only hatched rock hold just the frame's two lines, 12 indices apart."""
+
+PEAK_LEAST = 0.3
+"""Pitches. A band's peak is at least this strong: a grid line across one cell of a band, a pitch of run, gives
+about half a pitch after smoothing. At 0.2 two faint strokes in the shrine's grotto, joined into one run through a
+grid line, count as a line and the grotto fails the gate; at 0.4 a scan of gatehouse's west half that the tests make
+misses its corners by 0.13 cells."""
 
 OUTLIER_TOLERANCE = 0.2
 """Pitches. A line farther than this from the fit is left out of the next round of least squares."""
 
-DRIFT_RIDGE = 1.0
+DRIFT_RIDGE = 0.1
 """The ridge on the drift's bend, in median peaks per pixel of bend at the region's edge.
 
 The bend (the terms in index times position, index squared, and position
 squared) costs as much as this many median-strength peaks lying one pixel off
-for each pixel it moves a line at the region's edge, so a few stray peaks
-can't bend the grid but a real drift, seen by every band, can. The synthetic
-TSR maps bow their pitch by 0.6 px either side of the mean, up to 3.6 px of
-bend. Measured over the synthetic maps' floor corners, the worst corner is
-0.082 cells off (sideways-keep) at a ridge of 1, and crypt's is 0.057. At 3
-they are 0.097 and 0.091, at 10 crypt's is 0.119, past the tolerance of 0.1,
-and with no ridge sunken temple's first page bends to 0.44.
+for each pixel it moves a line at the region's edge. The synthetic TSR maps
+bow their pitch by 0.6 px either side of the mean, up to 3.6 px of bend, and
+the scans the tests make bow the grid by up to 0.3 of a pitch. With the
+frame's anchors, from no ridge to 1 the tests give the same results, and
+the worst floor corner of the unperturbed synthetic maps is 0.051 cells. At 3
+one synthetic map's grid comes out a column short and three of the scans go
+wrong; at 10 crypt's worst corner is 0.101, past the tolerance of 0.1.
 """
+
+ANCHOR_WEIGHT = 0.5
+"""Each frame anchor weighs this share of the median band peak's weight in the drift fit. The anchors lie 0.3 to
+1.8 px outside the synthetic maps' true outer lines, so they guide the bend where no line is printed without
+outweighing the lines. At 0.1 two of the scans the tests make miss their bowed corners; from 0.25 to 1 the tests
+give the same results."""
 
 DRIFT_MINIMUM_PEAKS = 8
 """The fewest indexed band peaks the drift stage needs; with fewer, the affine stage stands."""
@@ -156,13 +192,13 @@ def find_peaks(profile: FloatArray, pitch: float, isolated: bool) -> tuple[Float
 
     A peak is the highest point of the smoothed profile within `PEAK_WINDOW`
     of a pitch on each side, above 0.15 of the profile's 95th percentile. A
-    band's peak must also be isolated (see `PEAK_CLEARANCE`) and at least
-    `PEAK_FLOOR` of the median peak.
+    band's peak must also be isolated (see `PEAK_CLEARANCE`), and at least
+    `PEAK_FLOOR` of the median peak and `PEAK_LEAST` of a pitch strong.
 
     Args:
         profile: The projection, one value per pixel.
         pitch: The pitch the peaks are spaced at.
-        isolated: Whether to apply the isolation and strength rules for band peaks.
+        isolated: Whether to apply the rules for band peaks.
 
     Returns:
         `(positions, strengths)`, positions in pixels from the profile's start.
@@ -187,7 +223,8 @@ def find_peaks(profile: FloatArray, pitch: float, isolated: bool) -> tuple[Float
         if height < smooth[lo:hi].max() or (i > lo and smooth[i - 1] == height):
             continue
         if isolated:
-            beside = np.concatenate([smooth[lo : max(lo, i - clearance + 1)], smooth[min(hi, i + clearance) : hi]])
+            near, far = slice(lo, max(lo, i - clearance + 1)), slice(min(hi, i + clearance), hi)
+            beside = np.concatenate([smooth[near], smooth[far]])
             if len(beside) and float(beside.max()) > PEAK_ISOLATION * height:
                 continue
         weights = profile[i - 2 : i + 3]
@@ -195,7 +232,9 @@ def find_peaks(profile: FloatArray, pitch: float, isolated: bool) -> tuple[Float
         strengths.append(float(height))
     position_array, strength_array = np.array(positions), np.array(strengths)
     if isolated and len(strength_array):
-        keep = strength_array >= PEAK_FLOOR * float(np.median(strength_array))
+        keep = (strength_array >= PEAK_FLOOR * float(np.median(strength_array))) & (
+            strength_array >= PEAK_LEAST * pitch
+        )
         position_array, strength_array = position_array[keep], strength_array[keep]
     return position_array, strength_array
 
@@ -309,6 +348,17 @@ class AxisFit:
 
 
 @dataclass(frozen=True)
+class Anchors:
+    """Points on the frame's sides that the drift fit reads beside the band peaks, outside the gate's figures."""
+
+    other: FloatArray
+    """Each point's position along the other axis."""
+
+    position: FloatArray
+    """Each point's position along the axis."""
+
+
+@dataclass(frozen=True)
 class AxisData:
     """The line pixels of one axis over a region."""
 
@@ -347,7 +397,7 @@ def affine_axis(data: AxisData, pitch_hint: float | None = None) -> Affine | Non
     squares with peaks farther than `OUTLIER_TOLERANCE` from the fit left out.
 
     Returns:
-        The affine stage, or `None` when fewer than 3 lines are found.
+        The affine stage, or `None` when fewer than 3 lines are found, or 2 when the pitch is given.
     """
     length = int(data.hi - data.lo) + 1
     if len(data.along) == 0 or length < 3:
@@ -362,7 +412,7 @@ def affine_axis(data: AxisData, pitch_hint: float | None = None) -> Affine | Non
     else:
         pitch = refine_pitch(autocorrelation(profile), pitch_hint)
     positions, strengths = find_peaks(profile, pitch, isolated=False)
-    if len(positions) < 3:
+    if len(positions) < (3 if pitch_hint is None else 2):
         return None
     positions = positions + data.lo
     angles = 2 * np.pi * positions / pitch
@@ -401,16 +451,24 @@ def band_peaks(data: AxisData, model: LineModel, pitch: float, edges: FloatArray
         if select.sum() < 10:
             continue
         centre = float((edges[band] + edges[band + 1]) / 2)
-        along, other = data.along[select], data.other[select]
-        index = model.index_at(along, other)
-        carried = along + model.position(index, centre) - model.position(index, other)
-        profile = np.bincount(
-            np.clip(np.round(carried - data.lo).astype(np.int64), 0, length - 1), minlength=length
-        ).astype(np.float64)
+        profile = _carried_profile(data.along[select], data.other[select], model, centre, data.lo, length)
         positions, strengths = find_peaks(profile, pitch, isolated=True)
         for position, strength in zip(positions, strengths, strict=True):
             peaks.append(BandPeak(band, float(position) + data.lo, centre, float(strength)))
     return peaks
+
+
+def _carried_profile(
+    along: FloatArray, other: FloatArray, model: LineModel, centre: float, lo: float, length: int
+) -> FloatArray:
+    """Project pixels onto the axis after carrying each along the model's lines to the band's centre."""
+    if len(along) == 0:
+        return np.zeros(length)
+    index = model.index_at(along, other)
+    carried = along + model.position(index, centre) - model.position(index, other)
+    return np.bincount(np.clip(np.round(carried - lo).astype(np.int64), 0, length - 1), minlength=length).astype(
+        np.float64
+    )
 
 
 def index_peaks(peaks: list[BandPeak], model: LineModel, tolerance: float) -> tuple[list[int | None], FloatArray]:
@@ -428,17 +486,18 @@ def index_peaks(peaks: list[BandPeak], model: LineModel, tolerance: float) -> tu
 
 
 def fit_drift(
-    peaks: list[BandPeak], indices: list[int | None], start: LineModel, pitch: float, bands: int
+    peaks: list[BandPeak], indices: list[int | None], start: LineModel, pitch: float, anchors: Anchors | None = None
 ) -> LineModel:
-    """Fit the drift model to the indexed peaks.
+    """Fit the drift model to the indexed peaks, and to the frame's anchors when there are any.
 
     Weighted least squares, each peak weighted by the square root of its
-    strength, with the bend held near zero by `DRIFT_RIDGE` and peaks farther
-    than `OUTLIER_TOLERANCE` from the fit dropped over up to six rounds. With
-    fewer than 4 bands the squared terms are left out, and with fewer than 2
-    every term in the other axis's position, so a small region gets an affine
-    fit and never an extrapolated bend. A term left out keeps the starting
-    model's value.
+    strength and each anchor by the median peak's, with the bend held near
+    zero by `DRIFT_RIDGE` and points farther than `OUTLIER_TOLERANCE` from the
+    fit dropped over up to six rounds. A term is fitted only when the data can
+    tell it apart: two lines for the pitch, three for its drift, two places
+    along the other axis for the shear, and three for a bend along it, so a
+    small region gets an affine fit and never an extrapolated bend. A term
+    left out keeps the starting model's value.
     """
     chosen = [k for k, index in enumerate(indices) if index is not None]
     if len(chosen) < DRIFT_MINIMUM_PEAKS:
@@ -447,25 +506,34 @@ def fit_drift(
     other = np.array([peaks[k].other for k in chosen])
     target = np.array([peaks[k].position for k in chosen])
     weights = np.sqrt(np.array([peaks[k].strength for k in chosen]))
+    if anchors is not None and len(anchors.position):
+        index = np.concatenate([index, np.round(start.index_at(anchors.position, anchors.other))])
+        other = np.concatenate([other, anchors.other])
+        target = np.concatenate([target, anchors.position])
+        weights = np.concatenate([weights, np.full(len(anchors.position), ANCHOR_WEIGHT * float(np.median(weights)))])
     design = start.design(index, other)
-    terms = [0, 1, 2, 3, 4, 5]
-    if bands < 4:
-        terms = [0, 1, 2, 3]
-    if bands < 2:
-        terms = [0, 1]
-    distinct = len(np.unique(index))
-    if distinct < 3:
-        terms = [term for term in terms if term != 4]
-    if distinct < 2:
-        terms = [term for term in terms if term not in (1, 3)]
-    ridge_weight = math.sqrt(DRIFT_RIDGE * float(np.median(weights**2)))
+    # A term needs data that can tell it apart: two lines for the pitch, three for its drift, two bands for the
+    # shear, and three for a bend along the other axis.
+    lines, places = len(np.unique(index)), len(np.unique(other))
+    terms = [0]
+    if lines >= 2:
+        terms.append(1)
+    if places >= 2:
+        terms.append(2)
+    if lines >= 2 and places >= 2:
+        terms.append(3)
+    if lines >= 3:
+        terms.append(4)
+    if places >= 3:
+        terms.append(5)
+    ridge_weight = math.sqrt(DRIFT_RIDGE * float(np.median(weights[: len(chosen)] ** 2)))
     bend = [term for term in terms if term >= 3]
     ridge = np.zeros((len(bend), len(terms)))
     for row, term in enumerate(bend):
         ridge[row, terms.index(term)] = ridge_weight
     fixed = [term for term in range(6) if term not in terms]
     target = target - design[:, fixed] @ start.coefficients[fixed]
-    kept = np.ones(len(chosen), dtype=np.bool_)
+    kept = np.ones(len(target), dtype=np.bool_)
     solution = start.coefficients[terms]
     for _ in range(6):
         if kept.sum() < DRIFT_MINIMUM_PEAKS:
@@ -484,12 +552,21 @@ def fit_drift(
     return LineModel(coefficients, start.index_lo, start.index_hi, start.other_lo, start.other_hi)
 
 
-def fit_axis(data: AxisData, other_pitch: float, settings: Settings, pitch_hint: float | None = None) -> AxisFit | None:
+def fit_axis(
+    data: AxisData,
+    other_pitch: float,
+    settings: Settings,
+    pitch_hint: float | None = None,
+    anchors: Anchors | None = None,
+) -> AxisFit | None:
     """Fit one axis: the affine stage, the bands, and the drift.
 
-    A pitch taken as a fraction of the printed one puts neighbouring band
-    peaks several indices apart. Then the pitch is multiplied by the median
-    index gap and the fit is redone, at most twice.
+    A pitch can be a whole multiple or a whole fraction of the printed one,
+    and the fit rules out both. Lines printed at every fraction `1/n` of the
+    pitch between the fitted lines mean the pitch is `n` times the printed
+    one, and the fit divides it (see `_divisor`). Neighbouring band peaks
+    that all lie a multiple of `n` indices apart mean the pitch is a
+    fraction of the printed one, and the fit multiplies it (see `_multiple`).
 
     Returns:
         The fit, or `None` when fewer than 3 lines are found.
@@ -497,28 +574,87 @@ def fit_axis(data: AxisData, other_pitch: float, settings: Settings, pitch_hint:
     affine = affine_axis(data, pitch_hint)
     if affine is None:
         return None
+    divisor = _divisor(data, affine)
+    if divisor > 1:
+        finer = affine_axis(data, affine.pitch / divisor)
+        if finer is not None:
+            affine = finer
     corrections = 0
     while True:
-        fit = _bands_and_drift(data, affine, other_pitch, settings)
-        gaps: list[int] = []
-        for band in range(fit.bands):
-            ordered = sorted(
-                (peak.position, index)
-                for peak, index in zip(fit.peaks, fit.indices, strict=True)
-                if peak.band == band and index is not None
-            )
-            gaps.extend(second[1] - first[1] for first, second in itertools.pairwise(ordered))
-        median_gap = round(float(np.median(gaps))) if gaps else 1
-        if median_gap <= 1 or corrections >= 2 or affine.pitch * median_gap > PITCH_RANGE[1] * 1.5:
+        fit = _bands_and_drift(data, affine, other_pitch, settings, anchors)
+        multiple = _multiple(fit)
+        if multiple <= 1 or corrections >= 2 or affine.pitch * multiple > PITCH_RANGE[1] * 1.5:
             return fit
         corrections += 1
-        corrected = affine_axis(data, affine.pitch * median_gap)
+        corrected = affine_axis(data, affine.pitch * multiple)
         if corrected is None:
             return fit
         affine = corrected
 
 
-def _bands_and_drift(data: AxisData, affine: Affine, other_pitch: float, settings: Settings) -> AxisFit:
+def _divisor(data: AxisData, affine: Affine) -> int:
+    """The `n` of 4, 3, or 2 for which lines are printed at every fraction `1/n` of the pitch, or 1.
+
+    The profile's peaks are found again at a window for the finer pitch, so
+    a line a fraction of the pitch from a stronger one isn't hidden by it.
+    The finer pitch is real when lines lie within `PHASE_TOLERANCE` of the
+    finer lattice at every one of its `n - 1` fractional places, at least 3 of
+    them, and at least half as many as lie on the pitch's own lines. A peak at
+    a fractional place counts only when it is a line's length: at least
+    `FINER_STRENGTH` of the lower quartile of the pitch's own lines, which a
+    stair's treads and a pool's waves, at regular spacings, are not.
+    """
+    length = int(data.hi - data.lo) + 1
+    profile = sheared_profile(data.along, data.other, affine.shear, data.lo, length)
+    for n in (4, 3, 2):
+        finer = affine.pitch / n
+        if finer < PITCH_RANGE[0]:
+            continue
+        positions, strengths = find_peaks(profile, finer, isolated=False)
+        place = (positions + data.lo - affine.origin) / finer
+        nearest = np.round(place)
+        on = np.abs(place - nearest) <= PHASE_TOLERANCE
+        residue = np.mod(nearest, n).astype(np.int64)
+        lines = on & (residue == 0)
+        if not lines.any():
+            continue
+        # A finer grid's lines are about as long as the pitch's own; a stair's treads and a pool's waves are short.
+        long = strengths >= FINER_STRENGTH * float(np.percentile(strengths[lines], 25))
+        fractional = on & (residue != 0) & long
+        own = int(lines.sum())
+        count = int(fractional.sum())
+        if len(set(residue[fractional].tolist())) == n - 1 and count >= 3 and count >= own / 2:
+            return n
+    return 1
+
+
+def _multiple(fit: AxisFit) -> int:
+    """The `n` of 5 to 2 for which neighbouring band peaks lie a multiple of `n` indices apart, or 1.
+
+    At the printed pitch, neighbouring lines lie one index apart wherever
+    floor runs on, and further apart only across rock or paper. At a fraction
+    of the printed pitch, every pair lies a multiple of the fraction apart.
+    """
+    gaps: list[int] = []
+    for band in range(fit.bands):
+        ordered = sorted(
+            (peak.position, index)
+            for peak, index in zip(fit.peaks, fit.indices, strict=True)
+            if peak.band == band and index is not None
+        )
+        gaps.extend(second[1] - first[1] for first, second in itertools.pairwise(ordered))
+    gaps = [gap for gap in gaps if gap > 0]
+    if not gaps:
+        return 1
+    for n in (5, 4, 3, 2):
+        if sum(gap % n == 0 for gap in gaps) >= MULTIPLE_SHARE * len(gaps):
+            return n
+    return 1
+
+
+def _bands_and_drift(
+    data: AxisData, affine: Affine, other_pitch: float, settings: Settings, anchors: Anchors | None
+) -> AxisFit:
     index_range = (
         (data.lo - affine.origin - affine.shear * (data.other_lo + data.other_hi) / 2) / affine.pitch,
         (data.hi - affine.origin - affine.shear * (data.other_lo + data.other_hi) / 2) / affine.pitch,
@@ -533,13 +669,13 @@ def _bands_and_drift(data: AxisData, affine: Affine, other_pitch: float, setting
     peaks = band_peaks(data, model, affine.pitch, edges)
     indices, _ = index_peaks(peaks, model, tolerance)
     for _ in range(4):
-        model = fit_drift(peaks, indices, model, affine.pitch, bands)
+        model = fit_drift(peaks, indices, model, affine.pitch, anchors)
         peaks = band_peaks(data, model, affine.pitch, edges)
         new_indices, _ = index_peaks(peaks, model, tolerance)
         if new_indices == indices:
             break
         indices = new_indices
-    model = fit_drift(peaks, indices, model, affine.pitch, bands)
+    model = fit_drift(peaks, indices, model, affine.pitch, anchors)
     indices, residuals = index_peaks(peaks, model, tolerance)
     return AxisFit(affine.pitch, model, bands, peaks, indices, residuals)
 

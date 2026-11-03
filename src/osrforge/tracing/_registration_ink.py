@@ -4,9 +4,11 @@ Registration reads an image through these masks only. A pixel's *darkness*
 is 255 less its darkest channel, so blue ink and black ink both read as dark
 and paper reads near 0. A pixel is *ink* when it is darker than the lightest
 pixel near it by a margin, so a grid line on grey fill is ink and the inside
-of a solid wall isn't. A pixel is *fill* when it is dark outright. A *run* is
-a stretch of ink along a row or a column, and a grid line is a run that is
-thin across and long along.
+of a solid wall isn't, or when it is the middle of a thin line that is darker
+than the paper beside it by the margin across its width, so a faint line a
+scan spreads over a few pixels is ink too. A pixel is *fill* when it is dark
+outright. A *run* is a stretch of ink along a row or a column, and a grid
+line is a run that is thin across and long along.
 """
 
 from dataclasses import dataclass
@@ -27,6 +29,11 @@ LINE_WIDTH = 4
 
 RUN_MINIMUM = 12
 """Pixels. The shortest run of ink that can be part of a grid line, before any pitch is known."""
+
+LINE_SIDE = 3
+"""Pixels. A thin line's ink is judged against the paper this far to either side of its middle pixel, past a line
+three pixels wide. At 2 the warped synthetic map registers, with a coverage of 0.706; at 5 four of the five committed
+real maps fail their tests."""
 
 
 @dataclass(frozen=True)
@@ -101,11 +108,61 @@ def read_darkness(path: Path) -> Float32Array:
 
 
 def ink_image(dark: Float32Array, settings: InkSettings) -> InkImage:
-    """Make the masks of an image from its darkness."""
+    """Make the masks of an image from its darkness.
+
+    A pixel is ink when it is darker than its local background by the margin,
+    or when it is the middle of a thin line that is, judged as a line (see
+    `line_ink`).
+    """
     background = min_filter(dark, settings.radius)
-    ink = (dark - background) >= settings.margin
+    ink = ((dark - background) >= settings.margin) | line_ink(dark, settings.margin)
     fill = dark >= settings.fill
     return InkImage(dark, ink, fill, run_lengths(ink, 1), run_lengths(ink, 0))
+
+
+def line_ink(dark: Float32Array, margin: float) -> BoolArray:
+    """The middle pixels of thin lines whose ink, summed across the line, is darker than the paper beside it.
+
+    A faint line that a scan resamples or blurs spreads over two or three
+    pixels, none of them darker than its background by the margin on its own.
+    Judged as a line, it is ink when its three pixels across, together, are
+    darker by the margin than three times the darker of the two pixels
+    `LINE_SIDE` away on either side, along at least `RUN_MINIMUM` pixels of
+    its length. The comparison is with the paper beside the line, so it
+    carries no bias from the grain of a scan, and a grain pixel that passes it
+    by chance has no run; across a fill's edge or the middle of a wide wall it
+    gives nothing. A line may wander a pixel across along its run.
+    """
+    found = np.zeros(dark.shape, dtype=np.bool_)
+    for axis in (0, 1):
+        across = _shift(dark, -1, axis) + dark + _shift(dark, 1, axis)
+        paper = np.maximum(_shift(dark, -LINE_SIDE, axis), _shift(dark, LINE_SIDE, axis))
+        middle = (across - 3 * paper) >= margin
+        # Axis 0 compares rows, so these are horizontal lines, and their runs lie along each row.
+        wide = middle | _shift_mask(middle, -1, axis) | _shift_mask(middle, 1, axis)
+        found |= middle & (run_lengths(wide, 1 - axis) >= RUN_MINIMUM)
+    return found
+
+
+def _shift_mask(mask: BoolArray, offset: int, axis: int) -> BoolArray:
+    """The mask moved so each pixel holds the value `offset` pixels further along an axis, false past the edge."""
+    out = np.zeros_like(mask)
+    length = mask.shape[axis]
+    if abs(offset) >= length:
+        return out
+    source = [slice(None), slice(None)]
+    target = [slice(None), slice(None)]
+    source[axis] = slice(max(0, offset), length + min(0, offset))
+    target[axis] = slice(max(0, -offset), length + min(0, -offset))
+    out[tuple(target)] = mask[tuple(source)]
+    return out
+
+
+def _shift(image: Float32Array, offset: int, axis: int) -> Float32Array:
+    """The image moved so each pixel holds the value `offset` pixels further along an axis, the edge repeated."""
+    length = int(image.shape[axis])
+    index: IntArray = np.clip(np.arange(length, dtype=np.int64) + offset, 0, length - 1).astype(np.int64)
+    return np.take(image, index, axis=axis)
 
 
 def min_filter(image: Float32Array, radius: int) -> Float32Array:
