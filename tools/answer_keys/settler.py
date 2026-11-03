@@ -67,7 +67,8 @@ SETTLE_SYSTEM = (
     "Outlines. An outline item asks which level's floor a cell is: the level whose cave or building holds it, "
     "or outside, the open ground or ravine between the levels that belongs to none of them, beyond their walls "
     "and cave mouths. Floor that continues out through a cave mouth into the ravine is outside, even where "
-    "nothing but a grid line separates the cells.\n\n"
+    "nothing but a grid line separates the cells. Where an item lists the printed keys near the cell with the level "
+    "each belongs to, a room, hall, or cave that holds a level's key is that level's floor.\n\n"
     "Slopes. A slope item asks for the elevation line (a contour) that bounds a level's ground inside the boxed "
     "rectangle, between the level's ground and the ravine or outside beyond it. Answer with the cells the line "
     "passes through, in order from where it enters the rectangle to where it leaves it, as 'x,y;x,y;x,y', each "
@@ -121,7 +122,8 @@ ADVERSARY_SYSTEM = (
     "Outlines. An outline item asks which level's floor a cell is: the level whose cave or building holds it, "
     "or outside, the open ground or ravine between the levels that belongs to none of them, beyond their walls "
     "and cave mouths. Floor that continues out through a cave mouth into the ravine is outside, even where "
-    "nothing but a grid line separates the cells.\n\n"
+    "nothing but a grid line separates the cells. Where an item lists the printed keys near the cell with the level "
+    "each belongs to, a room, hall, or cave that holds a level's key is that level's floor.\n\n"
     "Slopes. A slope item asks for the elevation line (a contour) that bounds a level's ground inside the boxed "
     "rectangle, between the level's ground and the ravine or outside beyond it. Answer with the cells the line "
     "passes through, in order from where it enters the rectangle to where it leaves it, as 'x,y;x,y;x,y', each "
@@ -806,14 +808,45 @@ def asked_item(ctx: MapContext, name: str) -> dict[str, Any] | None:
     return asked.get(name)
 
 
+KEYS_NEAR = 8
+"""How far from an outline item's cell, in cells each way, the printed keys it lists reach."""
+
+
+def with_reading(item: dict[str, Any], reader: str, value: str) -> dict[str, Any]:
+    """An item with one more reading, its text rewritten to carry it."""
+    readings = [*list(item["readings"]), (reader, value)]
+    return {
+        **item,
+        "readings": readings,
+        "text": item["text"].split(" Readings:")[0] + f" Readings: {_readings_text(readings)}.",
+    }
+
+
+def keys_near(ctx: MapContext, items: Items, cell: tuple[int, int]) -> str:
+    """The printed keys within `KEYS_NEAR` cells of a cell, each with its level, nearest first."""
+    x, y = cell
+    near = []
+    for level, marks in level_key_marks(ctx, items).items():
+        for label, place in marks:
+            px, py = parse_cell(place)
+            distance = max(abs(px - x), abs(py - y))
+            if distance <= KEYS_NEAR:
+                near.append((distance, py, px, f"{label} at {place} ({level})"))
+    return "; ".join(text for *_order, text in sorted(near)) or f"none within {KEYS_NEAR} cells"
+
+
 def _rebuild_item(ctx: MapContext, items: Items, name: str) -> dict[str, Any] | None:
     """A settling item for a call id, with its readings from the table, or as it was first asked when the table
-    no longer gives it."""
+    no longer gives it. An outline item also lists the printed keys near its cell with their levels."""
     kind = name.split(":")[0]
     if kind in ("l", "o", "g"):
         item = asked_item(ctx, name)
         if item is not None:
-            return {key: value for key, value in item.items() if key != "recorded"}
+            item = {key: value for key, value in item.items() if key != "recorded"}
+            if kind == "o" and not any(reader == "the survey's keys" for reader, _value in item["readings"]):
+                cell = parse_cell(name[2:].split("|")[0])
+                item = with_reading(item, "the survey's keys", f"printed near the cell: {keys_near(ctx, items, cell)}")
+            return item
     if kind == "c":
         for item in settle_items(items, None):
             if item["id"] == name:
@@ -870,6 +903,9 @@ def adversary_items(ctx: MapContext, items: Items, settled: dict[str, dict[str, 
     """Every settled call, plus the agreed edges in caves, at diagonals, and around keys."""
     out: list[dict[str, Any]] = []
     for name, call in settled.items():
+        if name.startswith("l:") and _superseded(name, settled):
+            # A slope asked again replaces the earlier call, which no longer bounds the outline.
+            continue
         item = _rebuild_item(ctx, items, name)
         if item is None:
             continue
@@ -943,6 +979,17 @@ def adversary_items(ctx: MapContext, items: Items, settled: dict[str, dict[str, 
         rng = random.Random(7)
         rest = rng.sample(rest, ADVERSARY_CAP)
     return out + must + rest
+
+
+def _superseded(name: str, calls: dict[str, Any]) -> bool:
+    """Whether a slope call `l:x,y|level` or `l:x,y|level#n` has a later call for the same level."""
+    base = name.split("#")[0]
+    later = sorted((other for other in calls if other.split("#")[0] == base), key=_slope_round)
+    return later[-1] != name
+
+
+def _slope_round(name: str) -> int:
+    return int(name.split("#")[1]) if "#" in name else 1
 
 
 def _mouth_cells(items: Items) -> set[str]:
