@@ -141,7 +141,6 @@ def test_marks_symbols_and_outlines_convert_to_containing_cells():
     assert result.panel.regions == ten.panels[0].regions
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: leader-floor")
 def test_a_leader_end_that_converts_to_rock_moves_to_floor_or_is_dropped():
     """Phase (0, 0): 4 blocked segments on 10-foot vertical lines against 2, and 6 on horizontal ones against 2.
 
