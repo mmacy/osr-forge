@@ -659,3 +659,21 @@ def test_the_calls_around_a_cave_mouth_are_always_checked():
     assert settler._touches("e:5,5:west", cells) and settler._touches("c:6,4", cells)
     assert settler._touches("s:5,5|0", cells) and not settler._touches("c:9,9", cells)
     assert not settler._touches("s:9,9|1", cells)
+
+
+def test_slope_answers_are_checked_and_bound_an_outline():
+    assert settler.check_slope("none", [0, 0, 5, 5]) is None
+    assert settler.check_slope("2,0;2,1;3,2;3,3;3,4", [0, 0, 5, 5]) is None
+    assert settler.check_slope("2,0;2,2", [0, 0, 5, 5]) == "cells 2,0 and 2,2 don't touch"
+    assert settler.check_slope("2,0;9,1", [0, 0, 5, 5]) == "cells 2,0 and 9,1 don't touch"
+    assert settler.check_slope("2,0", [0, 0, 5, 5]) is not None
+    assert settler.check_slope("x;y", [0, 0, 5, 5]) is not None
+    assert settler.slope_paths("2,0;2,1|4,4;4,3") == [[(2, 0), (2, 1)], [(4, 4), (4, 3)]]
+    owned = {(x, y) for x in range(5) for y in range(5)}
+    path = [(2, 0), (2, 1), (3, 2), (3, 3), (3, 4)]
+    side = letters.slope_side(owned, [(0, 0)], [path])
+    assert (0, 0) in side and (1, 4) in side and (2, 2) in side and (2, 0) in side and (3, 4) in side
+    assert (4, 0) not in side and (3, 1) not in side and (4, 4) not in side
+    # No slope, or a seed off the outline, leaves the outline whole.
+    assert letters.slope_side(owned, [(0, 0)], []) == owned
+    assert letters.slope_side(owned, [(9, 9)], [path]) == owned

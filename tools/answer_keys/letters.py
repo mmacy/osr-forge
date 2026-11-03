@@ -133,8 +133,37 @@ def _rect_cells(rect: list[int], width: int, height: int) -> set[tuple[int, int]
     return {(cx, cy) for cy in range(max(0, y), min(height, y + h)) for cx in range(max(0, x), min(width, x + w))}
 
 
-def _expand(start: tuple[int, int], cells: list[list[str]], edges: EdgeGrids, taken: set[tuple[int, int]]) -> set:
-    """The floor joined to a cell across passable edges, up to the cap, that no outline of the level holds yet."""
+def slope_side(
+    owned: set[tuple[int, int]], seeds: list[tuple[int, int]], paths: list[list[tuple[int, int]]]
+) -> set[tuple[int, int]]:
+    """The cells of an outline on its seeds' side of its slopes: the cells joined to a seed by sides without
+    stepping onto a slope cell, plus the slope cells themselves. An outline whose seeds lie on no cell of it, or
+    with no slope, is returned whole."""
+    blocked = {cell for path in paths for cell in path}
+    starts = [seed for seed in seeds if seed in owned and seed not in blocked]
+    if not paths or not starts:
+        return set(owned)
+    found = set(starts)
+    queue = deque(starts)
+    while queue:
+        x, y = queue.popleft()
+        for _side, (dx, dy) in _SIDES:
+            nxt = (x + dx, y + dy)
+            if nxt in owned and nxt not in found and nxt not in blocked:
+                found.add(nxt)
+                queue.append(nxt)
+    return found | (blocked & owned)
+
+
+def _expand(
+    start: tuple[int, int],
+    cells: list[list[str]],
+    edges: EdgeGrids,
+    taken: set[tuple[int, int]],
+    blocked: set[tuple[int, int]] = frozenset(),
+) -> set:
+    """The floor joined to a cell across passable edges, up to the cap, that no outline of the level holds yet and
+    that lies on no slope."""
     width, height = len(cells[0]), len(cells)
     found = {start}
     queue = deque([start])
@@ -143,6 +172,8 @@ def _expand(start: tuple[int, int], cells: list[list[str]], edges: EdgeGrids, ta
         for side, (dx, dy) in _SIDES:
             nx, ny = x + dx, y + dy
             if not (0 <= nx < width and 0 <= ny < height) or (nx, ny) in found or (nx, ny) in taken:
+                continue
+            if (nx, ny) in blocked:
                 continue
             if cells[ny][nx] == "#" or edges.at((x, y), side) not in "op":
                 continue
@@ -183,13 +214,25 @@ def outline_state(
                 owned[level] |= _rect_cells(rect, width, height)
         seeds[level] = list((answer or {}).get("seeds", []))
         open_ground[level] = [tuple(rect) for rect in (answer or {}).get("open_ground", []) if len(rect) == 4]  # type: ignore[misc]
+    # The slope calls: a level's outline ends at the elevation line that bounds its ground.
+    slopes: dict[str, list[list[tuple[int, int]]]] = {}
+    for name, call in sorted(final.items()):
+        if name.startswith("l:"):
+            from .settler import slope_paths
+
+            level = name[2:].split("|", 1)[1]
+            if level in owned:
+                slopes[level] = slope_paths(call["value"])
+    blocked = {cell for paths in slopes.values() for path in paths for cell in path}
+    for level, paths in slopes.items():
+        owned[level] = slope_side(owned[level], [parse_cell(text) for text in seeds[level]], paths)
     # The calls: a cell placed in a level grows that level's outline across the floor joined to it.
     for name, call in sorted(final.items()):
         if name.startswith("o:"):
             cell = parse_cell(name[2:].split("|")[0])
             value = call["value"].strip()
             if value in owned:
-                owned[value] |= _expand(cell, cells, edges, owned[value])
+                owned[value] |= _expand(cell, cells, edges, owned[value], blocked)
         elif name.startswith("g:"):
             _coords, level, index = name[2:].split("|")
             if level in open_ground and call["value"].strip() == "outside":
@@ -198,7 +241,6 @@ def outline_state(
                     open_ground[level][position] = (-1, -1, 0, 0)
     state = OutlineState(levels=levels, owned=owned, seeds=seeds, open_ground=open_ground)
     if len(levels) > 1:
-        any_outline: set[tuple[int, int]] = set().union(*owned.values())
         asked = {name[2:].split("|")[0] for name in final if name.startswith("o:")}
         seen: set[tuple[int, int]] = set()
         for level in levels:
@@ -208,12 +250,18 @@ def outline_state(
                 for side, (dx, dy) in _SIDES:
                     nx, ny = x + dx, y + dy
                     beyond = (nx, ny)
-                    if not (0 <= nx < width and 0 <= ny < height) or beyond in any_outline or cells[ny][nx] == "#":
+                    if not (0 <= nx < width and 0 <= ny < height) or beyond in owned[level] or cells[ny][nx] == "#":
                         continue
                     if edges.at((x, y), side) not in "op" or beyond in seen or f"{nx},{ny}" in asked:
                         continue
+                    if (x, y) in blocked and beyond not in blocked:
+                        # The border follows the slope: floor beyond a slope cell is the outside, not a crossing.
+                        continue
                     seen.add(beyond)
-                    state.crossings.append({"level": level, "cell": (x, y), "side": side, "beyond": beyond})
+                    others = [other for other in levels if other != level and beyond in owned[other]]
+                    state.crossings.append(
+                        {"level": level, "cell": (x, y), "side": side, "beyond": beyond, "others": others}
+                    )
     for level in levels:
         for index, rect in enumerate(open_ground[level]):
             if rect[2] <= 0:

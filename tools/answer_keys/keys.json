@@ -30,6 +30,7 @@
       "specs": "maps.json",
       "member": "jn1-chaotic-caves",
       "levels": [["orc-lair-a", 1], ["orc-lair-b", 1], ["hobgoblin-lair", 1], ["abandoned-crypts", 1], ["goblin-lair", 1], ["bandit-lair", 1], ["kobold-lair", 1], ["lizard-man-lair", 1], ["bugbear-lair", 1], ["gnoll-lair", 1]],
+      "slopes": true,
       "survey": "../../tests/assets/chaotic-caves/stages/survey.json",
       "stages": "../../tests/assets/chaotic-caves/stages",
       "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",

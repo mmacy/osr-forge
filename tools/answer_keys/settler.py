@@ -18,6 +18,7 @@ import base64
 import json
 import random
 from collections.abc import Sequence
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -64,6 +65,12 @@ SETTLE_SYSTEM = (
     "or outside, the open ground or ravine between the levels that belongs to none of them, beyond their walls "
     "and cave mouths. Floor that continues out through a cave mouth into the ravine is outside, even where "
     "nothing but a grid line separates the cells.\n\n"
+    "Slopes. A slope item asks for the elevation line (a contour) that bounds a level's ground inside the boxed "
+    "rectangle, between the level's ground and the ravine or outside beyond it. Answer with the cells the line "
+    "passes through, in order from where it enters the rectangle to where it leaves it, as 'x,y;x,y;x,y', each "
+    "cell once and each consecutive pair touching by a side or a corner; separate several bounding lines with "
+    "|; answer none when no elevation line bounds the level's ground there. The ground on the level's side of "
+    "the line, where its seeds lie, is the level's; the ground beyond is the outside.\n\n"
     "Labels. A label item asks which label is printed with its centre in the boxed cell, or near it. Answer "
     "with the text exactly as printed, an @, and the cell under the centre of the text, as 'text@x,y'; stacked "
     "keys are one label with the texts joined by /. Answer none when no label is printed there.\n\n"
@@ -101,6 +108,12 @@ ADVERSARY_SYSTEM = (
     "or outside, the open ground or ravine between the levels that belongs to none of them, beyond their walls "
     "and cave mouths. Floor that continues out through a cave mouth into the ravine is outside, even where "
     "nothing but a grid line separates the cells.\n\n"
+    "Slopes. A slope item asks for the elevation line (a contour) that bounds a level's ground inside the boxed "
+    "rectangle, between the level's ground and the ravine or outside beyond it. Answer with the cells the line "
+    "passes through, in order from where it enters the rectangle to where it leaves it, as 'x,y;x,y;x,y', each "
+    "cell once and each consecutive pair touching by a side or a corner; separate several bounding lines with "
+    "|; answer none when no elevation line bounds the level's ground there. The ground on the level's side of "
+    "the line, where its seeds lie, is the level's; the ground beyond is the outside.\n\n"
     "Labels are answered as 'text@x,y' (the text exactly as printed, and the cell under its centre) or none. "
     "Symbols are answered as 'kind@x,y;x,y', or 'cave_mouth@x,y:side', with |up or |down when the map shows a "
     "direction, or none. A cave_mouth stands on the edge where the cave's passage opens into the ground outside, "
@@ -185,10 +198,12 @@ def crops_for(ctx: MapContext, item_id: str, rect: tuple[int, int, int, int] | N
     zoom = directory / f"{stem}_zoom.png"
     wide = directory / f"{stem}_wide.png"
     if rect is not None:
+        # A large rectangle gets fewer pixels per cell, so the crop stays under the API's useful size.
+        px = max(24, min(64, 1400 // max(rect[2], rect[3], 1)))
         if not zoom.exists():
-            render_rect(ctx.rgb, ctx.fit, rect, zoom, 64)
+            render_rect(ctx.rgb, ctx.fit, rect, zoom, px)
         if not wide.exists():
-            render_rect(ctx.rgb, ctx.fit, (rect[0] - 3, rect[1] - 3, rect[2] + 6, rect[3] + 6), wide, 32)
+            render_rect(ctx.rgb, ctx.fit, (rect[0] - 3, rect[1] - 3, rect[2] + 6, rect[3] + 6), wide, max(16, px // 2))
         return zoom, wide
     cell, side = _item_place(item_id)
     if not zoom.exists():
@@ -323,14 +338,15 @@ def outline_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]
     for crossing in state.crossings:
         nx, ny = crossing["beyond"]
         x, y = crossing["cell"]
-        readings = [("the whole-map read", f"no level's outline covers cell {nx},{ny}")]
+        others = crossing.get("others", [])
+        covered = f"the outline of level {', '.join(others)} covers" if others else "no level's outline covers"
+        readings = [("the whole-map read", f"{covered} cell {nx},{ny}")]
         out.append(
             {
                 "id": f"o:{nx},{ny}|{crossing['level']}",
                 "kind": "outline",
                 "options": options,
-                "text": f"cell {nx},{ny} (boxed) is floor that no level's outline covers, and an open edge joins it "
-                "to "
+                "text": f"cell {nx},{ny} (boxed) is floor that {covered}, and an open edge joins it to "
                 f"cell {x},{y}, which lies in the outline of level {crossing['level']}. Which level's floor is the "
                 f"boxed cell part of? Answer with exactly one of: {', '.join(options)}. Readings: "
                 f"{_readings_text(readings)}.",
@@ -369,6 +385,73 @@ def outline_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]
             }
         )
     return out
+
+
+def slope_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    """The slope round's items, for a map whose spec sets `slopes`: one per level of the whole-map read, asking for
+    the elevation line that bounds the level's ground inside its rectangle. The outline then ends at that line."""
+    from .marks import wholemap_answer
+
+    if not ctx.key.extra.get("slopes"):
+        return []
+    whole = wholemap_answer(ctx) or {}
+    out: list[dict[str, Any]] = []
+    for level in whole.get("levels", []):
+        rects = [tuple(rect) for rect in level.get("rects", []) if len(rect) == 4]
+        if not rects:
+            continue
+        x0 = min(r[0] for r in rects)
+        y0 = min(r[1] for r in rects)
+        x1 = max(r[0] + r[2] for r in rects)
+        y1 = max(r[1] + r[3] for r in rects)
+        rect = (x0, y0, x1 - x0, y1 - y0)
+        level_id = f"{level['dungeon']}/{level['level']}"
+        item_id = f"l:{x0},{y0}|{level_id}"
+        if item_id in final:
+            continue
+        seeds = ", ".join(level.get("seeds", [])) or "none"
+        readings = [("the whole-map read", f"the rectangle is the outline of level {level_id}, its seeds at {seeds}")]
+        out.append(
+            {
+                "id": item_id,
+                "kind": "slope",
+                "rect": list(rect),
+                "text": f"the boxed rectangle, {rect[2]} wide and {rect[3]} high from cell {rect[0]},{rect[1]}, was "
+                f"read as the outline of level {level_id}. Which cells does the elevation line that bounds this "
+                f"level's ground pass through, from where it enters the rectangle to where it leaves it? Readings: "
+                f"{_readings_text(readings)}.",
+                "readings": readings,
+            }
+        )
+    return out
+
+
+def slope_paths(value: str) -> list[list[tuple[int, int]]]:
+    """The cell paths of a slope answer: `x,y;x,y|x,y;x,y`, or none."""
+    value = value.strip()
+    if value == "none" or not value:
+        return []
+    return [[parse_cell(text.strip()) for text in path.split(";") if text.strip()] for path in value.split("|")]
+
+
+def check_slope(value: str, rect: Sequence[int]) -> str | None:
+    """What is malformed in a slope answer: a cell that isn't an address, a path that doesn't touch cell to cell,
+    or a cell farther than one cell outside the rectangle."""
+    try:
+        paths = slope_paths(value)
+    except ValueError:
+        return f"needs 'x,y;x,y' paths separated by |, or none, not {value!r}"
+    x0, y0, w, h = rect
+    for path in paths:
+        if len(path) < 2:
+            return f"a path needs at least two cells, not {value!r}"
+        for (ax, ay), (bx, by) in pairwise(path):
+            if max(abs(ax - bx), abs(ay - by)) != 1:
+                return f"cells {ax},{ay} and {bx},{by} don't touch"
+        for x, y in path:
+            if not (x0 - 1 <= x <= x0 + w and y0 - 1 <= y <= y0 + h):
+                return f"cell {x},{y} lies outside the rectangle"
+    return None
 
 
 def water_bank_edges(cells: list[list[str]], edges: Any, final: dict[str, dict[str, Any]]) -> list[str]:
@@ -518,6 +601,10 @@ def check_answer(answer: dict[str, Any], expected: list[dict[str, Any]], adversa
                 faults.append(f"item {item_id} names a place that isn't an address: {value!r}")
         if kind == "outline" and value not in by_id[item_id].get("options", []):
             faults.append(f"item {item_id} needs one of {by_id[item_id].get('options')}, not {value!r}")
+        if kind == "slope":
+            fault = check_slope(value, by_id[item_id]["rect"])
+            if fault is not None:
+                faults.append(f"item {item_id}: {fault}")
         if adversary and not isinstance(row.get("challenged"), bool):
             faults.append(f"item {item_id} needs challenged true or false")
     for item_id in by_id:
@@ -585,8 +672,12 @@ def submit_pass(
             edge_items = settle_items(items, cells_settled)
             round_items += edge_items
             if all(item["id"] in calls for item in edge_items):
-                # The outline round: every cell and edge is settled, so the outlines can be laid over them.
-                round_items += outline_items(ctx, items, final_values(ctx))
+                # The slope round, where the spec asks for it, then the outline round: every cell and edge is
+                # settled, so the outlines can be laid over them, ending at the slopes.
+                slopes = slope_items(ctx, items, final_values(ctx))
+                round_items += slopes
+                if not slopes:
+                    round_items += outline_items(ctx, items, final_values(ctx))
         count = _add_jobs(ctx, store, f"{ctx.key.id}__settle__", round_items, False)
         return store.submit(client, ledger, f"settle {ctx.key.id}", limit), count
     settled = _load_calls(ctx, "settle")
@@ -668,6 +759,10 @@ def _rebuild_item(ctx: MapContext, items: Items, name: str) -> dict[str, Any] | 
             return item
     if kind == "s" and "|" in name:
         return _symbol_item(items, int(name.rsplit("|", 1)[1]))
+    if kind == "l":
+        for item in slope_items(ctx, items, {}):
+            if item["id"] == name:
+                return item
     if kind in ("o", "g"):
         for item in outline_items(ctx, items, {}):
             if item["id"] == name:
