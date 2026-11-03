@@ -36,7 +36,7 @@ MAX_TOKENS = 20000
 ITEMS_PER_REQUEST = 8
 ZOOM_PX, ZOOM_REACH = 128, 1.5
 WIDE_PX, WIDE_REACH = 48, 4.5
-ADVERSARY_CAP = 1200
+ADVERSARY_CAP = 1500
 """The most agreed items the adversarial pass rechecks on one map, drawn by a fixed seed when there are more."""
 
 SETTLE_SYSTEM = (
@@ -685,6 +685,20 @@ def adversary_items(ctx: MapContext, items: Items, settled: dict[str, dict[str, 
         item = _rebuild_item(ctx, items, f"e:{name}")
         if item is not None:
             agreed.append({**item, "recorded": _recorded_text("edge", letter), "category": category})
+    # Agreed cells beside a label or on a diagonal: where a key lands and where the half rule is judged.
+    for name, entry in items.cells.items():
+        if entry["status"] != "agreed" or f"c:{name}" in settled or not entry["claude"]:
+            continue
+        category = None
+        if name in partial:
+            category = "diagonal"
+        elif name in near_keys:
+            category = "key"
+        if category is None:
+            continue
+        item = _rebuild_item(ctx, items, f"c:{name}")
+        if item is not None:
+            agreed.append({**item, "recorded": _recorded_text("cell", entry["claude"][0]), "category": category})
     if len(agreed) > ADVERSARY_CAP:
         rng = random.Random(7)
         agreed = rng.sample(agreed, ADVERSARY_CAP)
