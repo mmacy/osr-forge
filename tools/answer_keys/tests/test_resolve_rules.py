@@ -501,10 +501,10 @@ TWO_ROOMS = [
 """Two rooms on one panel with rock between them, one on each of two levels, and no symbol anywhere."""
 
 
-def two_rooms_fixture(via, symbols=()):
+def two_rooms_fixture(via, symbols=(), to_key="2"):
     survey_index = survey("k", [(1, [("1", "Upper")]), (2, [("2", "Lower")])])
     contents = {
-        ("k", 1): content("k", 1, [("1", "Upper.", [{"to_key": "2", "direction": "down", "via": via}])]),
+        ("k", 1): content("k", 1, [("1", "Upper.", [{"to_key": to_key, "direction": "down", "via": via}])]),
         ("k", 2): content("k", 2, [("2", "Lower.", [])]),
     }
     outlines = (
@@ -557,6 +557,42 @@ def test_a_link_with_no_means_and_symbols_of_two_means_makes_no_transition():
     by_trapdoor = two_rooms_fixture("trapdoor", symbols)
     assert transitions(level_of(by_trapdoor, 1)) == {("1,2", "trapdoor", 2, "4,1")}
     assert level_of(by_trapdoor, 2).transitions == ()
+
+
+@pytest.mark.parametrize("to_key", ["Level 2", "second level", "2 LEVEL", "level Second"])
+def test_a_level_shaped_to_key_is_a_connection_to_that_level(to_key):
+    """A `to_key` that matches no key but reads as a level, in either word order and any case, is a connection to
+    that level. With no symbol of its means on the lower level, the link's target end is the first cell of the
+    level's first area, as for a link whose target area has no symbol."""
+    result = two_rooms_fixture("stairs", to_key=to_key)
+    assert transitions(level_of(result, 1)) == {("1,1", "stairs_down", 2, "4,1")}
+    assert transitions(level_of(result, 2)) == {("4,1", "stairs_up", 1, "1,1")}
+
+
+@pytest.mark.parametrize("to_key", ["the cellar", "level", "level eleventh", "2", "deep level 2"])
+def test_a_to_key_that_matches_nothing_and_reads_as_no_level_makes_no_link(to_key):
+    """A `to_key` that matches no key and isn't the word level with a number or an ordinal from first to tenth
+    leads nowhere, so no transition stands. The bare `2` matches the lower room's key and is the control."""
+    result = two_rooms_fixture("stairs", to_key=to_key)
+    expected = {("1,1", "stairs_down", 2, "4,1")} if to_key == "2" else set()
+    assert transitions(level_of(result, 1)) == expected
+
+
+def test_a_level_only_link_lands_on_an_unused_symbol_of_its_means():
+    """A link to a level with no target area ends on a symbol of its means on that level that no other link's end
+    stands on, the first in north-then-west order: here the lower room's stair, which no link uses, rather than its
+    first cell. The stair's end leads back to the upper room."""
+    result = two_rooms_fixture("stairs", (Symbol(kind="stairs", cells=("5,2",)),), to_key="Level 2")
+    assert transitions(level_of(result, 1)) == {("1,1", "stairs_down", 2, "5,2")}
+    assert transitions(level_of(result, 2)) == {("5,2", "stairs_up", 1, "1,1")}
+
+
+def test_a_level_only_link_with_no_symbol_of_its_means_lands_on_the_first_area():
+    """With a trapdoor on the lower level but none of the link's means, the stairs link to that level ends on the
+    first cell of the level's first area."""
+    result = two_rooms_fixture("stairs", (Symbol(kind="trapdoor", cells=("5,2",)),), to_key="Level 2")
+    assert transitions(level_of(result, 1)) == {("1,1", "stairs_down", 2, "4,1")}
+    assert transitions(level_of(result, 2)) == {("4,1", "stairs_up", 1, "1,1")}
 
 
 YARD = [

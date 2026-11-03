@@ -80,6 +80,36 @@ MEANS_SYMBOLS: dict[LinkMeans, tuple[str, ...]] = {
 }
 """The symbol kinds a link of each means stands on."""
 ENTRANCE_TITLES = ("entrance", "entranceway")
+ORDINALS = {
+    "first": 1,
+    "second": 2,
+    "third": 3,
+    "fourth": 4,
+    "fifth": 5,
+    "sixth": 6,
+    "seventh": 7,
+    "eighth": 8,
+    "ninth": 9,
+    "tenth": 10,
+}
+
+
+def level_number_in(text: str) -> int | None:
+    """The level a `to_key` reads as: the word level with a number or an ordinal from first to tenth, either order.
+
+    Args:
+        text: The connection's `to_key`, such as "Level 2" or "second level".
+
+    Returns:
+        The level number, or `None` when the text doesn't read as a level.
+    """
+    words = re.findall(r"[a-z0-9]+", text.lower())
+    if len(words) != 2 or "level" not in words:
+        return None
+    other = words[1] if words[0] == "level" else words[0]
+    if other.isdigit():
+        return int(other)
+    return ORDINALS.get(other)
 
 
 class ConventionGap(Exception):
@@ -150,7 +180,9 @@ class Link:
     """A prose connection the trace has to realize as transitions."""
 
     start: tuple[LevelId, str]
-    target: tuple[LevelId, str]
+    target: tuple[LevelId, str | None]
+    """The target area, or a level alone when the prose names only a level."""
+
     means: LinkMeans
     to_dungeon: str | None = None
 
@@ -295,6 +327,9 @@ class Resolver:
                 for item in self.keys[candidate]:
                     if item.matches(connection.to_key):
                         return (candidate, item.key)
+            number = level_number_in(connection.to_key)
+            if number is not None and (dungeon, number) in self.levels:
+                return ((dungeon, number), None)
         if connection.to_level is not None:
             target = (dungeon, connection.to_level)
             if target in self.levels:
@@ -1471,7 +1506,8 @@ class Resolver:
     def links(self) -> None:
         """Realize each link as transitions on the symbols of its means beside its areas."""
         stated: dict[
-            tuple[frozenset[tuple[LevelId, str]], LinkMeans], list[tuple[tuple[LevelId, str], tuple[LevelId, str]]]
+            tuple[frozenset[tuple[LevelId, str | None]], LinkMeans],
+            list[tuple[tuple[LevelId, str], tuple[LevelId, str | None]]],
         ] = {}
         for level_id in self.level_order:
             content = self.contents.get(level_id)
@@ -1488,15 +1524,15 @@ class Resolver:
                     if self.levels[target_level].verdict != "traced":
                         continue
                     if target_key is None:
-                        raise ConventionGap(
-                            f"connection from {level_id}/{area.key} names only level {target_level}: no target area"
-                        )
-                    if not self.area_of(target_level, target_key):
-                        continue
-                    if target_level == level_id and not self.on_other_panels(level_id, area.key, target_key):
-                        continue
-                    if self.passages_make(level_id, area.key, target_level, target_key):
-                        continue
+                        if target_level == level_id:
+                            continue
+                    else:
+                        if not self.area_of(target_level, target_key):
+                            continue
+                        if target_level == level_id and not self.on_other_panels(level_id, area.key, target_key):
+                            continue
+                        if self.passages_make(level_id, area.key, target_level, target_key):
+                            continue
                     means = self.link_means(level_id, area.key, connection.via)
                     if means is None:
                         continue
@@ -1506,9 +1542,37 @@ class Resolver:
                         stated[identity].append(ends)
         for (_pair, means), directions in stated.items():
             start, target_end = directions[0]
-            if means != "stairs" and len(directions) > 1 and self.link_start(target_end) < self.link_start(start):
-                start, target_end = target_end, start
+            if (
+                means != "stairs"
+                and len(directions) > 1
+                and target_end[1] is not None
+                and self.link_start((target_end[0], target_end[1])) < self.link_start(start)
+            ):
+                start, target_end = (target_end[0], target_end[1]), (start[0], start[1])
             self.realize_link(Link(start, target_end, means))
+
+    def level_target_end(self, level_id: LevelId, means: LinkMeans) -> tuple[Cell, str | None]:
+        """Where a link to a level with no target area ends: a symbol of its means on that level that no other link's
+        end stands on, the first in north-then-west order, or else the first cell of the level's first area."""
+        world = self.world
+        used = {parse_cell(transition.cell) for transition in self.levels[level_id].transitions}
+        candidates: list[tuple[Cell, str | None]] = []
+        for grid in self.levels[level_id].grids:
+            for symbol in grid.panel.symbols:
+                if symbol.kind not in MEANS_SYMBOLS[means]:
+                    continue
+                cells = sorted(
+                    (self.to_level(level_id, (grid.id, *parse_cell(text))) for text in symbol.cells),
+                    key=lambda c: (c[1], c[0]),
+                )
+                if not any(c in used for c in cells):
+                    candidates.append((cells[0], symbol.direction))
+        if candidates:
+            return min(candidates, key=lambda item: (item[0][1], item[0][0]))
+        first = next((key for key in self.keys[level_id] if self.area_of(level_id, key.key)), None)
+        if first is None:
+            raise ConventionGap(f"a link to level {level_id} finds no symbol of its means and no area there")
+        return (self.to_level(level_id, world.first(self.area_of(level_id, first.key))), None)
 
     def link_means(self, level_id: LevelId, key: str, via: str) -> LinkMeans | None:
         """A link's means: the prose's, or, when the prose names none, that of the link symbols beside its area.
@@ -1611,19 +1675,23 @@ class Resolver:
             direction = "up"
         back = {"down": "up", "up": "down"}.get(direction or "")
         starts = self.symbol_ends(start_level, start_key, direction, link.means)
-        targets = self.symbol_ends(target_level, target_key, back, link.means)
         start_first = self.to_level(start_level, world.first(self.area_of(start_level, start_key)))
-        target_first = self.to_level(target_level, world.first(self.area_of(target_level, target_key)))
         if not starts:
             starts = [(start_first, None)]
-        if not targets:
-            targets = [(target_first, None)]
+        if target_key is None:
+            target_first, recorded = self.level_target_end(target_level, link.means)
+            targets = [(target_first, recorded)]
+        else:
+            targets = self.symbol_ends(target_level, target_key, back, link.means)
+            target_first = self.to_level(target_level, world.first(self.area_of(target_level, target_key)))
+            if not targets:
+                targets = [(target_first, None)]
         if link.means == "stairs":
-            start_panel = world.grid(world.first(self.area_of(start_level, start_key))).index
-            target_panel = world.grid(world.first(self.area_of(target_level, target_key))).index
-            start_first_placed = (start_level[0] == target_level[0] and start_panel <= target_panel) or (
-                start_level[0] != target_level[0] and self.level_index(start_level) < self.level_index(target_level)
-            )
+            start_first_placed = self.level_index(start_level) < self.level_index(target_level)
+            if target_key is not None and start_level[0] == target_level[0]:
+                start_panel = world.grid(world.first(self.area_of(start_level, start_key))).index
+                target_panel = world.grid(world.first(self.area_of(target_level, target_key))).index
+                start_first_placed = start_panel <= target_panel
             count = max(len(starts), len(targets))
             for index in range(count):
                 if index < len(starts):
