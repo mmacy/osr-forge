@@ -8,7 +8,6 @@ other edge letters, a space for an open edge, and `.`, `#`, or `~` for a cell. A
 from typing import Literal
 
 import pytest
-from pydantic import ValidationError
 from tools.answer_keys.resolve import ConventionGap, Resolver, reading_of
 
 from osrforge.contracts.stages import (
@@ -813,16 +812,10 @@ def two_dungeons_fixture(rows):
     return result.level("keep", 1), result.level("caves", 1)
 
 
-DUNGEON_PASSAGES = pytest.mark.xfail(reason="chunk: dungeon-passages", raises=ValidationError, strict=True)
-"""Main's `Dungeon` checks every passage against its own dungeon's levels, so it refuses a passage into another
-dungeon until the dungeon-passages chunk checks `to_dungeon` there."""
-
-
 def dungeon_passages(level):
     return {(p.cell, p.side, p.to_level, p.to_cell, p.to_dungeon) for p in level.passages}
 
 
-@DUNGEON_PASSAGES
 def test_two_dungeons_meeting_across_an_open_edge_are_cut_with_a_pair_naming_the_other_dungeon():
     """The halls' floors meet in the drawing, so the two dungeons' levels are cut as two levels are: the open edge
     between them is a wall on both, with a pair of passages across it, each naming the other dungeon."""
@@ -835,7 +828,6 @@ def test_two_dungeons_meeting_across_an_open_edge_are_cut_with_a_pair_naming_the
     assert keep.cells[1][4] == "#" and caves.cells[1][5] == "#"
 
 
-@DUNGEON_PASSAGES
 def test_two_dungeons_meeting_at_a_door_give_a_vestibule_on_the_later_dungeons_side():
     """The keep comes first in survey order, so the cell beyond the door on the caves' side becomes the keep's
     corridor, the door stays on the keep, and the pair goes on the vestibule's side opposite the door, each passage
