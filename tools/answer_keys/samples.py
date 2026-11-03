@@ -76,6 +76,17 @@ def categorize(ctx: MapContext, name: str, kind: str) -> str | None:
     return None
 
 
+def _mark_cells(value: str) -> str:
+    """A label reading's cells, `x,y` or several joined by `; `, from `text@x,y`, `x,y`, or `x,y,x,y`."""
+    text = value.rpartition("@")[2] if "@" in value else value
+    if text.strip().lower() in ("none", "no such label"):
+        return "none"
+    parts = [part for part in text.split(",") if part.strip()]
+    if len(parts) % 2 == 0 and len(parts) > 2:
+        return "; ".join(f"{parts[i]},{parts[i + 1]}" for i in range(0, len(parts), 2))
+    return text
+
+
 def _reading_value(reader: str, value: str) -> str:
     text = value.split(" (p=")[0]
     return WORD_LETTERS.get(text, text)
@@ -89,8 +100,9 @@ def sample_calls(ctx: MapContext, member: str, style: str) -> list[SampleCall]:
         if call.get("settled") is None:
             continue
         kind_code, _, rest = call_id.partition(":")
-        kind = {"c": "cell", "e": "edge", "m": "mark", "s": "symbol"}[kind_code]
-        if kind == "symbol":
+        kind = {"c": "cell", "e": "edge", "m": "mark"}.get(kind_code)
+        if kind is None:
+            # Symbols and outline calls have no place in the sample's kinds.
             continue
         item = rest.split("|")[0]
         category = categorize(ctx, item, kind)
@@ -105,13 +117,13 @@ def sample_calls(ctx: MapContext, member: str, style: str) -> list[SampleCall]:
         if kind == "mark":
             label = call["value"].rpartition("@")[0] if "@" in call["value"] else call["value"]
             item = label or item
-            settled = call["value"].rpartition("@")[2] if "@" in call["value"] else call["value"]
-            readings = tuple(
-                Reading(reader="claude", value=value.rpartition("@")[2] if "@" in value else value)
-                for _reader, value in call["readings"]
-            )
+            settled = _mark_cells(call["value"])
+            readings = tuple(Reading(reader="claude", value=_mark_cells(value)) for _reader, value in call["readings"])
         else:
             settled = call["value"]
+        adversarial = call.get("adversarial")
+        if kind == "mark" and adversarial is not None:
+            adversarial = _mark_cells(adversarial)
         calls.append(
             SampleCall(
                 id=f"{ctx.key.id}:{call_id}",
@@ -126,7 +138,7 @@ def sample_calls(ctx: MapContext, member: str, style: str) -> list[SampleCall]:
                 wide=wide.name,
                 readings=readings,
                 settled=settled,
-                adversarial=call.get("adversarial"),
+                adversarial=adversarial,
                 reason=call.get("reason", ""),
             )
         )
