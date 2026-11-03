@@ -1,0 +1,38 @@
+{
+  "name": "mill",
+  "title": "The mill",
+  "features": [
+    "panels_two_pages_ladder",
+    "panels_slide",
+    "corridor_off_frame"
+  ],
+  "damage": [],
+  "images": [
+    {
+      "file": "mill-1.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    },
+    {
+      "file": "mill-2.jpg",
+      "ink": [
+        46,
+        100,
+        172
+      ],
+      "paper": [
+        242,
+        241,
+        233
+      ]
+    }
+  ]
+}

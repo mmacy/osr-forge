@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "title": "The undercroft",
+  "description": "",
+  "hooks": [],
+  "party": null,
+  "town": {
+    "name": "",
+    "description": "",
+    "services": []
+  },
+  "dungeons": [
+    {
+      "id": "the-undercroft",
+      "name": "The undercroft",
+      "levels": [
+        {
+          "number": 1,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "1",
+              "name": "Pillared crypt",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "2",
+              "name": "Sexton's room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "map_pages": [
+            1
+          ],
+          "areas": [
+            {
+              "key": "5",
+              "name": "Lower vault",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "6",
+              "name": "Bone store",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "7",
+              "name": "Well room",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "monster_names": [],
+  "census_disputes": []
+}
