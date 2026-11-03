@@ -637,6 +637,11 @@ class LevelRules:
             placed.append(Placed(label=label, key=key, cell=target, moved=target != cell))
         dungeon_words = {word.lower() for word in re.split(r"[^0-9A-Za-z]+", self.dungeon.name) if word}
         for label, cell in letters:
+            if label.lower() in dungeon_words and self._beside_mouth(cell):
+                print_of = self._entrance_print(label, cell, settled)
+                if print_of is not None:
+                    placed.append(print_of)
+                continue
             if board.outside(cell) or label.lower() in dungeon_words:
                 continue
             namers = [area.key for area in self.level.areas if names(area.key, area.description, label)]
@@ -655,6 +660,56 @@ class LevelRules:
                 namers = [ranked[0][1]]
             placed.append(Placed(label=label, key=namers[0], cell=cell, moved=False))
         return placed
+
+    def _beside_mouth(self, cell: Cell) -> bool:
+        """Whether a cell lies within two cells of a cave mouth, which a dungeon's letter there marks as its own.
+
+        The outline of the dungeon's level holds the mouth's inner cell, as Keys and areas says of a mouth a letter
+        marks.
+
+        Raises:
+            DesignError: If the level's outline doesn't hold the inner cell of a mouth the letter marks.
+        """
+        near = [edge for edge in self.mouths if any(chebyshev(cell, other) <= 2 for other in edge_cells(edge))]
+        for edge in near:
+            if not any(self.board.floor(other) and other in self.board.owned for other in edge_cells(edge)):
+                raise DesignError(f"the outline doesn't hold the inner cell of cave mouth {edge}, which a letter marks")
+        return bool(near)
+
+    def _entrance_print(self, label: str, cell: Cell, settled: list[Cell]) -> Placed | None:
+        """A dungeon's letter beside a cave mouth as the print of the dungeon's entrance key, as Keys and areas says.
+
+        When the map prints none of the dungeon's entrance keys, the map-reading stage's `entrance_key` and the keys
+        titled "Entrance" or "Entranceway", the letter counts as the print of the first of them, and the rules for a
+        key printed on the outside place it, inside the mouth. Otherwise the letter only marks the mouth.
+
+        Returns:
+            The entrance key's placed print, or `None` when the letter is only a label.
+        """
+        keys = [
+            area.key for level in self.dungeon.levels for area in level.areas if area.key == self.spec.entrance_key
+        ] + [
+            area.key
+            for level in self.dungeon.levels
+            for area in level.areas
+            if area.name.lower() in ("entrance", "entranceway")
+        ]
+        if not keys:
+            return None
+        panels = {name for level in self.dungeon.levels for name in level.panels}
+        printed = {
+            part.lower()
+            for panel in self.spec.panels
+            if panel.id in panels
+            for mark in panel.plan.marks
+            for part in [mark.text, *mark.text.split("/")]
+        }
+        if any(key.lower() in printed for key in keys):
+            return None
+        if keys[0] not in self.keys:
+            raise DesignError(f"entrance key {keys[0]!r} printed by letter {label!r} is on another level")
+        target = self._place(cell, None, None, settled)
+        return Placed(label=label, key=keys[0], cell=target, moved=target != cell)
 
     def _structure_for(self, key: str, cell: Cell, placed: list[Placed]) -> int:
         """The walled structure a key on open ground takes, as Keys and areas says.

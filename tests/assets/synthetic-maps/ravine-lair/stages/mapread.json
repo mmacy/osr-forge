@@ -18,6 +18,23 @@
         }
       ],
       "entrance_key": null
+    },
+    {
+      "dungeon_id": "lair-j",
+      "level_number": 1,
+      "map_pages": [
+        1
+      ],
+      "status": "read",
+      "unread_reason": null,
+      "proposals": [
+        {
+          "a": "1",
+          "b": "2",
+          "door": "door"
+        }
+      ],
+      "entrance_key": null
     }
   ]
 }
