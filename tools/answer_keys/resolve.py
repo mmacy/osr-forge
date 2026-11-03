@@ -184,6 +184,9 @@ class Link:
     """The target area, or a level alone when the prose names only a level."""
 
     means: LinkMeans
+    direction: str | None = None
+    """`down`, `up`, or `None`: the connection's stated direction, else by level numbers."""
+
     to_dungeon: str | None = None
 
 
@@ -1507,7 +1510,7 @@ class Resolver:
         """Realize each link as transitions on the symbols of its means beside its areas."""
         stated: dict[
             tuple[frozenset[tuple[LevelId, str | None]], LinkMeans],
-            list[tuple[tuple[LevelId, str], tuple[LevelId, str | None]]],
+            list[tuple[tuple[LevelId, str], tuple[LevelId, str | None], str | None]],
         ] = {}
         for level_id in self.level_order:
             content = self.contents.get(level_id)
@@ -1533,23 +1536,51 @@ class Resolver:
                             continue
                         if self.passages_make(level_id, area.key, target_level, target_key):
                             continue
-                    means = self.link_means(level_id, area.key, connection.via)
+                    direction = self.link_direction(level_id, target_level, connection)
+                    means = self.link_means(level_id, area.key, connection.via, direction)
                     if means is None:
                         continue
                     identity = (frozenset({(level_id, area.key), (target_level, target_key)}), means)
-                    ends = ((level_id, area.key), (target_level, target_key))
+                    ends = ((level_id, area.key), (target_level, target_key), direction)
                     if ends not in stated.setdefault(identity, []):
                         stated[identity].append(ends)
-        for (_pair, means), directions in stated.items():
-            start, target_end = directions[0]
-            if (
-                means != "stairs"
-                and len(directions) > 1
-                and target_end[1] is not None
-                and self.link_start((target_end[0], target_end[1])) < self.link_start(start)
-            ):
-                start, target_end = (target_end[0], target_end[1]), (start[0], start[1])
-            self.realize_link(Link(start, target_end, means))
+        for (_pair, means), entries in stated.items():
+            start, target_end, direction = self.link_entry(means, entries)
+            self.realize_link(Link(start, target_end, means, direction))
+
+    @staticmethod
+    def link_direction(level_id: LevelId, target_level: LevelId, connection: AreaConnection) -> str | None:
+        """The way a link goes: the connection's stated `up` or `down`, else by level numbers.
+
+        A connection that states neither goes down to a greater level number, up to a smaller, and has no direction
+        to the same level or another dungeon.
+        """
+        if connection.direction in ("up", "down"):
+            return connection.direction
+        if target_level[0] != level_id[0] or target_level[1] == level_id[1]:
+            return None
+        return "down" if target_level[1] > level_id[1] else "up"
+
+    def link_entry(
+        self, means: LinkMeans, entries: list[tuple[tuple[LevelId, str], tuple[LevelId, str | None], str | None]]
+    ) -> tuple[tuple[LevelId, str], tuple[LevelId, str | None], str | None]:
+        """The stated end a link starts from, with its target end and direction.
+
+        A stairs link, or a link stated from one end, starts where it is first stated. A trapdoor or chute stated from
+        both ends starts at the end from which it goes down, which is the end stated down, or else the end an entry
+        stated up leads to. With no direction, it starts at the end whose area comes first in survey order.
+        """
+        if means == "stairs" or len(entries) == 1:
+            return entries[0]
+        down = [entry for entry in entries if entry[2] == "down"]
+        if down:
+            return down[0]
+        up = [entry for entry in entries if entry[2] == "up"]
+        if up:
+            other = [entry for entry in entries if entry[0] == up[0][1]]
+            if other:
+                return other[0]
+        return min(entries, key=lambda entry: self.link_start(entry[0]))
 
     def level_target_end(self, level_id: LevelId, means: LinkMeans) -> tuple[Cell, str | None]:
         """Where a link to a level with no target area ends.
@@ -1579,34 +1610,45 @@ class Resolver:
             return min(candidates, key=lambda item: (item[0][1], item[0][0]))
         return (first, None)
 
-    def link_means(self, level_id: LevelId, key: str, via: str) -> LinkMeans | None:
+    def link_means(self, level_id: LevelId, key: str, via: str, direction: str | None) -> LinkMeans | None:
         """A link's means: the prose's, or, when the prose names none, that of the link symbols beside its area.
 
         A connection whose `via` is `passage` names no means. It takes the means of the stair, ladder, trapdoor,
-        hinged-floor, chute, and slide symbols that touch or adjoin its area when they are all of one means. With no
-        such symbol, symbols of more than one means, or any other means the prose names, the link makes no transition.
+        hinged-floor, chute, and slide symbols that touch or adjoin its area when they are all of one means. When
+        they are of more than one means and some record the link's direction, only those count. With no such symbol,
+        symbols of more than one means, or any other means the prose names, the link makes no transition.
         """
         if via in LINK_VIAS:
             return LINK_VIAS[via]
         if via != "passage":
             return None
-        beside = self.symbol_kinds_beside(level_id, key)
-        found: list[LinkMeans] = [means for means, kinds in MEANS_SYMBOLS.items() if beside & set(kinds)]
+        beside = self.symbols_beside(level_id, key)
+        found = self.means_of(beside)
+        if len(found) > 1 and direction is not None:
+            directed = [(kind, recorded) for kind, recorded in beside if recorded == direction]
+            if directed:
+                found = self.means_of(directed)
         return found[0] if len(found) == 1 else None
 
-    def symbol_kinds_beside(self, level_id: LevelId, key: str) -> set[str]:
-        """The kinds of the link symbols with a cell in an area or a cell that shares an edge with one."""
+    @staticmethod
+    def means_of(symbols: list[tuple[str, str | None]]) -> list[LinkMeans]:
+        """The means among some symbols, given as their kinds and recorded directions."""
+        kinds = {kind for kind, _recorded in symbols}
+        return [means for means, members in MEANS_SYMBOLS.items() if kinds & set(members)]
+
+    def symbols_beside(self, level_id: LevelId, key: str) -> list[tuple[str, str | None]]:
+        """The kinds and directions of the link symbols with a cell in an area or a cell sharing an edge with one."""
         world = self.world
         area = self.area_of(level_id, key)
-        kinds: set[str] = set()
+        found: list[tuple[str, str | None]] = []
         for grid in self.levels[level_id].grids:
             for symbol in grid.panel.symbols:
                 if symbol.kind not in LINK_SYMBOLS:
                     continue
                 cells = [(grid.id, *parse_cell(text)) for text in symbol.cells]
                 if any(c in area or any(world.across(c, s) in area for s in SIDES) for c in cells):
-                    kinds.add(symbol.kind)
-        return kinds
+                    found.append((symbol.kind, symbol.direction))
+        return found
 
     def link_start(self, end: tuple[LevelId, str]) -> tuple[int, tuple[int, int, int]]:
         """Where a link stated from both ends starts: the level above, else the area first in survey order."""
@@ -1673,11 +1715,7 @@ class Resolver:
         """Place a link's transitions at both ends and pair them in north-then-west order."""
         world = self.world
         (start_level, start_key), (target_level, target_key) = link.start, link.target
-        direction: str | None = None
-        if target_level[1] > start_level[1]:
-            direction = "down"
-        elif target_level[1] < start_level[1]:
-            direction = "up"
+        direction = link.direction
         back = {"down": "up", "up": "down"}.get(direction or "")
         starts = self.symbol_ends(start_level, start_key, direction, link.means)
         start_first = self.to_level(start_level, world.first(self.area_of(start_level, start_key)))
