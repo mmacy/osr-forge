@@ -5,6 +5,8 @@ other edge letters, a space for an open edge, and `.`, `#`, or `~` for a cell. A
 `-` whatever the picture shows.
 """
 
+from typing import Literal
+
 import pytest
 from tools.answer_keys.resolve import Resolver, reading_of
 
@@ -92,7 +94,7 @@ def region(rid, width, height, page=1, feet=10, cut_off=(), symbols=()):
     )
 
 
-def panel(pid, rows, marks=(), outlines=(), symbols=(), feet=10):
+def panel(pid, rows, marks=(), outlines=(), symbols=(), feet: Literal[5, 10] = 10):
     cells, edges = picture(rows)
     return Panel(
         id=pid,
@@ -189,6 +191,11 @@ def level_of(result, number):
     return next(level for level in result.dungeons[0].levels if level.number == number)
 
 
+def edges_of(level):
+    assert level.edges is not None
+    return level.edges
+
+
 def passages(level):
     return {(p.cell, p.side, p.to_level, p.to_cell) for p in level.passages}
 
@@ -215,14 +222,15 @@ TWO_LEVELS = [
     "+-+-+-+-+-+-+-+-+-+-+-+-+",
 ]
 """Two halls on one panel, level 1 west and level 2 east, joined by an open corridor edge in row 2, a door across
-the cut in row 4, and an open edge in row 5 below it."""
+the cut in row 4, and an open edge in row 5 below it. The prose joins the halls by stairs, so a link would make
+transitions unless a passage pair across the cut already makes the connection."""
 
 
 def two_level_fixture(rows, height):
     survey_index = survey("d", [(1, [("1", "West hall")]), (2, [("2", "East hall")])])
     contents = {
-        ("d", 1): content("d", 1, [("1", "A hall.", [{"to_key": "2", "direction": "east", "via": "door"}])]),
-        ("d", 2): content("d", 2, [("2", "A hall.", [{"to_key": "1", "direction": "west", "via": "door"}])]),
+        ("d", 1): content("d", 1, [("1", "A hall.", [{"to_key": "2", "direction": "down", "via": "stairs"}])]),
+        ("d", 2): content("d", 2, [("2", "A hall.", [{"to_key": "1", "direction": "up", "via": "stairs"}])]),
     }
     outlines = (
         Outline(dungeon="d", level=1, rects=((0, 0, 6, height),), seeds=("2,2",)),
@@ -236,12 +244,13 @@ def two_level_fixture(rows, height):
 
 def test_a_door_on_a_cut_is_dropped_when_no_vestibule_fits():
     """Taking either cell beside the door would cut off the corridor cell below it, so the door is dropped and a pair
-    stands on its edge; the open edges across the cut get pairs too, and the cut is a wall on both levels."""
+    stands on its edge; the open edges across the cut get pairs too, and the cut is a wall on both levels. The pairs
+    make the prose's stairs connection, so it is no link and no transition stands anywhere."""
     result = two_level_fixture(TWO_LEVELS, 7)
     one, two = level_of(result, 1), level_of(result, 2)
     assert passages(one) == {("5,2", "east", 2, "6,2"), ("5,4", "east", 2, "6,4"), ("5,5", "east", 2, "6,5")}
     assert passages(two) == {("6,2", "west", 1, "5,2"), ("6,4", "west", 1, "5,4"), ("6,5", "west", 1, "5,5")}
-    assert one.edges.at((5, 4), "east") == "w" and two.edges.at((6, 4), "west") == "w"
+    assert edges_of(one).at((5, 4), "east") == "w" and edges_of(two).at((6, 4), "west") == "w"
     assert "5,2" in one.areas["1"].cells and "6,2" in two.areas["2"].cells
     assert "5,4" in one.areas["1"].cells and "5,5" in one.areas["1"].cells
     assert one.transitions == () and two.transitions == ()
@@ -253,14 +262,15 @@ VESTIBULE = [*TWO_LEVELS[:10], "+-+-+-+-+-+-+-+-+-+-+-+-+", "|#|#|#|#|#|#|#|#|#|
 
 def test_a_vestibule_takes_the_side_opposite_the_door():
     """The cell beyond the door becomes the earlier level's corridor, the door stays, the pair goes on the free side
-    opposite the door, the vestibule's other sides are walls, and the cell is rock on the later level."""
+    opposite the door, the vestibule's other sides are walls, and the cell is rock on the later level. The pair through
+    the vestibule makes the prose's stairs connection, so no transition stands anywhere."""
     result = two_level_fixture(VESTIBULE, 6)
     one, two = level_of(result, 1), level_of(result, 2)
     assert one.cells[4][6] == "." and two.cells[4][6] == "#"
-    assert one.edges.at((5, 4), "east") == "d"
+    assert edges_of(one).at((5, 4), "east") == "d"
     assert passages(one) == {("6,4", "east", 2, "7,4"), ("5,2", "east", 2, "6,2")}
     assert passages(two) == {("7,4", "west", 1, "6,4"), ("6,2", "west", 1, "5,2")}
-    assert one.edges.at((6, 4), "north") == "w" and one.edges.at((6, 4), "south") == "w"
+    assert edges_of(one).at((6, 4), "north") == "w" and edges_of(one).at((6, 4), "south") == "w"
     assert "6,4" not in one.areas["1"].cells
     assert one.transitions == () and two.transitions == ()
 
@@ -307,9 +317,9 @@ def test_unprinted_keys_take_an_unlabelled_room_or_a_synthesized_area():
     assert level.panels[0].origin == (1, 1)
     assert set(level.areas["2"].cells) == {f"{x},{y}" for x in (5, 6, 7) for y in (3, 4, 5)}
     assert set(level.areas["3"].cells) == {"1,1", "2,1", "1,2", "2,2"} and level.areas["3"].synthesized
-    assert level.edges.at((2, 2), "south") == "d"
-    assert level.edges.at((1, 2), "south") == "w" and level.edges.at((1, 1), "west") == "w"
-    assert level.edges.at((2, 1), "west") == "o" and level.edges.at((2, 1), "east") == "w"
+    assert edges_of(level).at((2, 2), "south") == "d"
+    assert edges_of(level).at((1, 2), "south") == "w" and edges_of(level).at((1, 1), "west") == "w"
+    assert edges_of(level).at((2, 1), "west") == "o" and edges_of(level).at((2, 1), "east") == "w"
     assert level.cells[1][1] == "." and level.cells[2][2] == "."
 
 
@@ -377,8 +387,9 @@ def test_halves_apart_pair_stretches_by_overlap_and_leave_the_rest_at_the_fold()
         ("5,2", "east", 1, "8,2"),
         ("8,2", "west", 1, "5,2"),
     }
-    assert level.edges.at((5, 1), "east") == "w" and level.edges.at((5, 4), "east") == "o"
-    assert result.dungeons[0].entrance.cell == "1,1"
+    assert edges_of(level).at((5, 1), "east") == "w" and edges_of(level).at((5, 4), "east") == "o"
+    entrance = result.dungeons[0].entrance
+    assert entrance is not None and entrance.cell == "1,1"
 
 
 TOP = [
@@ -476,33 +487,45 @@ def test_links_between_panels_stand_on_symbols_of_their_own_means():
     }
 
 
-def test_a_link_by_a_door_to_another_level_makes_no_transition():
-    """A prose door to an area on another level that no passage pair makes is flagged, not realized."""
-    rows = [
-        "+-+-+-+-+-+-+-+",
-        "|#|#|#|#|#|#|#|",
-        "+-+-+-+-+-+-+-+",
-        "|#|. .|#|. .|#|",
-        "+-+ + +-+ + +-+",
-        "|#|. .|#|. .|#|",
-        "+-+-+-+-+-+-+-+",
-        "|#|#|#|#|#|#|#|",
-        "+-+-+-+-+-+-+-+",
-    ]
+TWO_ROOMS = [
+    "+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+",
+    "|#|. .|#|. .|#|",
+    "+-+ + +-+ + +-+",
+    "|#|. .|#|. .|#|",
+    "+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+",
+]
+"""Two rooms on one panel with rock between them, one on each of two levels, and no symbol anywhere."""
+
+
+def two_rooms_fixture(via):
     survey_index = survey("k", [(1, [("1", "Upper")]), (2, [("2", "Lower")])])
     contents = {
-        ("k", 1): content("k", 1, [("1", "Upper.", [{"to_key": "2", "direction": "down", "via": "door"}])]),
+        ("k", 1): content("k", 1, [("1", "Upper.", [{"to_key": "2", "direction": "down", "via": via}])]),
         ("k", 2): content("k", 2, [("2", "Lower.", [])]),
     }
     outlines = (
-        Outline(dungeon="k", level=1, rects=((0, 0, 3, 5),), seeds=("1,1",)),
-        Outline(dungeon="k", level=2, rects=((3, 0, 4, 5),), seeds=("4,1",)),
+        Outline(dungeon="k", level=1, rects=((0, 0, 3, 4),), seeds=("1,1",)),
+        Outline(dungeon="k", level=2, rects=((3, 0, 4, 4),), seeds=("4,1",)),
     )
     truth = document(
-        [region("p", 7, 5)], [panel("p", rows, [("1", "1,1", {}), ("2", "4,1", {})], outlines)], survey_index
+        [region("p", 7, 4)], [panel("p", TWO_ROOMS, [("1", "1,1", {}), ("2", "4,1", {})], outlines)], survey_index
     )
-    result = resolve_document(truth, survey_index, contents, mapread("k", [1, 2]))
-    assert level_of(result, 1).transitions == () and level_of(result, 2).transitions == ()
+    return resolve_document(truth, survey_index, contents, mapread("k", [1, 2]))
+
+
+def test_a_link_by_a_door_to_another_level_makes_no_transition():
+    """A prose door to an area on another level that no passage pair makes is flagged, not realized. The same reading
+    by stairs makes a transition at each area's first cell, since neither level has a symbol, so the door's emptiness
+    is the rule for its means and not an absence of links."""
+    by_door = two_rooms_fixture("door")
+    assert level_of(by_door, 1).transitions == () and level_of(by_door, 2).transitions == ()
+    by_stairs = two_rooms_fixture("stairs")
+    assert transitions(level_of(by_stairs, 1)) == {("1,1", "stairs_down", 2, "4,1")}
+    assert transitions(level_of(by_stairs, 2)) == {("4,1", "stairs_up", 1, "1,1")}
 
 
 YARD = [
@@ -547,7 +570,6 @@ def test_keys_on_open_ground_on_an_inner_door_and_footings_across_water():
     assert set(level.areas["2"].cells) == {f"{x},{y}" for x in (4, 5, 6, 7, 8, 9) for y in (3, 4, 5)}
     assert set(level.areas["3"].cells) == {f"{x},{y}" for x in (6, 7, 8, 9) for y in (1, 2)}
     assert set(level.areas["1"].cells) == {f"{x},{y}" for x in (10, 11, 12) for y in (1, 2, 3, 4)}
-    assert "8,4" not in level.areas["3"].cells and "8,4" not in level.areas["1"].cells
     assert level.cells[7][5] == "." and level.cells[7][4] == "~"
 
 

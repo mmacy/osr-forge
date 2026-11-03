@@ -89,7 +89,7 @@ class Grid:
         self.source = panel
         self.panel = convert_five_foot(panel).panel if panel.scale_feet == 5 else panel
         self.id = panel.id
-        self.north = north
+        self.north: PageSide = north
         self.index = index
         self.regions = [regions[part.region] for part in panel.regions]
         self.width = self.panel.width

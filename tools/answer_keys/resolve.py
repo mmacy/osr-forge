@@ -20,6 +20,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from itertools import pairwise
 from pathlib import Path
+from typing import Literal, cast
 
 from tools.answer_keys.world import (
     DOORS,
@@ -47,6 +48,8 @@ from osrforge.tracing.truth import (
     LevelPanel,
     Passage,
     PlacedKey,
+    Rotation,
+    Side,
     Transition,
     canonical_form,
     cell_key,
@@ -64,8 +67,13 @@ LevelId = tuple[str, int]
 """A level: its dungeon id and number."""
 
 LINK_SYMBOLS = ("stairs", "ladder", "trapdoor", "hinged_floor", "chute", "slide")
-LINK_VIAS = {"stairs": "stairs", "trapdoor": "trapdoor", "chute": "chute"}
-MEANS_SYMBOLS = {
+LinkMeans = Literal["stairs", "trapdoor", "chute"]
+"""The means a link can be realized by: stairs stand for ladders too."""
+
+TransitionKind = Literal["stairs_up", "stairs_down", "trapdoor", "chute"]
+
+LINK_VIAS: dict[str, LinkMeans] = {"stairs": "stairs", "trapdoor": "trapdoor", "chute": "chute"}
+MEANS_SYMBOLS: dict[LinkMeans, tuple[str, ...]] = {
     "stairs": ("stairs", "ladder"),
     "trapdoor": ("trapdoor", "hinged_floor"),
     "chute": ("chute", "slide"),
@@ -143,7 +151,7 @@ class Link:
 
     start: tuple[LevelId, str]
     target: tuple[LevelId, str]
-    means: str
+    means: LinkMeans
     to_dungeon: str | None = None
 
 
@@ -158,8 +166,12 @@ class LevelState:
     synthesized: set[str] = field(default_factory=set)
     synth_cells: set[WCell] = field(default_factory=set)
     overrides: dict[tuple[WCell, str], str] = field(default_factory=dict)
-    placements: dict[str, tuple[Cell, int]] = field(default_factory=dict)
+    placements: dict[str, tuple[Cell, Rotation]] = field(default_factory=dict)
     """Each panel's origin and rotation on the level grid."""
+
+    width: int = 0
+    height: int = 0
+    """The level grid's size, once `shift_levels` has set it."""
 
     passages: list[tuple[WCell, str, WCell, LevelId]] = field(default_factory=list)
     """Each passage as its cell, its panel side, its destination cell, and the destination level."""
@@ -798,14 +810,14 @@ class Resolver:
                 if key.key in printed:
                     continue
                 if self.is_entrance_title(key):
-                    self.entrance_key_area(key, rooms)
+                    self.entrance_key_area(key)
             for key in self.keys[level_id]:
                 if key.key in printed or self.is_entrance_title(key) or key.key in self.levels[level_id].areas:
                     continue
                 self.unprinted_key_area(key, rooms)
 
         # Unlabelled walled rooms and unkeyed parts closed off by printed lines join the areas they open onto.
-        self.join_unlabelled(rooms, space_of)
+        self.join_unlabelled(rooms)
 
         # Keyed walled structures with no door out of the structure get one.
         for group in structures:
@@ -835,13 +847,23 @@ class Resolver:
                     if wcell not in state.synth_cells:
                         self.owner[wcell] = level_id
 
-    def is_entrance_title(self, key: SurveyKey) -> bool:
-        """Whether a key is the map reading's entrance key or is titled Entrance or Entranceway."""
+    def is_entrance_key(self, key: SurveyKey) -> bool:
+        """Whether a key is the map reading's `entrance_key` for its own level."""
         for level in self.mapread.levels:
             same = (level.dungeon_id, level.level_number) == key.level
             if same and level.entrance_key is not None and key.matches(level.entrance_key):
                 return True
+        return False
+
+    @staticmethod
+    def has_entrance_title(key: SurveyKey) -> bool:
+        """Whether a key is titled exactly Entrance or Entranceway, ignoring case."""
         return key.name.strip().lower() in ENTRANCE_TITLES
+
+    def is_entrance_title(self, key: SurveyKey) -> bool:
+        """Whether a key is the entrance rule's first or second source: the map reading's entrance key, or a key titled
+        Entrance or Entranceway. An unprinted key that is either takes the floor an outer opening leads into."""
+        return self.is_entrance_key(key) or self.has_entrance_title(key)
 
     def connected_area(self, key: SurveyKey) -> tuple[str, AreaConnection] | None:
         """The first same-level area with cells that a key's prose connects it to, with the connection."""
@@ -859,7 +881,7 @@ class Resolver:
                     return (target[1], connection)
         return None
 
-    def entrance_key_area(self, key: SurveyKey, rooms: list[Space]) -> None:
+    def entrance_key_area(self, key: SurveyKey) -> None:
         """An unprinted entrance key takes the unkeyed floor one outer opening leads into."""
         world = self.world
         level_id = key.level
@@ -978,7 +1000,7 @@ class Resolver:
             return min(best_lonely, key=lambda item: item[0])[1]
         raise ConventionGap(f"no 2 by 2 block of rock on level {level_id} for a synthesized area")
 
-    def join_unlabelled(self, rooms: list[Space], space_of: dict[WCell, Space]) -> None:
+    def join_unlabelled(self, rooms: list[Space]) -> None:
         """Unlabelled walled rooms and unkeyed parts behind printed lines join the keyed areas they open onto."""
         world = self.world
         changed = True
@@ -1125,10 +1147,13 @@ class Resolver:
                     if not connection.door_locked or connection.via not in ("door", "secret_door"):
                         continue
                     target = self.resolve_target(level_id, connection)
-                    if target is None or target[1] is None:
+                    if target is None:
+                        continue
+                    target_level, target_key = target
+                    if target_key is None:
                         continue
                     start = self.area_of(level_id, area.key)
-                    goal = self.area_of(*target)
+                    goal = self.area_of(target_level, target_key)
                     if not start or not goal:
                         continue
                     path = world.shortest_path(world.first(start), world.first(goal), world.walking_floor)
@@ -1146,7 +1171,7 @@ class Resolver:
         """Put each level's panels on its grid: west to east in page order, turned north-up, two cells apart."""
         for state in self.levels.values():
             x = 0
-            placements: dict[str, tuple[Cell, int]] = {}
+            placements: dict[str, tuple[Cell, Rotation]] = {}
             previous: Grid | None = None
             for grid in state.grids:
                 rotation = rotation_for(grid.north)
@@ -1178,10 +1203,10 @@ class Resolver:
         x, y = rotate_cell(self.world.cell(wcell), (grid.width, grid.height), rotation)
         return (origin[0] + x, origin[1] + y)
 
-    def to_level_side(self, level_id: LevelId, wcell: WCell, side: str) -> str:
+    def to_level_side(self, level_id: LevelId, wcell: WCell, side: str) -> Side:
         """A panel side's name on the level grid."""
         _origin, rotation = self.levels[level_id].placements[wcell[0]]
-        return rotate_side(side, rotation)
+        return cast(Side, rotate_side(side, rotation))
 
     def level_cells(self, level_id: LevelId) -> set[WCell]:
         """Every cell that is floor or water on a level: owned cells and synthesized cells."""
@@ -1361,26 +1386,13 @@ class Resolver:
         ]
         if not levels:
             return None
-        area_keys = [
-            (level_id, key.key) for level_id in levels for key in self.keys[level_id] if self.area_of(level_id, key.key)
-        ]
-        chosen: tuple[LevelId, str] | None = None
+        survey_keys = [key for level_id in levels for key in self.keys[level_id] if self.area_of(level_id, key.key)]
+        area_keys = [(key.level, key.key) for key in survey_keys]
+        chosen_key = next((key for key in survey_keys if self.is_entrance_key(key)), None)
+        if chosen_key is None:
+            chosen_key = next((key for key in survey_keys if self.has_entrance_title(key)), None)
+        chosen: tuple[LevelId, str] | None = None if chosen_key is None else (chosen_key.level, chosen_key.key)
         opening: Opening | None = None
-        for level in self.mapread.levels:
-            if level.dungeon_id == dungeon_id and level.entrance_key is not None:
-                for level_id, key in area_keys:
-                    if self.key_of(level_id, key) is not None and self.key_of(level_id, key).matches(
-                        level.entrance_key
-                    ):
-                        chosen = (level_id, key)
-                        break
-            if chosen:
-                break
-        if chosen is None:
-            for level_id, key in area_keys:
-                if self.key_of(level_id, key).name.strip().lower() in ENTRANCE_TITLES:
-                    chosen = (level_id, key)
-                    break
         if chosen is None:
             reached: dict[tuple[LevelId, str], list[tuple[int, tuple[int, float, float], Opening]]] = defaultdict(list)
             for level_id in levels:
@@ -1459,7 +1471,7 @@ class Resolver:
     def links(self) -> None:
         """Realize each link as transitions on the symbols of its means beside its areas."""
         stated: dict[
-            tuple[frozenset[tuple[LevelId, str]], str], list[tuple[tuple[LevelId, str], tuple[LevelId, str]]]
+            tuple[frozenset[tuple[LevelId, str]], LinkMeans], list[tuple[tuple[LevelId, str], tuple[LevelId, str]]]
         ] = {}
         for level_id in self.level_order:
             content = self.contents.get(level_id)
@@ -1537,13 +1549,13 @@ class Resolver:
         return False
 
     def symbol_ends(
-        self, level_id: LevelId, key: str, direction: str | None, means: str
+        self, level_id: LevelId, key: str, direction: str | None, means: LinkMeans
     ) -> list[tuple[Cell, str | None]]:
         """Where the ends of a link stand beside an area: one cell per symbol of its means, in north-then-west order."""
         world = self.world
         area = self.area_of(level_id, key)
         first = self.to_level(level_id, world.first(area))
-        ends: list[Cell] = []
+        ends: list[tuple[Cell, str | None]] = []
         for grid in self.levels[level_id].grids:
             for symbol in grid.panel.symbols:
                 if symbol.kind not in MEANS_SYMBOLS[means]:
@@ -1600,14 +1612,15 @@ class Resolver:
                         Transition(cell=cell_key(cell), kind=kind, to_level=start_level[1], to_cell=cell_key(to_cell))
                     )
             return
+        kind: TransitionKind = "trapdoor" if link.means == "trapdoor" else "chute"
         for index, (cell, _recorded) in enumerate(starts):
             to_cell = targets[index][0] if index < len(targets) else target_first
             self.levels[start_level].transitions.append(
-                Transition(cell=cell_key(cell), kind=link.means, to_level=target_level[1], to_cell=cell_key(to_cell))
+                Transition(cell=cell_key(cell), kind=kind, to_level=target_level[1], to_cell=cell_key(to_cell))
             )
 
     @staticmethod
-    def stairs_kind(direction: str | None, recorded: str | None, start: bool) -> str:
+    def stairs_kind(direction: str | None, recorded: str | None, start: bool) -> TransitionKind:
         """The transition kind at one end of a stairs link.
 
         With a direction, the end goes that way. With none, the symbol's recorded direction decides, and with none

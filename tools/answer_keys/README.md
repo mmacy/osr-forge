@@ -2,7 +2,7 @@
 
 An answer key for a printed dungeon map is built from two independent readings of the map and settled where they disagree (see `docs/plans/map-tracing.md` in re-pod, "How the work is checked"). The first reading comes from Claude. This tool gives the second: it reads every cell and every edge of a map from the ink alone, with no model of any kind, and writes the reading in the truth format of `osrforge.tracing.truth`. It is not the tracing stage's own ink measurement, so an answer key stays independent of the stage it scores.
 
-The tool has four parts:
+The tool has five parts:
 
 - `gridfit.py` fits the printed grid of a map region with numpy alone: one affine grid over the region, with a separate pitch and shear on each axis.
 - `classify.py` measures each cell and each edge on that grid and decides its letter and a confidence. `styles.py` holds each style's thresholds, and `ink.py` turns the image into masks of ink, paper, and fill.
@@ -104,4 +104,4 @@ The confidence of a blocked or open edge comes from how far the ink measure sits
 
 ## Tests
 
-`tests/` runs on the committed Chaotic Caves images: each map's grid fit has an rms residual under 0.05 cells, a largest residual under 0.1 cells, and every detected line within a tenth of a cell, each reading loads through the truth models, and each reading scores at least the floor named in the test against its settled window. `test_resolve.py` resolves every committed synthetic map and compares the result with the map's answer in canonical form, with flags left out. `uv run pytest` runs them with the rest of osr-forge's tests.
+`tests/` runs on the committed Chaotic Caves images: each map's grid fit has an rms residual under 0.05 cells, a largest residual under 0.1 cells, and every detected line within a tenth of a cell, each reading loads through the truth models, and each reading scores at least the floor named in the test against its settled window. `test_resolve.py` resolves every committed synthetic map and compares the result with the map's answer in canonical form, with flags left out. `test_resolve_rules.py` resolves hand-made readings for the rules no committed map reaches and checks what the conventions say for each. `uv run pytest` runs them with the rest of osr-forge's tests.
