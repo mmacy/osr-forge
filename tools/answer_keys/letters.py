@@ -133,6 +133,23 @@ def _rect_cells(rect: list[int], width: int, height: int) -> set[tuple[int, int]
     return {(cx, cy) for cy in range(max(0, y), min(height, y + h)) for cx in range(max(0, x), min(width, x + w))}
 
 
+def extend_path(path: list[tuple[int, int]], width: int, height: int) -> list[tuple[int, int]]:
+    """A slope path carried on in a straight line at each end to the panel's edge, so a line the reader stopped
+    short of the edge still closes the outline."""
+    if len(path) < 2:
+        return list(path)
+    out = list(path)
+    for end, before in ((path[0], path[1]), (path[-1], path[-2])):
+        dx, dy = end[0] - before[0], end[1] - before[1]
+        x, y = end
+        while True:
+            x, y = x + dx, y + dy
+            if not (0 <= x < width and 0 <= y < height):
+                break
+            out.append((x, y))
+    return out
+
+
 def slope_side(
     owned: set[tuple[int, int]], seeds: list[tuple[int, int]], paths: list[list[tuple[int, int]]]
 ) -> set[tuple[int, int]]:
@@ -214,18 +231,17 @@ def outline_state(
                 owned[level] |= _rect_cells(rect, width, height)
         seeds[level] = list((answer or {}).get("seeds", []))
         open_ground[level] = [tuple(rect) for rect in (answer or {}).get("open_ground", []) if len(rect) == 4]  # type: ignore[misc]
-    # The slope calls: a level's outline ends at the elevation line that bounds its ground.
+    # The slope calls: a level's outline ends at the elevation line that bounds its ground. A later call for the
+    # same level (`l:x,y|level#2`) replaces an earlier one.
     slopes: dict[str, list[list[tuple[int, int]]]] = {}
     for name, call in sorted(final.items()):
         if name.startswith("l:"):
             from .settler import slope_paths
 
-            level = name[2:].split("|", 1)[1]
+            level = name[2:].split("|", 1)[1].split("#")[0]
             if level in owned:
-                slopes[level] = slope_paths(call["value"])
+                slopes[level] = [extend_path(path, width, height) for path in slope_paths(call["value"])]
     blocked = {cell for paths in slopes.values() for path in paths for cell in path}
-    for level, paths in slopes.items():
-        owned[level] = slope_side(owned[level], [parse_cell(text) for text in seeds[level]], paths)
     # The calls: a cell placed in a level grows that level's outline across the floor joined to it.
     for name, call in sorted(final.items()):
         if name.startswith("o:"):
@@ -239,6 +255,9 @@ def outline_state(
                 position = int(index)
                 if position < len(open_ground[level]):
                     open_ground[level][position] = (-1, -1, 0, 0)
+    # Then the trim: whatever lies beyond a level's slope leaves its outline, however it got there.
+    for level, paths in slopes.items():
+        owned[level] = slope_side(owned[level], [parse_cell(text) for text in seeds[level]], paths)
     state = OutlineState(levels=levels, owned=owned, seeds=seeds, open_ground=open_ground)
     if len(levels) > 1:
         asked = {name[2:].split("|")[0] for name in final if name.startswith("o:")}

@@ -187,8 +187,8 @@ def _item_place(item_id: str) -> tuple[tuple[int, int], str | None]:
         return parse_cell(rest), None
     if kind in ("e", "b"):
         return parse_edge(rest)
-    # m:<cell>, s:<cell>, o:<cell>, and g:<cell> name the cell the item is about.
-    return parse_cell(rest.split("|")[0]), None
+    # m:<cell>, s:<cell>, o:<cell>, g:<cell>, and l:<cell> name the cell the item is about.
+    return parse_cell(rest.split("|")[0].split("#")[0]), None
 
 
 def crops_for(ctx: MapContext, item_id: str, rect: tuple[int, int, int, int] | None = None) -> tuple[Path, Path]:
@@ -387,14 +387,47 @@ def outline_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]
     return out
 
 
+def level_key_marks(ctx: MapContext, items: Items) -> dict[str, list[tuple[str, str]]]:
+    """Each level's printed keys on the map, as (label, cell) from the survey's keys and the marks table."""
+    import json as _json
+
+    if ctx.key.survey is None:
+        return {}
+    survey = _json.loads(ctx.key.survey.read_text())
+    out: dict[str, list[tuple[str, str]]] = {}
+    for dungeon in survey.get("dungeons", []):
+        for level in dungeon.get("levels", []):
+            level_id = f"{dungeon['id']}/{level['number']}"
+            keys = {str(area["key"]) for area in level.get("areas", [])}
+            found = []
+            for mark in items.marks:
+                cells = mark.get("reading1") or mark.get("reading2") or []
+                if mark["text"] in keys and cells:
+                    found.append((mark["text"], cells[0]))
+            if found:
+                out[level_id] = found
+    return out
+
+
 def slope_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     """The slope round's items, for a map whose spec sets `slopes`: one per level of the whole-map read, asking for
-    the elevation line that bounds the level's ground inside its rectangle. The outline then ends at that line."""
+    the elevation line that bounds the level's ground inside its rectangle. The outline then ends at that line. A
+    level whose settled line leaves one of its printed keys on the outside is asked again, with that among the
+    readings, under a new id."""
+    from .letters import outline_state
     from .marks import wholemap_answer
 
     if not ctx.key.extra.get("slopes"):
         return []
     whole = wholemap_answer(ctx) or {}
+    key_marks = level_key_marks(ctx, items)
+    state = None
+    if any(name.startswith("l:") for name in final):
+        from .letters import final_cells, final_edges
+
+        log: dict[str, Any] = {}
+        cells = final_cells(items, final, log)
+        state = outline_state(ctx, cells, final_edges(items, cells, final, log), final)
     out: list[dict[str, Any]] = []
     for level in whole.get("levels", []):
         rects = [tuple(rect) for rect in level.get("rects", []) if len(rect) == 4]
@@ -406,20 +439,34 @@ def slope_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]])
         y1 = max(r[1] + r[3] for r in rects)
         rect = (x0, y0, x1 - x0, y1 - y0)
         level_id = f"{level['dungeon']}/{level['level']}"
-        item_id = f"l:{x0},{y0}|{level_id}"
-        if item_id in final:
-            continue
+        base_id = f"l:{x0},{y0}|{level_id}"
+        earlier = sorted(name for name in final if name.split("#")[0] == base_id)
         seeds = ", ".join(level.get("seeds", [])) or "none"
+        keys = key_marks.get(level_id, [])
+        keys_text = ", ".join(f"{label} at {cell}" for label, cell in keys) or "none printed"
         readings = [("the whole-map read", f"the rectangle is the outline of level {level_id}, its seeds at {seeds}")]
+        item_id = base_id
+        if earlier:
+            last = earlier[-1]
+            outside = []
+            if state is not None:
+                owned = state.owned.get(level_id, set())
+                outside = [f"{label} at {cell}" for label, cell in keys if parse_cell(cell) not in owned]
+            if not outside or len(earlier) >= 3:
+                continue
+            item_id = f"{base_id}#{len(earlier) + 1}"
+            readings.append(("an earlier settling", final[last]["value"]))
+            readings.append(("the key so far", f"that line leaves {', '.join(outside)} on the outside"))
         out.append(
             {
                 "id": item_id,
                 "kind": "slope",
                 "rect": list(rect),
                 "text": f"the boxed rectangle, {rect[2]} wide and {rect[3]} high from cell {rect[0]},{rect[1]}, was "
-                f"read as the outline of level {level_id}. Which cells does the elevation line that bounds this "
-                f"level's ground pass through, from where it enters the rectangle to where it leaves it? Readings: "
-                f"{_readings_text(readings)}.",
+                f"read as the outline of level {level_id}, whose printed keys are {keys_text}; every key lies on "
+                f"the level's side of the line. Which cells does the elevation line that bounds this level's "
+                f"ground against the ravine or the outside pass through, from where it enters the rectangle to "
+                f"where it leaves it? Readings: {_readings_text(readings)}.",
                 "readings": readings,
             }
         )
