@@ -259,6 +259,31 @@ def _is_floor(cells: list[list[str]], text: str) -> bool:
     return 0 <= y < len(cells) and 0 <= x < len(cells[0]) and cells[y][x] != "#"
 
 
+def _closed_mouths(symbols: list[Symbol], cells: list[list[str]], edges: EdgeGrids) -> list[str]:
+    """The cave mouths whose edge isn't passable or whose cells aren't both floor, each with what closes it.
+
+    A cave mouth is an outer opening, so a mouth read as a wall, or with rock on either side, is a reading to
+    look at: on a cave map the entrance letter printed in the mouth reads as ink.
+    """
+    closed: list[str] = []
+    for symbol in symbols:
+        if symbol.kind != "cave_mouth" or symbol.edge is None:
+            continue
+        cell, side = parse_edge(symbol.edge)
+        letter = edges.at(cell, side)
+        x, y = cell
+        beyond = {"north": (x, y - 1), "south": (x, y + 1), "west": (x - 1, y), "east": (x + 1, y)}[side]
+        faults = []
+        if letter not in "op":
+            faults.append(f"edge {letter}")
+        for name, (cx, cy) in (("inside", cell), ("beyond", beyond)):
+            if 0 <= cy < len(cells) and 0 <= cx < len(cells[0]) and cells[cy][cx] == "#":
+                faults.append(f"{name} rock")
+        if faults:
+            closed.append(f"{symbol.edge}: {', '.join(faults)}")
+    return closed
+
+
 def panel_letters(ctx: MapContext) -> tuple[Panel, Region, dict[str, Any]]:
     """Build the map's panel and region from the table, the final values, and the whole-map read."""
     items = load_items(ctx)
@@ -268,6 +293,7 @@ def panel_letters(ctx: MapContext) -> tuple[Panel, Region, dict[str, Any]]:
     edges = final_edges(items, cells, final, log)
     marks = _final_marks(items, final, cells, log)
     symbols = _final_symbols(items, final, items.width, items.height)
+    log["mouths_closed"] = _closed_mouths(symbols, cells, edges)
     outlines = _outlines(ctx, cells, edges, marks, final, log)
     reading = classifier_reading(ctx)
     whole = wholemap_answer(ctx) or {}
