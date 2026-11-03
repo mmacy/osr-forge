@@ -18,21 +18,12 @@
     },
     {
       "key": "2",
-      "description": "Two flights of stairs lead down from the landing to the lower hall.",
+      "description": "Two flights of stairs climb from the landing to the upper hall.",
       "encounters": [],
       "trap": null,
       "treasure": [],
       "features": [],
-      "connections": [
-        {
-          "to_key": "3",
-          "direction": "down",
-          "via": "stairs",
-          "door_stuck": false,
-          "door_locked": false,
-          "to_level": null
-        }
-      ],
+      "connections": [],
       "source_pages": [
         1
       ],
