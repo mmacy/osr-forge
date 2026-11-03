@@ -162,7 +162,7 @@ def _item_place(item_id: str) -> tuple[tuple[int, int], str | None]:
     kind, _, rest = item_id.partition(":")
     if kind == "c":
         return parse_cell(rest), None
-    if kind == "e":
+    if kind in ("e", "b"):
         return parse_edge(rest)
     # m:<cell>, s:<cell>, o:<cell>, and g:<cell> name the cell the item is about.
     return parse_cell(rest.split("|")[0]), None
@@ -344,7 +344,7 @@ def outline_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]
         readings = [("the key so far", "wall")]
         out.append(
             {
-                "id": f"e:{name}",
+                "id": f"b:{name}",
                 "kind": "edge",
                 "text": f"edge {name}, {_describe_edge(name)}, between floor and water: an edge between floor and "
                 f"water is o unless a wall line is drawn along the bank, because the water is impassable on its own. "
@@ -394,8 +394,6 @@ def water_bank_edges(cells: list[list[str]], edges: Any, final: dict[str, dict[s
                 canonical = f"{nx},{ny}:{ {'east': 'west', 'west': 'east', 'south': 'north', 'north': 'south'}[side] }"
                 if side in ("east", "south"):
                     name, canonical = canonical, name
-                if f"e:{name}" in final and final[f"e:{name}"].get("bank"):
-                    continue
                 out.append(name)
     return sorted(set(out))
 
@@ -613,7 +611,7 @@ def _rebuild_item(ctx: MapContext, items: Items, name: str) -> dict[str, Any] | 
             "text": f"cell {name[2:]}: is it floor, rock, or water? Readings: {_readings_text(readings)}.",
             "readings": readings,
         }
-    if kind == "e":
+    if kind in ("e", "b"):
         entry = items.edges.get(name[2:])
         if entry is None:
             return None
@@ -811,6 +809,25 @@ def final_values(ctx: MapContext) -> dict[str, dict[str, Any]]:
             final["value"] = resettled[name]["value"]
             final["reason"] = resettled[name]["reason"]
         out[name] = final
+    # A bank call (`b:`) answers an edge between floor and water asked again under the bank rule: it replaces the
+    # edge's value.
+    for name, call in list(out.items()):
+        if name.startswith("b:"):
+            edge_name = "e:" + name[2:]
+            target = out.get(edge_name)
+            if target is None:
+                target = {
+                    "kind": "edge",
+                    "readings": call["readings"],
+                    "settled": None,
+                    "reason": "",
+                    "category": "bank",
+                }
+                out[edge_name] = target
+            target["before_bank"] = target.get("value")
+            target["value"] = call["value"]
+            target["bank"] = True
+            target["reason"] = call.get("reason", "")
     # The owner's recheck has the last word: its value replaces the call's, and the earlier value is kept beside it.
     for name, call in rechecked.items():
         final = out.get(name)

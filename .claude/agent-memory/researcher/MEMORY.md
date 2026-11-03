@@ -4,3 +4,4 @@
 - [Clef token and plan](clef-token-expiry.md) — never run wrangler; the token lasts an hour, the free plan about 1,250 requests a day; failed requests are charged at their estimate
 - [Structured answer checks](structured-answer-checks.md) — normalize answers of the right content in another form before refusing; retries on spelling cost an hour and $1.50 on page 38
 - [Log stamps from date](log-stamps-from-date.md) — stamp progress entries from `date` in the same command; event times from their artefacts
+- [Prompt conventions from the generator](prompt-conventions-from-generator.md) — check the synthetic answers for each edge class before a prompt states its letter
