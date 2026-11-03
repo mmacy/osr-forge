@@ -85,6 +85,24 @@ The confidence of a blocked or open edge comes from how far the ink measure sits
 - **Diagonals and freehand passages.** A cell crossed by a diagonal wall or a freehand cave passage is settled by the half rule, and a passage that straddles a grid line can leave both cells under half. These cells are partly floor, and the scores without them say how the rest reads.
 - **Outdoor ground.** Paper with a grid on it reads as floor, inside and outside a building alike. The resolution's outlines, not the reading, decide what is outside.
 
+## Check a sample
+
+An answer key is approved by checking a sample of its settled calls. The sample app shows one call at a time, with the zoomed crop and the wider crop, the member, map, style, kind, and item, each reading, the settled value, the adversarial pass's value, and the settler's reason. From the osr-forge checkout:
+
+```text
+uv run python -m tools.answer_keys.sample_app <sample.json> [--port 8765]
+```
+
+It serves on `127.0.0.1` only and prints the address to open. `<sample.json>` is a sample file in the format of `sample.py`, with the crops it names beside it.
+
+The keys are:
+
+- `r`, `w`, and `u` record the call as right, wrong, or unsure, and move to the next call.
+- The left and right arrow keys move between calls without recording anything.
+- `n` opens a note. The note is recorded with the next verdict on that call. Press Enter or Escape to leave the note box, then press a verdict key.
+
+The app starts at the first call with no verdict and shows how many calls have one. It writes `<sample>.verdicts.json` beside the sample file after every verdict, replacing the whole file, and reads it back when it starts, so you can stop and come back. A commercial map's sample, crops, and verdicts stay outside the repository.
+
 ## Tests
 
 `tests/` runs on the committed Chaotic Caves images: each map's grid fit has an rms residual under 0.05 cells, a largest residual under 0.1 cells, and every detected line within a tenth of a cell, each reading loads through the truth models, and each reading scores at least the floor named in the test against its settled window. `uv run pytest` runs them with the rest of osr-forge's tests.
