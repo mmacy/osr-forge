@@ -116,3 +116,27 @@ runs. Before a sweep, the drift check
 ([`drift_check`][osrforge.providers.decisions.drift_check]) sends a sample
 of recorded requests again with their exact stored bodies and stops the
 sweep if a top answer changes or any probability moves by more than 0.03.
+
+### Clef on a local server
+
+[`LocalClefProvider`][osrforge.providers.clef_local.LocalClefProvider] fills the same
+[`DecisionProvider`][osrforge.providers.decisions.DecisionProvider] role with Clef-flash running on your own machine, through a System One server such as Ollama. It costs nothing, needs no account or token, and keeps no ledger, so it isn't limited by the hosted plan's daily request cap or by the hour a login token lasts. Pull the model into the server first, and start the server yourself: osr-forge never starts or stops it.
+
+`OSRFORGE_CLEF_BACKEND` chooses between the two backends, and [`clef_from_env`][osrforge.providers.clef_local.clef_from_env] reads it:
+
+| Variable | Meaning | Required |
+| --- | --- | --- |
+| `OSRFORGE_CLEF_BACKEND` | `hosted` or `local`. Default: `hosted` | no |
+| `OSRFORGE_CLEF_LOCAL_URL` | The server's API root. Default: `http://localhost:11434`, Ollama's | no |
+| `OSRFORGE_CLEF_LOCAL_MODEL` | The server's name for Clef-flash. Default: `clef-flash` | no |
+
+```python
+import os
+
+from osrforge.providers.clef_local import clef_from_env
+
+os.environ["OSRFORGE_CLEF_BACKEND"] = "local"
+provider = clef_from_env()
+```
+
+By default the provider maps only Clef-flash to the server's model name, so a request for the larger Clef model is refused before anything is sent. The settings' `models` map decides which models a request may name; `OSRFORGE_CLEF_LOCAL_MODEL` sets only the name for Clef-flash. A response's `model_id` begins with `local:`, so a recording shows which backend made it. The recording key names the model and not the backend, so keep recordings from the two backends in different directories. The provider tries each request up to three times when the connection is refused or reset or the server answers with a 5xx status. A request that times out raises at once, because a hung server would otherwise block the stage for minutes. The error names the server's URL so that a server that isn't running says so.
