@@ -63,7 +63,13 @@ def final_edges(
 
     derived = 0
     unread = 0
-    for name, entry in items.edges.items():
+    # A call on an edge the table lacks (both readings left it blank, beside a cell a later call made floor).
+    extra = {
+        name[2:]: {"classifier": "-", "claude": []}
+        for name in final
+        if name.startswith("e:") and name[2:] not in items.edges
+    }
+    for name, entry in [*items.edges.items(), *extra.items()]:
         key = edge_key(name)
         a, b = edge_cells(key)
         occupied_a, occupied_b = occupied(a), occupied(b)

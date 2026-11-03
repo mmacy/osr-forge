@@ -152,13 +152,16 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
                         print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: {stage} spent ${store.spent():.4f}")
     elif stage == "recheck":
-        from .recheck import collect_recheck, record_corrections, submit_reask, submit_recheck
+        from .recheck import collect_recheck, record_corrections, submit_cell_edges, submit_reask, submit_recheck
 
         if args.sample is None and action != "collect":
             raise SystemExit("recheck needs --sample, the sample file the owner checked")
         if action == "submit":
             batch, count = submit_recheck(ctx, args.sample, api, book, args.jobs)
             print(f"{key.id}: recheck batch {batch}, {count} items")
+        elif action == "edges":
+            batch, count = submit_cell_edges(ctx, api, book)
+            print(f"{key.id}: cell edges batch {batch}, {count} items")
         elif action == "reask":
             mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
             if mine:
@@ -254,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
         "combine",
     }
     action = None
-    if words and words[-1] in ("submit", "collect", "export", "correct", "reask", "resample"):
+    if words and words[-1] in ("submit", "collect", "export", "correct", "edges", "reask", "resample"):
         action = words.pop()
     if not words or words[-1] not in stages:
         parser.error("the last words name a stage and, for a batch stage, submit or collect")

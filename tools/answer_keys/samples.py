@@ -103,11 +103,15 @@ def _reading_value(reader: str, value: str) -> str:
     return WORD_LETTERS.get(text, text)
 
 
-def sample_calls(ctx: MapContext, member: str, style: str, every: bool = False) -> list[SampleCall]:
+def sample_calls(
+    ctx: MapContext, member: str, style: str, every: bool = False, fallback: str | None = None
+) -> list[SampleCall]:
     """Every settled call of a map that has a category, as sample calls with crops rendered.
 
-    `every` takes the calls every reader agreed on too, as a recheck's changes need. A call's reason is the one
-    given for the value the key records: the owner's note, the recheck's, the re-settling's, or the settler's."""
+    `every` takes the calls every reader agreed on too, as a recheck's changes need, and `fallback` is the
+    category of a call that has none, such as an edge sent back with the owner's note on a label. A call's reason
+    is the one given for the value the key records: the owner's note, the recheck's, the re-settling's, or the
+    settler's."""
     final = final_values(ctx)
     calls = []
     for call_id, call in final.items():
@@ -122,7 +126,7 @@ def sample_calls(ctx: MapContext, member: str, style: str, every: bool = False) 
         if kind == "mark" and not _current_mark(ctx, rest):
             # A label call from an earlier table that the assembly no longer applies.
             continue
-        category = categorize(ctx, item, kind)
+        category = categorize(ctx, item, kind) or fallback
         if category is None:
             continue
         zoom, wide = crops_for(ctx, call_id)

@@ -24,7 +24,7 @@ from typing import Any
 
 import numpy as np
 
-from osrforge.tracing.truth import CELL_LETTERS, parse_cell
+from osrforge.tracing.truth import CELL_LETTERS, parse_cell, parse_edge
 
 from .batches import BatchStore
 from .classify import cell_floor_shares
@@ -50,12 +50,14 @@ from .settler import (
 
 __all__ = [
     "RECHECK_MARK",
+    "cell_edge_items",
     "changed_calls",
     "collect_recheck",
     "recheck_items",
     "recheck_sample",
     "record_corrections",
     "sample_call_id",
+    "submit_cell_edges",
     "submit_reask",
     "submit_recheck",
 ]
@@ -258,6 +260,91 @@ def submit_reask(ctx: MapContext, call_ids: list[str], client: Any, ledger: Any)
     return store.submit(client, ledger, f"recheck reask {ctx.key.id}", ids=[custom_id]), len(items)
 
 
+def cell_edge_items(ctx: MapContext) -> tuple[list[dict[str, Any]], set[str]]:
+    """The edges of every cell a recheck or a correction turned from rock into floor, as settling items.
+
+    The recheck asks cells and edges in one round, so its edge answers assume the cells' earlier letters, and an
+    edge against a cell that was rock was never settled at all. The settling order applies settled cells before it
+    asks edges; this is that step for the cells the recheck changed. Each item states the key's letters for both
+    cells, with their pixel counts.
+
+    Returns:
+        The items, and the recheck jobs whose answers on those edges the new answers supersede.
+    """
+    from .letters import final_cells
+    from .settler import _describe_edge, _readings_text
+
+    items = load_items(ctx)
+    final = final_values(ctx)
+    cells = final_cells(items, final, {})
+    height, width = len(cells), len(cells[0])
+    rechecked = _load_calls(ctx, "recheck")
+    shares = _shares(ctx)
+    out: list[dict[str, Any]] = []
+    supersedes: set[str] = set()
+    seen: set[str] = set()
+    for name in changed_calls(ctx):
+        if not name.startswith("c:") or final[name]["value"] == "#":
+            continue
+        x, y = parse_cell(name[2:])
+        for other, edge in (
+            ((x - 1, y), f"{x},{y}:west"),
+            ((x + 1, y), f"{x + 1},{y}:west"),
+            ((x, y - 1), f"{x},{y}:north"),
+            ((x, y + 1), f"{x},{y + 1}:north"),
+        ):
+            ox, oy = other
+            if not (0 <= ox < width and 0 <= oy < height) or cells[oy][ox] == "#" or edge in seen:
+                continue
+            seen.add(edge)
+            item = _rebuild_item(ctx, items, f"e:{edge}") or {
+                "id": f"e:{edge}",
+                "kind": "edge",
+                "text": f"edge {edge}, {_describe_edge(edge)}: which letter? Readings: none.",
+                "readings": [],
+            }
+            for cx, cy in ((x, y), other):
+                item = with_reading(
+                    item,
+                    "the key's cells",
+                    f"cell {cx},{cy} is {'floor' if cells[cy][cx] == '.' else 'water'}, "
+                    f"{round(100 * float(shares[cy, cx]))}% floor by pixel count",
+                )
+            earlier = rechecked.get(f"e:{edge}")
+            if earlier is not None:
+                item = with_reading(
+                    item, "an earlier recheck", f"{earlier['value']}, given before the cells were settled"
+                )
+                supersedes.add(earlier["job"])
+            item["text"] = item["text"].split(" Readings:")[0] + f" Readings: {_readings_text(item['readings'])}."
+            out.append(item)
+    return out, supersedes
+
+
+def submit_cell_edges(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | None, int]:
+    """Send `cell_edge_items` in fresh recheck requests that supersede the earlier answers on those edges."""
+    store = BatchStore(ctx.key.directory / "recheck")
+    items, supersedes = cell_edge_items(ctx)
+    asked = {
+        item["id"]
+        for custom_id in store.job_ids()
+        if "__zedges" in custom_id
+        for item in store.job(custom_id)["meta"]["items"]
+    }
+    items = [item for item in items if item["id"] not in asked]
+    ids = []
+    start = sum(1 for custom_id in store.job_ids() if "__zedges" in custom_id and not custom_id.endswith("__r"))
+    for number, first in enumerate(range(0, len(items), 8), start):
+        batch = items[first : first + 8]
+        custom_id = f"{ctx.key.id}__recheck__zedges{number:03d}"
+        params = _request(ctx, batch, RECHECK_SYSTEM, SCHEMA, False)
+        store.add_job(custom_id, params, {"map": ctx.key.id, "items": batch, "supersedes": sorted(supersedes)})
+        ids.append(custom_id)
+    if not ids:
+        return None, 0
+    return store.submit(client, ledger, f"recheck cell edges {ctx.key.id}", ids=ids), len(items)
+
+
 def record_corrections(ctx: MapContext, sample_path: Path, values: dict[str, str]) -> dict[str, str]:
     """Record the owner's value for calls the owner judged wrong in a sample.
 
@@ -311,11 +398,52 @@ def changed_calls(ctx: MapContext) -> list[str]:
     return sorted(changed)
 
 
+def effective_changes(ctx: MapContext, names: list[str]) -> tuple[list[str], list[str]]:
+    """Split changed calls into those whose change reaches the assembled cells and edges and those it doesn't.
+
+    An edge call between floor and rock is a wall in the key whatever the call says, so a recheck that changes
+    such a call's letter changes nothing the key records.
+
+    Args:
+        ctx: The map.
+        names: Changed call ids.
+
+    Returns:
+        The calls whose change reaches the key, and the rest.
+    """
+    from .letters import final_cells, final_edges
+
+    items = load_items(ctx)
+    after = final_values(ctx)
+    before = {name: dict(call) for name, call in after.items()}
+    for name in names:
+        call = before[name]
+        call["value"] = call.get("before_recheck", call.get("before_owner"))
+    letters = {}
+    for label, final in (("after", after), ("before", before)):
+        cells = final_cells(items, final, {})
+        letters[label] = (cells, final_edges(items, cells, final, {}))
+    reach, inert = [], []
+    for name in names:
+        kind, _, rest = name.partition(":")
+        if kind == "c":
+            x, y = parse_cell(rest)
+            differs = letters["after"][0][y][x] != letters["before"][0][y][x]
+        elif kind == "e":
+            cell, side = parse_edge(rest)
+            differs = letters["after"][1].at(cell, side) != letters["before"][1].at(cell, side)
+        else:
+            differs = True
+        (reach if differs else inert).append(name)
+    return reach, inert
+
+
 def recheck_sample(contexts: list[MapContext], out: Path) -> dict[str, Any]:
-    """Write a sample of every call whose value a recheck or a correction changed, under new ids.
+    """Write a sample of every call whose value a recheck or a correction changed in the key, under new ids.
 
     Each call's id is its first sample id with `RECHECK_MARK` added, so the owner's verdicts on the first sample
-    don't carry over, and its reason says what the value was before.
+    don't carry over, and its reason says what the value was before. A change that doesn't reach the assembled
+    cells and edges is listed in the result and left out.
 
     Args:
         contexts: The maps the recheck covered.
@@ -325,11 +453,14 @@ def recheck_sample(contexts: list[MapContext], out: Path) -> dict[str, Any]:
         Counts by map and category, and the file written.
     """
     calls: list[SampleCall] = []
-    counts: dict[str, int] = {}
+    counts: dict[str, Any] = {}
     for ctx in contexts:
-        changed = set(changed_calls(ctx))
+        reach, inert = effective_changes(ctx, changed_calls(ctx))
+        changed = set(reach)
+        if inert:
+            counts[f"{ctx.key.id} changed with no effect on the key"] = inert
         final = final_values(ctx)
-        for call in sample_calls(ctx, ctx.key.member, ctx.spec.truth_style, every=True):
+        for call in sample_calls(ctx, ctx.key.member, ctx.spec.truth_style, every=True, fallback="key"):
             call_id = sample_call_id(call.id)[1]
             if call_id not in changed:
                 continue

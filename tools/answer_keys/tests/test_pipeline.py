@@ -827,3 +827,18 @@ def test_a_job_that_supersedes_another_keeps_its_answers_over_every_collect(tmp_
         settler._harvest(store, calls, False, {"calls": 0, "retries": 0})
         assert calls["c:1,1"]["value"] == "#" and calls["c:1,1"]["job"] == "m__recheck_fix"
         assert calls["c:2,1"]["value"] == "#" and calls["c:2,1"]["job"] == "m__recheck__000"
+
+
+def test_a_call_on_an_edge_the_table_lacks_reaches_the_assembled_edges():
+    items = readings.Items(width=2, height=1)
+    items.cells = {
+        "0,0": {"classifier": ".", "claude": ["."], "status": "agreed"},
+        "1,0": {"classifier": "#", "claude": ["#"], "status": "agreed"},
+    }
+    final = {"c:1,0": {"value": "."}, "e:1,0:west": {"value": "d"}}
+    log: dict = {}
+    cells = letters.final_cells(items, final, log)
+    edges = letters.final_edges(items, cells, final, log)
+    assert cells == [[".", "."]]
+    assert edges.at((0, 0), "east") == "d"
+    assert edges.at((0, 0), "west") == "w" and edges.at((1, 0), "east") == "w"
