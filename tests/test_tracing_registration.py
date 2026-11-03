@@ -32,7 +32,6 @@ from osrforge.tracing.registration import (
 )
 from osrforge.tracing.truth import GeometryTruth, Region, Registration
 
-
 ASSETS = Path(__file__).parent / "assets"
 CHAOTIC_CAVES = ASSETS / "chaotic-caves" / "maps"
 MONKEY_ISLE = ASSETS / "monkey-isle" / "maps"
