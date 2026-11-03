@@ -68,7 +68,7 @@ def sunken_temple() -> MapSpec:
             "2",
             "Shrine",
             "Stairs in the shrine's corner go down to the flooded hall.",
-            links=(AreaConnection(to_key="3", direction="down", via="stairs"),),
+            links=(AreaConnection(to_key="Level 2", direction="down", via="stairs"),),
         ),
     )
     second = (

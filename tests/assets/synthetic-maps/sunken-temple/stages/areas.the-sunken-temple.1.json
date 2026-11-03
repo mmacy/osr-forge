@@ -42,7 +42,7 @@
           "to_level": null
         },
         {
-          "to_key": "3",
+          "to_key": "Level 2",
           "direction": "down",
           "via": "stairs",
           "door_stuck": false,

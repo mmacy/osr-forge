@@ -31,7 +31,7 @@ from typing import Literal
 from osrforge.contracts.stages import AreaConnection
 from osrforge.tracing.fivefoot import convert_five_foot
 from osrforge.tracing.synthetic._plan import SIDES, Plan, canonical, neighbour, seed_cells
-from osrforge.tracing.synthetic._spec import AreaSpec, LevelSpec, MapSpec, PanelSpec, RegionSpec
+from osrforge.tracing.synthetic._spec import AreaSpec, DungeonSpec, LevelSpec, MapSpec, PanelSpec, RegionSpec
 from osrforge.tracing.truth import (
     Area,
     EdgeGrids,
@@ -1675,13 +1675,61 @@ def resolve_shared(spec: MapSpec, members: tuple[LevelSpec, ...]) -> list[Resolv
 # The dungeon: links, passages, and the entrance.
 
 
-def _target(levels: list[Resolved], own: Resolved, link: AreaConnection) -> tuple[Resolved, str]:
-    if link.to_key is None:
-        raise DesignError("a link without a key isn't resolved by this generator")
-    for candidate in [own, *[level for level in levels if level is not own]]:
-        if any(area.key == link.to_key for area in candidate.spec.areas):
-            return candidate, link.to_key
-    raise DesignError(f"link target {link.to_key!r} is no surveyed key")
+_ORDINALS: dict[str, int] = {
+    word: number
+    for number, word in enumerate(
+        ("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"), start=1
+    )
+}
+
+
+def level_named(text: str) -> int | None:
+    """The level a `to_key` reads as: the word level with a number or an ordinal word, in either order.
+
+    Args:
+        text: The connection's `to_key`.
+
+    Returns:
+        The level number, or `None` when the text doesn't read as a level. Case is ignored, so "Level 2" and
+        "second level" both read as level 2.
+    """
+    words = text.lower().split()
+    if len(words) != 2 or words.count("level") != 1:
+        return None
+    other = words[1] if words[0] == "level" else words[0]
+    if other.isdigit():
+        return int(other)
+    return _ORDINALS.get(other)
+
+
+def _target(
+    levels: list[Resolved], own: Resolved, link: AreaConnection, dungeon: DungeonSpec
+) -> tuple[Resolved, str | None] | None:
+    """Where a prose connection leads: an area, or a level with no target area, or `None` when it's dropped.
+
+    The key resolves against the own level's keys first and then the other levels' in survey order. A key that
+    matches no key of the dungeon but reads as a level, or a connection that names only a `to_level`, leads to
+    that level. A connection to a level that doesn't exist is dropped.
+    """
+    if link.to_key is not None:
+        for candidate in [own, *[level for level in levels if level is not own]]:
+            if any(area.key == link.to_key for area in candidate.spec.areas):
+                return candidate, link.to_key
+        if any(area.key == link.to_key for level in dungeon.levels for area in level.areas):
+            raise DesignError(f"link target {link.to_key!r} is on a level that falls back, which isn't resolved here")
+        number = level_named(link.to_key)
+        if number is None:
+            raise DesignError(f"link target {link.to_key!r} is no surveyed key and names no level")
+    elif link.to_level is not None:
+        number = link.to_level
+    else:
+        raise DesignError("a link that names neither a key nor a level isn't resolved here")
+    if all(level.number != number for level in dungeon.levels):
+        return None
+    target = next((level for level in levels if level.spec.number == number), None)
+    if target is None or target is own:
+        raise DesignError(f"a link to level {number}, which falls back or is its own, isn't resolved here")
+    return target, None
 
 
 _MEANS: dict[str, tuple[str, ...]] = {
@@ -1760,7 +1808,7 @@ def _stairs(symbol: Symbol, first: bool) -> Literal["stairs_up", "stairs_down"]:
     return "stairs_down" if first else "stairs_up"
 
 
-def link_levels(levels: list[Resolved]) -> None:
+def link_levels(levels: list[Resolved], dungeon: DungeonSpec) -> None:
     """Realize each prose link as transitions, as Links says.
 
     A connection and its reverse between the same two areas by the same means
@@ -1770,22 +1818,29 @@ def link_levels(levels: list[Resolved]) -> None:
     on the symbols of its own means. A link whose prose names no means, a `via`
     of `passage` in the content cache, takes the means of the link symbols that
     touch or adjoin its area when they all share one, and otherwise makes no
-    transition. Stairs and ladders make a transition at
-    each end, starting from the connection that comes first in survey order. A
-    trapdoor or chute makes one, at the end whose prose states it. Stated from
-    both ends, it starts at its end on the level above, or within one level at
-    the end whose area comes first in survey order. A link to an area on
-    another panel of the same level has no direction.
+    transition. Stairs and ladders make a transition at each end, starting from
+    the connection that comes first in survey order. A trapdoor or chute makes
+    one, at the end whose prose states it. Stated from both ends, it starts at
+    its end on the level above, or within one level at the end whose area
+    comes first in survey order. A link to an area on another panel of the same
+    level has no direction. A link to a level with no target area is realized
+    after the others, so its target end can take a symbol no other link's end
+    stands on.
 
     Args:
         levels: The dungeon's resolved levels, in survey order.
+        dungeon: The surveyed dungeon, to tell a key of a level that falls back or a level that doesn't exist.
     """
-    made: set[tuple[frozenset[tuple[int, str]], str]] = set()
+    made: set[tuple[frozenset[tuple[int, str | None]], str]] = set()
+    later: list[tuple[Resolved, str, Resolved, str]] = []
     for level in levels:
         for area in level.spec.areas:
             for link in area.links:
-                target, key = _target(levels, level, link)
-                if _made(levels, level, area.key, target, key):
+                found = _target(levels, level, link, dungeon)
+                if found is None:
+                    continue
+                target, key = found
+                if key is not None and _made(levels, level, area.key, target, key):
                     continue
                 means = _means(level, area.key, link.via)
                 ends = frozenset({(level.spec.number, area.key), (target.spec.number, key)})
@@ -1796,12 +1851,49 @@ def link_levels(levels: list[Resolved]) -> None:
                     continue
                 if means is None:
                     raise DesignError(f"{area.key!r} names {key!r} on its own level by {link.via}, not made")
+                if key is None:
+                    later.append((level, area.key, target, means))
+                    continue
                 reverse = next(spec for spec in target.spec.areas if spec.key == key).links
                 both = any(
-                    _means(target, key, back.via) == means and _target(levels, target, back) == (level, area.key)
+                    _means(target, key, back.via) == means
+                    and _target(levels, target, back, dungeon) == (level, area.key)
                     for back in reverse
                 )
                 _realize(level, area.key, target, key, _MEANS[means], means, both)
+    for level, key, target, means in later:
+        _realize(level, key, target, None, _MEANS[means], means, False, _level_end(levels, target, _MEANS[means]))
+
+
+def _level_end(levels: list[Resolved], target: Resolved, kinds: tuple[str, ...]) -> tuple[Cell, Symbol | None]:
+    """The target end of a link to a level with no target area, as Links says.
+
+    It stands on a symbol of the link's means on the level that no other link's end stands on, the first in
+    north-then-west order, or else on the first cell of the level's first area. The level's first area stands in
+    for the target area the link doesn't name, so on a symbol several cells long the end takes the cell farthest
+    by Chebyshev distance from that area's first cell, and of several the first in north-then-west order.
+    """
+    first_area = next(target.areas[area.key] for area in target.spec.areas if area.key in target.areas)
+    first = min(first_area, key=cell_order)
+    used = {parse_cell(transition.cell) for transition in target.transitions}
+    used |= {
+        parse_cell(transition.to_cell)
+        for level in levels
+        for transition in level.transitions
+        if transition.to_dungeon is None and transition.to_level == target.spec.number
+    }
+    free = [
+        (symbol, cells)
+        for symbol, cells, _edge in target.board.symbols
+        if symbol.kind in kinds
+        and cells
+        and all(target.level_cells.get(cell) == "." for cell in cells)
+        and not used & set(cells)
+    ]
+    if not free:
+        return first, None
+    symbol, cells = min(free, key=lambda item: min(cell_order(cell) for cell in item[1]))
+    return min(cells, key=lambda cell: (-chebyshev(cell, first), cell_order(cell))), symbol
 
 
 def _means(level: Resolved, key: str, via: str) -> str | None:
@@ -1825,14 +1917,42 @@ def _means(level: Resolved, key: str, via: str) -> str | None:
 
 
 def _realize(
-    level: Resolved, key: str, target: Resolved, target_key: str, kinds: tuple[str, ...], via: str, both: bool
+    level: Resolved,
+    key: str,
+    target: Resolved,
+    target_key: str | None,
+    kinds: tuple[str, ...],
+    via: str,
+    both: bool,
+    level_end: tuple[Cell, Symbol | None] | None = None,
 ) -> None:
     """Make the transitions of one link, from `key` on `level` to `target_key` on `target`.
 
     `both` is true when the prose states the link from both ends. A trapdoor or chute stated from one end starts
     there, and one stated from both ends starts on the level above, or within one level at the area first in
-    survey order.
+    survey order. A link to a level with no target area has no `target_key`, and `level_end` is its target end.
     """
+    if target_key is None:
+        way = "down" if target.spec.number > level.spec.number else "up"
+        starts = _ends(level, key, kinds, (way, None))
+        if level_end is None or len(starts) != 1:
+            raise DesignError(f"a link from {key!r} to level {target.spec.number} needs one start, resolved here")
+        start, finish = starts[0][0], level_end[0]
+        number = target.spec.number
+        if via in ("trapdoor", "chute"):
+            drop: Literal["trapdoor", "chute"] = "trapdoor" if via == "trapdoor" else "chute"
+            level.transitions.append(
+                Transition(cell=cell_key(start), kind=drop, to_level=number, to_cell=cell_key(finish))
+            )
+            return
+        back = "up" if way == "down" else "down"
+        level.transitions.append(
+            Transition(cell=cell_key(start), kind=_STAIRS[way], to_level=number, to_cell=cell_key(finish))
+        )
+        target.transitions.append(
+            Transition(cell=cell_key(finish), kind=_STAIRS[back], to_level=level.spec.number, to_cell=cell_key(start))
+        )
+        return
     one_way = via in ("trapdoor", "chute")
     survey = [area.key for area in level.spec.areas]
     above = target.spec.number < level.spec.number
@@ -2117,7 +2237,7 @@ def resolve_dungeon(spec: MapSpec) -> tuple[list[Resolved], Entrance | None]:
     levels.sort(key=lambda level: order_of[level.spec.number])
     for level in levels:
         fold_passages(level)
-    link_levels(levels)
+    link_levels(levels, spec.dungeon)
     if not levels:
         return levels, None
     found = entrance(levels, spec.entrance_key)
