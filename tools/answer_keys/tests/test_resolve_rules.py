@@ -501,11 +501,11 @@ TWO_ROOMS = [
 """Two rooms on one panel with rock between them, one on each of two levels, and no symbol anywhere."""
 
 
-def two_rooms_fixture(via, symbols=(), to_key="2"):
+def two_rooms_fixture(via, symbols=(), to_key="2", direction="down", lower_connections=()):
     survey_index = survey("k", [(1, [("1", "Upper")]), (2, [("2", "Lower")])])
     contents = {
-        ("k", 1): content("k", 1, [("1", "Upper.", [{"to_key": to_key, "direction": "down", "via": via}])]),
-        ("k", 2): content("k", 2, [("2", "Lower.", [])]),
+        ("k", 1): content("k", 1, [("1", "Upper.", [{"to_key": to_key, "direction": direction, "via": via}])]),
+        ("k", 2): content("k", 2, [("2", "Lower.", list(lower_connections))]),
     }
     outlines = (
         Outline(dungeon="k", level=1, rects=((0, 0, 3, 4),), seeds=("1,1",)),
@@ -549,14 +549,50 @@ def test_a_link_with_no_means_and_no_symbol_makes_no_transition():
 
 
 def test_a_link_with_no_means_and_symbols_of_two_means_makes_no_transition():
-    """The prose names no means, and a stair and a trapdoor both touch the upper room, so the link makes no
-    transition. With the trapdoor named in the prose instead, the link is by trapdoor and stands on it."""
-    symbols = (Symbol(kind="stairs", cells=("2,2",), direction="down"), Symbol(kind="trapdoor", cells=("1,2",)))
+    """The prose names no means, and a stair and a trapdoor both touch the upper room, neither recording a
+    direction, so the link makes no transition. With the trapdoor named in the prose instead, the link is by
+    trapdoor and stands on it."""
+    symbols = (Symbol(kind="stairs", cells=("2,2",)), Symbol(kind="trapdoor", cells=("1,2",)))
     result = two_rooms_fixture("passage", symbols)
     assert level_of(result, 1).transitions == () and level_of(result, 2).transitions == ()
     by_trapdoor = two_rooms_fixture("trapdoor", symbols)
     assert transitions(level_of(by_trapdoor, 1)) == {("1,2", "trapdoor", 2, "4,1")}
     assert level_of(by_trapdoor, 2).transitions == ()
+
+
+def test_two_means_beside_an_area_where_the_directed_symbol_decides():
+    """The prose names no means and the link goes down, as stated. A stair recording down and a trapdoor recording
+    nothing both touch the upper room, so only the stair counts: the link is by stairs and stands on it."""
+    symbols = (Symbol(kind="stairs", cells=("2,2",), direction="down"), Symbol(kind="trapdoor", cells=("1,2",)))
+    result = two_rooms_fixture("passage", symbols)
+    assert transitions(level_of(result, 1)) == {("2,2", "stairs_down", 2, "4,1")}
+    assert transitions(level_of(result, 2)) == {("4,1", "stairs_up", 1, "2,2")}
+
+
+def test_a_stated_up_toward_a_larger_level_number_gives_stairs_up():
+    """The prose decides which way a level lies: a connection stated up to level 2 goes up, whatever the numbers
+    say, so its stairs are stairs_up at the upper room and stairs_down at the lower room's end."""
+    result = two_rooms_fixture("stairs", direction="up")
+    assert transitions(level_of(result, 1)) == {("1,1", "stairs_up", 2, "4,1")}
+    assert transitions(level_of(result, 2)) == {("4,1", "stairs_down", 1, "1,1")}
+
+
+def test_a_trapdoor_stated_from_both_ends_starts_where_it_goes_down():
+    """A trapdoor stated up from the upper room and down from the lower room starts at the lower room, though
+    level 1 is above by number, so its one transition stands on the lower room and leads to the upper."""
+    lower = [{"to_key": "1", "direction": "down", "via": "trapdoor"}]
+    result = two_rooms_fixture("trapdoor", direction="up", lower_connections=lower)
+    assert level_of(result, 1).transitions == ()
+    assert transitions(level_of(result, 2)) == {("4,1", "trapdoor", 1, "1,1")}
+
+
+@pytest.mark.parametrize("direction", ["east", "unknown"])
+def test_an_unstated_direction_falls_back_to_the_level_numbers(direction):
+    """A connection that states neither up nor down goes down to the greater level number, so the stairs from the
+    upper room to level 2 are stairs_down there and stairs_up at the lower room's end."""
+    result = two_rooms_fixture("stairs", direction=direction)
+    assert transitions(level_of(result, 1)) == {("1,1", "stairs_down", 2, "4,1")}
+    assert transitions(level_of(result, 2)) == {("4,1", "stairs_up", 1, "1,1")}
 
 
 @pytest.mark.parametrize("to_key", ["Level 2", "second level", "2 LEVEL", "level Second"])
