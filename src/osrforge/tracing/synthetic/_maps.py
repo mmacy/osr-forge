@@ -160,7 +160,12 @@ def warrens() -> MapSpec:
 
 
 def ravine_lair() -> MapSpec:
-    """A lair with an open and a walled cave mouth onto a ravine, keys printed outside both, and a keyed pool."""
+    """A lair with an open and a walled cave mouth onto a ravine, keys printed outside both, and a keyed pool.
+
+    Lair K's letter on the ravine is only a label. A second drawing on the page, Lair J, prints its letter beside
+    its cave mouth and prints none of its keys titled Entrance, so the letter is the print of its entrance key, which
+    the rules for a key printed outside move inside the mouth.
+    """
     sketch = Sketch(26, 18)
     sketch.room("ravine", 2, 12, 22, 4)
     sketch.room("a", 4, 6, 6, 5).run("a", (6, 11)).edge((6, 11), "south", "o")
@@ -178,6 +183,20 @@ def ravine_lair() -> MapSpec:
     sketch.ornament("contour", (19.0, 13.8), (21.0, 13.0), (23.8, 12.6))
     plan = sketch.build()
     region, panel = _single("ravine-lair", "Lair K, the ravine caves", plan, "tsr_blue", ("cave_mouth",))
+    lair_j = Sketch(12, 9)
+    lair_j.room("ravine", 0, 6, 12, 2)
+    for y in (6, 7):
+        lair_j.edge((0, y), "west", "o").edge((11, y), "east", "o")
+    lair_j.room("a", 3, 1, 5, 4).run("a", (5, 5)).edge((5, 5), "south", "o")
+    lair_j.symbol("cave_mouth", edge=((5, 5), "south"))
+    lair_j.room("den", 8, 1, 3, 3).edge((7, 2), "east", "d").mark("2", (9, 2))
+    lair_j.mark("J", (5, 7))
+    lair_j.outline((0, 0, 12, 6))
+    j_plan = lair_j.build()
+    j_region = RegionSpec(
+        "lair-j", 1, region.image, "tsr_blue", j_plan, "LAIR J", legend=("cave_mouth",), at=(28.0, 4.0)
+    )
+    j_panel = PanelSpec("lair-j", (("lair-j", (0, 0)),), j_plan)
     areas = (
         AreaSpec("1", "Mouth cave", "The open mouth of the lair looks out over the ravine.", "cave"),
         AreaSpec("2", "Walled cave", "A dry stone wall closes this cave from the ravine.", "cave"),
@@ -185,6 +204,17 @@ def ravine_lair() -> MapSpec:
         AreaSpec("4", "Inner cave", "Bedding lies along the walls around the pool.", "cave"),
     )
     dungeon = DungeonSpec("lair-k", "Lair K", (LevelSpec(1, areas, ("ravine-lair",)),))
+    j_areas = (
+        AreaSpec(
+            "1",
+            "Entrance",
+            "A low cave opens on the ravine. A door leads east to the den.",
+            "cave",
+            (AreaConnection(to_key="2", direction="east", via="door"),),
+        ),
+        AreaSpec("2", "Den", "Gnawed bones litter the den.", "cave"),
+    )
+    j_dungeon = DungeonSpec("lair-j", "Lair J", (LevelSpec(1, j_areas, ("lair-j",)),))
     return MapSpec(
         name="ravine-lair",
         title="Lair K, the ravine caves",
@@ -196,9 +226,9 @@ def ravine_lair() -> MapSpec:
             "letter_lair_label_outside",
             "overlay_contours_tracks_stream",
         ),
-        dungeons=(dungeon,),
-        regions=(region,),
-        panels=(panel,),
+        dungeons=(dungeon, j_dungeon),
+        regions=(region, j_region),
+        panels=(panel, j_panel),
         damage=(
             DamageSite(change="key_moved", dungeon="lair-k", level=1, label="4", to_cell="5,4"),
             DamageSite(change="door_kind_changed", panel="ravine-lair", edge="5,5:south"),
