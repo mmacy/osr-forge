@@ -2,13 +2,14 @@
 
 An answer key for a printed dungeon map is built from two independent readings of the map and settled where they disagree (see `docs/plans/map-tracing.md` in re-pod, "How the work is checked"). The first reading comes from Claude. This tool gives the second: it reads every cell and every edge of a map from the ink alone, with no model of any kind, and writes the reading in the truth format of `osrforge.tracing.truth`. It is not the tracing stage's own ink measurement, so an answer key stays independent of the stage it scores.
 
-The tool has five parts:
+The tool has six parts:
 
 - `gridfit.py` fits the printed grid of a map region with numpy alone: one affine grid over the region, with a separate pitch and shear on each axis.
 - `classify.py` measures each cell and each edge on that grid and decides its letter and a confidence. `styles.py` holds each style's thresholds, and `ink.py` turns the image into masks of ink, paper, and fill.
 - `run.py` reads the maps a spec file names and writes one reading file per map. `reading.py` is that file's format.
 - `score.py` scores a reading against a settled window, and `settle.py` helps a person settle one.
 - `resolve.py` is the reference resolution script. It turns a reading into levels and areas by the conventions, and `world.py` is the grid it walks.
+- `pipeline.py` builds an answer key from the two readings, Clef's answers, the settler, and the adversarial pass, stage by stage (see Build an answer key).
 
 ## Run it
 
@@ -58,6 +59,30 @@ uv run python -m tools.answer_keys.resolve tests/assets/synthetic-maps/manor
 It prints `exact`, or the fields of each level that differ and the cells behind each difference. `world.py` holds what the rules walk: every panel's cells and edges on one graph, the fold links between halves that stay apart, open spaces, open ground, walled rooms and structures, narrow runs, one-cell necks, and the walks that measure distances.
 
 Where the conventions give no answer for an input, the script raises `ConventionGap` with the case, so the gap is settled in the conventions and not in the code.
+
+## Build an answer key
+
+`pipeline.py` runs the answer-key method of the plan over the maps a key spec names: `keys.json` here covers the committed Chaotic Caves maps and the two synthetic maps the pipeline is checked on, and the Palace spec stays outside the repository. Each map's requests, answers, crops, and calls go under the spec's `work` directory, in `<work>/<map id>/`, and the classifier's readings in `<work>/classifier/`. From the osr-forge checkout, after `run.py` has written the readings:
+
+```text
+uv run python -m tools.answer_keys.pipeline tools/answer_keys/keys.json <map id>... <stage> [submit|collect] [--wait]
+```
+
+The stages, in order:
+
+1. `windows submit` and `windows collect`: the first reading. `tiles.py` covers the region with 12 by 12 windows and draws each with red ticks and grid numbers in a white gutter; `reader.py` asks Claude Sonnet 5.5 at high effort for every cell and edge of the window in the truth letters, with the labels and symbols printed in it, as JSON the API checks against a schema. `windows.py` checks what the schema can't (the number of rows, each row's length, the letters, and that every named cell lies in the window) and asks once more for a malformed answer, with the answer and its faults appended; a window whose retry fails too gets a fresh attempt. Every request goes through the Batches API (`batches.py`), which reserves each request's worst case on the shared Claude ledger before sending and settles it at half the list price when the answer comes back.
+2. `marks submit` and `marks collect`: the second reading of labels and symbols (`marks.py`), on windows laid half a window across and down from the first tiling, at medium effort, asking for labels and symbols alone.
+3. `wholemap submit` and `wholemap collect`: the whole page once, with the region's grid ticked, for each level's outline rectangles, seed cells, and open ground, the legend's entries from the symbol vocabulary, the compass, the scale, and the edges that cut the drawing off.
+4. `clef`: Clef's answer for every edge that touches floor or water in either reading, and for every cell the two readings dispute (`clefpass.py`), through `osrforge.providers.clef.ClefProvider` and the Clef ledger. The crops are the probe's best setup: 2 by 2 cells at 128 pixels per cell with a red box on the edge, and the options and their descriptions depend only on the style.
+5. `disagree`: the table of every item's readings, `items.json` (`readings.py`). A cell is disputed when Claude's windows differ or the classifier's letter isn't among Claude's; an edge when any two letters differ, or when Clef, with a top probability of at least 0.5, is passable where the letters are blocked or the other way round, or names a different kind of door; a label when the two readings place it in different cells or one lacks it; a symbol likewise.
+6. `settle submit` and `settle collect`, run twice: the first round settles the cells, labels, and symbols, the second the edges, with the settled cells applied so an edge beside a cell settled as rock is a wall without a question unless a reader read a door there. Each request (`settler.py`) carries up to eight items, each with a zoomed crop and a wider crop with the item boxed in red and the readings that disagree, and is fresh: it carries none of the earlier work beyond those readings.
+7. `adversary submit` and `adversary collect`, run twice: the first round rechecks every settled call and the agreed edges in caves, at diagonals, and around keys, in fresh requests that carry the recorded value and try to prove it wrong; the second re-settles every challenged call in a fresh settling request that carries the challenge among the readings, and that result is final. `final.json` holds every call's final value with the settler's and the adversary's beside it.
+8. `assemble`: the map's `Region` and `Panel` from the table and the final values, with the outlines from the whole-map read, as a geometry truth document whose levels are shells (`assemble.py`, `<map>/reading.json`). An edge touching no floor is `-`, and an edge between floor and rock is a wall unless the settler put a door there. The log beside it counts the cells and edges that fell back to the classifier because no window read them, and lists each outline border that crosses floor.
+9. `combine`: the region documents of one member joined, resolved with the member's caches through `resolve.py`, and written as the key (`--stages` names the directory whose `stages/` holds the caches).
+10. `sample`: the owner's sample of one style (`samples.py`), about 50 settled calls drawn from caves, diagonals, and keys, plus every label the settler placed, with the crops copied beside the sample file for the sample app.
+11. `score`: on a synthetic map, the assembled reading against the exact answer through `osrforge.tracing.score.score_trace` and a direct comparison of the labels, symbols, and outlines; on a Chaotic Caves map, against the settled windows in `settled/` (`scoring.py`).
+
+Every stage can be run again: jobs and answers that exist are kept, and `collect --wait` polls until every open batch has ended. The API key is read from `~/repos/re-pod/.env` inside the process, the Clef account id from the probe's client script, and the Clef token from the wrangler login; none is written anywhere.
 
 ## The grid fit
 

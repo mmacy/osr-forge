@@ -1,0 +1,512 @@
+"""The key's reading layer: the settled cells, edges, labels, symbols, and outlines of a map, as geometry truth.
+
+`assemble` builds one map's `Region` and `Panel` from the table of readings and the final values, with the
+outlines from the whole-map read, and writes `<map>/reading.json`: a geometry truth document whose levels are
+shells for the resolver to fill. `combine` joins the region documents of one corpus member, resolves them with
+the member's caches through `resolve.py`, and writes the key, with its provenance beside it.
+
+The panel's letters come from the readers that agreed, or from the settler where they disagreed, with these
+derivations after settling: an edge touching no floor or water is `-`; an edge between floor and rock is `w`
+unless the settler put a door there; a cell no window read falls back to the classifier's letter, and the log
+counts those.
+"""
+
+import json
+import os
+from collections import defaultdict
+from datetime import date
+from pathlib import Path
+from typing import Any
+
+from osrforge.tracing.truth import (
+    SYMBOL_KINDS,
+    Compass,
+    Dungeon,
+    EdgeGrids,
+    GeometryTruth,
+    Legend,
+    Level,
+    Mark,
+    Outline,
+    Page,
+    PageImage,
+    Panel,
+    PanelRegion,
+    Region,
+    Scale,
+    Symbol,
+    canonical_form,
+    parse_cell,
+    parse_edge,
+    save_geometry_truth,
+)
+
+from .keyspec import KeySpec, MapContext
+from .marks import wholemap_answer
+from .readings import Items, classifier_reading, edge_cells, edge_key, load_items
+from .settler import final_values
+
+__all__ = ["assemble", "combine", "panel_letters", "rects_of"]
+
+
+def _final_cells(items: Items, final: dict[str, dict[str, Any]], log: dict[str, Any]) -> list[list[str]]:
+    cells = [["#"] * items.width for _ in range(items.height)]
+    unread = 0
+    for name, entry in items.cells.items():
+        x, y = parse_cell(name)
+        call = final.get(f"c:{name}")
+        if call is not None:
+            letter = call["value"]
+        elif entry["claude"]:
+            letter = entry["claude"][0]
+        else:
+            letter = entry["classifier"]
+            unread += 1
+        cells[y][x] = letter
+    log["cells_from_classifier_alone"] = unread
+    return cells
+
+
+def _final_edges(
+    items: Items, cells: list[list[str]], final: dict[str, dict[str, Any]], log: dict[str, Any]
+) -> EdgeGrids:
+    width, height = items.width, items.height
+    vertical = [["-"] * (width + 1) for _ in range(height)]
+    horizontal = [["-"] * width for _ in range(height + 1)]
+
+    def occupied(cell: tuple[int, int]) -> bool:
+        x, y = cell
+        return 0 <= x < width and 0 <= y < height and cells[y][x] != "#"
+
+    derived = 0
+    unread = 0
+    for name, entry in items.edges.items():
+        key = edge_key(name)
+        a, b = edge_cells(key)
+        occupied_a, occupied_b = occupied(a), occupied(b)
+        if not (occupied_a or occupied_b):
+            continue
+        call = final.get(f"e:{name}")
+        if call is not None:
+            letter = call["value"]
+        elif entry["claude"]:
+            letter = entry["claude"][0]
+        else:
+            letter = entry["classifier"]
+            unread += 1
+        if letter == "-":
+            letter = "w"
+        if (occupied_a != occupied_b) and letter not in "dls":
+            if letter != "w":
+                derived += 1
+            letter = "w"
+        axis, first, second = key
+        if axis == "v":
+            vertical[second][first] = letter
+        else:
+            horizontal[second][first] = letter
+    # Edges the table never listed (no reading saw floor beside them) but that touch floor now.
+    for y in range(height):
+        for x in range(width + 1):
+            if vertical[y][x] == "-" and (occupied((x - 1, y)) or occupied((x, y))):
+                vertical[y][x] = "w"
+                derived += 1
+    for y in range(height + 1):
+        for x in range(width):
+            if horizontal[y][x] == "-" and (occupied((x, y - 1)) or occupied((x, y))):
+                horizontal[y][x] = "w"
+                derived += 1
+    log["edges_derived_as_walls"] = derived
+    log["edges_from_classifier_alone"] = unread
+    return EdgeGrids(
+        vertical=tuple("".join(row) for row in vertical), horizontal=tuple("".join(row) for row in horizontal)
+    )
+
+
+def _parse_value_mark(value: str) -> tuple[str, str] | None:
+    if value.strip().lower() == "none":
+        return None
+    text, _at, cell = value.rpartition("@")
+    parse_cell(cell)
+    return text, cell
+
+
+def _parse_value_symbol(value: str) -> dict[str, Any] | None:
+    if value.strip().lower() == "none":
+        return None
+    body, _, direction = value.partition("|")
+    kind, _at, place = body.partition("@")
+    if kind not in SYMBOL_KINDS:
+        return None
+    if kind == "cave_mouth":
+        parse_edge(place)
+        return {"kind": kind, "cells": [], "edge": place, "direction": None}
+    cells = sorted({text for text in place.split(";") if text}, key=lambda t: parse_cell(t)[::-1])
+    return {"kind": kind, "cells": cells, "edge": None, "direction": direction or None}
+
+
+def _final_marks(
+    items: Items, final: dict[str, dict[str, Any]], cells: list[list[str]], log: dict[str, Any]
+) -> list[Mark]:
+    marks: list[Mark] = []
+    dropped = 0
+    for index, mark in enumerate(items.marks):
+        if mark["status"] == "agreed":
+            text, cell = mark["text"], mark["reading1"][0]
+        else:
+            cells_named = mark["reading1"] or mark["reading2"]
+            call = final.get(f"m:{cells_named[0]}|{index}")
+            if call is None:
+                dropped += 1
+                continue
+            parsed = _parse_value_mark(call["value"])
+            if parsed is None:
+                continue
+            text, cell = parsed
+        x, y = parse_cell(cell)
+        if not (0 <= x < items.width and 0 <= y < items.height):
+            dropped += 1
+            continue
+        edge = mark.get("on_door")
+        if edge is not None:
+            try:
+                edge_cell, _side = parse_edge(edge)
+            except ValueError:
+                edge = None
+            else:
+                if f"{edge_cell[0]},{edge_cell[1]}" != cell:
+                    edge = None
+        leader = mark.get("leader_to")
+        if leader is not None:
+            lx, ly = parse_cell(leader)
+            if not (0 <= lx < items.width and 0 <= ly < items.height):
+                leader = None
+        marks.append(Mark(text=text, cell=cell, edge=edge, leader_to=leader))
+    log["marks_dropped"] = dropped
+    return _unique_marks(marks)
+
+
+def _unique_marks(marks: list[Mark]) -> list[Mark]:
+    seen = set()
+    out = []
+    for mark in marks:
+        key = (mark.text, mark.cell)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(mark)
+    return out
+
+
+def _final_symbols(items: Items, final: dict[str, dict[str, Any]], width: int, height: int) -> list[Symbol]:
+    symbols: list[Symbol] = []
+    for index, item in enumerate(items.symbols):
+        if item["status"] == "agreed":
+            symbol = item["reading1"]
+        else:
+            one = item["reading1"] or item["reading2"]
+            place = one["cells"][0] if one["cells"] else parse_edge(one["edge"])[0]
+            place_text = place if isinstance(place, str) else f"{place[0]},{place[1]}"
+            call = final.get(f"s:{place_text}|{index}")
+            if call is None:
+                continue
+            symbol = _parse_value_symbol(call["value"])
+            if symbol is None:
+                continue
+        inside = all(0 <= parse_cell(c)[0] < width and 0 <= parse_cell(c)[1] < height for c in symbol["cells"])
+        if symbol["kind"] == "cave_mouth":
+            (x, y), _side = parse_edge(symbol["edge"])
+            inside = 0 <= x < width and 0 <= y < height
+        if not inside:
+            continue
+        symbols.append(
+            Symbol(
+                kind=symbol["kind"],
+                cells=tuple(symbol["cells"]),
+                edge=symbol.get("edge"),
+                direction=symbol.get("direction"),
+            )
+        )
+    unique = {}
+    for symbol in symbols:
+        unique[(symbol.kind, symbol.cells, symbol.edge)] = symbol
+    return list(unique.values())
+
+
+def rects_of(cells: set[tuple[int, int]]) -> list[tuple[int, int, int, int]]:
+    """Cover a set of cells with rectangles: maximal runs along each row, merged down where runs line up."""
+    rows: dict[int, list[tuple[int, int]]] = defaultdict(list)
+    for x, y in sorted(cells, key=lambda c: (c[1], c[0])):
+        runs = rows[y]
+        if runs and runs[-1][1] == x:
+            runs[-1] = (runs[-1][0], x + 1)
+        else:
+            runs.append((x, x + 1))
+    rects: list[list[int]] = []
+    open_runs: dict[tuple[int, int], list[int]] = {}
+    for y in sorted(rows):
+        next_open: dict[tuple[int, int], list[int]] = {}
+        for x0, x1 in rows[y]:
+            rect = open_runs.get((x0, x1))
+            if rect is not None and rect[1] + rect[3] == y:
+                rect[3] += 1
+            else:
+                rect = [x0, y, x1 - x0, 1]
+                rects.append(rect)
+            next_open[(x0, x1)] = rect
+        open_runs = next_open
+    return [tuple(rect) for rect in rects]  # type: ignore[misc]
+
+
+def _outline_cells(rects: list[list[int]], width: int, height: int) -> set[tuple[int, int]]:
+    cells = set()
+    for x, y, w, h in rects:
+        for cy in range(max(0, y), min(height, y + h)):
+            for cx in range(max(0, x), min(width, x + w)):
+                cells.add((cx, cy))
+    return cells
+
+
+def _outlines(
+    ctx: MapContext, cells: list[list[str]], edges: EdgeGrids, marks: list[Mark], log: dict[str, Any]
+) -> list[Outline]:
+    width, height = len(cells[0]), len(cells)
+    whole = wholemap_answer(ctx)
+    outlines: list[Outline] = []
+    crossings: list[str] = []
+    answers = {(level["dungeon"], level["level"]): level for level in (whole or {}).get("levels", [])}
+    owned: dict[tuple[str, int], set[tuple[int, int]]] = {}
+    for dungeon, number in ctx.key.levels:
+        answer = answers.get((dungeon, number))
+        if answer is None or len(ctx.key.levels) == 1:
+            owned[(dungeon, number)] = {(x, y) for y in range(height) for x in range(width)}
+        else:
+            owned[(dungeon, number)] = _outline_cells(answer["rects"], width, height)
+    # Borders that cross floor: an open edge between two floor cells, one in the outline and one out of it.
+    for level, cells_of in owned.items():
+        for x, y in cells_of:
+            if cells[y][x] == "#":
+                continue
+            for side, other in (
+                ("east", (x + 1, y)),
+                ("south", (x, y + 1)),
+                ("west", (x - 1, y)),
+                ("north", (x, y - 1)),
+            ):
+                ox, oy = other
+                if not (0 <= ox < width and 0 <= oy < height) or other in cells_of or cells[oy][ox] == "#":
+                    continue
+                if edges.at((x, y), side) in "op":
+                    crossings.append(f"{level[0]}/{level[1]} {x},{y}:{side}")
+    log["outline_crossings"] = crossings
+    for (dungeon, number), cells_of in owned.items():
+        answer = answers.get((dungeon, number), {})
+        seeds = [text for text in answer.get("seeds", []) if _is_floor(cells, text) and parse_cell(text) in cells_of]
+        if not seeds:
+            level_marks = [
+                mark.cell for mark in marks if parse_cell(mark.cell) in cells_of and _is_floor(cells, mark.cell)
+            ]
+            seeds = (
+                level_marks[:1]
+                or [f"{x},{y}" for x, y in sorted(cells_of, key=lambda c: (c[1], c[0])) if cells[y][x] != "#"][:1]
+            )
+        if not seeds:
+            log.setdefault("levels_without_floor", []).append(f"{dungeon}/{number}")
+            continue
+        open_ground = [tuple(rect) for rect in answer.get("open_ground", []) if len(rect) == 4]
+        outlines.append(
+            Outline(
+                dungeon=dungeon,
+                level=number,
+                rects=tuple(rects_of(cells_of)),
+                seeds=tuple(seeds),
+                open_ground=tuple(open_ground),
+            )
+        )  # type: ignore[arg-type]
+    return outlines
+
+
+def _is_floor(cells: list[list[str]], text: str) -> bool:
+    x, y = parse_cell(text)
+    return 0 <= y < len(cells) and 0 <= x < len(cells[0]) and cells[y][x] != "#"
+
+
+def panel_letters(ctx: MapContext) -> tuple[Panel, Region, dict[str, Any]]:
+    """Build the map's panel and region from the table, the final values, and the whole-map read."""
+    items = load_items(ctx)
+    final = final_values(ctx) if (ctx.key.directory / "final.json").exists() else {}
+    log: dict[str, Any] = {"settled_calls": len(final)}
+    cells = _final_cells(items, final, log)
+    edges = _final_edges(items, cells, final, log)
+    marks = _final_marks(items, final, cells, log)
+    symbols = _final_symbols(items, final, items.width, items.height)
+    outlines = _outlines(ctx, cells, edges, marks, log)
+    reading = classifier_reading(ctx)
+    whole = wholemap_answer(ctx) or {}
+    partial = [text for text in items.partial if _in_grid(text, items.width, items.height)]
+    cave = [text for text in items.cave if _in_grid(text, items.width, items.height)]
+    panel = Panel(
+        id=ctx.key.id,
+        regions=(PanelRegion(region=ctx.key.id, origin=(0, 0)),),
+        scale_feet=ctx.spec.scale_feet,  # type: ignore[arg-type]
+        cells=tuple("".join(row) for row in cells),
+        edges=edges,
+        partial=tuple(partial),
+        cave=tuple(cave),
+        marks=tuple(marks),
+        outlines=tuple(outlines),
+        symbols=tuple(symbols),
+    )
+    legend_symbols = tuple(kind for kind in whole.get("legend_symbols", []) if kind in SYMBOL_KINDS)
+    legend_printed = bool(ctx.spec.legend_printed or (whole.get("legend_printed") and ctx.key.legend_from_page is None))
+    region = reading.region.model_copy(
+        update={
+            "style": ctx.spec.truth_style,
+            "scale": Scale(
+                feet=ctx.spec.scale_feet,
+                printed=ctx.spec.scale_printed,
+                text=whole.get("scale_text") if ctx.spec.scale_printed else None,
+            ),
+            "compass": Compass(north=ctx.spec.north, printed=ctx.spec.compass_printed),  # type: ignore[arg-type]
+            "legend": Legend(printed=legend_printed, from_page=ctx.key.legend_from_page, symbols=legend_symbols),
+            "cut_off": tuple(side for side in whole.get("cut_off", []) if side in ("top", "right", "bottom", "left")),
+        }
+    )
+    if whole:
+        for field_name, mine, theirs in (
+            ("north", ctx.spec.north, whole.get("north")),
+            ("compass_printed", ctx.spec.compass_printed, whole.get("compass_printed")),
+            ("scale_printed", ctx.spec.scale_printed, whole.get("scale_printed")),
+            ("feet", ctx.spec.scale_feet, whole.get("feet_per_square")),
+        ):
+            if mine != theirs:
+                log.setdefault("wholemap_disagrees", []).append(f"{field_name}: spec {mine}, whole-map read {theirs}")
+    return panel, region, log
+
+
+def _in_grid(text: str, width: int, height: int) -> bool:
+    x, y = parse_cell(text)
+    return 0 <= x < width and 0 <= y < height
+
+
+def _image_relative(ctx: MapContext, document_dir: Path) -> str:
+    image = Path(ctx.spec.image).resolve()
+    return os.path.relpath(image, document_dir.resolve())
+
+
+def assemble(ctx: MapContext, out: Path | None = None) -> dict[str, Any]:
+    """Write the map's reading document and return the assembly log."""
+    panel, region, log = panel_letters(ctx)
+    out = out or ctx.key.directory / "reading.json"
+    region = region.model_copy(update={"image": _image_relative(ctx, ctx.key.key.parent)})
+    page = Page(number=ctx.spec.page, images=(PageImage(file=region.image),))
+    dungeons = _shell_dungeons(ctx.key)
+    document = GeometryTruth(pages=(page,), regions=(region,), panels=(panel,), dungeons=dungeons)
+    save_geometry_truth(out, document)
+    log["written"] = str(out)
+    (ctx.key.directory / "assemble.log.json").write_text(json.dumps(log, indent=1) + "\n")
+    return log
+
+
+def _shell_dungeons(key: KeySpec) -> tuple[Dungeon, ...]:
+    """Every dungeon of the survey as a shell: each level a fallback the resolver fills in."""
+    if key.survey is None:
+        by_dungeon: dict[str, list[int]] = defaultdict(list)
+        for dungeon, number in key.levels:
+            by_dungeon[dungeon].append(number)
+        return tuple(
+            Dungeon(
+                id=dungeon,
+                name=dungeon,
+                levels=tuple(Level(number=n, verdict="fallback", reason="reading only") for n in sorted(numbers)),
+            )
+            for dungeon, numbers in by_dungeon.items()
+        )
+    survey = json.loads(key.survey.read_text())
+    return tuple(
+        Dungeon(
+            id=dungeon["id"],
+            name=dungeon["name"],
+            levels=tuple(
+                Level(number=level["number"], verdict="fallback", reason="reading only") for level in dungeon["levels"]
+            ),
+        )
+        for dungeon in survey["dungeons"]
+    )
+
+
+def combine(keys: list[KeySpec], out: Path, resolve_with: Path | None) -> dict[str, Any]:
+    """Join the region documents of one member, resolve them, and write the key.
+
+    Args:
+        keys: The member's map entries, each with a `reading.json` assembled.
+        out: The key's path.
+        resolve_with: The directory whose `stages/` holds the member's caches, or `None` to write the reading
+            layer alone.
+
+    Returns:
+        A log: the regions joined and the resolver's outcome.
+    """
+    from .resolve import ConventionGap, load_caches, resolve
+
+    pages: dict[int, list[PageImage]] = defaultdict(list)
+    regions: list[Region] = []
+    panels: list[Panel] = []
+    dungeons = _shell_dungeons(keys[0])
+    for key in keys:
+        document = GeometryTruth.model_validate(json.loads((key.directory / "reading.json").read_text()))
+        for page in document.pages:
+            for image in page.images:
+                if image not in pages[page.number]:
+                    pages[page.number].append(image)
+        regions.extend(document.regions)
+        panels.extend(document.panels)
+    reading = GeometryTruth(
+        pages=tuple(Page(number=number, images=tuple(images)) for number, images in sorted(pages.items())),
+        regions=tuple(regions),
+        panels=tuple(panels),
+        dungeons=dungeons,
+    )
+    log: dict[str, Any] = {"regions": [region.id for region in regions]}
+    if resolve_with is None:
+        save_geometry_truth(out, reading)
+        log["resolved"] = False
+        return log
+    survey, contents, mapread = load_caches(resolve_with)
+    try:
+        resolved = resolve(reading, survey, contents, mapread)
+    except ConventionGap as gap:
+        log["open_case"] = str(gap)
+        save_geometry_truth(out, reading)
+        return log
+    save_geometry_truth(out, canonical_form(resolved))
+    log["resolved"] = True
+    log["levels"] = [
+        f"{d.id}/{level.number}: {level.verdict}" + (f" ({level.reason})" if level.reason else "")
+        for d in resolved.dungeons
+        for level in d.levels
+    ]
+    return log
+
+
+def provenance_text(keys: list[KeySpec], spend: dict[str, float], notes: list[str]) -> str:
+    """The provenance block for a member's manifest, as YAML text."""
+    lines = [
+        "geometry_truth_provenance:",
+        f'  authored: "{date.today().isoformat()}"',
+        "  instrument: >-",
+        "    Two independent readings per map: Claude Sonnet 5.5 (claude-sonnet-5-5) at high effort reading 12 by 12",
+        "    cell windows with grid ticks through tools/answer_keys/reader.py (not the tracing stage's code), and",
+        "    the ink classifier tools/answer_keys/classify.py. Clef on Workers AI read every edge that touches floor",
+        "    as a third reading. Each disagreement was settled in a fresh Sonnet request at high effort that",
+        "    carried a zoomed crop, a wider crop, and the readings that disagreed. The resolution layer comes",
+        "    from tools/answer_keys/resolve.py and docs/tracing-conventions.md.",
+        "  verified: >-",
+        "    An adversarial pass of fresh Sonnet requests at high effort rechecked every settled call and the",
+        "    agreed edges in caves, at diagonals, and around keys; a challenged call was settled once more with",
+        "    the challenge among its readings. Owner sample: PENDING, in the sample app.",
+    ]
+    for note in notes:
+        lines.append(f"    {note}")
+    lines.append(f"  spend_usd: {{claude: {spend.get('claude', 0.0):.4f}, clef: {spend.get('clef', 0.0):.4f}}}")
+    return "\n".join(lines) + "\n"

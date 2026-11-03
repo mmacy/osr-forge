@@ -91,6 +91,7 @@ def load_specs(path: Path) -> list[MapSpec]:
                     wall_max=levels.get("wall_max"),
                     paper_min=levels["paper_min"],
                     fill=tuple(fill) if fill else None,
+                    hatched=bool(levels.get("hatched", False)),
                 ),
                 extra=extra,
                 **fields,

@@ -1,0 +1,84 @@
+{
+  "work": "~/.re-pod/map-plan/osr-suite/answer-keys",
+  "maps": [
+    {
+      "id": "crypt",
+      "specs": "synthetic-maps.json",
+      "member": "synthetic/crypt",
+      "levels": [["crypt", 1]],
+      "survey": "../../tests/assets/synthetic-maps/crypt/stages/survey.json",
+      "stages": "../../tests/assets/synthetic-maps/crypt/stages",
+      "answer": "../../tests/assets/synthetic-maps/crypt/geometry.json",
+      "key": "~/.re-pod/map-plan/osr-suite/answer-keys/crypt/geometry.json",
+      "legend_from_page": null,
+      "style_note": "a TSR blue map drawn by a program: blue ink on cream paper, 1 square = 10 feet, north at the top. Rock is solid blue; floor is paper with thin blue grid lines. Walls are the boundary between paper and blue, and heavy blue lines. The legend prints Door (a small paper rectangle across a wall), Secret Door (an S inside that rectangle), Pillar (a blue dot on floor: symbol pillar), and Steps (short parallel bars inside a room: symbol steps). A dashed or dash-dot line across a room or around part of it is a printed open line (p). Room keys are printed numbers."
+    },
+    {
+      "id": "manor",
+      "specs": "synthetic-maps.json",
+      "member": "synthetic/manor",
+      "levels": [["greywall-manor", 1]],
+      "survey": "../../tests/assets/synthetic-maps/manor/stages/survey.json",
+      "stages": "../../tests/assets/synthetic-maps/manor/stages",
+      "answer": "../../tests/assets/synthetic-maps/manor/geometry.json",
+      "key": "~/.re-pod/map-plan/osr-suite/answer-keys/manor/geometry.json",
+      "legend_from_page": null,
+      "style_note": "a black and white map drawn by a program: black ink on white paper, 1 square = 10 feet, north at the top. The ground outside the buildings is diagonal hatching, which is rock. Floor is white with thin grey grid lines; a courtyard enclosed by the buildings is open ground and is floor. Walls are heavy black lines. The legend prints Door (a small rectangle across a wall) and Window (the map's window symbol across a wall: letter n). A gap in a wall with no door symbol is open. Room keys are printed numbers."
+    },
+    {
+      "id": "jn1-p038",
+      "specs": "maps.json",
+      "member": "jn1-chaotic-caves",
+      "levels": [["orc-lair-a", 1], ["orc-lair-b", 1], ["hobgoblin-lair", 1], ["abandoned-crypts", 1], ["goblin-lair", 1], ["bandit-lair", 1], ["kobold-lair", 1], ["lizard-man-lair", 1], ["bugbear-lair", 1], ["gnoll-lair", 1]],
+      "survey": "../../tests/assets/chaotic-caves/stages/survey.json",
+      "stages": "../../tests/assets/chaotic-caves/stages",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "legend_from_page": null,
+      "style_note": "the Chaotic Caves main map, a cave map on a square grid, 1 square = 10 feet, printed sideways: north is at the left edge of the page, so printed text reads from bottom to top. Rock is the light grey fill; floor is white. Cave walls are the freehand boundary between white and grey, drawn off the grid, so many cells are partly floor. The printed grid is dark grey lines over floor and rock alike, and is never a wall. Heavy black lines are built walls (the crypts of lair D). The legend prints Door (a small white rectangle across a wall), Locked Door (the rectangle with a dot inside: letter l), Secret Door (an S: letter s), Pool (symbol pool), Pillar (a black dot: symbol pillar), Alcove (a notch in a wall: floor, no symbol), Statue etc. (symbol statue), Trap (a box with an X: no symbol, the cell stays floor), Stairs/Steps (parallel bars: symbol stairs, with direction down where the Down arrow points), Cave (a V-shaped mark at a cave mouth: symbol cave_mouth on the edge where the cave opens to the outside), Elevation Line (long thin grey contour lines with heights such as 100', never walls), Woods (tree outlines, never walls), and Grass (tufts, never walls). Dotted lines across a passage are fences: printed open lines (p). A stream is drawn as wavy hatching over the rock and is not water. Lair letters A to J and the words rubble and STREAM are labels; report them as marks. Room keys are numbers, and some rooms have letters a to e."
+    },
+    {
+      "id": "jn1-p046",
+      "specs": "maps.json",
+      "member": "jn1-chaotic-caves",
+      "levels": [["roslof-manor", 1]],
+      "survey": "../../tests/assets/chaotic-caves/stages/survey.json",
+      "stages": "../../tests/assets/chaotic-caves/stages",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "legend_from_page": null,
+      "style_note": "Map K, the manor fort's ground floor: black line art on white paper, 1 square = 10 feet, north at the top. Rooms are drawn with heavy black outlines. The towers and the outer wall are solid black bands, which are rock. The moat is a grey band, which is water (~). The ground inside the outer wall and outside it is white with the grid and is floor (open ground). Thin grid lines are never walls. The legend prints Door (a small rectangle across a wall), Window (a short bar across a wall with a tick at each end: letter n), Grass (tufts, never walls), Moat (the grey band: water), Steps Up (parallel bars: symbol stairs, direction up), Tree/Shrub (outlines, never walls), and Tower & Wall (solid black). Dash-dot lines inside the house are printed open lines (p). Skylights are thin rectangles drawn on the hall's floor: decoration, the edges they cross are open. Room keys are numbers from 77 to 97; a and b are letters; Sky lights is a label."
+    },
+    {
+      "id": "jn1-p047",
+      "specs": "maps.json",
+      "member": "jn1-chaotic-caves",
+      "levels": [["roslof-manor", 2]],
+      "survey": "../../tests/assets/chaotic-caves/stages/survey.json",
+      "stages": "../../tests/assets/chaotic-caves/stages",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "legend_from_page": 46,
+      "style_note": "Map L, the manor fort's upper floor: black line art on white paper, 1 square = 10 feet, north at the top. Rooms are drawn with heavy black outlines. The light grey block in the middle, labelled Main Entranceway Lower Floor, is the void over the floor below, which is rock. The white ground outside the building is floor (open ground). Thin grid lines are never walls. The page prints no legend; it uses the ground floor's: Door (a small rectangle across a wall), Window (a short bar across a wall with a tick at each end: letter n), Steps (parallel bars: symbol stairs, direction down where the bars lead down to the floor below). Room keys are numbers from 98 to 106."
+    },
+    {
+      "id": "jn1-p021-halfling",
+      "specs": "maps.json",
+      "member": "jn1-chaotic-caves",
+      "levels": [["halfling-home", 1]],
+      "survey": "../../tests/assets/chaotic-caves/stages/survey.json",
+      "stages": "../../tests/assets/chaotic-caves/stages",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "legend_from_page": null,
+      "style_note": "Halfling Home: black line art on white paper, 1 square = 5 feet, north at the top. The hills are the grey fill, which is rock. The ground is white with the grid and is floor (open ground). The halfling homes are rooms dug into the hills, drawn with heavy black outlines. Thin grid lines are never walls. The legend prints Door (a small rectangle across a wall), Window (a circle on a wall: letter n), and Tree/Brush (outlines, never walls). Grass tufts are never walls. Room keys are H1 to H15, some printed on two lines (H and 13 one above the other are one key, H13)."
+    },
+    {
+      "id": "jn1-p021-cave",
+      "specs": "maps.json",
+      "member": "jn1-chaotic-caves",
+      "levels": [["cave-of-horrors", 1]],
+      "survey": "../../tests/assets/chaotic-caves/stages/survey.json",
+      "stages": "../../tests/assets/chaotic-caves/stages",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "legend_from_page": null,
+      "style_note": "the Cave of Horrors: dark grey rock with white passages, 1 square = 10 feet, north at the top. Cave walls are the freehand boundary between white and dark grey, drawn off the grid, so many cells are partly floor. The grid is drawn over rock and floor alike and is never a wall. The cave's mouth at C1 is drawn as an arch opening onto the white ground below it: symbol cave_mouth on that edge, and the white ground outside the cave is floor (the outside). The word slope with an arrow is a label. Dashed arcs across a passage are steps (symbol steps). Wavy lines across a passage at C2 are a stream crossing: not a wall, not water. A dashed oval at C3 is a pool (symbol pool). The circled C at C11 and the X at C9 are labels. Room keys are C1 to C11."
+    }
+  ]
+}
