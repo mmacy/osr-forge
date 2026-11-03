@@ -32,7 +32,7 @@ from osrforge.providers.decisions import DecisionRequest
 from .keyspec import MapContext
 from .readings import classifier_reading, claude_cells, edges_touching
 
-__all__ = ["CLEF_LEDGER", "STYLE_OPTIONS", "clef_items", "edge_crop", "run_clef"]
+__all__ = ["CLEF_LEDGER", "STYLE_OPTIONS", "clef_items", "edge_crop", "export_requests", "run_clef"]
 
 CLEF_LEDGER = Path.home() / ".re-pod/map-plan/clef-ledger.json"
 PROBE_CLIENT = Path.home() / ".re-pod/map-plan/clef/probe/scripts/clef.py"
@@ -284,3 +284,73 @@ def clef_answers(ctx: MapContext) -> dict[str, dict[str, Any]]:
                 row = json.loads(line)
                 answers[row["item"]] = row
     return answers
+
+
+def export_requests(ctx: MapContext, only: set[str] | None = None, out: Path | None = None) -> dict[str, Any]:
+    """Write the items' crops and questions for a reader outside this environment, such as the local MLX build.
+
+    Each item gets `<out>/<item file name>.png` and one line of `<out>/requests.jsonl`: `{"item", "kind", "png",
+    "state", "question", "options", "key"}`, the same crop, state, question, and options the hosted pass sends,
+    so a local reader's answers are comparable with hosted Clef's. Items that already have a line are skipped.
+
+    Args:
+        ctx: The map.
+        only: Item ids to export, or every item that has no answer yet.
+        out: The directory, `<map>/clef/requests` by default.
+
+    Returns:
+        Counts.
+    """
+    out = out or ctx.key.directory / "clef" / "requests"
+    out.mkdir(parents=True, exist_ok=True)
+    index = out / "requests.jsonl"
+    written: set[str] = set()
+    if index.exists():
+        for line in index.read_text().splitlines():
+            if line.strip():
+                written.add(json.loads(line)["item"])
+    answered = set(clef_answers(ctx)) if only is None else set()
+    state, options = STYLE_OPTIONS[ctx.spec.truth_style]
+    water = ctx.spec.fill_kind == "water"
+    cell_options = CELL_OPTIONS if water else CELL_OPTIONS[:2]
+    count = 0
+    with index.open("a") as handle:
+        for item_id, cell, side in clef_items(ctx):
+            if item_id in written or item_id in answered or (only is not None and item_id not in only):
+                continue
+            if side is None:
+                request = DecisionRequest(
+                    tag="cell",
+                    image=cell_crop(ctx, cell),
+                    state=CELL_STATE,
+                    question="What fills the cell inside the red box?",
+                    options=cell_options,
+                    model="clef",
+                )
+            else:
+                request = DecisionRequest(
+                    tag="edge",
+                    image=edge_crop(ctx, cell, side),
+                    state=state,
+                    question="What is drawn on the cell edge inside the red box?",
+                    options=options,
+                    model="clef",
+                )
+            name = item_id.replace(":", "_").replace(",", "-") + ".png"
+            (out / name).write_bytes(request.image)
+            handle.write(
+                json.dumps(
+                    {
+                        "item": item_id,
+                        "kind": request.tag,
+                        "png": name,
+                        "state": request.state,
+                        "question": request.question,
+                        "options": [list(option) for option in request.options],
+                        "key": request.key(),
+                    }
+                )
+                + "\n"
+            )
+            count += 1
+    return {"exported": count, "already": len(written), "index": str(index)}

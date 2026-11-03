@@ -232,8 +232,17 @@ def _collect_checked(store: BatchStore, client: Any, ledger: Any, parsed_dir: Pa
             result["parsed"] += 1
             continue
         if job["meta"].get("retry_of") is not None:
+            # The retry failed too: one fresh attempt from the original request, then the window is given up.
+            attempt = job["meta"].get("attempt", 1)
             with (store.directory / "failed.jsonl").open("a") as handle:
-                handle.write(json.dumps({"job": custom_id, "faults": faults}) + "\n")
+                handle.write(json.dumps({"job": custom_id, "faults": faults, "attempt": attempt}) + "\n")
+            if attempt < 2:
+                base_id = job["meta"]["retry_of"]
+                fresh_id = f"{base_id}__a2"
+                if not (store.jobs / f"{fresh_id}.json").exists():
+                    base = store.job(base_id)
+                    store.add_job(fresh_id, base["params"], {**base["meta"], "attempt": 2, "retry_of": None})
+                    result["retries"] += 1
             continue
         retry_id = f"{custom_id}__r"
         if (store.jobs / f"{retry_id}.json").exists():

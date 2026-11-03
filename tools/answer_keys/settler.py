@@ -27,7 +27,7 @@ from .batches import BatchStore
 from .keyspec import MapContext
 from .reader import MODEL, READ_LETTERS, answer_text_of, parse_answer_text, retry_params
 from .readings import Items, edge_cells, edge_key, load_items
-from .tiles import render_item
+from .tiles import render_item, render_rect
 
 __all__ = ["collect_pass", "final_values", "settle_items", "submit_pass"]
 
@@ -162,17 +162,23 @@ def _item_place(item_id: str) -> tuple[tuple[int, int], str | None]:
         return parse_cell(rest), None
     if kind == "e":
         return parse_edge(rest)
-    # m:<cell> and s:<cell> name the cell the dispute is about.
+    # m:<cell>, s:<cell>, o:<cell>, and g:<cell> name the cell the item is about.
     return parse_cell(rest.split("|")[0]), None
 
 
-def crops_for(ctx: MapContext, item_id: str) -> tuple[Path, Path]:
-    """Render, or find, the zoomed and wide crops of an item."""
-    cell, side = _item_place(item_id)
+def crops_for(ctx: MapContext, item_id: str, rect: tuple[int, int, int, int] | None = None) -> tuple[Path, Path]:
+    """Render, or find, the zoomed and wide crops of an item: a cell, an edge, or a rectangle of cells."""
     directory = ctx.key.directory / "crops"
-    stem = item_id.replace(":", "_").replace(",", "-").replace("|", "_")
+    stem = item_id.replace(":", "_").replace(",", "-").replace("|", "_").replace("/", "_")
     zoom = directory / f"{stem}_zoom.png"
     wide = directory / f"{stem}_wide.png"
+    if rect is not None:
+        if not zoom.exists():
+            render_rect(ctx.rgb, ctx.fit, rect, zoom, 64)
+        if not wide.exists():
+            render_rect(ctx.rgb, ctx.fit, (rect[0] - 3, rect[1] - 3, rect[2] + 6, rect[3] + 6), wide, 32)
+        return zoom, wide
+    cell, side = _item_place(item_id)
     if not zoom.exists():
         render_item(ctx.rgb, ctx.fit, cell, side, zoom, ZOOM_PX, ZOOM_REACH)
     if not wide.exists():
@@ -304,6 +310,54 @@ def _clef_text(clef: dict[str, Any]) -> str:
     return f"{LETTER_WORDS.get(clef['choice'], clef['choice'])} (p={clef['p']})"
 
 
+def outline_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    """The outline round's items: floor just outside every outline, and each open-ground rectangle."""
+    from .letters import final_cells, final_edges, outline_state
+
+    log: dict[str, Any] = {}
+    cells = final_cells(items, final, log)
+    edges = final_edges(items, cells, final, log)
+    state = outline_state(ctx, cells, edges, final)
+    out: list[dict[str, Any]] = []
+    options = [*state.levels, "outside"]
+    for crossing in state.crossings:
+        nx, ny = crossing["beyond"]
+        x, y = crossing["cell"]
+        readings = [("the whole-map read", f"no level's outline covers cell {nx},{ny}")]
+        out.append(
+            {
+                "id": f"o:{nx},{ny}|{crossing['level']}",
+                "kind": "outline",
+                "options": options,
+                "text": f"cell {nx},{ny} (boxed) is floor that no level's outline covers, and an open edge joins it "
+                "to "
+                f"cell {x},{y}, which lies in the outline of level {crossing['level']}. Which level's floor is the "
+                f"boxed cell part of? Answer with exactly one of: {', '.join(options)}. Readings: "
+                f"{_readings_text(readings)}.",
+                "readings": readings,
+            }
+        )
+    for item in state.open_ground_items:
+        rect = item["rect"]
+        readings = [("the whole-map read", f"open ground of level {item['level']}")]
+        out.append(
+            {
+                "id": f"g:{rect[0]},{rect[1]}|{item['level']}|{item['index']}",
+                "kind": "outline",
+                "options": ["open_ground", "outside"],
+                "rect": list(rect),
+                "text": f"the boxed rectangle of cells, {rect[2]} wide and {rect[3]} high from cell "
+                f"{rect[0]},{rect[1]}, was read as open ground of level {item['level']}: ground the party walks on "
+                f"inside the level, such as a yard, a courtyard, or the ground between the level's buildings. Is it "
+                f"open ground of that "
+                f"level, or the outside beyond the level's walls or cave mouth? Answer open_ground or outside. "
+                f"Readings: {_readings_text(readings)}.",
+                "readings": readings,
+            }
+        )
+    return out
+
+
 def _symbol_text(symbol: dict[str, Any] | None) -> str:
     if symbol is None:
         return "no such symbol"
@@ -317,7 +371,7 @@ def _request(
 ) -> dict[str, Any]:
     content: list[dict[str, Any]] = [{"type": "text", "text": f"This map: {ctx.key.style_note}\n\nThe items:"}]
     for item in batch:
-        zoom, wide = crops_for(ctx, item["id"])
+        zoom, wide = crops_for(ctx, item["id"], tuple(item["rect"]) if item.get("rect") else None)
         content.append({"type": "text", "text": f"Item {item['id']}, zoomed crop:"})
         content.append(
             {
@@ -402,6 +456,8 @@ def check_answer(answer: dict[str, Any], expected: list[dict[str, Any]], adversa
                         parse_cell(text)
             except ValueError:
                 faults.append(f"item {item_id} names a place that isn't an address: {value!r}")
+        if kind == "outline" and value not in by_id[item_id].get("options", []):
+            faults.append(f"item {item_id} needs one of {by_id[item_id].get('options')}, not {value!r}")
         if adversary and not isinstance(row.get("challenged"), bool):
             faults.append(f"item {item_id} needs challenged true or false")
     for item_id in by_id:
@@ -462,7 +518,11 @@ def submit_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, led
             for name, call in calls.items():
                 if name.startswith("c:"):
                     cells_settled[name[2:]] = call["value"]
-            round_items += settle_items(items, cells_settled)
+            edge_items = settle_items(items, cells_settled)
+            round_items += edge_items
+            if all(item["id"] in calls for item in edge_items):
+                # The outline round: every cell and edge is settled, so the outlines can be laid over them.
+                round_items += outline_items(ctx, items, final_values(ctx))
         count = _add_jobs(ctx, store, f"{ctx.key.id}__settle__", round_items, False)
         return store.submit(client, ledger, f"settle {ctx.key.id}"), count
     settled = _load_calls(ctx, "settle")
@@ -534,6 +594,10 @@ def _rebuild_item(ctx: MapContext, items: Items, name: str) -> dict[str, Any] | 
     for item in settle_items(items, None):
         if item["id"] == name:
             return item
+    if kind in ("o", "g"):
+        for item in outline_items(ctx, items, {}):
+            if item["id"] == name:
+                return item
     return None
 
 
@@ -649,7 +713,9 @@ def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: boo
                     "readings": item["readings"],
                 }
                 if adversary:
-                    call["challenged"] = bool(row["challenged"])
+                    # A challenge that names the recorded value isn't one.
+                    recorded = item["recorded"].split(" ")[0]
+                    call["challenged"] = bool(row["challenged"]) and row["answer"].strip() != recorded
                     call["recorded"] = item["recorded"]
                     call["category"] = item.get("category", "settled")
                 calls[row["id"]] = call

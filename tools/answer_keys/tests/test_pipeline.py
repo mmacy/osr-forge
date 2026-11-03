@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from PIL import Image
-from tools.answer_keys import assemble, batches, marks, reader, readings, samples, settler, tiles
+from tools.answer_keys import assemble, batches, letters, marks, reader, readings, samples, settler, tiles
 from tools.answer_keys.ink import Levels, hatching, materials
 from tools.answer_keys.keyspec import KeySpec, MapContext, load_key_specs
 from tools.answer_keys.run import read_map
@@ -432,6 +432,78 @@ def test_check_answer_validates_each_kind():
     assert settler.check_answer(good, expected, True)
 
 
+def test_final_values_take_the_resettled_value_over_the_settled_one(tmp_path):
+    key = KeySpec(id="m", specs=tmp_path, member="x", style_note="x", work=tmp_path, key=tmp_path / "g.json")
+    ctx = MapContext(key=key, spec=None, rgb=None, fit=None)  # type: ignore[arg-type]
+    (tmp_path / "m" / "settle").mkdir(parents=True)
+    (tmp_path / "m" / "adversary").mkdir(parents=True)
+    (tmp_path / "m" / "resettle").mkdir(parents=True)
+    settled = {
+        "e:1,1:west": {
+            "value": "w",
+            "reason": "a",
+            "job": "j",
+            "kind": "edge",
+            "readings": [["the classifier", "wall"]],
+            "category": "settled",
+        },
+        "e:2,1:west": {
+            "value": "o",
+            "reason": "b",
+            "job": "j",
+            "kind": "edge",
+            "readings": [["the classifier", "open"]],
+            "category": "settled",
+        },
+    }
+    adversary = {
+        "e:1,1:west": {
+            "value": "o",
+            "reason": "c",
+            "job": "k",
+            "kind": "edge",
+            "readings": [],
+            "challenged": True,
+            "recorded": "w (wall)",
+            "category": "settled",
+        },
+        "e:2,1:west": {
+            "value": "o",
+            "reason": "d",
+            "job": "k",
+            "kind": "edge",
+            "readings": [],
+            "challenged": False,
+            "recorded": "o (open)",
+            "category": "settled",
+        },
+        "e:3,1:west": {
+            "value": "w",
+            "reason": "e",
+            "job": "k",
+            "kind": "edge",
+            "readings": [],
+            "challenged": True,
+            "recorded": "o (open)",
+            "category": "cave",
+        },
+    }
+    resettled = {
+        "e:1,1:west": {"value": "w", "reason": "f", "job": "r", "kind": "edge", "readings": []},
+        "e:3,1:west": {"value": "w", "reason": "g", "job": "r", "kind": "edge", "readings": []},
+    }
+    (tmp_path / "m" / "settle" / "calls.json").write_text(json.dumps(settled))
+    (tmp_path / "m" / "adversary" / "calls.json").write_text(json.dumps(adversary))
+    (tmp_path / "m" / "resettle" / "calls.json").write_text(json.dumps(resettled))
+    final = settler.final_values(ctx)
+    assert final["e:1,1:west"]["value"] == "w" and final["e:1,1:west"]["challenged"] is True
+    assert final["e:1,1:west"]["adversarial"] == "o" and final["e:1,1:west"]["settled"] == "w"
+    assert final["e:2,1:west"]["value"] == "o" and final["e:2,1:west"]["challenged"] is False
+    # An agreed edge the adversary challenged and the re-settling upheld the challenge on: the key changes.
+    assert final["e:3,1:west"]["value"] == "w" and final["e:3,1:west"]["settled"] is None
+    assert final["e:3,1:west"]["category"] == "cave"
+
+
 # --- the assembly ------------------------------------------------------------------------------------------
 
 
@@ -460,9 +532,9 @@ def test_final_edges_derive_walls_and_blanks_from_the_settled_cells():
     }
     final = {"c:1,0": {"value": "#"}}
     log = {}
-    cells = assemble._final_cells(items, final, log)
+    cells = letters.final_cells(items, final, log)
     assert cells == [[".", "#"]]
-    edges = assemble._final_edges(items, cells, final, log)
+    edges = letters.final_edges(items, cells, final, log)
     assert edges == EdgeGrids(vertical=("ww-",), horizontal=("w-", "w-"))
     assert log["edges_derived_as_walls"] == 1
 

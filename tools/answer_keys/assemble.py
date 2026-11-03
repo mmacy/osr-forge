@@ -42,85 +42,12 @@ from osrforge.tracing.truth import (
 )
 
 from .keyspec import KeySpec, MapContext
+from .letters import final_cells, final_edges, outline_state
 from .marks import wholemap_answer
-from .readings import Items, classifier_reading, edge_cells, edge_key, load_items
+from .readings import Items, classifier_reading, load_items
 from .settler import final_values
 
 __all__ = ["assemble", "combine", "panel_letters", "rects_of"]
-
-
-def _final_cells(items: Items, final: dict[str, dict[str, Any]], log: dict[str, Any]) -> list[list[str]]:
-    cells = [["#"] * items.width for _ in range(items.height)]
-    unread = 0
-    for name, entry in items.cells.items():
-        x, y = parse_cell(name)
-        call = final.get(f"c:{name}")
-        if call is not None:
-            letter = call["value"]
-        elif entry["claude"]:
-            letter = entry["claude"][0]
-        else:
-            letter = entry["classifier"]
-            unread += 1
-        cells[y][x] = letter
-    log["cells_from_classifier_alone"] = unread
-    return cells
-
-
-def _final_edges(
-    items: Items, cells: list[list[str]], final: dict[str, dict[str, Any]], log: dict[str, Any]
-) -> EdgeGrids:
-    width, height = items.width, items.height
-    vertical = [["-"] * (width + 1) for _ in range(height)]
-    horizontal = [["-"] * width for _ in range(height + 1)]
-
-    def occupied(cell: tuple[int, int]) -> bool:
-        x, y = cell
-        return 0 <= x < width and 0 <= y < height and cells[y][x] != "#"
-
-    derived = 0
-    unread = 0
-    for name, entry in items.edges.items():
-        key = edge_key(name)
-        a, b = edge_cells(key)
-        occupied_a, occupied_b = occupied(a), occupied(b)
-        if not (occupied_a or occupied_b):
-            continue
-        call = final.get(f"e:{name}")
-        if call is not None:
-            letter = call["value"]
-        elif entry["claude"]:
-            letter = entry["claude"][0]
-        else:
-            letter = entry["classifier"]
-            unread += 1
-        if letter == "-":
-            letter = "w"
-        if (occupied_a != occupied_b) and letter not in "dls":
-            if letter != "w":
-                derived += 1
-            letter = "w"
-        axis, first, second = key
-        if axis == "v":
-            vertical[second][first] = letter
-        else:
-            horizontal[second][first] = letter
-    # Edges the table never listed (no reading saw floor beside them) but that touch floor now.
-    for y in range(height):
-        for x in range(width + 1):
-            if vertical[y][x] == "-" and (occupied((x - 1, y)) or occupied((x, y))):
-                vertical[y][x] = "w"
-                derived += 1
-    for y in range(height + 1):
-        for x in range(width):
-            if horizontal[y][x] == "-" and (occupied((x, y - 1)) or occupied((x, y))):
-                horizontal[y][x] = "w"
-                derived += 1
-    log["edges_derived_as_walls"] = derived
-    log["edges_from_classifier_alone"] = unread
-    return EdgeGrids(
-        vertical=tuple("".join(row) for row in vertical), horizontal=tuple("".join(row) for row in horizontal)
-    )
 
 
 def _parse_value_mark(value: str) -> tuple[str, str] | None:
@@ -268,40 +195,21 @@ def _outline_cells(rects: list[list[int]], width: int, height: int) -> set[tuple
 
 
 def _outlines(
-    ctx: MapContext, cells: list[list[str]], edges: EdgeGrids, marks: list[Mark], log: dict[str, Any]
+    ctx: MapContext,
+    cells: list[list[str]],
+    edges: EdgeGrids,
+    marks: list[Mark],
+    final: dict[str, dict[str, Any]],
+    log: dict[str, Any],
 ) -> list[Outline]:
-    width, height = len(cells[0]), len(cells)
-    whole = wholemap_answer(ctx)
+    state = outline_state(ctx, cells, edges, final)
+    log["outline_crossings"] = [f"{c['level']} {c['cell'][0]},{c['cell'][1]}:{c['side']}" for c in state.crossings]
+    log["open_ground_unsettled"] = len(state.open_ground_items)
     outlines: list[Outline] = []
-    crossings: list[str] = []
-    answers = {(level["dungeon"], level["level"]): level for level in (whole or {}).get("levels", [])}
-    owned: dict[tuple[str, int], set[tuple[int, int]]] = {}
-    for dungeon, number in ctx.key.levels:
-        answer = answers.get((dungeon, number))
-        if answer is None or len(ctx.key.levels) == 1:
-            owned[(dungeon, number)] = {(x, y) for y in range(height) for x in range(width)}
-        else:
-            owned[(dungeon, number)] = _outline_cells(answer["rects"], width, height)
-    # Borders that cross floor: an open edge between two floor cells, one in the outline and one out of it.
-    for level, cells_of in owned.items():
-        for x, y in cells_of:
-            if cells[y][x] == "#":
-                continue
-            for side, other in (
-                ("east", (x + 1, y)),
-                ("south", (x, y + 1)),
-                ("west", (x - 1, y)),
-                ("north", (x, y - 1)),
-            ):
-                ox, oy = other
-                if not (0 <= ox < width and 0 <= oy < height) or other in cells_of or cells[oy][ox] == "#":
-                    continue
-                if edges.at((x, y), side) in "op":
-                    crossings.append(f"{level[0]}/{level[1]} {x},{y}:{side}")
-    log["outline_crossings"] = crossings
-    for (dungeon, number), cells_of in owned.items():
-        answer = answers.get((dungeon, number), {})
-        seeds = [text for text in answer.get("seeds", []) if _is_floor(cells, text) and parse_cell(text) in cells_of]
+    for level, cells_of in state.owned.items():
+        dungeon, number_text = level.rsplit("/", 1)
+        number = int(number_text)
+        seeds = [text for text in state.seeds[level] if _is_floor(cells, text) and parse_cell(text) in cells_of]
         if not seeds:
             level_marks = [
                 mark.cell for mark in marks if parse_cell(mark.cell) in cells_of and _is_floor(cells, mark.cell)
@@ -311,9 +219,9 @@ def _outlines(
                 or [f"{x},{y}" for x, y in sorted(cells_of, key=lambda c: (c[1], c[0])) if cells[y][x] != "#"][:1]
             )
         if not seeds:
-            log.setdefault("levels_without_floor", []).append(f"{dungeon}/{number}")
+            log.setdefault("levels_without_floor", []).append(level)
             continue
-        open_ground = [tuple(rect) for rect in answer.get("open_ground", []) if len(rect) == 4]
+        open_ground = [rect for rect in state.open_ground[level] if rect[2] > 0]
         outlines.append(
             Outline(
                 dungeon=dungeon,
@@ -322,7 +230,7 @@ def _outlines(
                 seeds=tuple(seeds),
                 open_ground=tuple(open_ground),
             )
-        )  # type: ignore[arg-type]
+        )
     return outlines
 
 
@@ -336,11 +244,11 @@ def panel_letters(ctx: MapContext) -> tuple[Panel, Region, dict[str, Any]]:
     items = load_items(ctx)
     final = final_values(ctx) if (ctx.key.directory / "final.json").exists() else {}
     log: dict[str, Any] = {"settled_calls": len(final)}
-    cells = _final_cells(items, final, log)
-    edges = _final_edges(items, cells, final, log)
+    cells = final_cells(items, final, log)
+    edges = final_edges(items, cells, final, log)
     marks = _final_marks(items, final, cells, log)
     symbols = _final_symbols(items, final, items.width, items.height)
-    outlines = _outlines(ctx, cells, edges, marks, log)
+    outlines = _outlines(ctx, cells, edges, marks, final, log)
     reading = classifier_reading(ctx)
     whole = wholemap_answer(ctx) or {}
     partial = [text for text in items.partial if _in_grid(text, items.width, items.height)]
@@ -540,15 +448,25 @@ def write_provenance(keys: list[KeySpec], out: Path, cases: list[str], resolved:
     figures = [map_figures(key) for key in keys]
     claude = round(sum(f["claude_usd"] for f in figures), 4)
     clef = round(sum(f.get("clef_usd", 0.0) for f in figures), 4)
+    clef_read = [f["map"] for f in figures if f.get("clef_requests")]
+    clef_unread = [f["map"] for f in figures if not f.get("clef_requests")]
+    if clef_unread:
+        clef_text = (
+            f"Clef on Workers AI answered the edges of {', '.join(clef_read) or 'no map'} as a third reading, and "
+            f"none of {', '.join(clef_unread)}, whose readers were the two alone; its answers can be added later "
+            "with one more settling round."
+        )
+    else:
+        clef_text = "Clef on Workers AI answered every edge that touches floor as a third reading."
     lines = [
         "# The provenance of geometry.json beside this file. Written by tools/answer_keys/assemble.py.",
         f'authored: "{date.today().isoformat()}"',
         "instrument: >-",
         "  Two independent readings per map: Claude Sonnet 5.5 (claude-sonnet-5-5) at high effort reading 12 by 12",
         "  cell windows with grid ticks through tools/answer_keys/reader.py, which isn't the tracing stage's code,",
-        "  and the ink classifier tools/answer_keys/classify.py. Clef on Workers AI answered every edge that",
-        "  touches floor as a third reading. Each disagreement was settled in a fresh Sonnet request at high",
-        "  effort that carried a zoomed crop, a wider crop, and the readings that disagreed. The resolution layer",
+        "  and the ink classifier tools/answer_keys/classify.py. " + clef_text,
+        "  Each disagreement was settled in a fresh Sonnet request at high effort that carried a zoomed crop, a",
+        "  wider crop, and the readings that disagreed. The resolution layer",
         "  "
         + (
             "comes from tools/answer_keys/resolve.py by docs/tracing-conventions.md."

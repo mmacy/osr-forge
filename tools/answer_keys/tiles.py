@@ -18,7 +18,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .gridfit import GridFit
 
-__all__ = ["Window", "render_item", "render_window", "tile", "window_starts"]
+__all__ = ["Window", "render_item", "render_rect", "render_window", "tile", "window_starts"]
 
 TICK_COLOUR = (220, 0, 0)
 BOX_COLOUR = (255, 0, 0)
@@ -250,4 +250,30 @@ def render_item(
     last_row = int(np.floor(cy + reach))
     canvas.ticks(range(first_column, last_column + 1), range(first_row, last_row + 1), True)
     canvas.box(*box, width=3 if cell_px >= 96 else 2)
+    return canvas.save(out)
+
+
+def render_rect(rgb: np.ndarray, fit: GridFit, rect: tuple[int, int, int, int], out: Path, cell_px: int) -> Path:
+    """Draw a crop around a rectangle of cells with the rectangle boxed in red and the grid lines in view ticked.
+
+    Args:
+        rgb: The map image.
+        fit: Its grid fit.
+        rect: The rectangle `(x, y, width, height)` in cells.
+        out: Where to write the PNG.
+        cell_px: Pixels per cell in the crop.
+
+    Returns:
+        The path written.
+    """
+    x, y, w, h = rect
+    cx, cy = x + w / 2, y + h / 2
+    reach = max(w, h) / 2 + 1.5
+    canvas = _Canvas(rgb, fit, cx - reach, cy - reach, cx + reach, cy + reach, cell_px)
+    canvas.ticks(
+        range(int(np.ceil(cx - reach)), int(np.floor(cx + reach)) + 1),
+        range(int(np.ceil(cy - reach)), int(np.floor(cy + reach)) + 1),
+        True,
+    )
+    canvas.box(x + 0.02, y + 0.02, x + w - 0.02, y + h - 0.02, width=3)
     return canvas.save(out)

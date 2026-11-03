@@ -120,9 +120,12 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
                 print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: wholemap spent ${store.spent():.4f}")
     elif stage == "clef":
-        from .clefpass import run_clef
+        from .clefpass import export_requests, run_clef
 
-        print(f"{key.id}: clef {run_clef(ctx, args.workers, args.cap)}")
+        if action == "export":
+            print(f"{key.id}: clef export {export_requests(ctx)}")
+        else:
+            print(f"{key.id}: clef {run_clef(ctx, args.workers, args.cap)}")
     elif stage == "disagree":
         from .readings import write_items
 
@@ -191,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         "combine",
     }
     action = None
-    if words and words[-1] in ("submit", "collect"):
+    if words and words[-1] in ("submit", "collect", "export"):
         action = words.pop()
     if not words or words[-1] not in stages:
         parser.error("the last words name a stage and, for a batch stage, submit or collect")
