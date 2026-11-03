@@ -8,6 +8,7 @@ open ground of its level or sends to the outside.
 """
 
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -157,11 +158,16 @@ def extend_path(path: list[tuple[int, int]], width: int, height: int) -> list[tu
 
 
 def slope_side(
-    owned: set[tuple[int, int]], seeds: list[tuple[int, int]], paths: list[list[tuple[int, int]]]
+    owned: set[tuple[int, int]],
+    seeds: list[tuple[int, int]],
+    paths: list[list[tuple[int, int]]],
+    joined: Callable[[tuple[int, int], tuple[int, int]], bool] | None = None,
 ) -> set[tuple[int, int]]:
     """The cells of an outline on its seeds' side of its slopes: the cells joined to a seed by sides without
-    stepping onto a slope cell, plus the slope cells themselves. An outline whose seeds lie on no cell of it, or
-    with no slope, is returned whole."""
+    stepping onto a slope cell (the level's ground), plus each slope cell that `joined` says an edge joins to the
+    ground, or every slope cell when `joined` is `None`. A slope cell beyond a wall from the ground, such as the line
+    running outside a cave wall, isn't the level's. An outline whose seeds lie on no cell of it, or with no slope,
+    is returned whole."""
     blocked = {cell for path in paths for cell in path}
     starts = [seed for seed in seeds if seed in owned and seed not in blocked]
     if not paths or not starts:
@@ -175,7 +181,14 @@ def slope_side(
             if nxt in owned and nxt not in found and nxt not in blocked:
                 found.add(nxt)
                 queue.append(nxt)
-    return found | (blocked & owned)
+    line = blocked & owned
+    if joined is not None:
+        line = {
+            (x, y)
+            for x, y in line
+            if any((x + dx, y + dy) in found and joined((x, y), (x + dx, y + dy)) for _side, (dx, dy) in _SIDES)
+        }
+    return found | line
 
 
 def _expand(
@@ -319,9 +332,14 @@ def outline_state(
                 position = int(index)
                 if position < len(open_ground[level]):
                     open_ground[level][position] = (-1, -1, 0, 0)
+
     # Then the trim: whatever lies beyond a level's slope leaves its outline, however it got there.
+    def joined(a: tuple[int, int], b: tuple[int, int]) -> bool:
+        side = {(1, 0): "east", (-1, 0): "west", (0, 1): "south", (0, -1): "north"}[(b[0] - a[0], b[1] - a[1])]
+        return cells[a[1]][a[0]] != "#" and cells[b[1]][b[0]] != "#" and edges.at(a, side) in CROSSING
+
     for level, paths in slopes.items():
-        owned[level] = slope_side(owned[level], [parse_cell(text) for text in seeds[level]], paths)
+        owned[level] = slope_side(owned[level], [parse_cell(text) for text in seeds[level]], paths, joined)
     # A level's outline always holds the cells where its own keys are printed, except a key printed within two
     # cells of one of the level's cave mouths on its outer side, which the key-placement rules move inside.
     if len(levels) > 1:

@@ -674,6 +674,9 @@ def test_slope_answers_are_checked_and_bound_an_outline():
     side = letters.slope_side(owned, [(0, 0)], [path])
     assert (0, 0) in side and (1, 4) in side and (2, 2) in side and (2, 0) in side and (3, 4) in side
     assert (4, 0) not in side and (3, 1) not in side and (4, 4) not in side
+    # A slope cell that no edge joins to the ground, such as one beyond a wall, isn't the level's.
+    walled = letters.slope_side(owned, [(0, 0)], [path], lambda a, b: a != (2, 1) and b != (2, 1))
+    assert (2, 1) not in walled and (2, 0) in walled and (3, 2) in walled
     # No slope, or a seed off the outline, leaves the outline whole.
     assert letters.slope_side(owned, [(0, 0)], []) == owned
     assert letters.slope_side(owned, [(9, 9)], [path]) == owned
