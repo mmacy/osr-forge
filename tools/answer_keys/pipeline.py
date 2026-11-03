@@ -1,6 +1,6 @@
 """The answer-key pipeline, one stage at a time.
 
-Run from the osr-forge checkout, with a spec file (`keys.json` here, or the Palace spec outside the repository):
+Run from the osr-forge checkout, with a spec file (`keys.json` here, or a commercial map's spec outside the repository):
 
     uv run python -m tools.answer_keys.pipeline <keys.json> <map id>... <stage> [options]
 

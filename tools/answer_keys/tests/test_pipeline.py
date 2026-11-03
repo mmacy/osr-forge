@@ -710,8 +710,8 @@ def test_pixel_count_text_gives_the_cell_and_its_neighbours_in_percent():
 def test_a_recheck_sample_id_names_the_same_call():
     from tools.answer_keys.recheck import RECHECK_MARK, sample_call_id
 
-    assert sample_call_id("b3-l1:c:4,28") == ("b3-l1", "c:4,28")
-    assert sample_call_id(f"b3-l1:c:4,28{RECHECK_MARK}") == ("b3-l1", "c:4,28")
+    assert sample_call_id("m1:c:2,3") == ("m1", "c:2,3")
+    assert sample_call_id(f"m1:c:2,3{RECHECK_MARK}") == ("m1", "c:2,3")
     assert sample_call_id(f"m:e:9,13:west{RECHECK_MARK}") == ("m", "e:9,13:west")
     assert sample_call_id("p:m:23,36|39") == ("p", "m:23,36|39")
 

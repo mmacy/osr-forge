@@ -67,7 +67,7 @@ RECHECK_MARK = "@recheck"
 
 
 def sample_call_id(sample_id: str) -> tuple[str, str]:
-    """A sample call's panel and call id: `b3-l1:c:4,28` and `b3-l1:c:4,28@recheck` both name `c:4,28`."""
+    """A sample call's panel and call id: `m1:c:2,3` and `m1:c:2,3@recheck` both name `c:2,3`."""
     panel, _, call_id = sample_id.partition(":")
     return panel, call_id.split("@", 1)[0]
 

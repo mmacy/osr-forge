@@ -40,7 +40,7 @@ SYNTHETIC = ASSETS / "synthetic-maps"
 
 PITCH_TOLERANCE = 0.005
 """The fitted pitch is within this share of the measured one on a real map. The reference fit's pitches match
-the pilot's to 0.01 px on the Palace maps and page 38."""
+the pilot's to 0.01 px on the TSR blue scans and page 38."""
 
 SYNTHETIC_PITCH_TOLERANCE = 0.02
 """On a synthetic map, whose pitch bows by up to 3 px across the drawing, the fit's mean pitch is within this

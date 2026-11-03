@@ -19,7 +19,7 @@ From the osr-forge checkout:
 uv run python -m tools.answer_keys.run tools/answer_keys/maps.json --out <dir>
 ```
 
-`maps.json` lists the committed Chaotic Caves maps. Each entry names the image, its style, the gray levels of its materials, the region to fit in pixels, the range of grid pitches to consider, and what the truth format records about the region: its scale, compass, and legend. Specs for commercial maps, like Palace of the Silver Princess, stay outside the repository; the ones this work used are in `~/.re-pod/map-plan/osr-suite/classifier/specs/palace.json`.
+`maps.json` lists the committed Chaotic Caves maps. Each entry names the image, its style, the gray levels of its materials, the region to fit in pixels, the range of grid pitches to consider, and what the truth format records about the region: its scale, compass, and legend. Specs for commercial maps stay outside the repository, under `~/.re-pod/map-plan/osr-suite/classifier/specs/`.
 
 Each map gets `<dir>/<id>.json`, a reading file with:
 
@@ -62,7 +62,7 @@ Where the conventions give no answer for an input, the script raises `Convention
 
 ## Build an answer key
 
-`pipeline.py` runs the answer-key method of the plan over the maps a key spec names: `keys.json` here covers the committed Chaotic Caves maps and the two synthetic maps the pipeline is checked on, and the Palace spec stays outside the repository. Each map's requests, answers, crops, and calls go under the spec's `work` directory, in `<work>/<map id>/`, and the classifier's readings in `<work>/classifier/`. From the osr-forge checkout, after `run.py` has written the readings:
+`pipeline.py` runs the answer-key method of the plan over the maps a key spec names: `keys.json` here covers the committed Chaotic Caves maps and the two synthetic maps the pipeline is checked on, and the specs of commercial maps stay outside the repository. Each map's requests, answers, crops, and calls go under the spec's `work` directory, in `<work>/<map id>/`, and the classifier's readings in `<work>/classifier/`. From the osr-forge checkout, after `run.py` has written the readings:
 
 ```text
 uv run python -m tools.answer_keys.pipeline tools/answer_keys/keys.json <map id>... <stage> [submit|collect] [--wait]
@@ -91,7 +91,7 @@ The fit takes the ink mask of the region and keeps the thin runs: ink no wider t
 
 The fit reports, per axis, the pitch, the shear, how many lines it found and kept, the root mean square and largest residual in pixels and in cells, and the share of lines within a tenth of a cell. The region's grid spans the rectangle the spec names.
 
-On the seven regions this work fitted (the five Chaotic Caves regions and the two Palace levels), the rms residual is under 0.04 cells and the largest residual under 0.1 cells, and every detected line lies within a tenth of a cell of the fit. The shear is at most 0.0005 on the Chaotic Caves maps, which are digital drawings, and up to 0.005 on the Palace scans.
+On the seven regions this work fitted (the five Chaotic Caves regions and two levels of a commercial TSR blue module), the rms residual is under 0.04 cells and the largest residual under 0.1 cells, and every detected line lies within a tenth of a cell of the fit. The shear is at most 0.0005 on the Chaotic Caves maps, which are digital drawings, and up to 0.005 on the TSR blue scans.
 
 ## The rules
 
@@ -103,7 +103,7 @@ A cell is floor when at least half of it is floor, counted over the cell's inner
 
 A cell that isn't floor is rock, or water on a map whose spec says its fill is water (the manor's moat): then fill reads as `~` and ink as `#`.
 
-On Palace level 2, whose outside is bare paper, a floor cell also needs a printed line on at least three of its four sides (`floor_needs_grid`), because the paper outside the building has no grid.
+On the TSR blue style with paper outside the building (`tsr_blue_white`), a floor cell also needs a printed line on at least three of its four sides (`floor_needs_grid`), because the paper outside the building has no grid.
 
 A cell with at least four (TSR blue) or six (the other styles) parallel bars across it is a stair. Edges across the bars' direction between stair cells read open unless a wall covers them.
 
@@ -124,7 +124,7 @@ The confidence of a blocked or open edge comes from how far the ink measure sits
 
 - **Labels on a line.** A key or a letter printed across a grid line or against a wall is read as ink on that line. The result is a wall, a door box, a locked or secret door, or a dashed line where there is none. This is the largest source of errors on every style.
 - **Doors centred on a grid corner.** A door box drawn where two grid lines cross belongs to no one edge, and the box detector, which looks for both ends of the box along one edge, misses it.
-- **Thin walls the weight of a grid line.** On Palace level 1 some cave walls are drawn no heavier than the grid, and the ink measure can't tell them apart.
+- **Thin walls the weight of a grid line.** On TSR blue scans some cave walls are drawn no heavier than the grid, and the ink measure can't tell them apart.
 - **Diagonals and freehand passages.** A cell crossed by a diagonal wall or a freehand cave passage is settled by the half rule, and a passage that straddles a grid line can leave both cells under half. These cells are partly floor, and the scores without them say how the rest reads.
 - **Outdoor ground.** Paper with a grid on it reads as floor, inside and outside a building alike. The resolution's outlines, not the reading, decide what is outside.
 

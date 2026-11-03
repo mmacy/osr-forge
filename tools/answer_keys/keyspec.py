@@ -15,7 +15,8 @@ under, and `maps`, a list of entries:
 - `key`: where the finished key is written
 
 `keys.json` beside this module covers the committed Chaotic Caves maps and the two synthetic maps the pipeline
-is checked on. The Palace spec stays outside the repository, under `~/.re-pod/map-plan/osr-suite/answer-keys/`.
+is checked on. The specs of commercial maps stay outside the repository, under
+`~/.re-pod/map-plan/osr-suite/answer-keys/`.
 """
 
 import json
