@@ -646,3 +646,44 @@ def test_keys_on_open_ground_on_an_inner_door_and_footings_across_water():
 def test_pictures_parse_to_consistent_panels(rows):
     cells, edges = picture(rows)
     assert len(cells) == edges.height and len(cells[0]) == edges.width
+
+
+SHARED_CORRIDOR = [
+    "+-+-+-+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+-+-+",
+    "|#|. . . .|#|#|. . . .|#|",
+    "+-+ + + + +-+-+ + + + +-+",
+    " . . . . . . . . . . .|#|",
+    "+-+ + + + +-+-+ + + + +-+",
+    "|#|. . . .|#|#|. . . .|#|",
+    "+-+-+-+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+-+-+",
+]
+"""Two halls in one open space, level 1 west and level 2 east, joined by the open corridor of row 2, which runs off
+the frame at the west. Only the east hall prints a key; the west hall's key is an unprinted Entrance."""
+
+
+def test_an_area_takes_only_its_own_levels_floor():
+    """The one open space has one printed key, on level 2, so without the owner rule it would take the west hall
+    too and leave level 1's entrance key no unkeyed floor behind its opening."""
+    survey_index = survey("d", [(1, [("entrance", "Entrance")]), (2, [("2", "East hall")])])
+    contents = {
+        ("d", 1): content("d", 1, [("entrance", "The way in.", [])]),
+        ("d", 2): content("d", 2, [("2", "A hall.", [])]),
+    }
+    outlines = (
+        Outline(dungeon="d", level=1, rects=((0, 0, 6, 5),), seeds=("2,2",)),
+        Outline(dungeon="d", level=2, rects=((6, 0, 6, 5),), seeds=("8,2",)),
+    )
+    truth = document([region("p", 12, 5)], [panel("p", SHARED_CORRIDOR, [("2", "8,2", {})], outlines)], survey_index)
+    result = resolve_document(truth, survey_index, contents, mapread("d", [1, 2]))
+    one, two = level_of(result, 1), level_of(result, 2)
+    # Level 1's grid gains a column of rock west of the floor that runs off the frame, so its cells sit one
+    # column east of the panel's; level 2's grid is the panel's.
+    assert {"1,2", "2,1", "5,3"} <= set(one.areas["entrance"].cells)
+    assert all(int(cell.split(",")[0]) <= 6 for cell in one.areas["entrance"].cells)
+    assert {"7,1", "10,3"} <= set(two.areas["2"].cells)
+    assert all(int(cell.split(",")[0]) >= 6 for cell in two.areas["2"].cells)
+    assert passages(one) == {("6,2", "east", 2, "6,2")} and passages(two) == {("6,2", "west", 1, "6,2")}

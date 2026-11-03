@@ -592,7 +592,12 @@ def submit_pass(
         count = _add_jobs(ctx, resettle_store, f"{ctx.key.id}__resettle__", resettle, False)
         return resettle_store.submit(client, ledger, f"resettle {ctx.key.id}", limit), count
     round_items = adversary_items(ctx, items, settled)
-    count = _add_jobs(ctx, store, f"{ctx.key.id}__adversary__", round_items, True)
+    mouths = _mouth_cells(items)
+    first = [item for item in round_items if _touches(item["id"], mouths)]
+    others = [item for item in round_items if not _touches(item["id"], mouths)]
+    # The jobs around cave mouths sort before the rest, so a pass sent in parts asks them first.
+    count = _add_jobs(ctx, store, f"{ctx.key.id}__adversary-mouth__", first, True)
+    count += _add_jobs(ctx, store, f"{ctx.key.id}__adversary__", others, True)
     return store.submit(client, ledger, f"adversary {ctx.key.id}", limit), count
 
 
@@ -661,6 +666,7 @@ def adversary_items(ctx: MapContext, items: Items, settled: dict[str, dict[str, 
         )
     cave = set(items.cave)
     partial = set(items.partial)
+    mouths = _mouth_cells(items)
     near_keys = set()
     for mark in items.marks:
         for text in [*mark["reading1"], *mark["reading2"]]:
@@ -675,7 +681,7 @@ def adversary_items(ctx: MapContext, items: Items, settled: dict[str, dict[str, 
         a, b = edge_cells(edge_key(name))
         names = {f"{a[0]},{a[1]}", f"{b[0]},{b[1]}"}
         category = None
-        if names & cave:
+        if names & mouths or names & cave:
             category = "cave"
         elif names & partial:
             category = "diagonal"
@@ -694,7 +700,9 @@ def adversary_items(ctx: MapContext, items: Items, settled: dict[str, dict[str, 
         if entry["status"] != "agreed" or f"c:{name}" in settled or not entry["claude"]:
             continue
         category = None
-        if name in partial:
+        if name in mouths:
+            category = "cave"
+        elif name in partial:
             category = "diagonal"
         elif name in near_keys:
             category = "key"
@@ -703,10 +711,38 @@ def adversary_items(ctx: MapContext, items: Items, settled: dict[str, dict[str, 
         item = _rebuild_item(ctx, items, f"c:{name}")
         if item is not None:
             agreed.append({**item, "recorded": _recorded_text("cell", entry["claude"][0]), "category": category})
-    if len(agreed) > ADVERSARY_CAP:
+    # The calls around a cave mouth are always checked: an entrance letter or arrow printed in the mouth reads as
+    # ink, and a mouth read as a wall with rock beyond it closes the lair.
+    must = [item for item in agreed if _touches(item["id"], mouths)]
+    rest = [item for item in agreed if not _touches(item["id"], mouths)]
+    if len(rest) > ADVERSARY_CAP:
         rng = random.Random(7)
-        agreed = rng.sample(agreed, ADVERSARY_CAP)
-    return out + agreed
+        rest = rng.sample(rest, ADVERSARY_CAP)
+    return out + must + rest
+
+
+def _mouth_cells(items: Items) -> set[str]:
+    """The cells within one cell of either side of every cave mouth a reading placed."""
+    cells: set[str] = set()
+    for symbol in items.symbols:
+        for reading in (symbol.get("reading1"), symbol.get("reading2")):
+            if not reading or reading.get("kind") != "cave_mouth" or not reading.get("edge"):
+                continue
+            for x, y in edge_cells(edge_key(reading["edge"])):
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        cells.add(f"{x + dx},{y + dy}")
+    return cells
+
+
+def _touches(item_id: str, cells: set[str]) -> bool:
+    """Whether a cell or edge item lies on one of the cells."""
+    if item_id.startswith("c:"):
+        return item_id[2:] in cells
+    if item_id.startswith("e:"):
+        a, b = edge_cells(edge_key(item_id[2:]))
+        return bool({f"{a[0]},{a[1]}", f"{b[0]},{b[1]}"} & cells)
+    return False
 
 
 def _recorded_text(kind: str, value: str) -> str:

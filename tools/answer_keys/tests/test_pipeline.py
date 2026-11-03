@@ -631,3 +631,19 @@ def test_trivial_trace_of_an_exact_answer_scores_perfect_on_the_reading_families
     trace = trivial_trace(answer)
     score = score_trace(trace, answer)
     assert score.after.floor.perfect and score.after.edges.perfect and score.after.doors.perfect
+
+
+def test_the_calls_around_a_cave_mouth_are_always_checked():
+    items = readings.Items(width=12, height=12)
+    items.symbols = [
+        {
+            "reading1": {"kind": "cave_mouth", "cells": [], "edge": "5,5:west", "direction": None},
+            "reading2": None,
+            "status": "disputed",
+        },
+        {"reading1": {"kind": "pillar", "cells": ["9,9"], "edge": None, "direction": None}, "reading2": None},
+    ]
+    cells = settler._mouth_cells(items)
+    assert {"4,5", "5,5", "3,4", "6,6"} <= cells and "9,9" not in cells and "8,8" not in cells
+    assert settler._touches("e:5,5:west", cells) and settler._touches("c:6,4", cells)
+    assert not settler._touches("c:9,9", cells) and not settler._touches("s:5,5|0", cells)
