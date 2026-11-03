@@ -12,7 +12,7 @@
      "number": 1,
      "panels": [],
      "passages": [],
-     "reason": "its map has no grid to register",
+     "reason": "the map has no grid",
      "transitions": [],
      "verdict": "fallback"
     },
@@ -25,7 +25,7 @@
      "number": 2,
      "panels": [],
      "passages": [],
-     "reason": "its map's grid is warped past registering",
+     "reason": "the map's grid is warped",
      "transitions": [],
      "verdict": "fallback"
     }
