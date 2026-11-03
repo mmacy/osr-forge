@@ -8,7 +8,7 @@ other edge letters, a space for an open edge, and `.`, `#`, or `~` for a cell. A
 from typing import Literal
 
 import pytest
-from tools.answer_keys.resolve import ConventionGap, Resolver, reading_of
+from tools.answer_keys.resolve import Resolver, reading_of
 
 from osrforge.contracts.stages import (
     AreaConnection,
@@ -323,6 +323,54 @@ def test_unprinted_keys_take_an_unlabelled_room_or_a_synthesized_area():
     assert level.cells[1][1] == "." and level.cells[2][2] == "."
 
 
+def enclosed_entrance_fixture(keys, areas, marks):
+    """One level drawn as `UNPRINTED`, a hall and a closet walled in on every side, so the level has no outer opening
+    and no opening can lead an unprinted entrance key into unkeyed floor."""
+    survey_index = survey("e", [(1, keys)])
+    contents = {("e", 1): content("e", 1, areas)}
+    outline = Outline(dungeon="e", level=1, rects=((0, 0, 8, 7),), seeds=("2,3",))
+    truth = document([region("p", 8, 7)], [panel("p", UNPRINTED, marks, (outline,))], survey_index)
+    return resolve_document(truth, survey_index, contents, mapread("e", [1]))
+
+
+def test_an_unprinted_entrance_key_with_no_opening_takes_the_unlabelled_room_beside_its_connected_area():
+    """The level has no outer opening, so the Entrance is placed as any other unprinted key: its prose door into area 1
+    gives it the unlabelled closet beside the hall. With no outer opening, the entrance is the area's first cell."""
+    result = enclosed_entrance_fixture(
+        [("1", "Hall"), ("2", "Entrance")],
+        [("1", "A hall.", []), ("2", "The way in.", [{"to_key": "1", "direction": "west", "via": "door"}])],
+        [("1", "2,3", {})],
+    )
+    level = level_of(result, 1)
+    x0, y0 = level.panels[0].origin
+    assert set(level.areas["2"].cells) == {f"{x0 + x},{y0 + y}" for x in (4, 5, 6) for y in (2, 3, 4)}
+    assert not level.areas["2"].synthesized
+    entrance = result.dungeons[0].entrance
+    assert entrance is not None and (entrance.level, entrance.cell) == (1, f"{x0 + 4},{y0 + 2}")
+
+
+def test_an_unprinted_entrance_key_with_no_opening_and_no_free_room_becomes_a_synthesized_area():
+    """The closet is keyed 2, so no unlabelled walled room stands beside area 1, and the Entrance becomes a 2 by 2
+    block of rock beside the hall that touches no other floor, first by its north-west cell, with a synthesized door
+    on the first shared edge. With no outer opening, the entrance is that block's first cell."""
+    result = enclosed_entrance_fixture(
+        [("1", "Hall"), ("2", "Closet"), ("3", "Entrance")],
+        [
+            ("1", "A hall.", []),
+            ("2", "A closet.", []),
+            ("3", "The way in.", [{"to_key": "1", "direction": "north", "via": "secret_door"}]),
+        ],
+        [("1", "2,3", {}), ("2", "5,3", {})],
+    )
+    level = level_of(result, 1)
+    x0, y0 = level.panels[0].origin
+    assert set(level.areas["3"].cells) == {f"{x0 + x},{y0 + y}" for x in (0, 1) for y in (0, 1)}
+    assert level.areas["3"].synthesized
+    assert edges_of(level).at((x0 + 1, y0 + 1), "south") == "d"
+    entrance = result.dungeons[0].entrance
+    assert entrance is not None and (entrance.level, entrance.cell) == (1, f"{x0},{y0}")
+
+
 WEST_HALF = [
     "+-+-+-+-+-+-+",
     "|#|#|#|#|#|#|",
@@ -634,24 +682,24 @@ def test_a_level_only_link_with_no_symbol_of_its_means_lands_on_the_first_area()
 
 
 GATEHOUSE = [
-    "+-+-+-+-+-+",
-    "|#|#|#|#|#|",
-    "+-+-+-+-+-+",
-    "|. . . .|#|",
-    "+ + + + +-+",
-    " . . . .|#|",
-    "+ + + + +-+",
-    "|. . . .|#|",
-    "+-+d+-+-+-+",
-    "|. . . .|#|",
-    "+ + + + +-+",
-    " . . . .|#|",
-    "+-+-+-+-+-+",
-    "|#|#|#|#|#|",
-    "+-+-+-+-+-+",
+    "+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+",
+    "|. . . .|#|#|#|",
+    "+ + + + +-+-+-+",
+    " . . . .|#|#|#|",
+    "+ + + + +-+-+-+",
+    "|. . . .|#|#|#|",
+    "+-+d+-+-+-+-+-+",
+    "|. . . .|#|#|#|",
+    "+ + + + +-+-+-+",
+    " . . . .|#|#|#|",
+    "+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+",
 ]
 """A hall above a lower room, joined by a door, each running off the map's west frame: the hall in row 2, nearer the
-hall's first cell, and the lower room in row 5."""
+hall's first cell, and the lower room in row 5. Rock fills the three columns east of them."""
 
 
 def gatehouse_fixture(lower_key):
@@ -666,8 +714,8 @@ def gatehouse_fixture(lower_key):
         areas.append(("3", "A guard room.", []))
         marks.append(("3", "2,4", {}))
     contents = {("g", 1): content("g", 1, areas)}
-    outline = Outline(dungeon="g", level=1, rects=((0, 0, 5, 7),), seeds=("2,2",))
-    truth = document([region("p", 5, 7)], [panel("p", GATEHOUSE, marks, (outline,))], survey_index)
+    outline = Outline(dungeon="g", level=1, rects=((0, 0, 7, 7),), seeds=("2,2",))
+    truth = document([region("p", 7, 7)], [panel("p", GATEHOUSE, marks, (outline,))], survey_index)
     return truth, survey_index, contents
 
 
@@ -683,12 +731,21 @@ def test_an_unprinted_entrance_key_takes_the_nearest_opening_into_unkeyed_floor(
     assert set(level.areas["2"].cells) == {f"{x0 + x},{y0 + y}" for x in range(4) for y in (4, 5)}
 
 
-def test_an_unprinted_entrance_key_with_no_opening_into_unkeyed_floor_is_a_convention_gap():
-    """With key 3 printed in the lower room, both openings lead into keyed areas. The conventions give the key no floor
-    in that case and send it to no other rule, so the script stops."""
+def test_an_unprinted_entrance_key_with_no_opening_into_unkeyed_floor_becomes_a_synthesized_area():
+    """With key 3 printed in the lower room, both openings lead into keyed areas, so the Entrance is placed as any
+    other unprinted key. No unlabelled walled room stands beside area 1, so it becomes a synthesized area: the first
+    2 by 2 block of rock beside the hall that touches no other floor, joined to it by a door on their first shared
+    edge. The area touches no opening, and no walk reaches its rock from either opening, so the entrance is the cell
+    just inside the first opening in north-then-west order, the hall's."""
     truth, survey_index, contents = gatehouse_fixture(lower_key=True)
-    with pytest.raises(ConventionGap, match="no outer opening leads into unkeyed floor"):
-        resolve_document(truth, survey_index, contents, mapread("g", [1]))
+    result = resolve_document(truth, survey_index, contents, mapread("g", [1]))
+    level = level_of(result, 1)
+    x0, y0 = level.panels[0].origin
+    assert set(level.areas["2"].cells) == {f"{x0 + x},{y0 + y}" for x in (4, 5) for y in (0, 1)}
+    assert level.areas["2"].synthesized
+    assert edges_of(level).at((x0 + 4, y0 + 1), "west") == "d"
+    entrance = result.dungeons[0].entrance
+    assert entrance is not None and (entrance.level, entrance.cell) == (1, f"{x0},{y0 + 2}")
 
 
 YARD = [
