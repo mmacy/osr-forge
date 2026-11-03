@@ -446,13 +446,81 @@ def combine(
         return log
     save_geometry_truth(out, canonical_form(resolved))
     log["resolved"] = True
-    log["provenance"] = str(write_provenance(keys, out, cases or [], True, samples))
+    log["prose_joins"] = prose_joins(resolved, contents)
+    log["provenance"] = str(write_provenance(keys, out, cases or [], True, samples, log["prose_joins"]))
     log["levels"] = [
         f"{d.id}/{level.number}: {level.verdict}" + (f" ({level.reason})" if level.reason else "")
         for d in resolved.dungeons
         for level in d.levels
     ]
     return log
+
+
+def prose_joins(truth: GeometryTruth, contents: dict[Any, Any]) -> list[str]:
+    """For each traced level, how many of the prose's joins between two of its areas the key makes.
+
+    A join is a connection from one area to another of the same level by passage, door, or secret door. The key
+    makes it when a walk across passable edges and doors of any kind joins a cell of each area. A join the key
+    doesn't make is floor or an opening the reading lost, a connection the drawing doesn't show, or both.
+
+    Args:
+        truth: The resolved key.
+        contents: The content caches by `(dungeon id, level number)`.
+
+    Returns:
+        One line per level with content: the joins made, of all, and the ones not made.
+    """
+    from collections import deque
+
+    sides = {"north": (0, -1), "south": (0, 1), "west": (-1, 0), "east": (1, 0)}
+    lines = []
+    for dungeon in truth.dungeons:
+        for level in dungeon.levels:
+            content = contents.get((dungeon.id, level.number))
+            edges = level.edges
+            if level.verdict != "traced" or content is None or edges is None:
+                continue
+            part: dict[tuple[int, int], int] = {}
+            height, width = len(level.cells), len(level.cells[0])
+            for y in range(height):
+                for x in range(width):
+                    if level.cells[y][x] == "#" or (x, y) in part:
+                        continue
+                    label = len(part)
+                    part[(x, y)] = label
+                    queue = deque([(x, y)])
+                    while queue:
+                        cx, cy = queue.popleft()
+                        for side, (dx, dy) in sides.items():
+                            nx, ny = cx + dx, cy + dy
+                            if not (0 <= nx < width and 0 <= ny < height) or (nx, ny) in part:
+                                continue
+                            if level.cells[ny][nx] == "#" or edges.at((cx, cy), side) not in "opdls":
+                                continue
+                            part[(nx, ny)] = label
+                            queue.append((nx, ny))
+            parts = {key: {part[parse_cell(c)] for c in area.cells} for key, area in level.areas.items()}
+            pairs: set[tuple[str, str]] = set()
+            missing = []
+            for area in content.areas:
+                for connection in area.connections:
+                    one, other = str(area.key), str(connection.to_key)
+                    if (
+                        connection.via not in ("passage", "door", "secret_door")
+                        or one not in parts
+                        or other not in parts
+                    ):
+                        continue
+                    pair = (min(one, other), max(one, other))
+                    if pair in pairs:
+                        continue
+                    pairs.add(pair)
+                    if not parts[one] & parts[other]:
+                        missing.append(f"{pair[0]}-{pair[1]}")
+            if pairs:
+                line = f"{dungeon.id}/{level.number}: {len(pairs) - len(missing)} of {len(pairs)} prose joins made"
+                lines.append(line + (f", not made: {', '.join(missing)}" if missing else ""))
+    return lines
 
 
 def map_figures(key: KeySpec) -> dict[str, Any]:
@@ -535,7 +603,12 @@ def sample_summary(samples: list[Path], panels: set[str]) -> str:
 
 
 def write_provenance(
-    keys: list[KeySpec], out: Path, cases: list[str], resolved: bool, samples: list[Path] | None = None
+    keys: list[KeySpec],
+    out: Path,
+    cases: list[str],
+    resolved: bool,
+    samples: list[Path] | None = None,
+    joins: list[str] | None = None,
 ) -> Path:
     """Write `geometry-provenance.yaml` beside a key: what made it, which checks ran, what it cost, the owner's
     sample, and the cases it depends on."""
@@ -598,6 +671,9 @@ def write_provenance(
     ]
     for f in figures:
         lines.append(f"  - {json.dumps(f)}")
+    if joins:
+        lines.append("prose_joins:")
+        lines += [f"  - {json.dumps(line)}" for line in joins]
     lines.append("cases:")
     for case in cases:
         lines.append(f"  - {json.dumps(case)}")
