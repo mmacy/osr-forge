@@ -1817,22 +1817,24 @@ def link_levels(levels: list[Resolved], dungeon: DungeonSpec) -> None:
     stairs, a ladder, a trapdoor, or a chute makes no transition. A link stands
     on the symbols of its own means. A link whose prose names no means, a `via`
     of `passage` in the content cache, takes the means of the link symbols that
-    touch or adjoin its area when they all share one, and otherwise makes no
-    transition. Stairs and ladders make a transition at each end, starting from
-    the connection that comes first in survey order. A trapdoor or chute makes
-    one, at the end whose prose states it. Stated from both ends, it starts at
-    its end on the level above, or within one level at the end whose area
-    comes first in survey order. A link to an area on another panel of the same
-    level has no direction. A link to a level with no target area is realized
-    after the others, so its target end can take a symbol no other link's end
-    stands on.
+    touch or adjoin its area when they all share one, or, when they don't,
+    those of them that record the link's direction, and otherwise makes no
+    transition. A link goes the way its connection's `direction` says when that
+    is up or down, and otherwise down to a larger level number, up to a smaller
+    one, and no way within one level. Stairs and ladders make a transition at
+    each end, starting from the connection that comes first in survey order. A
+    trapdoor or chute makes one, at the end whose prose states it. Stated from
+    both ends, it starts at the end from which it goes down, or with no
+    direction at the end whose area comes first in survey order. A link to a
+    level with no target area is realized after the others, so its target end
+    can take a symbol no other link's end stands on.
 
     Args:
         levels: The dungeon's resolved levels, in survey order.
         dungeon: The surveyed dungeon, to tell a key of a level that falls back or a level that doesn't exist.
     """
     made: set[tuple[frozenset[tuple[int, str | None]], str]] = set()
-    later: list[tuple[Resolved, str, Resolved, str]] = []
+    later: list[tuple[Resolved, str, Resolved, str, Way]] = []
     for level in levels:
         for area in level.spec.areas:
             for link in area.links:
@@ -1842,7 +1844,8 @@ def link_levels(levels: list[Resolved], dungeon: DungeonSpec) -> None:
                 target, key = found
                 if key is not None and _made(levels, level, area.key, target, key):
                     continue
-                means = _means(level, area.key, link.via)
+                way = _way(link, level, target)
+                means = _means(level, area.key, link.via, way)
                 ends = frozenset({(level.spec.number, area.key), (target.spec.number, key)})
                 if (ends, means or link.via) in made:
                     continue
@@ -1852,17 +1855,33 @@ def link_levels(levels: list[Resolved], dungeon: DungeonSpec) -> None:
                 if means is None:
                     raise DesignError(f"{area.key!r} names {key!r} on its own level by {link.via}, not made")
                 if key is None:
-                    later.append((level, area.key, target, means))
+                    later.append((level, area.key, target, means, way))
                     continue
                 reverse = next(spec for spec in target.spec.areas if spec.key == key).links
                 both = any(
-                    _means(target, key, back.via) == means
+                    _means(target, key, back.via, _way(back, target, level)) == means
                     and _target(levels, target, back, dungeon) == (level, area.key)
                     for back in reverse
                 )
-                _realize(level, area.key, target, key, _MEANS[means], means, both)
-    for level, key, target, means in later:
-        _realize(level, key, target, None, _MEANS[means], means, False, _level_end(levels, target, _MEANS[means]))
+                _realize(level, area.key, target, key, _MEANS[means], means, both, way)
+    for level, key, target, means, way in later:
+        end = _level_end(levels, target, _MEANS[means])
+        _realize(level, key, target, None, _MEANS[means], means, False, way, end)
+
+
+type Way = Literal["up", "down"] | None
+"""The way a link goes: down, up, or no way."""
+
+_BACK: dict[str, Literal["up", "down"]] = {"up": "down", "down": "up"}
+
+
+def _way(link: AreaConnection, level: Resolved, target: Resolved) -> Way:
+    """The way a link goes, as Links says: its connection's stated direction, or else by the levels' numbers."""
+    if link.direction == "up" or link.direction == "down":
+        return link.direction
+    if target is level:
+        return None
+    return "down" if target.spec.number > level.spec.number else "up"
 
 
 def _level_end(levels: list[Resolved], target: Resolved, kinds: tuple[str, ...]) -> tuple[Cell, Symbol | None]:
@@ -1896,23 +1915,27 @@ def _level_end(levels: list[Resolved], target: Resolved, kinds: tuple[str, ...])
     return min(cells, key=lambda cell: (-chebyshev(cell, first), cell_order(cell))), symbol
 
 
-def _means(level: Resolved, key: str, via: str) -> str | None:
+def _means(level: Resolved, key: str, via: str, way: Way) -> str | None:
     """The means a link from an area stands on, as a key of `_MEANS`, or `None` when it makes no transition.
 
     It is the means the prose names. A connection whose prose names none, which the content cache records as a
     `via` of `passage`, takes the means of the link symbols that touch or adjoin its area when they all share
-    one.
+    one. When they are of more than one means and some of them record the link's way, only those count.
     """
     if via != "passage":
         return via if via in _MEANS else None
     cells = set(level.areas[key])
-    found = {
-        means
+    beside = [
+        (means, symbol.direction)
         for symbol, symbol_cells, _edge in level.board.symbols
         for means, kinds in _MEANS.items()
         if symbol.kind in kinds
         and any(cell in cells or any(neighbour(cell, side) in cells for side in SIDES) for cell in symbol_cells)
-    }
+    ]
+    found = {means for means, _direction in beside}
+    pointing = {means for means, direction in beside if way is not None and direction == way}
+    if len(found) > 1 and pointing:
+        found = pointing
     return found.pop() if len(found) == 1 else None
 
 
@@ -1924,16 +1947,19 @@ def _realize(
     kinds: tuple[str, ...],
     via: str,
     both: bool,
+    way: Way,
     level_end: tuple[Cell, Symbol | None] | None = None,
 ) -> None:
-    """Make the transitions of one link, from `key` on `level` to `target_key` on `target`.
+    """Make the transitions of one link, from `key` on `level` to `target_key` on `target`, going `way`.
 
     `both` is true when the prose states the link from both ends. A trapdoor or chute stated from one end starts
-    there, and one stated from both ends starts on the level above, or within one level at the area first in
-    survey order. A link to a level with no target area has no `target_key`, and `level_end` is its target end.
+    there, and one stated from both ends starts at the end from which it goes down, or with no way at the area
+    first in survey order. A link to a level with no target area has no `target_key`, and `level_end` is its
+    target end.
     """
     if target_key is None:
-        way = "down" if target.spec.number > level.spec.number else "up"
+        if way is None:
+            raise DesignError(f"a link from {key!r} to level {target.spec.number} with no way isn't resolved here")
         starts = _ends(level, key, kinds, (way, None))
         if level_end is None or len(starts) != 1:
             raise DesignError(f"a link from {key!r} to level {target.spec.number} needs one start, resolved here")
@@ -1945,7 +1971,7 @@ def _realize(
                 Transition(cell=cell_key(start), kind=drop, to_level=number, to_cell=cell_key(finish))
             )
             return
-        back = "up" if way == "down" else "down"
+        back = _BACK[way]
         level.transitions.append(
             Transition(cell=cell_key(start), kind=_STAIRS[way], to_level=number, to_cell=cell_key(finish))
         )
@@ -1955,21 +1981,21 @@ def _realize(
         return
     one_way = via in ("trapdoor", "chute")
     survey = [area.key for area in level.spec.areas]
-    above = target.spec.number < level.spec.number
-    earlier = target is level and survey.index(target_key) < survey.index(key)
-    if one_way and both and (above or earlier):
+    rises = way == "up"
+    earlier = way is None and target is level and survey.index(target_key) < survey.index(key)
+    if one_way and both and (rises or earlier):
         level, key, target, target_key = target, target_key, level, key
+        way = None if way is None else _BACK[way]
     if target is level:
         here = _panel_at(level, min(level.areas[key], key=cell_order))
         there = _panel_at(level, min(level.areas[target_key], key=cell_order))
         if here == there:
             raise DesignError(f"{key!r} and {target_key!r} share a panel but the trace doesn't join them")
-        way = back = None
+    back = None if way is None else _BACK[way]
+    if way is None or back is None:
         starts = _ends(level, key, kinds, ("up", "down", None))
         finishes = _ends(target, target_key, kinds, ("up", "down", None))
     else:
-        way = "down" if target.spec.number > level.spec.number else "up"
-        back = "up" if way == "down" else "down"
         starts = _ends(level, key, kinds, (way, None))
         finishes = _ends(target, target_key, kinds, (back, None))
     if not starts or len(finishes) > len(starts):
