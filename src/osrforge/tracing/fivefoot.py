@@ -467,7 +467,7 @@ class _Grid:
             edges=EdgeGrids(vertical=vertical, horizontal=horizontal),
             partial=tuple(partial),
             cave=tuple(cave),
-            marks=tuple(self._convert_mark(mark) for mark in panel.marks),
+            marks=tuple(self._convert_mark(mark, rows) for mark in panel.marks),
             outlines=tuple(self._convert_outline(outline) for outline in panel.outlines),
             symbols=tuple(converted for converted in map(self._convert_symbol, panel.symbols) if converted is not None),
         )
@@ -516,13 +516,34 @@ class _Grid:
         right, bottom = (x + width + self.ox + 1) // 2, (y + height + self.oy + 1) // 2
         return (left, top, right - left, bottom - top)
 
-    def _convert_mark(self, mark: Mark) -> Mark:
+    def _convert_leader_end(self, text: str, rows: list[str]) -> str | None:
+        """Where a leader line ends in the converted cells, or `None` when it's no leader line.
+
+        An end whose cell is rock moves to the nearest floor or water cell
+        within one cell, the first in page order of several, and with none the
+        line is dropped.
+        """
+        cell = self.cell_of(parse_cell(text))
+        x, y = cell
+        if rows[y][x] != "#":
+            return cell_key(cell)
+        around = [
+            (x + dx, y + dy)
+            for dy in (-1, 0, 1)
+            for dx in (-1, 0, 1)
+            if 0 <= x + dx < self.columns and 0 <= y + dy < self.rows and rows[y + dy][x + dx] != "#"
+        ]
+        if not around:
+            return None
+        return cell_key(min(around, key=lambda near: order_key((near[0] + 0.5, near[1] + 0.5))))
+
+    def _convert_mark(self, mark: Mark, rows: list[str]) -> Mark:
         # A mark whose edge lands on no edge keeps its cell and loses the edge.
         return mark.model_copy(
             update={
                 "cell": self._convert_cell(mark.cell),
                 "edge": None if mark.edge is None else self._convert_edge(mark.edge),
-                "leader_to": None if mark.leader_to is None else self._convert_cell(mark.leader_to),
+                "leader_to": None if mark.leader_to is None else self._convert_leader_end(mark.leader_to, rows),
             }
         )
 
@@ -555,7 +576,8 @@ def convert_five_foot(panel: Panel) -> FiveFootConversion:
     vertical one with the same midpoint, and each run's direction is decided
     after the moves of the runs before it. A mark whose door edge lands on no
     10-foot edge keeps its cell and loses the edge, and such a cave mouth is
-    dropped.
+    dropped. A leader end whose cell is rock moves to the nearest floor or
+    water cell within one cell, and with none the mark loses its leader line.
 
     Args:
         panel: A panel whose `scale_feet` is 5.
