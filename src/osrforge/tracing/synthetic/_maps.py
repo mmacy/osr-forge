@@ -207,7 +207,12 @@ def ravine_lair() -> MapSpec:
 
 
 def cave_entrance() -> MapSpec:
-    """A cave whose entrance chamber lies inside a cave mouth, under a key the map doesn't print."""
+    """A cave whose entrance chamber lies inside a cave mouth, under a key the map doesn't print.
+
+    A breach in the vault's east wall runs off the map, an outer opening nearer the hall than the cave mouth. It
+    leads into the keyed vault, so the entrance key takes the floor inside the cave mouth, the nearest opening
+    into unkeyed floor.
+    """
     sketch = Sketch(22, 13)
     sketch.room("hillside", 0, 0, 3, 13)
     for y in range(13):
@@ -219,6 +224,7 @@ def cave_entrance() -> MapSpec:
     sketch.run("p", (8, 6), (11, 6)).edge((7, 6), "east", "d").edge((11, 6), "east", "d")
     sketch.room("r2", 12, 4, 5, 5).mark("2", (14, 6))
     sketch.room("r3", 17, 4, 4, 5).edge((16, 6), "east", "l").mark("3", (19, 6))
+    sketch.run("r3", (21, 6)).edge((21, 6), "east", "o")
     sketch.room("r4", 17, 9, 4, 3).edge((19, 8), "south", "s").mark("4", (18, 10))
     sketch.outline((3, 0, 19, 13))
     sketch.ornament("track", (0.1, 9.6), (1.2, 8.4), (2.2, 6.6), (2.9, 6.5))
@@ -234,7 +240,7 @@ def cave_entrance() -> MapSpec:
             (AreaConnection(to_key="2", direction="east", via="door"),),
         ),
         AreaSpec("2", "Hall", "A rough hall with a locked door in its east wall."),
-        AreaSpec("3", "Vault", "Empty racks line the vault."),
+        AreaSpec("3", "Vault", "Empty racks line the vault. A breach in the east wall opens on the slope behind."),
         AreaSpec("4", "Hidden room", "Dust lies thick on a stone chest."),
     )
     dungeon = DungeonSpec("the-hollow-hill", "The hollow hill", (LevelSpec(1, areas, ("cave-entrance",)),))
