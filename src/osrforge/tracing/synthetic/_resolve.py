@@ -1767,7 +1767,10 @@ def link_levels(levels: list[Resolved]) -> None:
     are one link. A connection the trace already makes through floor, doors,
     or passages isn't a link, and a link to another level by any means but
     stairs, a ladder, a trapdoor, or a chute makes no transition. A link stands
-    on the symbols of its own means. Stairs and ladders make a transition at
+    on the symbols of its own means. A link whose prose names no means, a `via`
+    of `passage` in the content cache, takes the means of the link symbols that
+    touch or adjoin its area when they all share one, and otherwise makes no
+    transition. Stairs and ladders make a transition at
     each end, starting from the connection that comes first in survey order. A
     trapdoor or chute makes one, at the end whose prose states it. Stated from
     both ends, it starts at its end on the level above, or within one level at
@@ -1784,20 +1787,41 @@ def link_levels(levels: list[Resolved]) -> None:
                 target, key = _target(levels, level, link)
                 if _made(levels, level, area.key, target, key):
                     continue
+                means = _means(level, area.key, link.via)
                 ends = frozenset({(level.spec.number, area.key), (target.spec.number, key)})
-                if (ends, link.via) in made:
+                if (ends, means or link.via) in made:
                     continue
-                made.add((ends, link.via))
-                kinds = _MEANS.get(link.via)
-                if kinds is None and target is not level:
+                made.add((ends, means or link.via))
+                if means is None and (target is not level or link.via == "passage"):
                     continue
-                if kinds is None:
+                if means is None:
                     raise DesignError(f"{area.key!r} names {key!r} on its own level by {link.via}, not made")
                 reverse = next(spec for spec in target.spec.areas if spec.key == key).links
                 both = any(
-                    back.via == link.via and _target(levels, target, back) == (level, area.key) for back in reverse
+                    _means(target, key, back.via) == means and _target(levels, target, back) == (level, area.key)
+                    for back in reverse
                 )
-                _realize(level, area.key, target, key, kinds, link.via, both)
+                _realize(level, area.key, target, key, _MEANS[means], means, both)
+
+
+def _means(level: Resolved, key: str, via: str) -> str | None:
+    """The means a link from an area stands on, as a key of `_MEANS`, or `None` when it makes no transition.
+
+    It is the means the prose names. A connection whose prose names none, which the content cache records as a
+    `via` of `passage`, takes the means of the link symbols that touch or adjoin its area when they all share
+    one.
+    """
+    if via != "passage":
+        return via if via in _MEANS else None
+    cells = set(level.areas[key])
+    found = {
+        means
+        for symbol, symbol_cells, _edge in level.board.symbols
+        for means, kinds in _MEANS.items()
+        if symbol.kind in kinds
+        and any(cell in cells or any(neighbour(cell, side) in cells for side in SIDES) for cell in symbol_cells)
+    }
+    return found.pop() if len(found) == 1 else None
 
 
 def _realize(
