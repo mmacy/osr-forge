@@ -357,13 +357,17 @@ def outline_items(ctx: MapContext, items: Items, final: dict[str, dict[str, Any]
         x, y = crossing["cell"]
         others = crossing.get("others", [])
         covered = f"the outline of level {', '.join(others)} covers" if others else "no level's outline covers"
-        readings = [("the whole-map read", f"{covered} cell {nx},{ny}")]
+        readings = [
+            ("the whole-map read", f"{covered} cell {nx},{ny}"),
+            ("the survey's keys", f"printed near the cell: {keys_near(ctx, items, (nx, ny))}"),
+        ]
+        joined = {"o": "an open edge", "p": "a printed open line"}.get(crossing.get("letter", "o"), "a door")
         out.append(
             {
                 "id": f"o:{nx},{ny}|{crossing['level']}",
                 "kind": "outline",
                 "options": options,
-                "text": f"cell {nx},{ny} (boxed) is floor that {covered}, and an open edge joins it to "
+                "text": f"cell {nx},{ny} (boxed) is floor that {covered}, and {joined} joins it to "
                 f"cell {x},{y}, which lies in the outline of level {crossing['level']}. Which level's floor is the "
                 f"boxed cell part of? Answer with exactly one of: {', '.join(options)}. Readings: "
                 f"{_readings_text(readings)}.",

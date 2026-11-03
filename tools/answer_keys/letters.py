@@ -205,6 +205,42 @@ def _expand(
     return found
 
 
+CROSSING = "opdls"
+"""The edge letters across which an outline's border crosses floor: open, a printed open line, and every door."""
+
+
+def printed_key_cells(ctx: MapContext, cells: list[list[str]], final: dict[str, dict[str, Any]]) -> dict[str, set]:
+    """The cells where each level's own keys are printed, from the settled labels and the survey.
+
+    A label is a key of a level when the survey gives that level, among the levels drawn on this map, a key with
+    that text; stacked labels count each part. A label that names a key of several of the map's levels counts for
+    none, since its print doesn't say which.
+    """
+    import json
+
+    from .assemble import _final_marks
+    from .readings import load_items
+
+    if ctx.key.survey is None:
+        return {}
+    survey = json.loads(ctx.key.survey.read_text())
+    mine = {level_id(dungeon, number) for dungeon, number in ctx.key.levels}
+    owners: dict[str, set[str]] = {}
+    for dungeon in survey.get("dungeons", []):
+        for level in dungeon.get("levels", []):
+            name = level_id(dungeon["id"], level["number"])
+            if name in mine:
+                for area in level.get("areas", []):
+                    owners.setdefault(str(area["key"]), set()).add(name)
+    out: dict[str, set] = {}
+    for mark in _final_marks(load_items(ctx), final, cells, {}):
+        for label in {mark.text, *mark.text.split("/")}:
+            levels = owners.get(label, set())
+            if len(levels) == 1:
+                out.setdefault(next(iter(levels)), set()).add(parse_cell(mark.cell))
+    return out
+
+
 def outline_state(
     ctx: MapContext, cells: list[list[str]], edges: EdgeGrids, final: dict[str, dict[str, Any]]
 ) -> OutlineState:
@@ -264,6 +300,11 @@ def outline_state(
     # Then the trim: whatever lies beyond a level's slope leaves its outline, however it got there.
     for level, paths in slopes.items():
         owned[level] = slope_side(owned[level], [parse_cell(text) for text in seeds[level]], paths)
+    # A level's outline always holds the cells where its own keys are printed.
+    if len(levels) > 1:
+        for level, printed in printed_key_cells(ctx, cells, final).items():
+            if level in owned:
+                owned[level] |= printed
     state = OutlineState(levels=levels, owned=owned, seeds=seeds, open_ground=open_ground)
     if len(levels) > 1:
         asked = {name[2:].split("|")[0] for name in final if name.startswith("o:")}
@@ -277,7 +318,8 @@ def outline_state(
                     beyond = (nx, ny)
                     if not (0 <= nx < width and 0 <= ny < height) or beyond in owned[level] or cells[ny][nx] == "#":
                         continue
-                    if edges.at((x, y), side) not in "op" or beyond in seen or f"{nx},{ny}" in asked:
+                    # A border crosses floor across an open edge, a printed open line, or a door of any kind.
+                    if edges.at((x, y), side) not in CROSSING or beyond in seen or f"{nx},{ny}" in asked:
                         continue
                     if (x, y) in blocked and beyond not in blocked:
                         # The border follows the slope: floor beyond a slope cell is the outside, not a crossing.
@@ -285,7 +327,14 @@ def outline_state(
                     seen.add(beyond)
                     others = [other for other in levels if other != level and beyond in owned[other]]
                     state.crossings.append(
-                        {"level": level, "cell": (x, y), "side": side, "beyond": beyond, "others": others}
+                        {
+                            "level": level,
+                            "cell": (x, y),
+                            "side": side,
+                            "beyond": beyond,
+                            "others": others,
+                            "letter": edges.at((x, y), side),
+                        }
                     )
     for level in levels:
         for index, rect in enumerate(open_ground[level]):

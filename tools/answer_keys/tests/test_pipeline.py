@@ -842,3 +842,33 @@ def test_a_call_on_an_edge_the_table_lacks_reaches_the_assembled_edges():
     assert cells == [[".", "."]]
     assert edges.at((0, 0), "east") == "d"
     assert edges.at((0, 0), "west") == "w" and edges.at((1, 0), "east") == "w"
+
+
+def test_a_levels_printed_keys_count_once_and_only_for_its_own_level(tmp_path, monkeypatch):
+    from osrforge.tracing.truth import Mark
+
+    survey = {
+        "dungeons": [
+            {"id": "a", "levels": [{"number": 1, "areas": [{"key": "1"}, {"key": "2"}]}]},
+            {"id": "b", "levels": [{"number": 1, "areas": [{"key": "3"}, {"key": "1"}]}]},
+            {"id": "c", "levels": [{"number": 1, "areas": [{"key": "9"}]}]},
+        ]
+    }
+    (tmp_path / "survey.json").write_text(json.dumps(survey))
+    key = KeySpec(
+        id="m",
+        specs=tmp_path,
+        member="x",
+        style_note="x",
+        work=tmp_path,
+        key=tmp_path / "g.json",
+        levels=(("a", 1), ("b", 1)),
+        survey=tmp_path / "survey.json",
+    )
+    ctx = MapContext(key=key, spec=None, rgb=None, fit=None)  # type: ignore[arg-type]
+    marks = [Mark(text="1", cell="0,0"), Mark(text="2/3", cell="1,1"), Mark(text="9", cell="2,2")]
+    monkeypatch.setattr(assemble, "_final_marks", lambda *_args: marks)
+    monkeypatch.setattr(readings, "load_items", lambda _ctx: None)
+    # "1" names a key of both of the map's levels, so it counts for neither; "9" is a key of a level not on the map.
+    assert letters.printed_key_cells(ctx, [], {}) == {"a/1": {(1, 1)}, "b/1": {(1, 1)}}
+    assert letters.CROSSING == "opdls"
