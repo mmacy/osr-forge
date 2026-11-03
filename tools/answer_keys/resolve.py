@@ -65,6 +65,12 @@ LevelId = tuple[str, int]
 
 LINK_SYMBOLS = ("stairs", "ladder", "trapdoor", "hinged_floor", "chute", "slide")
 LINK_VIAS = {"stairs": "stairs", "trapdoor": "trapdoor", "chute": "chute"}
+MEANS_SYMBOLS = {
+    "stairs": ("stairs", "ladder"),
+    "trapdoor": ("trapdoor", "hinged_floor"),
+    "chute": ("chute", "slide"),
+}
+"""The symbol kinds a link of each means stands on."""
 ENTRANCE_TITLES = ("entrance", "entranceway")
 
 
@@ -751,7 +757,7 @@ class Resolver:
                 near = {
                     c
                     for c in world.within(placed.cell, 2)
-                    if world.is_floor(c) and c not in self.outside and space_of[c].open_ground
+                    if world.is_floor(c) and c not in self.outside and space_of[c] is space_of[placed.cell]
                 }
                 others = [p for p in placed_floor if p is not placed and p.cell in open_ground and p.key != placed.key]
                 if others:
@@ -1451,8 +1457,10 @@ class Resolver:
         return self.to_level(level_id, wcell)
 
     def links(self) -> None:
-        """Realize each link as transitions on the stair, ladder, trapdoor, and chute symbols beside its areas."""
-        seen: set[tuple[frozenset[tuple[LevelId, str]], str]] = set()
+        """Realize each link as transitions on the symbols of its means beside its areas."""
+        stated: dict[
+            tuple[frozenset[tuple[LevelId, str]], str], list[tuple[tuple[LevelId, str], tuple[LevelId, str]]]
+        ] = {}
         for level_id in self.level_order:
             content = self.contents.get(level_id)
             if content is None or self.levels[level_id].verdict != "traced":
@@ -1478,18 +1486,24 @@ class Resolver:
                     if self.passages_make(level_id, area.key, target_level, target_key):
                         continue
                     if connection.via not in LINK_VIAS:
-                        raise ConventionGap(
-                            f"connection from {level_id}/{area.key} to {target} by {connection.via!r}: "
-                            "no transition kind for it"
-                        )
-                    identity = (
-                        frozenset({(level_id, area.key), (target_level, target_key)}),
-                        LINK_VIAS[connection.via],
-                    )
-                    if identity in seen:
                         continue
-                    seen.add(identity)
-                    self.realize_link(Link((level_id, area.key), (target_level, target_key), LINK_VIAS[connection.via]))
+                    means = LINK_VIAS[connection.via]
+                    identity = (frozenset({(level_id, area.key), (target_level, target_key)}), means)
+                    ends = ((level_id, area.key), (target_level, target_key))
+                    if ends not in stated.setdefault(identity, []):
+                        stated[identity].append(ends)
+        for (_pair, means), directions in stated.items():
+            start, target_end = directions[0]
+            if means != "stairs" and len(directions) > 1 and self.link_start(target_end) < self.link_start(start):
+                start, target_end = target_end, start
+            self.realize_link(Link(start, target_end, means))
+
+    def link_start(self, end: tuple[LevelId, str]) -> tuple[int, tuple[int, int, int]]:
+        """Where a link stated from both ends starts: the level above, else the area first in survey order."""
+        level_id, key = end
+        survey_key = self.key_of(level_id, key)
+        order = survey_key.order if survey_key is not None else (len(self.level_order), 0, 0)
+        return (level_id[1], order)
 
     def on_other_panels(self, level_id: LevelId, key: str, target_key: str) -> bool:
         """Whether two areas of one level lie on panels with none in common."""
@@ -1522,15 +1536,17 @@ class Resolver:
                 return True
         return False
 
-    def symbol_ends(self, level_id: LevelId, key: str, direction: str | None) -> list[tuple[Cell, str | None]]:
-        """Where the ends of a link stand beside an area: one cell per symbol, in north-then-west order."""
+    def symbol_ends(
+        self, level_id: LevelId, key: str, direction: str | None, means: str
+    ) -> list[tuple[Cell, str | None]]:
+        """Where the ends of a link stand beside an area: one cell per symbol of its means, in north-then-west order."""
         world = self.world
         area = self.area_of(level_id, key)
         first = self.to_level(level_id, world.first(area))
         ends: list[Cell] = []
         for grid in self.levels[level_id].grids:
             for symbol in grid.panel.symbols:
-                if symbol.kind not in LINK_SYMBOLS:
+                if symbol.kind not in MEANS_SYMBOLS[means]:
                     continue
                 if symbol.direction is not None and direction is not None and symbol.direction != direction:
                     continue
@@ -1553,8 +1569,8 @@ class Resolver:
         elif target_level[1] < start_level[1]:
             direction = "up"
         back = {"down": "up", "up": "down"}.get(direction or "")
-        starts = self.symbol_ends(start_level, start_key, direction)
-        targets = self.symbol_ends(target_level, target_key, back)
+        starts = self.symbol_ends(start_level, start_key, direction, link.means)
+        targets = self.symbol_ends(target_level, target_key, back, link.means)
         start_first = self.to_level(start_level, world.first(self.area_of(start_level, start_key)))
         target_first = self.to_level(target_level, world.first(self.area_of(target_level, target_key)))
         if not starts:
