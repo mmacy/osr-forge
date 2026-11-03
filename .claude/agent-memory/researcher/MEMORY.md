@@ -2,3 +2,4 @@
 - [Classifier specs for synthetic maps](classifier-synthetic-specs.md) — faint synthetic grid lines need line_ink_max about 222; hatched outsides need levels.hatched
 - [Worktree merge without stash](worktree-merge-no-stash.md) — to take origin/main under uncommitted work: commit a temp, reset --hard to base, merge, checkout the temp's files
 - [Clef token and plan](clef-token-expiry.md) — never run wrangler; the token lasts an hour, the free plan about 1,250 requests a day; failed requests are charged at their estimate
+- [Structured answer checks](structured-answer-checks.md) — normalize answers of the right content in another form before refusing; retries on spelling cost an hour and $1.50 on page 38
