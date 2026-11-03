@@ -700,7 +700,7 @@ class Mark(BaseModel):
     """The door edge the mark is printed on, when it sits on one. Its cell is `cell`."""
 
     leader_to: str | None = None
-    """The cell a leader line from the mark ends on."""
+    """The floor or water cell a leader line from the mark ends on, a square on a 5-foot panel."""
 
     @model_validator(mode="after")
     def _edge_names_the_cell(self) -> Mark:
@@ -795,7 +795,7 @@ class Panel(BaseModel):
         for mark in self.marks:
             _check_cells_in([mark.cell], self.cells, f"{what} mark {mark.text!r}", CELL_LETTERS)
             if mark.leader_to is not None:
-                _check_cells_in([mark.leader_to], self.cells, f"{what} mark {mark.text!r} leader", CELL_LETTERS)
+                _check_cells_in([mark.leader_to], self.cells, f"{what} mark {mark.text!r} leader")
         for symbol in self.symbols:
             _check_cells_in(symbol.cells, self.cells, f"{what} {symbol.kind}", CELL_LETTERS)
             if symbol.edge is not None:
