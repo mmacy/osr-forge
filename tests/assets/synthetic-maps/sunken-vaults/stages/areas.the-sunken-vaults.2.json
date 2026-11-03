@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-sunken-vaults",
+  "level_number": 2,
+  "areas": [
+    {
+      "key": "3",
+      "description": "Water stands ankle deep. A locked secret door leads west to the hall of urns.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "1",
+          "direction": "west",
+          "via": "secret_door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "4",
+      "description": "Rotten sacks fill a narrow closet.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "1",
+          "direction": "west",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    }
+  ]
+}

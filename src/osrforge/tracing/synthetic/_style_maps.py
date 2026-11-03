@@ -371,14 +371,6 @@ def greyrock_country() -> MapSpec:
         ),
         (("c1", "Cellar", "Below the tower."), ("c2", "Crypt", "Below the cellar.")),
     )
-    reasons = (
-        "its map is an outdoor map, which the stage refuses",
-        "its map is a hex map, which the stage refuses",
-        "its map is a town map, which the stage refuses",
-        "its map is a quarter mile to the square, a scale the stage refuses",
-        "its map is an isometric view, which the stage refuses",
-        "its map is a side view, which the stage refuses",
-    )
     dungeon = DungeonSpec(
         "greyrock-tower",
         "Greyrock tower",
@@ -387,10 +379,9 @@ def greyrock_country() -> MapSpec:
                 number,
                 tuple(AreaSpec(key, name, description) for key, name, description in areas),
                 (),
-                fallback=reason,
                 pages=(number,),
             )
-            for number, (areas, reason) in enumerate(zip(levels, reasons, strict=True), start=1)
+            for number, areas in enumerate(levels, start=1)
         ),
     )
     return MapSpec(
@@ -464,8 +455,8 @@ def lost_maps() -> MapSpec:
         "the-lost-crypt",
         "The lost crypt",
         (
-            LevelSpec(1, first, (), fallback="its map has no grid to register", pages=(1,)),
-            LevelSpec(2, second, (), fallback="its map's grid is warped past registering", pages=(2,)),
+            LevelSpec(1, first, (), pages=(1,)),
+            LevelSpec(2, second, (), pages=(2,)),
         ),
     )
     return MapSpec(

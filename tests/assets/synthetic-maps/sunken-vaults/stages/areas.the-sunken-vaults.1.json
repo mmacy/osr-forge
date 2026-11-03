@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "dungeon_id": "the-sunken-vaults",
+  "level_number": 1,
+  "areas": [
+    {
+      "key": "1",
+      "description": "A locked secret door in the east wall opens on the vault. A door in the south-east corner opens on a closet, and another on the guard post.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "2",
+          "direction": "south",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        },
+        {
+          "to_key": "3",
+          "direction": "east",
+          "via": "secret_door",
+          "door_stuck": false,
+          "door_locked": true,
+          "to_level": null
+        },
+        {
+          "to_key": "4",
+          "direction": "east",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    },
+    {
+      "key": "2",
+      "description": "A stool and a rusted bell.",
+      "encounters": [],
+      "trap": null,
+      "treasure": [],
+      "features": [],
+      "connections": [
+        {
+          "to_key": "1",
+          "direction": "north",
+          "via": "door",
+          "door_stuck": false,
+          "door_locked": false,
+          "to_level": null
+        }
+      ],
+      "source_pages": [
+        1
+      ],
+      "confidence": 1.0
+    }
+  ]
+}
