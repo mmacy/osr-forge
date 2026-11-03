@@ -12,7 +12,7 @@
      "number": 1,
      "panels": [],
      "passages": [],
-     "reason": "its map is an outdoor map, which the stage refuses",
+     "reason": "an outdoor map",
      "transitions": [],
      "verdict": "fallback"
     },
@@ -25,7 +25,7 @@
      "number": 2,
      "panels": [],
      "passages": [],
-     "reason": "its map is a hex map, which the stage refuses",
+     "reason": "a hex map",
      "transitions": [],
      "verdict": "fallback"
     },
@@ -38,7 +38,7 @@
      "number": 3,
      "panels": [],
      "passages": [],
-     "reason": "its map is a town map, which the stage refuses",
+     "reason": "a town map",
      "transitions": [],
      "verdict": "fallback"
     },
@@ -51,7 +51,7 @@
      "number": 4,
      "panels": [],
      "passages": [],
-     "reason": "its map is a quarter mile to the square, a scale the stage refuses",
+     "reason": "a scale of a quarter mile to the square",
      "transitions": [],
      "verdict": "fallback"
     },
@@ -64,7 +64,7 @@
      "number": 5,
      "panels": [],
      "passages": [],
-     "reason": "its map is an isometric view, which the stage refuses",
+     "reason": "an isometric map",
      "transitions": [],
      "verdict": "fallback"
     },
@@ -77,7 +77,7 @@
      "number": 6,
      "panels": [],
      "passages": [],
-     "reason": "its map is a side view, which the stage refuses",
+     "reason": "a side view",
      "transitions": [],
      "verdict": "fallback"
     }

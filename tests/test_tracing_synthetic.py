@@ -1,11 +1,6 @@
 """The synthetic maps: the committed set, its regeneration, its caches, its answers, its features, and its pictures.
 
-Chunk synth-core depends on chunk scorer, because these tests score every map, so five-foot and scorer merge first.
-Chunks synth-styles and synth-joins depend on synth-core and can run in either order after it.
-
-The set lives under `tests/assets/synthetic-maps/`. Each test here reads the
-committed set, so until the generator chunks land there is nothing to read
-and every test fails for that reason.
+The set lives under `tests/assets/synthetic-maps/`, and each test here reads it.
 """
 
 from collections.abc import Callable, Iterable
@@ -891,18 +886,7 @@ PREDICATES: dict[str, Callable[[SyntheticMap], bool]] = {
 """What a map's answer must show for each feature it declares, where the answer can show it."""
 
 
-@pytest.mark.parametrize(
-    "feature",
-    [
-        pytest.param(
-            name,
-            marks=()
-            if FEATURE_CHUNK[name] in (CORE, STYLES_CHUNK)
-            else pytest.mark.xfail(reason=FEATURE_CHUNK[name], strict=True),
-        )
-        for name in FEATURES
-    ],
-)
+@pytest.mark.parametrize("feature", list(FEATURES))
 def test_feature_coverage(feature: str):
     holders = [item for item in loaded_maps() if feature in item.manifest.features]
     assert holders, f"no synthetic map declares {feature}"
