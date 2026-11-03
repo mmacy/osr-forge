@@ -70,6 +70,16 @@
                 1,
                 2
               ]
+            },
+            {
+              "key": "6",
+              "name": "Entrance",
+              "source_label": null,
+              "kind": "room",
+              "source_pages": [
+                1,
+                2
+              ]
             }
           ]
         }

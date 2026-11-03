@@ -817,10 +817,10 @@ class LevelRules:
                 continue
             if self.members:
                 raise DesignError(f"unprinted key {area.key!r} on a panel several levels share isn't resolved here")
+            chamber = None
             if area.key == self.spec.entrance_key or area.name.lower() in ("entrance", "entranceway"):
-                take(self._entrance_chamber(area, placed, run_cells), area.key)
-            else:
-                raise DesignError(f"unprinted key {area.key!r} isn't an entrance, which this generator needs")
+                chamber = self._entrance_chamber(area, placed, run_cells)
+            take(chamber if chamber is not None else self._unprinted_room(area, placed, claim), area.key)
         placed_at: dict[Cell, list[str]] = {}
         for item in placed:
             placed_at.setdefault(item.cell, []).append(item.key)
@@ -870,20 +870,24 @@ class LevelRules:
         keyed = {cell: key for cell, key in claim.items() if key is not None and cell in board.owned}
         return keyed, doors
 
-    def _entrance_chamber(self, area: AreaSpec, placed: list[Placed], run_cells: dict[Cell, int]) -> list[Cell]:
+    def _entrance_chamber(self, area: AreaSpec, placed: list[Placed], run_cells: dict[Cell, int]) -> list[Cell] | None:
         """The unkeyed floor an unprinted entrance key takes, as Keys and areas says.
 
         Its opening is the one nearest the area its prose connects it to, by walking distance from the cell just
         inside the opening, among the outer openings that lead into unkeyed floor: floor in no open space that
         holds a placed key. The key takes floor up to the first door, keyed area, or unlabelled narrow run of three
         or more cells.
+
+        Returns:
+            The cells, or `None` when no outer opening leads into unkeyed floor, and the key is placed as any other
+            unprinted key is.
         """
         targets = [link.to_key for link in area.links if link.to_key in self.keys]
         if not targets:
             raise DesignError(f"entrance {area.key!r} has no prose connection to an area of its level")
         target_cells = [item.cell for item in placed if item.key == targets[0]]
-        if not target_cells or not self.openings:
-            raise DesignError(f"entrance {area.key!r} has no opening or no target")
+        if not target_cells:
+            raise DesignError(f"entrance {area.key!r} connects to a key the map doesn't print")
         keyed_spaces = {self.space_of[item.cell] for item in placed if item.cell in self.space_of}
         unkeyed: list[int] = []
         for index, opening in enumerate(self.openings):
@@ -893,7 +897,7 @@ class LevelRules:
             if keyed == {False}:
                 unkeyed.append(index)
         if not unkeyed:
-            raise DesignError(f"entrance {area.key!r} has no outer opening into unkeyed floor")
+            return None
         distance = self.walking(target_cells)
         ranked = sorted(
             (distance.get(self.openings[index].start, 10**9), order(self.openings[index].middle), index)
@@ -911,6 +915,45 @@ class LevelRules:
         if any(self.space_of[cell] in keyed_spaces for cell in chamber):
             raise DesignError(f"entrance {area.key!r} runs into a keyed area without a door between")
         return sorted(chamber, key=cell_order)
+
+    def _unprinted_room(self, area: AreaSpec, placed: list[Placed], claim: dict[Cell, str | None]) -> list[Cell]:
+        """The cells a survey key the map doesn't print takes, as Keys and areas says of any other such key.
+
+        It takes the unlabelled walled room beside the area its prose connects it to, behind the door the prose
+        names if there is one. The area isn't worked out yet, so the open space that holds its key's placed cells
+        stands for it. With no such room the key would become a synthesized area, which isn't resolved here.
+
+        Raises:
+            DesignError: If no room or several rooms qualify, or the prose connects the key to no printed key of
+                its level.
+        """
+        targets = [link for link in area.links if link.to_key in self.keys]
+        if not targets:
+            raise DesignError(f"unprinted key {area.key!r} connects to no area of its level, which isn't resolved here")
+        link = targets[0]
+        target_cells = [item.cell for item in placed if item.key == link.to_key]
+        if not target_cells:
+            raise DesignError(f"unprinted key {area.key!r} connects to a key the map doesn't print")
+        target_spaces = {self.space_of[cell] for cell in target_cells if cell in self.space_of}
+        target = {cell for index in target_spaces for cell in self.spaces[index]}
+        keyed_spaces = {self.space_of[item.cell] for item in placed if item.cell in self.space_of}
+        letters = {"door": "dl", "secret_door": "s"}.get(link.via)
+        rooms: list[int] = []
+        for index in self.walled:
+            room = self.spaces[index]
+            if index in keyed_spaces or index in target_spaces or any(cell in claim for cell in room):
+                continue
+            sides = [(cell, side) for cell in room for side in SIDES if neighbour(cell, side) in target]
+            if sides and (letters is None or any(self.board.letter(cell, side) in letters for cell, side in sides)):
+                rooms.append(index)
+        if not rooms:
+            raise DesignError(
+                f"unprinted key {area.key!r} has no unlabelled walled room beside {link.to_key!r}, so it would be a "
+                "synthesized area, which isn't resolved here"
+            )
+        if len(rooms) > 1:
+            raise DesignError(f"unprinted key {area.key!r} has several unlabelled walled rooms beside {link.to_key!r}")
+        return sorted(self.spaces[rooms[0]], key=cell_order)
 
     def _join_unlabelled(self, claim: dict[Cell, str | None], unreached: list[set[Cell]]) -> None:
         board = self.board
