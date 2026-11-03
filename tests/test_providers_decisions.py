@@ -337,7 +337,7 @@ def test_a_rejection_that_reports_a_token_limit_is_retried(tmp_path: Path):
 
 
 def test_a_rejection_that_stays_is_a_provider_error_naming_the_size_and_never_the_token(tmp_path: Path):
-    decider, transport, path = provider(tmp_path, [(413, rejection(65536, 215942))] * 4)
+    decider, transport, _ = provider(tmp_path, [(413, rejection(65536, 215942))] * 4)
     with pytest.raises(ProviderError) as excinfo:
         decider.decide(make_request())
     message = str(excinfo.value)
@@ -345,11 +345,48 @@ def test_a_rejection_that_stays_is_a_provider_error_naming_the_size_and_never_th
     assert "413" in message and str(len(transport.calls[0][1])) in message and "65536" in message
     assert TOKEN not in message
     assert TOKEN not in repr(decider.settings)
-    ledger = json.loads(path.read_text(encoding="utf-8"))
-    # Sent and rejected: settled at the estimate, like the probe's ledger counted its rejections.
-    assert ledger["entries"][1]["usd"] == pytest.approx(estimate_cost(make_request()), abs=1e-6)
-    assert ledger["entries"][1]["requests"] == 1
-    assert "pending" not in ledger["entries"][1]
+
+
+REFUSED_429 = (429, b'{"errors":[{"message":"you have used up your daily free allocation of 10,000 neurons"}]}')
+UNAUTHORIZED = (401, b'{"errors":[{"message":"unauthorized"}]}')
+
+
+@pytest.mark.parametrize(
+    ("answers", "error", "charged"),
+    [
+        pytest.param([UNAUTHORIZED], ClefAuthError, False, id="401"),
+        pytest.param([(403, b"forbidden")], ProviderError, False, id="403"),
+        pytest.param([(413, rejection(65536, 215942))] * 4, ProviderError, False, id="413-stays"),
+        pytest.param([REFUSED_429] * 5, ProviderError, False, id="429-stays"),
+        pytest.param(
+            [REFUSED_429, (413, rejection(24000, 52428))] + [REFUSED_429] * 3,
+            ProviderError,
+            False,
+            id="refusals-mixed",
+        ),
+        pytest.param([(503, b"busy")] * 5, ProviderError, True, id="5xx-stays"),
+        pytest.param([OSError("reset")] * 5, ProviderError, True, id="no-connection"),
+        pytest.param([REFUSED_429] * 4 + [(503, b"busy")], ProviderError, True, id="refusals-then-5xx"),
+        pytest.param(
+            [REFUSED_429, OSError("reset")] + [REFUSED_429] * 3, ProviderError, True, id="refusals-and-a-reset"
+        ),
+    ],
+)
+def test_a_request_the_service_refused_charges_nothing(
+    tmp_path: Path, answers: list[tuple[int, bytes] | Exception], error: type[Exception], charged: bool
+):
+    """Workers AI runs no model for a 401, 403, 413, or 429, and bills nothing for it. A 5xx or a lost connection
+    may have run the model, so it keeps its estimate. On 2026-11-02 an expired token and a used-up free allocation
+    charged the Clef ledger about $0.66 for requests that got no answer."""
+    decider, transport, path = provider(tmp_path, list(answers))
+    with pytest.raises(error):
+        decider.decide(make_request())
+    assert len(transport.calls) == len(answers)
+    entry = json.loads(path.read_text(encoding="utf-8"))["entries"][1]
+    expected = estimate_cost(make_request()) if charged else 0.0
+    assert entry["usd"] == pytest.approx(expected, abs=1e-6)
+    assert entry["requests"] == 1
+    assert "pending" not in entry
 
 
 def test_rate_limits_and_connection_failures_are_retried_and_auth_failures_are_not(tmp_path: Path):

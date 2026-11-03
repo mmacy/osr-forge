@@ -18,8 +18,6 @@ from tools.answer_keys import sample_app
 from tools.answer_keys.sample import SampleCall, SampleSet, Verdict, Verdicts, verdicts_path
 from tools.answer_keys.sample_app import make_app
 
-CHUNK = "chunk: sample-app"
-
 
 def call(index: int, **changes: Any) -> dict[str, Any]:
     base: dict[str, Any] = {
@@ -122,7 +120,6 @@ def test_verdicts_path_sits_beside_the_sample(tmp_path: Path):
     assert verdicts_path(tmp_path / "lairs.json") == tmp_path / "lairs.verdicts.json"
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_page_is_served(tmp_path: Path):
     app = make_app(write_sample(tmp_path))
     status, headers, body = request(app, "GET", "/")
@@ -132,7 +129,6 @@ def test_the_page_is_served(tmp_path: Path):
     assert "/api/sample" in page and "/api/verdict" in page
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_sample_comes_back_in_order_with_no_verdicts(tmp_path: Path):
     app = make_app(write_sample(tmp_path))
     status, headers, body = request(app, "GET", "/api/sample")
@@ -144,7 +140,6 @@ def test_the_sample_comes_back_in_order_with_no_verdicts(tmp_path: Path):
     assert data["verdicts"] == {}
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_crop_the_sample_names_is_served(tmp_path: Path):
     app = make_app(write_sample(tmp_path))
     status, headers, body = request(app, "GET", "/crops/crops/c1-wide.png")
@@ -153,7 +148,6 @@ def test_a_crop_the_sample_names_is_served(tmp_path: Path):
     assert body == (tmp_path / "crops" / "c1-wide.png").read_bytes()
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_no_other_file_is_served(tmp_path: Path):
     sample = write_sample(tmp_path)
     (tmp_path / "crops" / "unnamed.png").write_bytes((tmp_path / "crops" / "c0-zoom.png").read_bytes())
@@ -172,7 +166,6 @@ def test_no_other_file_is_served(tmp_path: Path):
         assert b"secret" not in body
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_verdict_is_written_and_read_back_on_the_next_start(tmp_path: Path):
     sample = write_sample(tmp_path)
     app = make_app(sample)
@@ -189,7 +182,6 @@ def test_a_verdict_is_written_and_read_back_on_the_next_start(tmp_path: Path):
     }
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_later_verdict_replaces_an_earlier_one_and_the_file_keeps_the_sample_order(tmp_path: Path):
     sample = write_sample(tmp_path)
     app = make_app(sample)
@@ -206,7 +198,6 @@ def test_a_later_verdict_replaces_an_earlier_one_and_the_file_keeps_the_sample_o
     assert json.loads(body) == {"recorded": 3}
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_bad_verdict_changes_nothing(tmp_path: Path):
     sample = write_sample(tmp_path)
     app = make_app(sample)
@@ -223,7 +214,6 @@ def test_a_bad_verdict_changes_nothing(tmp_path: Path):
     assert json.loads(body)["verdicts"] == {"c0": {"call": "c0", "settled": "w", "verdict": "right", "note": ""}}
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_an_invalid_verdicts_file_stops_the_start(tmp_path: Path):
     sample = write_sample(tmp_path)
     verdicts_path(sample).write_text(
@@ -233,7 +223,6 @@ def test_an_invalid_verdicts_file_stops_the_start(tmp_path: Path):
         make_app(sample)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_request_for_another_host_is_refused(tmp_path: Path):
     app = make_app(write_sample(tmp_path))
     for host in ("127.0.0.1:8765", "localhost:8765", "localhost", "127.0.0.1"):
@@ -245,7 +234,6 @@ def test_a_request_for_another_host_is_refused(tmp_path: Path):
         assert request(app, "GET", "/api/sample", host=host)[0] == 403, host
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_verdict_sent_as_another_content_type_is_refused(tmp_path: Path):
     sample = write_sample(tmp_path)
     app = make_app(sample)
@@ -256,7 +244,6 @@ def test_a_verdict_sent_as_another_content_type_is_refused(tmp_path: Path):
     assert request(app, "POST", "/api/verdict", body, content_type="application/json; charset=utf-8")[0] == 200
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_wrong_method_is_refused(tmp_path: Path):
     app = make_app(write_sample(tmp_path))
     assert request(app, "POST", "/")[0] == 405
@@ -265,7 +252,6 @@ def test_a_wrong_method_is_refused(tmp_path: Path):
     assert request(app, "DELETE", "/crops/crops/c0-zoom.png")[0] == 405
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_missing_or_linked_crop_is_not_served(tmp_path: Path):
     sample = write_sample(tmp_path)
     (tmp_path / "crops" / "c1-zoom.png").unlink()
@@ -280,7 +266,6 @@ def test_a_missing_or_linked_crop_is_not_served(tmp_path: Path):
     assert b"secret" not in body
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_verdicts_file_from_another_sample_stops_the_start(tmp_path: Path):
     sample = write_sample(tmp_path)
     path = verdicts_path(sample)
@@ -299,7 +284,6 @@ def test_a_verdicts_file_from_another_sample_stops_the_start(tmp_path: Path):
     assert set(json.loads(body)["verdicts"]) == {"c0", "c2"}
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_main_serves_on_the_loopback_address_only(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     sample = write_sample(tmp_path)
     calls: list[tuple[str, int]] = []

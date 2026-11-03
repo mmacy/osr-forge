@@ -1769,9 +1769,10 @@ def link_levels(levels: list[Resolved]) -> None:
     stairs, a ladder, a trapdoor, or a chute makes no transition. A link stands
     on the symbols of its own means. Stairs and ladders make a transition at
     each end, starting from the connection that comes first in survey order. A
-    trapdoor or chute makes one, at its end on the level above, or within one
-    level at the end whose area comes first in survey order. A link to an area
-    on another panel of the same level has no direction.
+    trapdoor or chute makes one, at the end whose prose states it. Stated from
+    both ends, it starts at its end on the level above, or within one level at
+    the end whose area comes first in survey order. A link to an area on
+    another panel of the same level has no direction.
 
     Args:
         levels: The dungeon's resolved levels, in survey order.
@@ -1792,20 +1793,27 @@ def link_levels(levels: list[Resolved]) -> None:
                     continue
                 if kinds is None:
                     raise DesignError(f"{area.key!r} names {key!r} on its own level by {link.via}, not made")
-                _realize(level, area.key, target, key, kinds, link.via)
+                reverse = next(spec for spec in target.spec.areas if spec.key == key).links
+                both = any(
+                    back.via == link.via and _target(levels, target, back) == (level, area.key) for back in reverse
+                )
+                _realize(level, area.key, target, key, kinds, link.via, both)
 
 
-def _realize(level: Resolved, key: str, target: Resolved, target_key: str, kinds: tuple[str, ...], via: str) -> None:
-    """Make the transitions of one link, from `key` on `level` to `target_key` on `target`."""
+def _realize(
+    level: Resolved, key: str, target: Resolved, target_key: str, kinds: tuple[str, ...], via: str, both: bool
+) -> None:
+    """Make the transitions of one link, from `key` on `level` to `target_key` on `target`.
+
+    `both` is true when the prose states the link from both ends. A trapdoor or chute stated from one end starts
+    there, and one stated from both ends starts on the level above, or within one level at the area first in
+    survey order.
+    """
     one_way = via in ("trapdoor", "chute")
-    if one_way and (
-        target.spec.number < level.spec.number
-        or (
-            target is level
-            and [area.key for area in level.spec.areas].index(target_key)
-            < [area.key for area in level.spec.areas].index(key)
-        )
-    ):
+    survey = [area.key for area in level.spec.areas]
+    above = target.spec.number < level.spec.number
+    earlier = target is level and survey.index(target_key) < survey.index(key)
+    if one_way and both and (above or earlier):
         level, key, target, target_key = target, target_key, level, key
     if target is level:
         here = _panel_at(level, min(level.areas[key], key=cell_order))
