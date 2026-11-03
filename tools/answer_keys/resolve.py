@@ -1552,27 +1552,32 @@ class Resolver:
             self.realize_link(Link(start, target_end, means))
 
     def level_target_end(self, level_id: LevelId, means: LinkMeans) -> tuple[Cell, str | None]:
-        """Where a link to a level with no target area ends: a symbol of its means on that level that no other link's
-        end stands on, the first in north-then-west order, or else the first cell of the level's first area."""
+        """Where a link to a level with no target area ends.
+
+        The level's first area stands in for the target area. The end is on a symbol of the link's means on that
+        level that no other link's end stands on, the first in north-then-west order; on a symbol several cells long
+        it takes the cell farthest by Chebyshev distance from the first area's first cell, ties in north-then-west
+        order. With no such symbol, the end is the first area's first cell.
+        """
         world = self.world
+        first_key = next((key for key in self.keys[level_id] if self.area_of(level_id, key.key)), None)
+        if first_key is None:
+            raise ConventionGap(f"a link to level {level_id} finds no area there to stand in for its target")
+        first = self.to_level(level_id, world.first(self.area_of(level_id, first_key.key)))
         used = {parse_cell(transition.cell) for transition in self.levels[level_id].transitions}
         candidates: list[tuple[Cell, str | None]] = []
         for grid in self.levels[level_id].grids:
             for symbol in grid.panel.symbols:
                 if symbol.kind not in MEANS_SYMBOLS[means]:
                     continue
-                cells = sorted(
-                    (self.to_level(level_id, (grid.id, *parse_cell(text))) for text in symbol.cells),
-                    key=lambda c: (c[1], c[0]),
-                )
-                if not any(c in used for c in cells):
-                    candidates.append((cells[0], symbol.direction))
+                cells = [self.to_level(level_id, (grid.id, *parse_cell(text))) for text in symbol.cells]
+                if any(c in used for c in cells):
+                    continue
+                end = max(cells, key=lambda c: (chebyshev(c, first), (-c[1], -c[0])))
+                candidates.append((end, symbol.direction))
         if candidates:
             return min(candidates, key=lambda item: (item[0][1], item[0][0]))
-        first = next((key for key in self.keys[level_id] if self.area_of(level_id, key.key)), None)
-        if first is None:
-            raise ConventionGap(f"a link to level {level_id} finds no symbol of its means and no area there")
-        return (self.to_level(level_id, world.first(self.area_of(level_id, first.key))), None)
+        return (first, None)
 
     def link_means(self, level_id: LevelId, key: str, via: str) -> LinkMeans | None:
         """A link's means: the prose's, or, when the prose names none, that of the link symbols beside its area.

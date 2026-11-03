@@ -580,11 +580,13 @@ def test_a_to_key_that_matches_nothing_and_reads_as_no_level_makes_no_link(to_ke
 
 def test_a_level_only_link_lands_on_an_unused_symbol_of_its_means():
     """A link to a level with no target area ends on a symbol of its means on that level that no other link's end
-    stands on, the first in north-then-west order: here the lower room's stair, which no link uses, rather than its
-    first cell. The stair's end leads back to the upper room."""
-    result = two_rooms_fixture("stairs", (Symbol(kind="stairs", cells=("5,2",)),), to_key="Level 2")
-    assert transitions(level_of(result, 1)) == {("1,1", "stairs_down", 2, "5,2")}
-    assert transitions(level_of(result, 2)) == {("5,2", "stairs_up", 1, "1,1")}
+    stands on, the first in north-then-west order: here the lower room's stair, which no link uses, rather than the
+    room's first cell. The level's first area stands in for the target area, so on the two-cell stair the end takes
+    the cell farthest by Chebyshev distance from that area's first cell, (5,1) rather than (4,1), which is the first
+    cell itself. The stair's end leads back to the upper room."""
+    result = two_rooms_fixture("stairs", (Symbol(kind="stairs", cells=("4,1", "5,1")),), to_key="Level 2")
+    assert transitions(level_of(result, 1)) == {("1,1", "stairs_down", 2, "5,1")}
+    assert transitions(level_of(result, 2)) == {("5,1", "stairs_up", 1, "1,1")}
 
 
 def test_a_level_only_link_with_no_symbol_of_its_means_lands_on_the_first_area():
