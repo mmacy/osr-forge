@@ -43,11 +43,13 @@ __all__ = [
     "Gap",
     "changed_by_round",
     "collect_check",
+    "confirmed",
     "join_gaps",
     "load_gaps",
     "resolved",
     "save_gaps",
     "submit_check",
+    "submit_consistency",
     "submit_edges",
     "submit_gaps",
     "submit_resettle",
@@ -116,17 +118,34 @@ def resolved(keys: list[KeySpec], stages: Path, lenient: bool = False) -> tuple[
     )
     survey, contents, mapread = load_caches(stages)
     resolver = (Lenient if lenient else Resolver)(reading_of(reading), survey, contents, mapread)
-    resolver.passed_over = []
+    resolver.passed_over = []  # type: ignore[attr-defined]
     resolver.run()
     return resolver, contents
 
 
-def join_gaps(resolver: Any, contents: dict[Any, Any]) -> list[Gap]:
+def confirmed(ctx: MapContext) -> tuple[set[tuple[int, int]], set[str]]:
+    """The rock cells and walls the join round has already confirmed on a map, which a later gap goes around."""
+    cells, edges = set(), set()
+    for name, call in _load_calls(ctx, "recheck").items():
+        if "__zjoins" not in call["job"]:
+            continue
+        if name.startswith("c:") and call["value"] == "#":
+            x, y = (int(part) for part in name[2:].split(","))
+            cells.add((x, y))
+        elif name.startswith("e:") and call["value"] in "wn":
+            edges.add(name[2:])
+    return cells, edges
+
+
+def join_gaps(
+    resolver: Any, contents: dict[Any, Any], refused: dict[str, tuple[set[tuple[int, int]], set[str]]] | None = None
+) -> list[Gap]:
     """The gap of every prose join the resolved key doesn't make.
 
     Args:
         resolver: A `Resolver` after `run()`.
         contents: The content caches by `(dungeon id, level number)`.
+        refused: By panel, the rock cells and walls the round has confirmed, which a gap goes around.
 
     Returns:
         One gap per join the key doesn't make, its `cost` `None` when no way within `GAP_CAP` was found.
@@ -165,17 +184,29 @@ def join_gaps(resolver: Any, contents: dict[Any, Any]) -> list[Gap]:
                 start = next(iter(state.areas[one]))
                 if floor_part(start) & state.areas[other]:
                     continue
-                gaps.append(_gap(world, level_id, mine, state.areas[one], state.areas[other], pair, connection.via))
+                gaps.append(
+                    _gap(
+                        world, level_id, mine, state.areas[one], state.areas[other], pair, connection.via, refused or {}
+                    )
+                )
     return gaps
 
 
 def _gap(
-    world: Any, level_id: Any, mine: set[Any], one: set[Any], other: set[Any], pair: tuple[str, str], via: str
+    world: Any,
+    level_id: Any,
+    mine: set[Any],
+    one: set[Any],
+    other: set[Any],
+    pair: tuple[str, str],
+    via: str,
+    refused: dict[str, tuple[set[tuple[int, int]], set[str]]] | None = None,
 ) -> Gap:
     """The cheapest way from one area to another through the level's floor and rock, by Dijkstra on costs 0 and 1."""
     level = f"{level_id[0]}/{level_id[1]}"
     panel = next(iter(one))[0]
     gap = Gap(level=level, areas=pair, via=via, panel=panel)
+    rock_done, walls_done = (refused or {}).get(panel, (set(), set()))
     best: dict[Any, int] = {}
     before: dict[Any, tuple[Any, str]] = {}
     heap: list[tuple[int, tuple[int, int, int], Any]] = []
@@ -197,7 +228,12 @@ def _gap(
             rock = not world.is_floor(nxt) and not world.is_water(nxt)
             if not rock and nxt not in mine:
                 continue
+            if rock and world.cell(nxt) in rock_done:
+                continue
             here_floor = world.is_floor(cell) or world.is_water(cell)
+            cx, cy = world.cell(cell)
+            if here_floor and not rock and _name(cx, cy, side) in walls_done:
+                continue
             step = 1 if rock else (1 if here_floor and world.edge(cell, side) not in "opdls" else 0)
             if cost + step < best.get(nxt, GAP_CAP + 1):
                 best[nxt] = cost + step
@@ -226,6 +262,34 @@ def _name(x: int, y: int, side: str) -> str:
     return edge_name(key, 10**6, 10**6)
 
 
+def _squares(ctx: MapContext, gap: Gap) -> tuple[list[tuple[int, int]], list[str]]:
+    """A gap's cells and edges in the reading's own squares. The resolver works on a 5-foot panel converted to
+    10-foot cells, so a converted cell maps back to the up to four squares it covers that the reading has as rock, and
+    a converted edge to its two segments."""
+    from osrforge.tracing.fivefoot import convert_five_foot
+
+    document = GeometryTruth.model_validate(json.loads((ctx.key.directory / "reading.json").read_text()))
+    panel = next(panel for panel in document.panels if panel.id == ctx.key.id)
+    if panel.scale_feet != 5:
+        return gap.cells, gap.edges
+    ox, oy = convert_five_foot(panel).phase
+    cells: list[tuple[int, int]] = []
+    for x, y in gap.cells:
+        for sx in (2 * x - ox, 2 * x - ox + 1):
+            for sy in (2 * y - oy, 2 * y - oy + 1):
+                if 0 <= sx < panel.width and 0 <= sy < panel.height and panel.cells[sy][sx] == "#":
+                    cells.append((sx, sy))
+    edges: list[str] = []
+    for name in gap.edges:
+        text, _, side = name.partition(":")
+        x, y = (int(part) for part in text.split(","))
+        if side == "west":
+            edges += [f"{2 * x - ox},{sy}:west" for sy in (2 * y - oy, 2 * y - oy + 1) if 0 <= sy < panel.height]
+        else:
+            edges += [f"{sx},{2 * y - oy}:north" for sx in (2 * x - ox, 2 * x - ox + 1) if 0 <= sx < panel.width]
+    return cells, edges
+
+
 def gap_items(ctx: MapContext, gaps: list[Gap], kind: str) -> list[dict[str, Any]]:
     """Settling items for one map's gaps: their rock cells (`kind` `"cells"`) or their walls (`"edges"`), each with
     the prose's join among its readings, and pixel counts."""
@@ -242,7 +306,8 @@ def gap_items(ctx: MapContext, gaps: list[Gap], kind: str) -> list[dict[str, Any
             "and the key doesn't join them; this item lies on the shortest way between them. That says where to look, "
             "not what the drawing shows"
         )
-        names = [f"c:{x},{y}" for x, y in gap.cells] if kind == "cells" else [f"e:{name}" for name in gap.edges]
+        gap_cells, gap_edges = _squares(ctx, gap)
+        names = [f"c:{x},{y}" for x, y in gap_cells] if kind == "cells" else [f"e:{name}" for name in gap_edges]
         for name in names:
             if name in seen:
                 continue
@@ -448,3 +513,42 @@ def submit_resettle(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | No
     if not ids:
         return None, 0
     return store.submit(client, ledger, f"recheck joins fix {ctx.key.id}", ids=ids), len(items)
+
+
+def submit_consistency(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | None, int]:
+    """Ask once more each wall the re-settling put between two cells the key has as floor, with both cells' key
+    letters and pixel counts: the re-settling asks an edge alone, and an edge called a wall because a neighbour was
+    taken for rock contradicts the key's cell."""
+    from .recheck import cell_edge_items
+
+    store = BatchStore(ctx.key.directory / "recheck")
+    rechecked = _load_calls(ctx, "recheck")
+    prefix = f"{ctx.key.id}__recheck__zjoins-final"
+    asked = {
+        item["id"]
+        for custom_id in store.job_ids()
+        if custom_id.startswith(prefix)
+        for item in store.job(custom_id)["meta"]["items"]
+    }
+    items = []
+    for item in cell_edge_items(ctx):
+        call = rechecked.get(item["id"])
+        if call is None or "__zjoins-fix" not in call["job"] or call["value"] not in "wn" or item["id"] in asked:
+            continue
+        item = with_reading(item, "the re-settling", f"{call['value']}, because: {call['reason']}")
+        item["earlier_job"] = call["job"]
+        items.append(item)
+    ids = []
+    for number, first in enumerate(range(0, len(items), 8)):
+        batch = items[first : first + 8]
+        custom_id = f"{prefix}{number:03d}"
+        params = _request(ctx, batch, RECHECK_SYSTEM, SCHEMA, False)
+        store.add_job(
+            custom_id,
+            params,
+            {"map": ctx.key.id, "items": batch, "supersedes": sorted({i["earlier_job"] for i in batch})},
+        )
+        ids.append(custom_id)
+    if not ids:
+        return None, 0
+    return store.submit(client, ledger, f"recheck joins final {ctx.key.id}", ids=ids), len(items)

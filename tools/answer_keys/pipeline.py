@@ -271,6 +271,7 @@ def main(argv: list[str] | None = None) -> int:
         "check",
         "check-collect",
         "resettle",
+        "final",
     ):
         action = words.pop()
     if not words or words[-1] not in stages:
@@ -290,11 +291,13 @@ def main(argv: list[str] | None = None) -> int:
     if stage == "joins":
         from .joins import (
             collect_check,
+            confirmed,
             join_gaps,
             load_gaps,
             resolved,
             save_gaps,
             submit_check,
+            submit_consistency,
             submit_edges,
             submit_gaps,
             submit_resettle,
@@ -307,7 +310,7 @@ def main(argv: list[str] | None = None) -> int:
             resolver, contents = resolved([specs[map_id] for map_id in words], args.stages, lenient=True)
             for gap in resolver.passed_over:
                 print(f"passed over for the measure: {gap}")
-            gaps = join_gaps(resolver, contents)
+            gaps = join_gaps(resolver, contents, {ctx.key.id: confirmed(ctx) for ctx in contexts})
             for ctx in contexts:
                 save_gaps(ctx, gaps)
             for gap in gaps:
@@ -329,6 +332,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{ctx.key.id}: join check {collect_check(ctx, api, book)}")
             elif action == "resettle":
                 print(f"{ctx.key.id}: join re-settling {submit_resettle(ctx, api, book)}")
+            elif action == "final":
+                print(f"{ctx.key.id}: join consistency {submit_consistency(ctx, api, book)}")
         return 0
     if stage == "recheck" and action == "resample":
         from .recheck import recheck_sample

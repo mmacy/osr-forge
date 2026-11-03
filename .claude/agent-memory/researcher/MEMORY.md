@@ -12,3 +12,4 @@
 - [Sample shows the recorded call](sample-shows-the-recorded-call.md) — a sample's reason must be the recorded value's; a rebuilt table leaves stale label calls the key never applies
 - [Recheck cells before edges](recheck-cells-before-edges.md) — after a recheck changes cells, re-ask their edges with the key's cells, and read changed reasons before sampling
 - [Batch counts lag](batch-counts-lag.md) — a batch can show 0 succeeded for hours while answers exist; cancel, collect, resend the rest by id
+- [Measure joins before handover](measure-joins-before-handover.md) — window scores miss connection; count prose joins and entrance reach per level before calling a key done
