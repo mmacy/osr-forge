@@ -1048,6 +1048,8 @@ class Dungeon(BaseModel):
             raise ValueError(f"dungeon {self.id!r}: a dungeon with a traced level has an entrance")
         for level in self.levels:
             for passage in level.passages:
+                if passage.to_dungeon is not None:
+                    continue
                 target = by_number.get(passage.to_level)
                 if target is None or target.verdict != "traced":
                     raise ValueError(f"dungeon {self.id!r}: a passage on level {level.number} leads to no traced level")
@@ -1140,6 +1142,7 @@ class GeometryTruth(BaseModel):
                 if region not in regions:
                     raise ValueError(f"a half pair names region {region!r}, which the document lacks")
         panels_by_id = {panel.id: panel for panel in self.panels}
+        dungeons_by_id = {dungeon.id: dungeon for dungeon in self.dungeons}
         for dungeon in self.dungeons:
             for level in dungeon.levels:
                 for part in level.panels:
@@ -1160,6 +1163,29 @@ class GeometryTruth(BaseModel):
                             f"a transition on {dungeon.id}/{level.number} leads to dungeon "
                             f"{transition.to_dungeon!r}, which the document lacks"
                         )
+                for passage in level.passages:
+                    if passage.to_dungeon is None:
+                        continue
+                    if passage.to_dungeon == dungeon.id:
+                        raise ValueError(
+                            f"a passage on {dungeon.id}/{level.number} names its own dungeon {dungeon.id!r} as "
+                            "another dungeon"
+                        )
+                    other = dungeons_by_id.get(passage.to_dungeon)
+                    if other is None:
+                        raise ValueError(
+                            f"a passage on {dungeon.id}/{level.number} leads to dungeon "
+                            f"{passage.to_dungeon!r}, which the document lacks"
+                        )
+                    target = next((item for item in other.levels if item.number == passage.to_level), None)
+                    if target is None or target.verdict != "traced":
+                        raise ValueError(
+                            f"a passage on {dungeon.id}/{level.number} leads to no traced level of dungeon "
+                            f"{passage.to_dungeon!r}"
+                        )
+                    _check_cells_in(
+                        [passage.to_cell], target.cells, f"passage destination {passage.to_dungeon}/{passage.to_level}"
+                    )
         if self.before_repair is not None and (self.before_repair.repairs or self.before_repair.before_repair):
             raise ValueError("the document before repair has no repairs of its own")
         return self
