@@ -152,13 +152,18 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
                         print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: {stage} spent ${store.spent():.4f}")
     elif stage == "recheck":
-        from .recheck import collect_recheck, record_corrections, submit_recheck
+        from .recheck import collect_recheck, record_corrections, submit_reask, submit_recheck
 
         if args.sample is None and action != "collect":
             raise SystemExit("recheck needs --sample, the sample file the owner checked")
         if action == "submit":
             batch, count = submit_recheck(ctx, args.sample, api, book, args.jobs)
             print(f"{key.id}: recheck batch {batch}, {count} items")
+        elif action == "reask":
+            mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
+            if mine:
+                batch, count = submit_reask(ctx, mine, api, book)
+                print(f"{key.id}: reask batch {batch}, {count} items")
         elif action == "correct":
             mine = {}
             for text in args.set:
@@ -221,6 +226,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--sample", type=Path, default=None, help="recheck: the sample file whose verdicts to act on")
     parser.add_argument(
+        "--call",
+        action="append",
+        default=[],
+        help="recheck reask: a call whose answer contradicts its reason, as <map id>:<call id>, repeatable",
+    )
+    parser.add_argument(
         "--set",
         action="append",
         default=[],
@@ -243,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
         "combine",
     }
     action = None
-    if words and words[-1] in ("submit", "collect", "export", "correct", "resample"):
+    if words and words[-1] in ("submit", "collect", "export", "correct", "reask", "resample"):
         action = words.pop()
     if not words or words[-1] not in stages:
         parser.error("the last words name a stage and, for a batch stage, submit or collect")

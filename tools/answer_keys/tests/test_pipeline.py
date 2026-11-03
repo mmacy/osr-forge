@@ -805,3 +805,25 @@ def test_an_outline_item_lists_the_keys_printed_near_its_cell(tmp_path, monkeypa
     }
     extended = settler.with_reading(item, "the survey's keys", text)
     assert extended["text"].endswith(f"Readings: x read a; the survey's keys read {text}.")
+
+
+def test_a_job_that_supersedes_another_keeps_its_answers_over_every_collect(tmp_path):
+    store = batches.BatchStore(tmp_path / "recheck")
+    first = [{"id": "c:1,1", "kind": "cell", "readings": []}, {"id": "c:2,1", "kind": "cell", "readings": []}]
+    store.add_job("m__recheck__000", {"model": "x"}, {"items": first})
+    # The superseding job's id sorts first, so a collect reads its answer before the one it replaces.
+    store.add_job("m__recheck_fix", {"model": "x"}, {"items": first[:1], "supersedes": ["m__recheck__000"]})
+    store.answers.mkdir(parents=True)
+
+    def answer(custom_id, rows):
+        text = json.dumps({"items": [{"id": i, "answer": a, "reason": "r"} for i, a in rows]})
+        message = {"content": [{"type": "text", "text": text}]}
+        (store.answers / f"{custom_id}.json").write_text(json.dumps({"message": message, "stop_reason": "end_turn"}))
+
+    answer("m__recheck__000", [("c:1,1", "."), ("c:2,1", "#")])
+    answer("m__recheck_fix", [("c:1,1", "#")])
+    calls: dict = {}
+    for _ in range(3):
+        settler._harvest(store, calls, False, {"calls": 0, "retries": 0})
+        assert calls["c:1,1"]["value"] == "#" and calls["c:1,1"]["job"] == "m__recheck_fix"
+        assert calls["c:2,1"]["value"] == "#" and calls["c:2,1"]["job"] == "m__recheck__000"

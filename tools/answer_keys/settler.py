@@ -1064,16 +1064,20 @@ def collect_pass(ctx: MapContext, stage: str, store: BatchStore, client: Any, le
 
 
 def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: bool, result: dict[str, Any]) -> None:
+    # A job that asks some items of earlier jobs again names them in `supersedes`: its answers stand over theirs.
+    superseding: dict[str, list[str]] = {}
+    for custom_id in store.job_ids():
+        for earlier in store.job(custom_id)["meta"].get("supersedes", []):
+            superseding.setdefault(earlier, []).append(custom_id)
     for custom_id in store.job_ids():
         answer = store.answer(custom_id)
         if answer is None:
             continue
         job = store.job(custom_id)
         expected = job["meta"]["items"]
-        if all(
-            item["id"] in calls and calls[item["id"]].get("job") in (custom_id, job["meta"].get("retry_of"))
-            for item in expected
-        ):
+        retry_of = job["meta"].get("retry_of")
+        accepted = {custom_id, retry_of, *superseding.get(custom_id, []), *superseding.get(retry_of or "", [])}
+        if all(item["id"] in calls and calls[item["id"]].get("job") in accepted for item in expected):
             continue
         text = answer_text_of(answer["message"])
         document = parse_answer_text(text)
@@ -1082,8 +1086,12 @@ def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: boo
             faults.insert(0, f"the answer stopped with {answer['stop_reason']}")
         if not faults and document is not None:
             by_id = {item["id"]: item for item in expected}
+            later = accepted - {custom_id, retry_of}
             for row in document["items"]:
                 item = by_id[row["id"]]
+                if calls.get(row["id"], {}).get("job") in later:
+                    # A job that asked this item again has answered it already; its answer stands.
+                    continue
                 call = {
                     "value": row["answer"].strip(),
                     "reason": row["reason"],

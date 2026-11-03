@@ -36,12 +36,15 @@ from .sample import SampleCall, SampleSet, Verdicts, verdicts_path
 from .samples import categorize, sample_calls
 from .settler import (
     RECHECK_SYSTEM,
+    SCHEMA,
     _add_jobs,
     _harvest,
     _load_calls,
     _rebuild_item,
+    _request,
     _save_calls,
     final_values,
+    with_reading,
     write_final,
 )
 
@@ -53,6 +56,7 @@ __all__ = [
     "recheck_sample",
     "record_corrections",
     "sample_call_id",
+    "submit_reask",
     "submit_recheck",
 ]
 
@@ -212,6 +216,46 @@ def collect_recheck(ctx: MapContext, client: Any, ledger: Any) -> dict[str, Any]
     write_final(ctx)
     result["retry_ids"] = list(store.added)
     return result
+
+
+def submit_reask(ctx: MapContext, call_ids: list[str], client: Any, ledger: Any) -> tuple[str | None, int]:
+    """Ask again, in one fresh recheck request, the recheck calls whose answer contradicts its own stated reason.
+
+    Each item is the one the recheck asked, with the earlier answer and its reason among the readings. The job
+    names the jobs it supersedes, so its answers replace theirs however often the store is collected.
+
+    Args:
+        ctx: The map.
+        call_ids: The calls to ask again, such as `["e:2,7:north"]`.
+        client: An `anthropic.Anthropic` client.
+        ledger: The Claude ledger.
+
+    Returns:
+        The batch id and the number of items asked.
+    """
+    store = BatchStore(ctx.key.directory / "recheck")
+    asked: dict[str, tuple[str, dict[str, Any]]] = {}
+    for custom_id in store.job_ids():
+        for item in store.job(custom_id)["meta"]["items"]:
+            asked[item["id"]] = (store.job(custom_id)["meta"].get("retry_of") or custom_id, item)
+    calls = _load_calls(ctx, "recheck")
+    items, supersedes = [], set()
+    for name in call_ids:
+        job_id, item = asked[name]
+        call = calls[name]
+        items.append(
+            with_reading(
+                item,
+                "an earlier recheck",
+                f'{call["value"]}, with the reason "{call["reason"]}", which names another value than its answer',
+            )
+        )
+        supersedes.add(calls[name].get("job", job_id))
+    number = sum(1 for custom_id in store.job_ids() if "__recheck__zreask" in custom_id and "__r" not in custom_id[-3:])
+    custom_id = f"{ctx.key.id}__recheck__zreask{number:03d}"
+    params = _request(ctx, items, RECHECK_SYSTEM, SCHEMA, False)
+    store.add_job(custom_id, params, {"map": ctx.key.id, "items": items, "supersedes": sorted(supersedes)})
+    return store.submit(client, ledger, f"recheck reask {ctx.key.id}", ids=[custom_id]), len(items)
 
 
 def record_corrections(ctx: MapContext, sample_path: Path, values: dict[str, str]) -> dict[str, str]:
