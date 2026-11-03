@@ -17,7 +17,7 @@ from .keyspec import MapContext
 from .reader import WindowAnswer, answer_text_of, check, parse, parse_answer_text, retry_params, window_params
 from .tiles import Window, render_window, tile
 
-__all__ = ["collect_windows", "parsed_windows", "submit_windows", "window_jobs"]
+__all__ = ["collect_windows", "parsed_windows", "split_window", "submit_windows", "window_jobs"]
 
 
 def window_jobs(ctx: MapContext, store: BatchStore, crops: Path) -> list[str]:
@@ -181,3 +181,34 @@ def parsed_windows(ctx: MapContext) -> list[dict[str, Any]]:
     """Every parsed window of a map."""
     parsed_dir = ctx.key.directory / "windows" / "parsed"
     return [json.loads(path.read_text()) for path in sorted(parsed_dir.glob("*.json"))] if parsed_dir.exists() else []
+
+
+def split_window(ctx: MapContext, store: BatchStore, window: Window) -> list[str]:
+    """Add jobs for the four quarters of a window that no attempt read well formed.
+
+    A window the model keeps answering with rows of the wrong length is read in four 6 by 6 (or smaller)
+    windows instead, each a job of its own whose parsed answer stands in for that part of the window.
+
+    Args:
+        ctx: The map.
+        store: The windows batch store.
+        window: The window to split.
+
+    Returns:
+        The job ids added.
+    """
+    ids = []
+    half_w = -(-window.columns // 2)
+    half_h = -(-window.rows // 2)
+    for y0 in (window.y0, window.y0 + half_h):
+        for x0 in (window.x0, window.x0 + half_w):
+            columns = min(half_w, window.x0 + window.columns - x0)
+            rows = min(half_h, window.y0 + window.rows - y0)
+            if columns <= 0 or rows <= 0:
+                continue
+            quarter = Window(x0, y0, columns, rows)
+            custom_id = f"{ctx.key.id}__w__{quarter.id}__q"
+            meta = {"map": ctx.key.id, "window": [x0, y0, columns, rows], "attempt": 1, "quarter_of": window.id}
+            store.add_job(custom_id, fresh_params(ctx, quarter), meta)
+            ids.append(custom_id)
+    return ids

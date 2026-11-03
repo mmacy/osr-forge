@@ -340,6 +340,33 @@ def test_batch_store_reserves_each_job_and_settles_from_the_answer(tmp_path):
     assert store.pending() == ["b"]
 
 
+def test_submit_sends_parts_under_the_size_limit_and_releases_reservations_on_failure(tmp_path, monkeypatch):
+    store = batches.BatchStore(tmp_path / "store")
+    params = reader.window_params(_png_base64((400, 400)), tiles.Window(0, 0, 3, 2), "a map")
+    for name in ("a", "b", "c"):
+        store.add_job(name, params, {"window": [0, 0, 3, 2]})
+    monkeypatch.setattr(batches, "BATCH_BYTES", (store.jobs / "a.json").stat().st_size + 1)
+    ledger = _FakeLedger()
+    client = _FakeClient([])
+    assert store.submit(client, ledger, "test") == "batch_3"
+    assert [len(r) for r in client.messages.batches.created] == [1, 1, 1]
+    assert [e["label"] for e in ledger.entries] == ["test part 1", "test part 2", "test part 3"]
+
+    class _Refusing:
+        def create(self, requests):
+            raise RuntimeError("413")
+
+    store2 = batches.BatchStore(tmp_path / "store2")
+    store2.add_job("a", params, {"window": [0, 0, 3, 2]})
+    ledger2 = _FakeLedger()
+    client2 = _FakeClient([])
+    client2.messages.batches = _Refusing()
+    with pytest.raises(RuntimeError):
+        store2.submit(client2, ledger2, "test")
+    assert ledger2.settled == [(0, ledger2.reserved[0][1], 0.0)]
+    assert store2.pending() == ["a"]
+
+
 # --- the readings table ------------------------------------------------------------------------------------
 
 

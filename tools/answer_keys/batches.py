@@ -32,6 +32,9 @@ SCRIPT = "answer-keys"
 BATCH_DISCOUNT = 0.5
 """The Batches API charges half the list price for every kind of token."""
 
+BATCH_BYTES = 180_000_000
+"""The most bytes of job files one batch carries, under the API's 256 MB limit on a request body."""
+
 _MAX_IMAGE_EDGE = 2576
 _MAX_IMAGE_PIXELS = 3_750_000
 
@@ -186,7 +189,11 @@ class BatchStore:
         return [custom_id for custom_id in self.job_ids() if custom_id not in done]
 
     def submit(self, client: Any, ledger: Ledger, label: str, limit: int | None = None) -> str | None:
-        """Send the pending jobs as one batch, reserving each job's worst case first.
+        """Send the pending jobs, reserving each job's worst case first, in batches under the API's size limit.
+
+        The Batches API takes a request body of at most 256 MB, so the jobs are sent in batches whose job files
+        total at most `BATCH_BYTES`. If a batch can't be created, its reservations are settled at nothing, because
+        nothing was sent, and the error is raised.
 
         Args:
             client: An `anthropic.Anthropic` client.
@@ -195,14 +202,30 @@ class BatchStore:
             limit: Send at most this many jobs, or every pending job.
 
         Returns:
-            The batch id, or `None` when nothing was pending.
+            The last batch id, or `None` when nothing was pending.
         """
         pending = self.pending()
         if limit is not None:
             pending = pending[:limit]
         if not pending:
             return None
-        jobs = [self.job(custom_id) for custom_id in pending]
+        groups: list[list[str]] = [[]]
+        size = 0
+        for custom_id in pending:
+            bytes_ = (self.jobs / f"{custom_id}.json").stat().st_size
+            if groups[-1] and size + bytes_ > BATCH_BYTES:
+                groups.append([])
+                size = 0
+            groups[-1].append(custom_id)
+            size += bytes_
+        last = None
+        for number, group in enumerate(groups, 1):
+            suffix = f" part {number}" if len(groups) > 1 else ""
+            last = self._submit_group(client, ledger, f"{label}{suffix}", group)
+        return last
+
+    def _submit_group(self, client: Any, ledger: Ledger, label: str, group: list[str]) -> str:
+        jobs = [self.job(custom_id) for custom_id in group]
         model = jobs[0]["params"]["model"]
         entry = {"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "script": SCRIPT, "label": label, "model": model}
         index = ledger.open(entry)
@@ -212,7 +235,12 @@ class BatchStore:
             reservation = ledger.reserve(index, usd)
             reservations[job["custom_id"]] = {"index": reservation.index, "usd": reservation.usd}
         requests = [{"custom_id": job["custom_id"], "params": job["params"]} for job in jobs]
-        batch = client.messages.batches.create(requests=requests)
+        try:
+            batch = client.messages.batches.create(requests=requests)
+        except Exception:
+            for reservation in reservations.values():
+                ledger.settle(Reservation(index=reservation["index"], usd=reservation["usd"]), 0.0)
+            raise
         data = self._batches()
         data["batches"].append(
             {
