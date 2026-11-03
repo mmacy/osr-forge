@@ -1,5 +1,5 @@
 # The provenance of geometry.json beside this file. Written by tools/answer_keys/assemble.py.
-authored: "2026-11-02"
+authored: "2026-11-03"
 instrument: >-
   Two independent readings per map: Claude Sonnet 5.5 (claude-sonnet-5-5) at high effort reading 12 by 12
   cell windows with grid ticks through tools/answer_keys/reader.py, which isn't the tracing stage's code,
@@ -10,8 +10,8 @@ instrument: >-
 verified: >-
   An adversarial pass of fresh Sonnet requests at high effort rechecked every settled call and the
   agreed edges in caves, at diagonals, and around keys; a challenged call was settled once more in a
-  fresh request with the challenge among its readings, and that value is the key's. Owner sample:
-  PENDING, in the sample app (tools/answer_keys/sample_app.py).
+  fresh request with the challenge among its readings, and that value is the key's.
+  Owner sample, in the sample app (tools/answer_keys/sample_app.py): PENDING.
 spend_usd: {claude: 11.4320, clef: 0.0000}
 maps:
   - {"map": "jn1-p046", "windows_usd": 0.872317, "marks_usd": 0.098398, "wholemap_usd": 0.011793, "settle_usd": 1.251013, "adversary_usd": 2.186383, "resettle_usd": 0.205431, "claude_usd": 4.625335, "clef_requests": 2668, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "cells": 1376, "cells_disputed": 136, "edges": 2669, "edges_disputed": 503, "marks": 24, "marks_disputed": 14, "symbols": 21, "symbols_disputed": 12, "settled_calls": 739, "adversarial_checks": 1431, "challenged": 108, "changed_by_challenge": 54}
@@ -19,4 +19,4 @@ maps:
   - {"map": "jn1-p021-halfling", "windows_usd": 1.085125, "marks_usd": 0.040829, "wholemap_usd": 0.008829, "settle_usd": 0.427588, "adversary_usd": 1.328781, "resettle_usd": 0.089328, "claude_usd": 2.98048, "clef_requests": 1789, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_hosted_record": 1145, "cells": 962, "cells_disputed": 17, "edges": 1785, "edges_disputed": 366, "marks": 16, "marks_disputed": 13, "symbols": 0, "symbols_disputed": 0, "settled_calls": 264, "adversarial_checks": 840, "challenged": 21, "changed_by_challenge": 16}
   - {"map": "jn1-p021-cave", "windows_usd": 0.790968, "marks_usd": 0.050002, "wholemap_usd": 0.010683, "settle_usd": 0.405778, "adversary_usd": 1.466916, "resettle_usd": 0.054988, "claude_usd": 2.779335, "clef_requests": 790, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_hosted_record": 643, "cells": 888, "cells_disputed": 84, "edges": 711, "edges_disputed": 270, "marks": 15, "marks_disputed": 13, "symbols": 6, "symbols_disputed": 3, "settled_calls": 211, "adversarial_checks": 763, "challenged": 17, "changed_by_challenge": 13}
 cases:
-  - "6: page 38 (jn1-p038) is settled through every pass but isn't in this key: the ten lairs are ten dungeons in the survey and their ground is one surface with the ravine, which the conventions can't yet divide; the page joins the key after the ruling"
+  - "9: page 38 (jn1-p038) is settled but not in this key: its ten lairs are ten dungeons of the survey, and their floors join on the map where the format lets a passage name only its own dungeon (open); the page's earlier cases are ruled: 6 in pull request 102 (an outline border may follow an elevation line) and 8 in pull request 105 (an unprinted entrance key's opening is chosen among those into unkeyed floor)"

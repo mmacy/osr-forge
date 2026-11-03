@@ -1813,8 +1813,20 @@
      "passages": [],
      "transitions": [
       {
-       "cell": "14,21",
-       "kind": "stairs_down",
+       "cell": "19,21",
+       "kind": "stairs_up",
+       "to_cell": "6,9",
+       "to_level": 2
+      },
+      {
+       "cell": "14,22",
+       "kind": "stairs_up",
+       "to_cell": "11,9",
+       "to_level": 2
+      },
+      {
+       "cell": "16,30",
+       "kind": "stairs_up",
        "to_cell": "3,8",
        "to_level": 2
       }
@@ -2136,9 +2148,15 @@
      "passages": [],
      "transitions": [
       {
-       "cell": "3,8",
-       "kind": "stairs_up",
-       "to_cell": "14,21",
+       "cell": "6,9",
+       "kind": "stairs_down",
+       "to_cell": "19,21",
+       "to_level": 1
+      },
+      {
+       "cell": "11,9",
+       "kind": "stairs_down",
+       "to_cell": "14,22",
        "to_level": 1
       }
      ],
