@@ -9,3 +9,4 @@
 - [Batch store sweep](batch-store-sweep.md) — collect every batch store before reporting spend; a superseded batch leaves its reservation open
 - [Cave mouths before resolving](cave-mouths-before-resolving.md) — on a page of several dungeons, measure whether their grounds are one surface before resolving; the resolver cannot cut between dungeons
 - [Resend only retries](resend-only-retries.md) — a collect resends the retry ids it queued, never the store pending list; a pass in parts leaves jobs waiting
+- [Sample shows the recorded call](sample-shows-the-recorded-call.md) — a sample's reason must be the recorded value's; a rebuilt table leaves stale label calls the key never applies

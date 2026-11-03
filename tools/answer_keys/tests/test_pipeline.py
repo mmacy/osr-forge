@@ -781,3 +781,27 @@ def test_the_recheck_prompt_doesnt_tell_the_settler_the_readers_disagree():
     assert "checked afresh" in settler.RECHECK_SYSTEM
     for prompt in (settler.SETTLE_SYSTEM, settler.ADVERSARY_SYSTEM, settler.RECHECK_SYSTEM):
         assert "diagonal run of floor stay joined edge to edge" in prompt and "pixel count" in prompt
+
+
+def test_a_slope_asked_again_supersedes_the_earlier_call():
+    calls = {"l:0,0|a/1": {}, "l:0,0|a/1#2": {}, "l:5,5|b/1": {}, "l:9,9|c/1#2": {}, "l:9,9|c/1#10": {}}
+    assert settler._superseded("l:0,0|a/1", calls)
+    assert not settler._superseded("l:0,0|a/1#2", calls)
+    assert not settler._superseded("l:5,5|b/1", calls)
+    assert settler._superseded("l:9,9|c/1#2", calls) and not settler._superseded("l:9,9|c/1#10", calls)
+
+
+def test_an_outline_item_lists_the_keys_printed_near_its_cell(tmp_path, monkeypatch):
+    marks = {"a/1": [("1", "2,2"), ("2", "20,20")], "b/1": [("7", "5,3"), ("8", "4,4")]}
+    monkeypatch.setattr(settler, "level_key_marks", lambda _ctx, _items: marks)
+    text = settler.keys_near(None, None, (3, 3))  # type: ignore[arg-type]
+    # Nearest first, and of equal distance the one first in north-then-west order.
+    assert text == "1 at 2,2 (a/1); 8 at 4,4 (b/1); 7 at 5,3 (b/1)"
+    assert settler.keys_near(None, None, (40, 40)) == "none within 8 cells"  # type: ignore[arg-type]
+    item = {
+        "id": "o:3,3|a/1",
+        "text": "cell 3,3: which? Readings: the whole-map read read a.",
+        "readings": [("x", "a")],
+    }
+    extended = settler.with_reading(item, "the survey's keys", text)
+    assert extended["text"].endswith(f"Readings: x read a; the survey's keys read {text}.")

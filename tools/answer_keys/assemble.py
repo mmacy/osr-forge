@@ -13,6 +13,7 @@ counts those.
 
 import json
 import os
+import textwrap
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
@@ -391,7 +392,11 @@ def _shell_dungeons(key: KeySpec) -> tuple[Dungeon, ...]:
 
 
 def combine(
-    keys: list[KeySpec], out: Path, resolve_with: Path | None, cases: list[str] | None = None
+    keys: list[KeySpec],
+    out: Path,
+    resolve_with: Path | None,
+    cases: list[str] | None = None,
+    samples: list[Path] | None = None,
 ) -> dict[str, Any]:
     """Join the region documents of one member, resolve them, and write the key.
 
@@ -400,6 +405,8 @@ def combine(
         out: The key's path.
         resolve_with: The directory whose `stages/` holds the member's caches, or `None` to write the reading
             layer alone.
+        cases: The conventions cases the key depends on, one line each.
+        samples: The owner's sample files whose verdicts the provenance counts.
 
     Returns:
         A log: the regions joined and the resolver's outcome.
@@ -428,7 +435,7 @@ def combine(
     if resolve_with is None:
         save_geometry_truth(out, reading)
         log["resolved"] = False
-        log["provenance"] = str(write_provenance(keys, out, cases or [], False))
+        log["provenance"] = str(write_provenance(keys, out, cases or [], False, samples))
         return log
     survey, contents, mapread = load_caches(resolve_with)
     try:
@@ -439,7 +446,7 @@ def combine(
         return log
     save_geometry_truth(out, canonical_form(resolved))
     log["resolved"] = True
-    log["provenance"] = str(write_provenance(keys, out, cases or [], True))
+    log["provenance"] = str(write_provenance(keys, out, cases or [], True, samples))
     log["levels"] = [
         f"{d.id}/{level.number}: {level.verdict}" + (f" ({level.reason})" if level.reason else "")
         for d in resolved.dungeons
@@ -454,7 +461,7 @@ def map_figures(key: KeySpec) -> dict[str, Any]:
 
     figures: dict[str, Any] = {"map": key.id}
     claude = 0.0
-    for stage in ("windows", "marks", "wholemap", "settle", "adversary", "resettle"):
+    for stage in ("windows", "marks", "wholemap", "settle", "adversary", "resettle", "recheck"):
         store = BatchStore(key.directory / stage)
         spent = store.spent()
         if spent:
@@ -491,13 +498,56 @@ def map_figures(key: KeySpec) -> dict[str, Any]:
         figures["changed_by_challenge"] = sum(
             1 for call in final.values() if call.get("challenged") and call.get("value") != call.get("settled")
         )
+        rechecked = [call for call in final.values() if "before_recheck" in call]
+        if rechecked:
+            figures["rechecked"] = len(rechecked)
+            figures["changed_by_recheck"] = sum(1 for call in rechecked if call["value"] != call["before_recheck"])
+        corrected = [call for call in final.values() if "before_owner" in call]
+        if corrected:
+            figures["owner_corrections"] = len(corrected)
     return figures
 
 
-def write_provenance(keys: list[KeySpec], out: Path, cases: list[str], resolved: bool) -> Path:
-    """Write `geometry-provenance.yaml` beside a key: what made it, which checks ran, what it cost, and the cases
-    it depends on."""
+def sample_summary(samples: list[Path], panels: set[str]) -> str:
+    """The owner's verdicts on the samples, counted over the calls of the given panels."""
+    from .sample import SampleSet, Verdicts, verdicts_path
+
+    parts = []
+    for path in samples:
+        sample = SampleSet.model_validate(json.loads(path.read_text()))
+        calls = {call.id for call in sample.calls if call.panel in panels}
+        if not calls:
+            continue
+        verdicts_file = verdicts_path(path)
+        verdicts = (
+            Verdicts.model_validate(json.loads(verdicts_file.read_text())) if verdicts_file.exists() else Verdicts()
+        )
+        given = [verdict for verdict in verdicts.verdicts if verdict.call in calls]
+        counts = {kind: sum(1 for verdict in given if verdict.verdict == kind) for kind in ("right", "wrong", "unsure")}
+        state = "done" if len(given) == len(calls) else f"PENDING, {len(given)} of them judged"
+        parts.append(
+            f"{path.name}, {len(calls)} calls, {state}: {counts['right']} right, {counts['wrong']} wrong, "
+            f"{counts['unsure']} unsure"
+        )
+    return "; ".join(parts)
+
+
+def write_provenance(
+    keys: list[KeySpec], out: Path, cases: list[str], resolved: bool, samples: list[Path] | None = None
+) -> Path:
+    """Write `geometry-provenance.yaml` beside a key: what made it, which checks ran, what it cost, the owner's
+    sample, and the cases it depends on."""
     figures = [map_figures(key) for key in keys]
+    owner = sample_summary(samples or [], {key.id for key in keys})
+    rechecked = [f["map"] for f in figures if f.get("rechecked")]
+    if rechecked:
+        owner += (
+            f". A wrong call sent every call of its category on its map ({', '.join(rechecked)}) back to the settler, "
+            "and the owner's value for each wrong call is the key's; the calls that changed are in a new sample"
+        )
+    owner_lines = textwrap.wrap(
+        f"Owner sample: {owner or 'PENDING'}, in the sample app (tools/answer_keys/sample_app.py).", 110
+    )
     claude = round(sum(f["claude_usd"] for f in figures), 4)
     clef = round(sum(f.get("clef_usd", 0.0) for f in figures), 4)
     by_reader: dict[str, list[str]] = {}
@@ -538,8 +588,8 @@ def write_provenance(keys: list[KeySpec], out: Path, cases: list[str], resolved:
         "verified: >-",
         "  An adversarial pass of fresh Sonnet requests at high effort rechecked every settled call and the",
         "  agreed edges in caves, at diagonals, and around keys; a challenged call was settled once more in a",
-        "  fresh request with the challenge among its readings, and that value is the key's. Owner sample:",
-        "  PENDING, in the sample app (tools/answer_keys/sample_app.py).",
+        "  fresh request with the challenge among its readings, and that value is the key's.",
+        *(f"  {line}" for line in owner_lines),
         f"spend_usd: {{claude: {claude:.4f}, clef: {clef:.4f}}}",
         "maps:",
     ]

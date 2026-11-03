@@ -212,6 +212,13 @@ def main(argv: list[str] | None = None) -> int:
         "--stages", type=Path, default=None, help="combine: the directory whose stages/ the resolver reads"
     )
     parser.add_argument("--cases", action="append", default=[], help="combine: a case the key depends on, repeatable")
+    parser.add_argument(
+        "--verdicts",
+        type=Path,
+        action="append",
+        default=[],
+        help="combine: a sample file whose owner's verdicts the provenance counts, repeatable",
+    )
     parser.add_argument("--sample", type=Path, default=None, help="recheck: the sample file whose verdicts to act on")
     parser.add_argument(
         "--set",
@@ -264,7 +271,7 @@ def main(argv: list[str] | None = None) -> int:
 
         keys = [specs[map_id] for map_id in words]
         out = args.out or keys[0].key
-        print(combine(keys, out, args.stages, args.cases))
+        print(combine(keys, out, args.stages, args.cases, args.verdicts))
         return 0
     for map_id in words:
         run_stage(specs[map_id], stage, action, args)
