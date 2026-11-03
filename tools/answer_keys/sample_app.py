@@ -14,23 +14,37 @@ right, `w` as wrong, and `u` as unsure, and moves to the next call. The left and
 calls without recording anything, and `n` opens a note that the next verdict on that call records with it. The page
 shows how many calls have a verdict. Its words are in sentence case.
 
-The server is a WSGI application from the standard library, with these routes:
+The server is a WSGI application from the standard library. Every request whose `Host` header names a host other
+than `127.0.0.1` or `localhost`, on any port, is a 403, so a page that points its own hostname at this machine
+can't read the crops. The routes:
 
 - `GET /`: the page, as `text/html; charset=utf-8`. The page's script reads `/api/sample` and posts to
   `/api/verdict`.
 - `GET /api/sample`: `{"calls": [...], "verdicts": {...}}` as `application/json`. `calls` are the sample's calls
   in order, each as the JSON of a [`SampleCall`][tools.answer_keys.sample.SampleCall], and `verdicts` maps each
-  call id that has a verdict to the JSON of its [`Verdict`][tools.answer_keys.sample.Verdict].
+  call id that has a verdict to the JSON of its [`Verdict`][tools.answer_keys.sample.Verdict]. The JSON of a model
+  holds every field, defaults included.
 - `GET /crops/<path>`: the bytes of a crop, where `<path>` is exactly a `zoom` or `wide` path that a call names,
-  with the content type of its extension (`image/png` or `image/jpeg`). Any other path is a 404.
-- `POST /api/verdict`: a JSON [`Verdict`][tools.answer_keys.sample.Verdict]. It replaces any earlier verdict on
-  that call, writes the verdicts file, and answers `{"recorded": <number of calls with a verdict>}`. A body that
-  isn't a valid verdict is a 400, and a call the sample doesn't have is a 404. Neither changes the file.
+  with the content type [`CROP_TYPES`][tools.answer_keys.sample.CROP_TYPES] gives its extension. Any other path is
+  a 404, and so is a named crop that is missing or that resolves, through a link, outside the sample file's
+  directory.
+- `POST /api/verdict`: a JSON [`Verdict`][tools.answer_keys.sample.Verdict], sent as `application/json`. Any other
+  content type is a 415, which a page on another site can't send without the browser asking first, and the app
+  never answers that question. A body that isn't a valid verdict is a 400, a call the sample doesn't have is a 404,
+  and a verdict whose `settled` isn't the call's settled value is a 409, checked in that order. None of these
+  changes the file. A valid verdict replaces any earlier verdict on that call, writes the verdicts file, and
+  answers `{"recorded": <number of calls with a verdict>}`.
+- Any other method on these paths is a 405, and any other path is a 404.
 
 The verdicts file is [`verdicts_path`][tools.answer_keys.sample.verdicts_path] of the sample. Its verdicts are in
 the sample's order of calls, and every write replaces the whole file through a temporary file in the same
 directory, so a crash never leaves half a file. The application reads the file when it starts, so a new start
-resumes where the last one stopped.
+resumes where the last one stopped. A verdicts file in another order is read as it stands. One that names a call
+the sample doesn't have, or whose verdict judged a settled value other than the call's, stops the start, because
+the sample changed after those verdicts were given.
+
+`main` serves the application with `make_server("127.0.0.1", port, app)`, the name imported into this module from
+`wsgiref.simple_server`, and returns 0 when the server stops on an interrupt.
 """
 
 import argparse
@@ -46,7 +60,7 @@ from typing import Any
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 from pydantic import ValidationError
-from tools.answer_keys.sample import SampleSet, Verdict, Verdicts, verdicts_path
+from tools.answer_keys.sample import CROP_TYPES, SampleSet, Verdict, Verdicts, verdicts_path
 
 __all__ = ["main", "make_app"]
 
@@ -59,10 +73,10 @@ _STATUS = {
     403: "403 Forbidden",
     404: "404 Not Found",
     405: "405 Method Not Allowed",
+    409: "409 Conflict",
     415: "415 Unsupported Media Type",
 }
 _HOSTS = frozenset({"127.0.0.1", "localhost"})
-_CROP_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 _NO_STORE = ("Cache-Control", "no-store")
 
 
@@ -79,7 +93,7 @@ def make_app(sample: Path) -> WSGIApp:
     Raises:
         OSError: If the sample file can't be read.
         pydantic.ValidationError: If the sample file or an existing verdicts file isn't valid.
-        ValueError: If the verdicts file has a verdict on a call the sample doesn't have, which a write would drop.
+        ValueError: If the verdicts file names a call the sample doesn't have, or judged another settled value.
     """
     sample_set = SampleSet.model_validate_json(sample.read_text(encoding="utf-8"))
     calls = {call.id: call for call in sample_set.calls}
@@ -90,6 +104,10 @@ def make_app(sample: Path) -> WSGIApp:
         for verdict in Verdicts.model_validate_json(target.read_text(encoding="utf-8")).verdicts:
             if verdict.call not in calls:
                 raise ValueError(f"{target} has a verdict on {verdict.call!r}, which the sample doesn't have")
+            if verdict.settled != calls[verdict.call].settled:
+                raise ValueError(
+                    f"{target} judged {verdict.settled!r} on {verdict.call!r}, which the sample now settles"
+                )
             verdicts[verdict.call] = verdict
     root = sample.parent.resolve()
     lock = threading.Lock()
@@ -125,12 +143,14 @@ def make_app(sample: Path) -> WSGIApp:
         if host not in _HOSTS:
             return fail(403, "the app answers only to 127.0.0.1 and localhost")
         allowed = {"/": "GET", "/api/sample": "GET", "/api/verdict": "POST"}
-        if (path in allowed or path.startswith("/crops/")) and method != allowed.get(path, "GET"):
+        crop = path[len("/crops/") :] if path.startswith("/crops/") else None
+        route_method = "GET" if crop is not None and crop in crops else allowed.get(path)
+        if route_method is not None and method != route_method:
             return reply(
                 405,
                 b'{"error": "method not allowed"}',
                 "application/json",
-                ("Allow", allowed.get(path, "GET")),
+                ("Allow", route_method),
                 _NO_STORE,
             )
         if path == "/":
@@ -149,18 +169,20 @@ def make_app(sample: Path) -> WSGIApp:
                 return fail(400, "the body isn't a valid verdict")
             if verdict.call not in calls:
                 return fail(404, f"the sample has no call {verdict.call!r}")
+            if verdict.settled != calls[verdict.call].settled:
+                return fail(409, f"the settled value of {verdict.call!r} isn't {verdict.settled!r}")
             with lock:
                 recorded = record(verdict)
             return reply(200, json.dumps({"recorded": recorded}).encode("utf-8"), "application/json", _NO_STORE)
-        if path.startswith("/crops/") and path[len("/crops/") :] in crops:
-            file = crops[path[len("/crops/") :]]
+        if crop is not None and crop in crops:
+            file = crops[crop]
             try:
                 if not file.resolve().is_relative_to(root):
                     return fail(404, "the crop is outside the sample's directory")
                 data = file.read_bytes()
             except OSError:
                 return fail(404, "the crop can't be read")
-            return reply(200, data, _CROP_TYPES.get(file.suffix.lower(), "application/octet-stream"))
+            return reply(200, data, CROP_TYPES[file.suffix.lower()])
         return fail(404, "no such route")
 
     return app
@@ -205,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValidationError, ValueError) as error:
         print(f"sample_app: {error}", file=sys.stderr)
         return 1
-    print(f"Open http://127.0.0.1:{server.server_port}/ to check {args.sample}. Press Ctrl+C to stop.", flush=True)
+    print(f"Open http://127.0.0.1:{args.port}/ to check {args.sample}. Press Ctrl+C to stop.", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -314,6 +336,7 @@ textarea[hidden] { display: none; }
 const state = { calls: [], verdicts: new Map(), notes: new Map(), index: 0, busy: false };
 const $ = (id) => document.getElementById(id);
 const KINDS = { cell: "Cell", edge: "Edge", key_placement: "Key placement" };
+const CATEGORIES = { cave: "Cave", diagonal: "Diagonal", key: "Key", key_placement: "Key placement" };
 const READERS = { claude: "Claude", classifier: "Classifier", clef: "Clef" };
 
 function rows(list, pairs) {
@@ -348,8 +371,10 @@ function render() {
   rows($("facts"), [
     ["Member", call.member, "value"],
     ["Map", call.map, "value"],
+    ["Panel", call.panel, "value"],
     ["Style", call.style, "value"],
     ["Kind", KINDS[call.kind] || call.kind],
+    ["Category", CATEGORIES[call.category] || call.category],
     ["Item", call.item, "value"],
   ]);
   rows($("readings"), call.readings.map((r) => [READERS[r.reader] || r.reader, r.value, "value"]));
@@ -395,11 +420,11 @@ async function record(verdict) {
     const response = await fetch("/api/verdict", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ call: call.id, verdict: verdict, note: note }),
+      body: JSON.stringify({ call: call.id, settled: call.settled, verdict: verdict, note: note }),
     });
     if (!response.ok) throw new Error("The server answered " + response.status + ".");
     await response.json();
-    state.verdicts.set(call.id, { call: call.id, verdict: verdict, note: note });
+    state.verdicts.set(call.id, { call: call.id, settled: call.settled, verdict: verdict, note: note });
     if (state.index + 1 < state.calls.length) {
       state.index += 1;
       say("Recorded " + verdict + " on " + call.item + ".", false);
