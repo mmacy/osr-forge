@@ -268,9 +268,6 @@ def test_turned_panel_is_mapped_through_its_rotation():
     assert score_trace(key, trace).after.imperfect_families() == ()
 
 
-DUNGEON_PASSAGES = "chunk: dungeon-passages"
-
-
 def with_passage_into(truth: GeometryTruth, to_dungeon: str | None) -> GeometryTruth:
     """The document with a copy of dungeon `demo` as `demo-b`, and the passage at 5,1 east on demo's level 1 naming
     `to_dungeon` as its destination's dungeon. Its destination level and cell are unchanged, and demo-b holds the
@@ -290,7 +287,6 @@ def with_passage_into(truth: GeometryTruth, to_dungeon: str | None) -> GeometryT
     )
 
 
-@pytest.mark.xfail(reason=DUNGEON_PASSAGES, strict=True)
 def test_a_passage_destination_names_its_dungeon():
     """The trace's passage leads to the same level number and cell, but in demo, not demo-b, so it's wrong. The key
     itself scores perfect."""
@@ -301,7 +297,6 @@ def test_a_passage_destination_names_its_dungeon():
     assert score.after.passages.right == score.after.passages.total - 1
 
 
-@pytest.mark.xfail(reason=DUNGEON_PASSAGES, strict=True)
 def test_reachability_stops_at_a_passage_into_another_dungeon():
     """In the key, demo's only way to the panel beyond 5,1 is the passage, which leads into demo-b, so demo's walk
     doesn't reach that panel's area. The trace keeps the passage within demo and reaches it, an area too many."""

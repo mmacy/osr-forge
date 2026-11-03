@@ -854,7 +854,7 @@ class _Comparison:
                         (transition.to_level, parse_cell(transition.to_cell))
                     )
             for passage in level.passages:
-                if passage.to_level in levels:
+                if passage.to_dungeon in (None, dungeon_id) and passage.to_level in levels:
                     links.setdefault((number, parse_cell(passage.cell)), []).append(
                         (passage.to_level, parse_cell(passage.to_cell))
                     )
@@ -940,12 +940,12 @@ class _Comparison:
             dungeon, number = level_id
             key_level, trace_level = self.key.levels.get(level_id), self.trace.levels.get(level_id)
             for passage in () if key_level is None else key_level.passages:
-                to = self.key_destination(dungeon, None, passage.to_level, passage.to_cell)
+                to = self.key_destination(dungeon, passage.to_dungeon, passage.to_level, passage.to_cell)
                 item = (level_id, parse_cell(passage.cell), passage.side, to)
                 key_items.append((f"{dungeon}/{number}/{passage.cell}", item))
             for passage in () if trace_level is None else trace_level.passages:
                 found = self.located(level_id, parse_cell(passage.cell))
-                to = self.trace_destination(dungeon, None, passage.to_level, passage.to_cell)
+                to = self.trace_destination(dungeon, passage.to_dungeon, passage.to_level, passage.to_cell)
                 trace_items.append(
                     None
                     if found is None or to is None
