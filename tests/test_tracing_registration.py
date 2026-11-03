@@ -3,9 +3,6 @@
 Every number here comes from the registration measurement's reference fit, run in a scratch copy over the
 committed Chaotic Caves, Monkey Isle, and minimod images, the synthetic maps, and perturbed copies of pages 47
 and 38. Each threshold has the measured figures beside it.
-
-The tests marked with this chunk's name are the ones its first build fails: the inset and the halves that synth-joins
-draws, and the perturbed scans its review added.
 """
 
 import functools
@@ -35,7 +32,6 @@ from osrforge.tracing.registration import (
 )
 from osrforge.tracing.truth import GeometryTruth, Region, Registration
 
-CHUNK = "chunk: registration"
 
 ASSETS = Path(__file__).parent / "assets"
 CHAOTIC_CAVES = ASSETS / "chaotic-caves" / "maps"
@@ -447,7 +443,6 @@ def check_against_truth(item: SyntheticMap, region: Region, fit: RegionFit) -> t
     return di, dj
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_every_synthetic_region_that_should_register_does():
     """Every registered region of the committed set, in every style the generator draws: the TSR blue JPEG maps
     with their bowed pitch, skew, blur, and grain, the clean black and white PNG maps with hatched rock, and the
@@ -552,7 +547,6 @@ def test_the_fold_maps_align_their_rows_and_offer_the_true_offset():
         assert abs(alignment.gaps[alignment.columns.index(expected)]) <= GAP_TOLERANCE, (item.path.name, alignment)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_halves_with_a_gap_at_the_fold_offer_the_true_offset():
     """The halves synth-joins draws, joined at an offset with a gap at the fold and left apart with unequal
     stretches: the rows line up as the answer records and the true offset is among the three candidates."""
@@ -786,7 +780,6 @@ def scan_results() -> tuple[ScanResult, ...]:
     return tuple(results)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_scanned_map_never_registers_a_wrong_grid():
     """A region that registers holds its true grid, moved by the scan, as an unperturbed map must: a 2 or 4 times
     pitch, a grid cut short, or a bow the drift correction doesn't follow all fail here."""
@@ -794,7 +787,6 @@ def test_a_scanned_map_never_registers_a_wrong_grid():
     assert not wrong, "\n".join(f"{r.seed} {r.map}/{r.image}/{r.region} {r.scan}: {r.detail}" for r in wrong)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_most_scanned_maps_register():
     results = scan_results()
     missed = [result for result in results if result.outcome == "missed"]
