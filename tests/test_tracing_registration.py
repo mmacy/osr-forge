@@ -4,9 +4,8 @@ Every number here comes from the registration measurement's reference fit, run i
 committed Chaotic Caves, Monkey Isle, and minimod images, the synthetic maps, and perturbed copies of pages 47
 and 38. Each threshold has the measured figures beside it.
 
-The tests over the committed real images, the perturbed copies, and the synthetic maps on main need only this
-chunk. The test over the halves with a gap at the fold and an offset, which synth-joins draws, carries that
-chunk's name in its reason as well, and stays marked until both chunks are merged.
+The test over the halves with a gap at the fold and an offset needs the maps that chunk synth-joins draws, and
+stays marked with that chunk's name until it merges.
 """
 
 import json
@@ -31,8 +30,7 @@ from osrforge.tracing.registration import (
 )
 from osrforge.tracing.truth import GeometryTruth, Region, Registration
 
-CHUNK = "chunk: registration"
-WITH_JOINS = "chunk: registration, chunk: synth-joins"
+JOINS = "chunk: synth-joins"
 
 ASSETS = Path(__file__).parent / "assets"
 CHAOTIC_CAVES = ASSETS / "chaotic-caves" / "maps"
@@ -218,7 +216,6 @@ def test_half_alignment_model():
         HalfAlignment(rows=0, columns=(0, 1), gaps=(0.0, 1.0))
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 @pytest.mark.parametrize("real", REAL_MAPS, ids=lambda real: real.path.name)
 def test_each_committed_real_map_registers_as_measured(real: RealMap):
     fits = register_image(real.path)
@@ -236,13 +233,11 @@ def test_each_committed_real_map_registers_as_measured(real: RealMap):
         assert fit.gate.detected_lines >= LINE_COUNT_FLOOR * lines, fit.gate
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_gridless_map_yields_no_region():
     """minimod's page 4 is a raster map with no grid: the reference fit's coarse pitch there is 8.5 px."""
     assert register_image(MINIMOD / "0004.png") == ()
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_same_image_registers_the_same_way_twice():
     path = CHAOTIC_CAVES / "p047.png"
     first = register_image(path)
@@ -250,7 +245,6 @@ def test_the_same_image_registers_the_same_way_twice():
     assert [fit.model_dump_json() for fit in first] == [fit.model_dump_json() for fit in second]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_bow_registers_through_the_drift_correction(tmp_path: Path):
     """Page 47's columns bowed by 0.3 of its 75 px pitch, 22.5 px at the middle. The reference fit's affine stage
     alone leaves lines 8.4 px off; the drift correction explains 0.975 of the lines within a tenth, with
@@ -267,7 +261,6 @@ def test_a_bow_registers_through_the_drift_correction(tmp_path: Path):
     assert abs(columns - 16) <= GRID_TOLERANCE and abs(rows - 16) <= GRID_TOLERANCE
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_stretch_registers_through_the_drift_correction(tmp_path: Path):
     """Page 38 with its pitch growing 4% from top to bottom, a feed-speed drift. The reference fit's affine stage
     explains 0.828 of the lines within a tenth and the drift correction 0.999, with coverage 0.939."""
@@ -277,7 +270,6 @@ def test_a_stretch_registers_through_the_drift_correction(tmp_path: Path):
     check_gate(registered(fits)[0])
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_half_pitch_shift_fails_registration(tmp_path: Path):
     """Page 47 with its right 45% moved down half a pitch. Two paths fail it. The reference fit first takes
     37.5 px as the pitch, finds neighbouring lines two indices apart, refits at 75 px, rejects 41 of 179 lines,
@@ -296,7 +288,6 @@ def test_a_half_pitch_shift_fails_registration(tmp_path: Path):
         assert fit.verdict == "unregistered", fit.gate
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_a_sine_warp_fails_through_the_coverage(tmp_path: Path):
     """Page 47 warped by a sine of 0.6 of a pitch over two periods across the image. The reference fit registers
     the tiles that survive detection, 15 by 17 cells with a share of 0.987, and only the coverage sees what the
@@ -309,10 +300,10 @@ def test_a_sine_warp_fails_through_the_coverage(tmp_path: Path):
     assert registered(fits) == [], [(fit.rect, fit.gate) for fit in fits]
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_two_drawings_at_two_pitches_are_two_regions(tmp_path: Path):
     """Page 47 beside a copy of itself scaled by 0.6 with Lanczos, tops aligned, with 100 px of white between
-    them: two registered regions in page order, at 75 and 45 px."""
+    them: two registered regions in page order, at 75 px on the left and 45 px on the right. The copy's grid
+    starts higher on the image, so it comes first."""
     with Image.open(CHAOTIC_CAVES / "p047.png") as page:
         big = page.convert("RGB")
     small = big.resize((round(big.width * 0.6), round(big.height * 0.6)), Image.Resampling.LANCZOS)
@@ -323,9 +314,11 @@ def test_two_drawings_at_two_pitches_are_two_regions(tmp_path: Path):
     canvas.save(path)
     fits = register_image(path)
     assert [fit.verdict for fit in fits] == ["registered", "registered"], [(fit.rect, fit.reason) for fit in fits]
-    assert fits[0].rect[0] < fits[1].rect[0]
-    assert fits[0].rect[2] <= big.width and fits[1].rect[0] >= big.width
-    for fit, pitch in zip(fits, (75.0, 45.0), strict=True):
+    assert [(fit.rect[1], fit.rect[0]) for fit in fits] == sorted((fit.rect[1], fit.rect[0]) for fit in fits)
+    left = [fit for fit in fits if fit.rect[2] <= big.width]
+    right = [fit for fit in fits if fit.rect[0] >= big.width]
+    assert len(left) == 1 and len(right) == 1, [fit.rect for fit in fits]
+    for fit, pitch in ((left[0], 75.0), (right[0], 45.0)):
         check_gate(fit)
         assert fit.pitch is not None
         assert abs(fit.pitch[0] - pitch) <= PITCH_TOLERANCE * pitch, fit.pitch
@@ -397,12 +390,13 @@ def grid_point(registration: Registration, pixel: tuple[float, float]) -> tuple[
 
 
 def fit_for(fits: tuple[RegionFit, ...], region: Region) -> RegionFit:
-    """The registered fit whose rectangle holds the centre of the region's true grid."""
+    """The registered fit whose rectangle holds the centre of the region's true grid, and of several the smallest,
+    which is an inset's own fit when the inset lies inside another region's frame."""
     assert region.registration is not None
     cx, cy = region.registration.pixel((region.columns / 2, region.rows / 2))
     holding = [fit for fit in registered(fits) if fit.rect[0] <= cx < fit.rect[2] and fit.rect[1] <= cy < fit.rect[3]]
-    assert len(holding) == 1, [(fit.rect, fit.verdict, fit.reason) for fit in fits]
-    return holding[0]
+    assert holding, [(fit.rect, fit.verdict, fit.reason) for fit in fits]
+    return min(holding, key=lambda fit: (fit.rect[2] - fit.rect[0]) * (fit.rect[3] - fit.rect[1]))
 
 
 def check_against_truth(item: SyntheticMap, region: Region, fit: RegionFit) -> tuple[int, int]:
@@ -448,7 +442,6 @@ def check_against_truth(item: SyntheticMap, region: Region, fit: RegionFit) -> t
     return di, dj
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_every_synthetic_region_that_should_register_does():
     """Every registered region of the committed set, in every style the generator draws: the TSR blue JPEG maps
     with their bowed pitch, skew, blur, and grain, the clean black and white PNG maps with hatched rock, and the
@@ -476,7 +469,6 @@ def test_every_synthetic_region_that_should_register_does():
                 check_against_truth(item, region, fit_for(fits, region))
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_gridless_synthetic_map_yields_no_region():
     items = maps_with("reject_no_grid")
     assert items, "no synthetic map shows reject_no_grid"
@@ -486,7 +478,6 @@ def test_the_gridless_synthetic_map_yields_no_region():
                 assert registered(register_image(item.image(region))) == [], (item.path.name, region.id)
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_warped_synthetic_map_fails_registration():
     """The warped map's answer records its region as unregistered. Its warp is at least the 0.6 of a pitch over
     two periods that the perturbed copy of page 47 tests, where the reference fit's coverage is 0.549."""
@@ -536,7 +527,6 @@ class Aligned:
         return true_columns + self.columns_shift
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_the_fold_maps_align_their_rows_and_offer_the_true_offset():
     """fold-joined and fold-apart print the same drawing in two halves with no gap: the west half's grid reaches
     its right image edge at index 10.02 and the east half's first line lies at -0.5 px, so the candidates from
@@ -556,7 +546,7 @@ def test_the_fold_maps_align_their_rows_and_offer_the_true_offset():
         assert abs(alignment.gaps[alignment.columns.index(expected)]) <= GAP_TOLERANCE, (item.path.name, alignment)
 
 
-@pytest.mark.xfail(reason=WITH_JOINS, strict=True)
+@pytest.mark.xfail(reason=JOINS, strict=True)
 def test_halves_with_a_gap_at_the_fold_offer_the_true_offset():
     """The halves synth-joins draws, joined at an offset with a gap at the fold and left apart with unequal
     stretches: the rows line up as the answer records and the true offset is among the three candidates."""
@@ -577,7 +567,6 @@ def test_halves_with_a_gap_at_the_fold_offer_the_true_offset():
                 assert alignment.gaps[alignment.columns.index(expected)] >= -GAP_TOLERANCE
 
 
-@pytest.mark.xfail(reason=CHUNK, strict=True)
 def test_align_halves_refuses_an_unregistered_half(tmp_path: Path):
     path = CHAOTIC_CAVES / "p047.png"
     fit = registered(register_image(path))[0]

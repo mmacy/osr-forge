@@ -200,9 +200,10 @@ class RegionFit(BaseModel):
     last on each axis. On a side that the image edge cuts, the grid runs to
     the outermost fitted line that lies no more than half a pitch outside the
     image, so a cell at least half inside the image is part of the grid. A
-    legend or a label inside the rectangle doesn't move the fit. Regions are
-    disjoint, one per framed drawing: two candidate grids that reach the same
-    frame are one region.
+    legend or a label inside the rectangle doesn't move the fit. Each framed
+    drawing is one region: two candidate grids that reach the same frame are
+    one region. An inset, a framed drawing inside another drawing's frame, is
+    a region of its own, and its rectangle lies inside the outer region's.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
