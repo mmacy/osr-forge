@@ -375,3 +375,46 @@ def test_canonical_form_orders_lists_north_then_west(tmp_path: Path):
     assert canonical_form(ordered) == ordered
     save_geometry_truth(tmp_path / "geometry.json", truth)
     assert load_geometry_truth(tmp_path / "geometry.json") == ordered
+
+
+DUNGEON_PASSAGES = "chunk: dungeon-passages"
+
+
+def two_dungeons(to_dungeon: str | None = "demo-b", to_level: int = 1, to_cell: str = "10,1") -> GeometryTruth:
+    """The demo document with a copy of its dungeon as `demo-b`, and the passage at 5,1 east on demo's level 1
+    leading into the copy across a cut between dungeons."""
+    truth = demo_truth()
+    demo = truth.dungeons[0]
+    copy = demo.model_copy(update={"id": "demo-b", "name": "Demo B"})
+    level = truth.level("demo", 1)
+    passages = tuple(
+        passage.model_copy(update={"to_dungeon": to_dungeon, "to_level": to_level, "to_cell": to_cell})
+        if (passage.cell, passage.side) == ("5,1", "east")
+        else passage
+        for passage in level.passages
+    )
+    levels = tuple(item.model_copy(update={"passages": passages}) if item.number == 1 else item for item in demo.levels)
+    return truth.model_copy(update={"dungeons": (demo.model_copy(update={"levels": levels}), copy)})
+
+
+def test_a_passage_into_another_dungeon_validates_and_round_trips(tmp_path: Path):
+    truth = GeometryTruth.model_validate(two_dungeons().model_dump())
+    path = tmp_path / "geometry.json"
+    save_geometry_truth(path, truth)
+    loaded = load_geometry_truth(path)
+    passage = next(item for item in loaded.level("demo", 1).passages if item.cell == "5,1")
+    assert passage.to_dungeon == "demo-b"
+    save_geometry_truth(path, demo_truth())
+    assert '"to_dungeon"' not in path.read_text(encoding="utf-8").split('"passages"', 1)[1].split("]", 1)[0]
+
+
+@pytest.mark.xfail(reason=DUNGEON_PASSAGES, strict=True)
+def test_a_passage_into_another_dungeon_must_resolve_there():
+    for bad in (
+        two_dungeons(to_dungeon="nope"),
+        two_dungeons(to_dungeon="demo"),
+        two_dungeons(to_level=3),
+        two_dungeons(to_cell="0,0"),
+    ):
+        with pytest.raises(ValidationError):
+            GeometryTruth.model_validate(bad.model_dump())
