@@ -10,3 +10,5 @@
 - [Cave mouths before resolving](cave-mouths-before-resolving.md) — on a page of several dungeons, measure whether their grounds are one surface before resolving; the resolver cannot cut between dungeons
 - [Resend only retries](resend-only-retries.md) — a collect resends the retry ids it queued, never the store pending list; a pass in parts leaves jobs waiting
 - [Sample shows the recorded call](sample-shows-the-recorded-call.md) — a sample's reason must be the recorded value's; a rebuilt table leaves stale label calls the key never applies
+- [Recheck cells before edges](recheck-cells-before-edges.md) — after a recheck changes cells, re-ask their edges with the key's cells, and read changed reasons before sampling
+- [Batch counts lag](batch-counts-lag.md) — a batch can show 0 succeeded for hours while answers exist; cancel, collect, resend the rest by id
