@@ -288,6 +288,7 @@ def main(argv: list[str] | None = None) -> int:
         "resettle",
         "final",
         "note",
+        "orphans",
     ):
         action = words.pop()
     if not words or words[-1] not in stages:
@@ -316,6 +317,7 @@ def main(argv: list[str] | None = None) -> int:
             submit_consistency,
             submit_edges,
             submit_gaps,
+            submit_orphans,
             submit_resettle,
         )
 
@@ -348,6 +350,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{ctx.key.id}: join check {collect_check(ctx, api, book)}")
             elif action == "resettle":
                 print(f"{ctx.key.id}: join re-settling {submit_resettle(ctx, api, book)}")
+            elif action == "orphans":
+                print(f"{ctx.key.id}: join orphan edges {submit_orphans(ctx, api, book)}")
             elif action == "final":
                 print(f"{ctx.key.id}: join consistency {submit_consistency(ctx, api, book)}")
         return 0

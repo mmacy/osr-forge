@@ -46,12 +46,14 @@ __all__ = [
     "confirmed",
     "join_gaps",
     "load_gaps",
+    "orphan_edges",
     "resolved",
     "save_gaps",
     "submit_check",
     "submit_consistency",
     "submit_edges",
     "submit_gaps",
+    "submit_orphans",
     "submit_resettle",
 ]
 
@@ -538,7 +540,8 @@ def submit_consistency(ctx: MapContext, client: Any, ledger: Any) -> tuple[str |
         item["earlier_job"] = call["job"]
         items.append(item)
     ids = []
-    for number, first in enumerate(range(0, len(items), 8)):
+    start = sum(1 for custom_id in store.job_ids() if custom_id.startswith(prefix) and not custom_id.endswith("__r"))
+    for number, first in enumerate(range(0, len(items), 8), start):
         batch = items[first : first + 8]
         custom_id = f"{prefix}{number:03d}"
         params = _request(ctx, batch, RECHECK_SYSTEM, SCHEMA, False)
@@ -551,3 +554,66 @@ def submit_consistency(ctx: MapContext, client: Any, ledger: Any) -> tuple[str |
     if not ids:
         return None, 0
     return store.submit(client, ledger, f"recheck joins final {ctx.key.id}", ids=ids), len(items)
+
+
+def orphan_edges(ctx: MapContext) -> list[str]:
+    """Edges between two cells the key has as floor that no call settled, where the readings disagree or Claude's
+    window read had rock on both sides: the cells became floor after the edge round asked their edges, so the
+    assembly took a reading's letter, or made the edge a wall, unasked."""
+    from .letters import final_cells
+    from .settler import final_values
+
+    items = load_items(ctx)
+    final = final_values(ctx)
+    cells = final_cells(items, final, {})
+    out = []
+    for name, entry in items.edges.items():
+        blank = bool(entry["claude"]) and entry["claude"][0] == "-"
+        if f"e:{name}" in final or not (blank or entry["status"] == "disputed"):
+            continue
+        a, b = edge_cells(edge_key(name))
+        if all(0 <= x < items.width and 0 <= y < items.height and cells[y][x] == "." for x, y in (a, b)):
+            out.append(name)
+    return sorted(out)
+
+
+def submit_orphans(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | None, int]:
+    """Settle `orphan_edges` with the key's letters and pixel counts for both cells, as join-round jobs, so the
+    round's adversarial pass covers them."""
+    from .letters import final_cells
+    from .settler import final_values
+
+    store = BatchStore(ctx.key.directory / "recheck")
+    items_table = load_items(ctx)
+    cells = final_cells(items_table, final_values(ctx), {})
+    prefix = f"{ctx.key.id}__recheck__zjoins-orphans"
+    asked = {
+        item["id"]
+        for custom_id in store.job_ids()
+        if custom_id.startswith(prefix)
+        for item in store.job(custom_id)["meta"]["items"]
+    }
+    items = []
+    for name in orphan_edges(ctx):
+        if f"e:{name}" in asked:
+            continue
+        item = _rebuild_item(ctx, items_table, f"e:{name}")
+        if item is None:
+            continue
+        for cx, cy in edge_cells(edge_key(name)):
+            count = pixel_count_text(_shares(ctx), (cx, cy)).split(";")[0]
+            item = with_reading(
+                item, "the key's cells", f"cell {cx},{cy} is {'floor' if cells[cy][cx] == '.' else 'rock'}; {count}"
+            )
+        items.append(item)
+    start = sum(1 for custom_id in store.job_ids() if custom_id.startswith(prefix) and not custom_id.endswith("__r"))
+    ids = []
+    for number, first in enumerate(range(0, len(items), 8), start):
+        batch = items[first : first + 8]
+        custom_id = f"{prefix}{number:03d}"
+        params = _request(ctx, batch, RECHECK_SYSTEM, SCHEMA, False)
+        store.add_job(custom_id, params, {"map": ctx.key.id, "items": batch})
+        ids.append(custom_id)
+    if not ids:
+        return None, 0
+    return store.submit(client, ledger, f"recheck joins orphans {ctx.key.id}", ids=ids), len(items)
