@@ -93,12 +93,11 @@ def resolved(keys: list[KeySpec], stages: Path, lenient: bool = False) -> tuple[
     class Lenient(Resolver):
         passed_over: list[str]
 
-        def entrance_key_area(self, key: Any) -> Any:
+        def entrance_key_area(self, key: Any, rooms: Any) -> None:
             try:
-                return super().entrance_key_area(key)
+                super().entrance_key_area(key, rooms)
             except ConventionGap as gap:
                 self.passed_over.append(str(gap))
-                return None
 
     pages: dict[int, list[PageImage]] = {}
     regions: list[Region] = []
