@@ -677,3 +677,6 @@ def test_slope_answers_are_checked_and_bound_an_outline():
     # No slope, or a seed off the outline, leaves the outline whole.
     assert letters.slope_side(owned, [(0, 0)], []) == owned
     assert letters.slope_side(owned, [(9, 9)], [path]) == owned
+    # A line stopped short of the edge is carried on straight at both ends.
+    assert letters.extend_path([(2, 1), (2, 2)], 5, 5) == [(2, 1), (2, 2), (2, 0), (2, 3), (2, 4)]
+    assert letters.extend_path([(1, 1), (2, 2)], 4, 4) == [(1, 1), (2, 2), (0, 0), (3, 3)]
