@@ -7,3 +7,4 @@
 - [Prompt conventions from the generator](prompt-conventions-from-generator.md) — check the synthetic answers for each edge class before a prompt states its letter
 - [Reservations before sending](reservations-before-sending.md) — sum settled plus in-flight plus the new batch's worst case before sending; the budget counts reservations
 - [Batch store sweep](batch-store-sweep.md) — collect every batch store before reporting spend; a superseded batch leaves its reservation open
+- [Cave mouths before resolving](cave-mouths-before-resolving.md) — read mouths_closed in assemble.log.json; entrance letters in a mouth read as rock and close the lair
