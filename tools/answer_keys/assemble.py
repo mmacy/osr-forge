@@ -524,11 +524,13 @@ def sample_summary(samples: list[Path], panels: set[str]) -> str:
         )
         given = [verdict for verdict in verdicts.verdicts if verdict.call in calls]
         counts = {kind: sum(1 for verdict in given if verdict.verdict == kind) for kind in ("right", "wrong", "unsure")}
-        state = "done" if len(given) == len(calls) else f"PENDING, {len(given)} of them judged"
-        parts.append(
-            f"{path.name}, {len(calls)} calls, {state}: {counts['right']} right, {counts['wrong']} wrong, "
-            f"{counts['unsure']} unsure"
-        )
+        tally = f"{counts['right']} right, {counts['wrong']} wrong, {counts['unsure']} unsure"
+        if not given:
+            parts.append(f"{path.name}, {len(calls)} calls, PENDING")
+        elif len(given) < len(calls):
+            parts.append(f"{path.name}, {len(calls)} calls, PENDING with {len(given)} judged: {tally}")
+        else:
+            parts.append(f"{path.name}, {len(calls)} calls, done: {tally}")
     return "; ".join(parts)
 
 
@@ -543,10 +545,11 @@ def write_provenance(
     if rechecked:
         owner += (
             f". A wrong call sent every call of its category on its map ({', '.join(rechecked)}) back to the settler, "
-            "and the owner's value for each wrong call is the key's; the calls that changed are in a new sample"
+            "and the owner's value for each wrong call is the key's; the calls that changed in the key are in the "
+            "next sample"
         )
     owner_lines = textwrap.wrap(
-        f"Owner sample: {owner or 'PENDING'}, in the sample app (tools/answer_keys/sample_app.py).", 110
+        f"Owner sample, in the sample app (tools/answer_keys/sample_app.py): {owner or 'PENDING'}.", 110
     )
     claude = round(sum(f["claude_usd"] for f in figures), 4)
     clef = round(sum(f.get("clef_usd", 0.0) for f in figures), 4)
