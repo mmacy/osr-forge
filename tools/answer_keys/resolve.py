@@ -949,7 +949,7 @@ class Resolver:
                 if key.key in printed:
                     continue
                 if self.is_entrance_title(key):
-                    self.entrance_key_area(key)
+                    self.entrance_key_area(key, rooms)
             for key in self.keys[level_id]:
                 if key.key in printed or self.is_entrance_title(key) or key.key in self.levels[level_id].areas:
                     continue
@@ -1020,18 +1020,17 @@ class Resolver:
                     return (target[1], connection)
         return None
 
-    def entrance_key_area(self, key: SurveyKey) -> None:
+    def entrance_key_area(self, key: SurveyKey, rooms: list[Space]) -> None:
         """An unprinted entrance key takes the unkeyed floor one outer opening leads into.
 
         The opening is chosen among the outer openings that lead into unkeyed floor: the nearest to the key's connected
         area by walking distance from the cell just inside it, or the first in north-then-west order when the prose
-        connects the key to no area.
+        connects the key to no area. When no outer opening leads into unkeyed floor, the key is placed as
+        [`unprinted_key_area`][tools.answer_keys.resolve.Resolver.unprinted_key_area] places any other unprinted key.
         """
         world = self.world
         level_id = key.level
         openings = self.openings.get(level_id, [])
-        if not openings:
-            raise ConventionGap(f"unprinted entrance key {key.key} on {level_id}: the level has no outer opening")
         floor = self.level_floor(level_id)
 
         def allowed(c: WCell) -> bool:
@@ -1040,9 +1039,8 @@ class Resolver:
         leads = [(opening, world.walk(opening.inner_cells, world.open_floor, allowed)) for opening in openings]
         leads = [(opening, reached) for opening, reached in leads if reached]
         if not leads:
-            raise ConventionGap(
-                f"unprinted entrance key {key.key} on {level_id}: no outer opening leads into unkeyed floor"
-            )
+            self.unprinted_key_area(key, rooms)
+            return
         connected = self.connected_area(key)
         if connected is not None:
             target_first = world.first(self.area_of(level_id, connected[0]))
