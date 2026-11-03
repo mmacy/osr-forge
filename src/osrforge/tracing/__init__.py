@@ -8,4 +8,7 @@ compares a trace with its answer key. [`synthetic`][osrforge.tracing.synthetic]
 draws the synthetic maps whose answers are exact, and
 [`overlay`][osrforge.tracing.overlay] draws a reading over its map image. The
 rules they share are written in `docs/tracing-conventions.md`.
+[`images`][osrforge.tracing.images] extracts the map images from the PDF, and
+[`registration`][osrforge.tracing.registration] fits the printed grid to each
+region of an image and aligns the two halves of a map.
 """
