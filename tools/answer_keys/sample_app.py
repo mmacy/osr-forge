@@ -7,12 +7,12 @@ uv run python -m tools.answer_keys.sample_app <sample.json> [--port 8765]
 ```
 
 It serves on `127.0.0.1` only, because the crops of a commercial map never leave the owner's machine, and prints
-the address to open. The page shows one call at a time: the zoomed crop and the wider crop, the member, map,
-style, kind, and item, each reading, the settled value, the adversarial pass's value, and the settler's reason. It
-starts at the first call with no verdict, so the owner can stop and come back. Pressing `r` records the call as
-right, `w` as wrong, and `u` as unsure, and moves to the next call. The left and right arrow keys move between
-calls without recording anything, and `n` opens a note that the next verdict on that call records with it. The page
-shows how many calls have a verdict. Its words are in sentence case.
+the address to open. The page shows one call at a time: the zoomed crop and the wider crop, the member, map, panel,
+style, kind, category, and item, each reading, the settled value, the adversarial pass's value, and the settler's
+reason. It starts at the first call with no verdict, so the owner can stop and come back. Pressing `r` records the
+call as right, `w` as wrong, and `u` as unsure, and moves to the next call. The left and right arrow keys move
+between calls without recording anything, and `n` opens a note that the next verdict on that call records with
+it. The page shows how many calls have a verdict. Its words are in sentence case.
 
 The server is a WSGI application from the standard library. Every request whose `Host` header names a host other
 than `127.0.0.1` or `localhost`, on any port, is a 403, so a page that points its own hostname at this machine
@@ -164,8 +164,10 @@ def make_app(sample: Path) -> WSGIApp:
                 return fail(415, "a verdict is posted as application/json")
             try:
                 length = int(environ.get("CONTENT_LENGTH") or 0)
+                if length < 0:
+                    raise ValueError("a body's length isn't negative")
                 verdict = Verdict.model_validate_json(environ["wsgi.input"].read(length))
-            except ValueError, ValidationError:
+            except ValueError:
                 return fail(400, "the body isn't a valid verdict")
             if verdict.call not in calls:
                 return fail(404, f"the sample has no call {verdict.call!r}")
@@ -414,7 +416,8 @@ function openNote() {
 async function record(verdict) {
   if (state.busy) return;
   state.busy = true;
-  const call = state.calls[state.index];
+  const recordedAt = state.index;
+  const call = state.calls[recordedAt];
   const note = state.notes.get(call.id) || "";
   try {
     const response = await fetch("/api/verdict", {
@@ -425,8 +428,8 @@ async function record(verdict) {
     if (!response.ok) throw new Error("The server answered " + response.status + ".");
     await response.json();
     state.verdicts.set(call.id, { call: call.id, settled: call.settled, verdict: verdict, note: note });
-    if (state.index + 1 < state.calls.length) {
-      state.index += 1;
+    if (recordedAt + 1 < state.calls.length) {
+      state.index = recordedAt + 1;
       say("Recorded " + verdict + " on " + call.item + ".", false);
     } else {
       say("Recorded " + verdict + " on " + call.item + ". This is the last call.", false);

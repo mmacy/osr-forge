@@ -87,7 +87,7 @@ The confidence of a blocked or open edge comes from how far the ink measure sits
 
 ## Check a sample
 
-An answer key is approved by checking a sample of its settled calls. The sample app shows one call at a time, with the zoomed crop and the wider crop, the member, map, style, kind, and item, each reading, the settled value, the adversarial pass's value, and the settler's reason. From the osr-forge checkout:
+An answer key is approved by checking a sample of its settled calls. The sample app shows one call at a time, with the zoomed crop and the wider crop, the member, map, panel, style, kind, category, and item, each reading, the settled value, the adversarial pass's value, and the settler's reason. From the osr-forge checkout:
 
 ```text
 uv run python -m tools.answer_keys.sample_app <sample.json> [--port 8765]
@@ -101,7 +101,7 @@ The keys are:
 - The left and right arrow keys move between calls without recording anything.
 - `n` opens a note. The note is recorded with the next verdict on that call. Press Enter or Escape to leave the note box, then press a verdict key.
 
-The app starts at the first call with no verdict and shows how many calls have one. It writes `<sample>.verdicts.json` beside the sample file after every verdict, replacing the whole file, and reads it back when it starts, so you can stop and come back. If the sample changed after you gave those verdicts, so that a verdict names a call the sample lacks or judged another settled value, the app refuses to start rather than carry them over. A commercial map's sample, crops, and verdicts stay outside the repository.
+The app starts at the first call with no verdict and shows how many calls have one. It writes the verdicts file beside the sample file, named from the sample file's stem with `.verdicts.json` (`sample.json` gives `sample.verdicts.json`), after every verdict, replacing the whole file, and reads it back when it starts, so you can stop and come back. If the sample changed after you gave those verdicts, so that a verdict names a call the sample lacks or judged another settled value, the app refuses to start rather than carry them over. A commercial map's sample, crops, and verdicts stay outside the repository.
 
 ## Tests
 
