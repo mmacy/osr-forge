@@ -108,9 +108,29 @@ def _final_marks(
             lx, ly = parse_cell(leader)
             if not (0 <= lx < items.width and 0 <= ly < items.height):
                 leader = None
+            elif cells[ly][lx] == "#":
+                # A leader line ends on floor: a read end on rock moves to the nearest floor cell within one cell.
+                snapped = _nearest_floor(cells, (lx, ly))
+                log.setdefault("leaders_snapped", []).append(f"{text}: {leader} -> {snapped}")
+                leader = snapped
         marks.append(Mark(text=text, cell=cell, edge=edge, leader_to=leader))
     log["marks_dropped"] = dropped
     return _unique_marks(marks)
+
+
+def _nearest_floor(cells: list[list[str]], cell: tuple[int, int]) -> str | None:
+    """The nearest floor cell within one cell of a cell, in north-then-west order on a tie, or `None`."""
+    x, y = cell
+    candidates = []
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            nx, ny = x + dx, y + dy
+            if 0 <= ny < len(cells) and 0 <= nx < len(cells[0]) and cells[ny][nx] != "#":
+                candidates.append((max(abs(dx), abs(dy)), ny, nx))
+    if not candidates:
+        return None
+    _distance, ny, nx = min(candidates)
+    return f"{nx},{ny}"
 
 
 def _unique_marks(marks: list[Mark]) -> list[Mark]:
