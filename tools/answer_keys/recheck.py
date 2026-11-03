@@ -53,6 +53,9 @@ def recheck_items(ctx: MapContext, sample_path: Path) -> list[dict[str, Any]]:
         call = by_id.get(verdict.call)
         if call is None or call.panel != ctx.key.id or verdict.verdict == "right":
             continue
+        if verdict.settled != call.settled:
+            # The verdict was given on an earlier value of the call; it doesn't carry over.
+            continue
         call_id = verdict.call.split(":", 1)[1]
         wanted[call_id] = (verdict.verdict, verdict.note)
         if verdict.verdict == "wrong":
