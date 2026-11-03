@@ -331,7 +331,7 @@ textarea[hidden] { display: none; }
       <button type="button" id="next">Next<kbd>&rarr;</kbd></button>
     </div>
     <textarea id="note" rows="3" hidden aria-label="Note"
-      placeholder="Note for this call's next verdict. Press Enter when done."></textarea>
+      placeholder="Note for this call's verdict. Press Enter when done."></textarea>
     <div id="message" role="status"></div>
   </section>
 </main>
@@ -415,6 +415,17 @@ function openNote() {
   $("note").focus();
 }
 
+async function send(call, verdict, note) {
+  const response = await fetch("/api/verdict", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ call: call.id, settled: call.settled, verdict: verdict, note: note }),
+  });
+  if (!response.ok) throw new Error("The server answered " + response.status + ".");
+  await response.json();
+  state.verdicts.set(call.id, { call: call.id, settled: call.settled, verdict: verdict, note: note });
+}
+
 async function record(verdict) {
   if (state.busy) return;
   state.busy = true;
@@ -422,14 +433,7 @@ async function record(verdict) {
   const call = state.calls[recordedAt];
   const note = state.notes.get(call.id) || "";
   try {
-    const response = await fetch("/api/verdict", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ call: call.id, settled: call.settled, verdict: verdict, note: note }),
-    });
-    if (!response.ok) throw new Error("The server answered " + response.status + ".");
-    await response.json();
-    state.verdicts.set(call.id, { call: call.id, settled: call.settled, verdict: verdict, note: note });
+    await send(call, verdict, note);
     if (recordedAt + 1 < state.calls.length) {
       state.index = recordedAt + 1;
       say("Recorded " + verdict + " on " + call.item + ".", false);
@@ -444,6 +448,27 @@ async function record(verdict) {
   }
 }
 
+// A call that already has a verdict keeps a changed note only if that verdict is recorded again with it.
+async function saveNote() {
+  const call = state.calls[state.index];
+  const verdict = state.verdicts.get(call.id);
+  const note = state.notes.get(call.id) || "";
+  if (!verdict || verdict.note === note) return;
+  if (state.busy) {
+    say("Note not saved. A verdict is still being recorded; close the note again.", true);
+    return;
+  }
+  state.busy = true;
+  try {
+    await send(call, verdict.verdict, note);
+    say("Saved the note with " + verdict.verdict + " on " + call.item + ".", false);
+  } catch (error) {
+    say("Note not saved. " + error.message, true);
+  } finally {
+    state.busy = false;
+  }
+}
+
 document.addEventListener("keydown", (event) => {
   if (event.ctrlKey || event.metaKey || event.altKey || state.calls.length === 0) return;
   if (event.target === $("note")) {
@@ -451,6 +476,7 @@ document.addEventListener("keydown", (event) => {
       event.preventDefault();
       $("note").blur();
       render();
+      saveNote();
     }
     return;
   }
