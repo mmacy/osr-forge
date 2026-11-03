@@ -16,6 +16,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Grid registration (`osrforge.tracing.registration`): the fit of the printed grid to each framed drawing on a map image, judged by a three-part gate (the share of detected lines the fit explains, consistent line indices, and the coverage of the fitted grid by ink), and the row alignment and three candidate column offsets for the two halves of a map.
 - The Clef ledger charges nothing for a request that ended with no answer when every attempt got 401, 403, 413, or 429, because the service runs no model for those. A request that ends otherwise keeps its estimate, as before. Either way the ledger entry counts the request.
 
+### Fixed
+
+- The answer-key sample app (`tools/answer_keys/sample_app.py`) saves a note added to a call that already has a verdict. Closing the note with Enter or Escape records that verdict again with the note, and the page says so. Before, the note was kept only until the page closed.
+
 ## [0.2.0] - 2026-10-05
 
 ### Added
