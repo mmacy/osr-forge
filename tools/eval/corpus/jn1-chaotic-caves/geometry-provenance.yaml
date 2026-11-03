@@ -1,0 +1,22 @@
+# The provenance of geometry.json beside this file. Written by tools/answer_keys/assemble.py.
+authored: "2026-11-02"
+instrument: >-
+  Two independent readings per map: Claude Sonnet 5.5 (claude-sonnet-5-5) at high effort reading 12 by 12
+  cell windows with grid ticks through tools/answer_keys/reader.py, which isn't the tracing stage's code,
+  and the ink classifier tools/answer_keys/classify.py. ollama/clef-flash answered the edges of jn1-p046, jn1-p047, jn1-p021-halfling, jn1-p021-cave as a third reading; hosted Clef's earlier answers on jn1-p047, jn1-p021-halfling, jn1-p021-cave are kept as a record beside the key's.
+  Each disagreement was settled in a fresh Sonnet request at high effort that carried a zoomed crop, a
+  wider crop, and the readings that disagreed. The resolution layer
+  comes from tools/answer_keys/resolve.py by docs/tracing-conventions.md.
+verified: >-
+  An adversarial pass of fresh Sonnet requests at high effort rechecked every settled call and the
+  agreed edges in caves, at diagonals, and around keys; a challenged call was settled once more in a
+  fresh request with the challenge among its readings, and that value is the key's. Owner sample:
+  PENDING, in the sample app (tools/answer_keys/sample_app.py).
+spend_usd: {claude: 11.4320, clef: 0.0000}
+maps:
+  - {"map": "jn1-p046", "windows_usd": 0.872317, "marks_usd": 0.098398, "wholemap_usd": 0.011793, "settle_usd": 1.251013, "adversary_usd": 2.186383, "resettle_usd": 0.205431, "claude_usd": 4.625335, "clef_requests": 2668, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "cells": 1376, "cells_disputed": 136, "edges": 2669, "edges_disputed": 503, "marks": 24, "marks_disputed": 14, "symbols": 21, "symbols_disputed": 12, "settled_calls": 739, "adversarial_checks": 1431, "challenged": 108, "changed_by_challenge": 54}
+  - {"map": "jn1-p047", "windows_usd": 0.231795, "marks_usd": 0.028243, "wholemap_usd": 0.011745, "settle_usd": 0.175281, "adversary_usd": 0.584053, "resettle_usd": 0.015725, "claude_usd": 1.046842, "clef_requests": 558, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_hosted_record": 558, "cells": 304, "cells_disputed": 44, "edges": 558, "edges_disputed": 82, "marks": 11, "marks_disputed": 5, "symbols": 2, "symbols_disputed": 0, "settled_calls": 111, "adversarial_checks": 416, "challenged": 6, "changed_by_challenge": 6}
+  - {"map": "jn1-p021-halfling", "windows_usd": 1.085125, "marks_usd": 0.040829, "wholemap_usd": 0.008829, "settle_usd": 0.427588, "adversary_usd": 1.328781, "resettle_usd": 0.089328, "claude_usd": 2.98048, "clef_requests": 1789, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_hosted_record": 1145, "cells": 962, "cells_disputed": 17, "edges": 1785, "edges_disputed": 366, "marks": 16, "marks_disputed": 13, "symbols": 0, "symbols_disputed": 0, "settled_calls": 264, "adversarial_checks": 840, "challenged": 21, "changed_by_challenge": 16}
+  - {"map": "jn1-p021-cave", "windows_usd": 0.790968, "marks_usd": 0.050002, "wholemap_usd": 0.010683, "settle_usd": 0.405778, "adversary_usd": 1.466916, "resettle_usd": 0.054988, "claude_usd": 2.779335, "clef_requests": 790, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_hosted_record": 643, "cells": 888, "cells_disputed": 84, "edges": 711, "edges_disputed": 270, "marks": 15, "marks_disputed": 13, "symbols": 6, "symbols_disputed": 3, "settled_calls": 211, "adversarial_checks": 763, "challenged": 17, "changed_by_challenge": 13}
+cases:
+  - "6: page 38 (jn1-p038) is settled through every pass but isn't in this key: the ten lairs are ten dungeons in the survey and their ground is one surface with the ravine, which the conventions can't yet divide; the page joins the key after the ruling"

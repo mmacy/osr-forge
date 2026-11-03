@@ -547,7 +547,7 @@ def write_provenance(keys: list[KeySpec], out: Path, cases: list[str], resolved:
         lines.append(f"  - {json.dumps(f)}")
     lines.append("cases:")
     for case in cases:
-        lines.append(f"  - {case}")
+        lines.append(f"  - {json.dumps(case)}")
     if not cases:
         lines.append("  []")
     path = out.with_name("geometry-provenance.yaml")
