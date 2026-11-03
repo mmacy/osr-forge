@@ -276,6 +276,55 @@ def mouth_inner_cells(
     return out
 
 
+def lettered_mouths(ctx: MapContext, cells: list[list[str]], final: dict[str, dict[str, Any]]) -> dict[str, set]:
+    """The inner cells of the cave mouths a dungeon's letter marks, by level.
+
+    A letter that equals a whole word of the survey's printed name of a dungeon drawn on this map, ignoring case,
+    and is printed within two cells of a cave mouth marks that mouth as the dungeon's, and the outline of the
+    dungeon's level holds the mouth's inner cell: of the mouth's two cells, the one on the side away from the letter.
+    """
+    import json
+
+    from .assemble import _final_marks, _final_symbols
+    from .readings import load_items
+
+    if ctx.key.survey is None:
+        return {}
+    survey = json.loads(ctx.key.survey.read_text())
+    mine = {level_id(dungeon, number) for dungeon, number in ctx.key.levels}
+    by_letter: dict[str, list[str]] = {}
+    for dungeon in survey.get("dungeons", []):
+        levels = [level_id(dungeon["id"], level["number"]) for level in dungeon.get("levels", [])]
+        levels = [name for name in levels if name in mine]
+        if len(levels) != 1:
+            continue
+        for word in str(dungeon.get("name", "")).split():
+            if len(word) == 1 and word.isalpha():
+                by_letter.setdefault(word.lower(), []).append(levels[0])
+    items = load_items(ctx)
+    width, height = len(cells[0]), len(cells)
+    mouths = []
+    for symbol in _final_symbols(items, final, width, height):
+        if symbol.kind == "cave_mouth" and symbol.edge is not None:
+            (x, y), side = parse_edge(symbol.edge)
+            dx, dy = dict(_SIDES)[side]
+            mouths.append(((x, y), (dx, dy)))
+    out: dict[str, set] = {}
+    for mark in _final_marks(items, final, cells, {}):
+        levels = by_letter.get(mark.text.strip().lower(), [])
+        if len(mark.text.strip()) != 1 or len(levels) != 1:
+            continue
+        lx, ly = parse_cell(mark.cell)
+        for (ax, ay), (dx, dy) in mouths:
+            bx, by = ax + dx, ay + dy
+            if min(max(abs(cx - lx), abs(cy - ly)) for cx, cy in ((ax, ay), (bx, by))) > 2:
+                continue
+            # The letter's side of the mouth's edge, measured along the edge's normal from the first cell.
+            beyond = (lx - ax) * dx + (ly - ay) * dy > 0.5
+            out.setdefault(levels[0], set()).add((ax, ay) if beyond else (bx, by))
+    return out
+
+
 def outline_state(
     ctx: MapContext, cells: list[list[str]], edges: EdgeGrids, final: dict[str, dict[str, Any]]
 ) -> OutlineState:
@@ -353,6 +402,10 @@ def outline_state(
                 )
                 if not outside_mouth:
                     owned[level].add(cell)
+        # A dungeon's letter at a cave mouth puts the mouth's inner cell in the outline of the dungeon's level.
+        for level, inner_cells in lettered_mouths(ctx, cells, final).items():
+            if level in owned:
+                owned[level] |= inner_cells
     state = OutlineState(levels=levels, owned=owned, seeds=seeds, open_ground=open_ground)
     if len(levels) > 1:
         asked = {name[2:].split("|")[0] for name in final if name.startswith("o:")}

@@ -53,11 +53,13 @@ __all__ = [
     "cell_edge_items",
     "changed_calls",
     "collect_recheck",
+    "enclosed_shares",
     "recheck_items",
     "recheck_sample",
     "record_corrections",
     "sample_call_id",
     "submit_cell_edges",
+    "submit_owner_note",
     "submit_reask",
     "submit_recheck",
 ]
@@ -502,3 +504,112 @@ def recheck_sample(contexts: list[MapContext], out: Path) -> dict[str, Any]:
             counts[key] = counts.get(key, 0) + 1
     out.write_text(json.dumps(SampleSet(calls=tuple(calls)).model_dump(mode="json"), indent=1) + "\n")
     return {"written": str(out), "calls": len(calls), **counts}
+
+
+def enclosed_shares(
+    ctx: MapContext, rect: tuple[int, int, int, int], samples: int = 20
+) -> dict[tuple[int, int], float]:
+    """Each cell's floor share in a rectangle, counting as floor any fill that floor encloses inside the rectangle.
+
+    A symbol drawn inside an area in the rock colour, such as a column, reads as fill to the pixel count; filled in
+    because floor surrounds it, it counts as the floor it stands on. Fill that reaches the rectangle's border stays
+    rock.
+    """
+    from collections import deque
+
+    from .ink import sample
+
+    materials = map_materials(ctx.spec, ctx.rgb, ctx.fit)
+    x0, y0, width, height = rect
+    across = (np.arange(width * samples) + 0.5) / samples + x0
+    down = (np.arange(height * samples) + 0.5) / samples + y0
+    gx, gy = np.meshgrid(across, down)
+    px, py = ctx.fit.corners(gx, gy)
+    floor = sample(materials.floor, px, py) > 0.5
+    rows, columns = floor.shape
+    outside = np.zeros_like(floor)
+    queue = deque()
+    for i in range(rows):
+        for j in range(columns):
+            if (i in (0, rows - 1) or j in (0, columns - 1)) and not floor[i, j]:
+                outside[i, j] = True
+                queue.append((i, j))
+    while queue:
+        i, j = queue.popleft()
+        for a, b in ((i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)):
+            if 0 <= a < rows and 0 <= b < columns and not floor[a, b] and not outside[a, b]:
+                outside[a, b] = True
+                queue.append((a, b))
+    shares = {}
+    for cy in range(height):
+        for cx in range(width):
+            block = outside[cy * samples : (cy + 1) * samples, cx * samples : (cx + 1) * samples]
+            shares[(x0 + cx, y0 + cy)] = float(1 - block.mean())
+    return shares
+
+
+def submit_owner_note(
+    ctx: MapContext,
+    rect: tuple[int, int, int, int] | None,
+    edges: list[str],
+    note: str,
+    client: Any,
+    ledger: Any,
+) -> tuple[str | None, int]:
+    """Re-settle the cells of a rectangle, then named edges, with the owner's note among each item's readings.
+
+    Cells go first, each with its pixel count and its share with enclosed fill counted as floor; edges go in a later
+    call, once the cells are settled, with the key's letters for both cells. The jobs supersede earlier recheck
+    answers on the same items.
+    """
+    from .letters import final_cells
+    from .settler import RECHECK_SYSTEM, SCHEMA, _readings_text, _request, with_reading
+
+    store = BatchStore(ctx.key.directory / "recheck")
+    rechecked = _load_calls(ctx, "recheck")
+    items_table = load_items(ctx)
+    items: list[dict[str, Any]] = []
+    kind = "cells" if rect is not None else "edges"
+    if rect is not None:
+        enclosed = enclosed_shares(ctx, rect)
+        for (x, y), share in sorted(enclosed.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+            item = _rebuild_item(ctx, items_table, f"c:{x},{y}") or {
+                "id": f"c:{x},{y}",
+                "kind": "cell",
+                "text": f"cell {x},{y}: is it floor, rock, or water? Readings: none.",
+                "readings": [],
+            }
+            item = with_reading(item, "the pixel count", pixel_count_text(_shares(ctx), (x, y)))
+            item = with_reading(
+                item, "the pixel count with fill enclosed by floor counted as floor", f"{round(100 * share)}%"
+            )
+            items.append(with_reading(item, "the map's owner", note))
+    else:
+        cells = final_cells(items_table, final_values(ctx), {})
+        for name in edges:
+            item = _rebuild_item(ctx, items_table, f"e:{name}") or {
+                "id": f"e:{name}",
+                "kind": "edge",
+                "text": f"edge {name}: which letter? Readings: none.",
+                "readings": [],
+            }
+            for cx, cy in edge_cells(edge_key(name)):
+                letter = {".": "floor", "~": "water"}.get(cells[cy][cx], "rock")
+                count = pixel_count_text(_shares(ctx), (cx, cy)).split(";")[0]
+                item = with_reading(item, "the key's cells", f"cell {cx},{cy} is {letter}; {count}")
+            items.append(with_reading(item, "the map's owner", note))
+    for item in items:
+        item["text"] = item["text"].split(" Readings:")[0] + f" Readings: {_readings_text(item['readings'])}."
+    prefix = f"{ctx.key.id}__recheck__zowner-{kind}"
+    start = sum(1 for custom_id in store.job_ids() if custom_id.startswith(prefix) and not custom_id.endswith("__r"))
+    ids = []
+    for number, first in enumerate(range(0, len(items), 8), start):
+        batch = items[first : first + 8]
+        custom_id = f"{prefix}{number:03d}"
+        supersedes = sorted({rechecked[item["id"]]["job"] for item in batch if item["id"] in rechecked})
+        params = _request(ctx, batch, RECHECK_SYSTEM, SCHEMA, False)
+        store.add_job(custom_id, params, {"map": ctx.key.id, "items": batch, "supersedes": supersedes})
+        ids.append(custom_id)
+    if not ids:
+        return None, 0
+    return store.submit(client, ledger, f"recheck owner note {ctx.key.id}", ids=ids), len(items)

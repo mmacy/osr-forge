@@ -152,7 +152,14 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
                         print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: {stage} spent ${store.spent():.4f}")
     elif stage == "recheck":
-        from .recheck import collect_recheck, record_corrections, submit_cell_edges, submit_reask, submit_recheck
+        from .recheck import (
+            collect_recheck,
+            record_corrections,
+            submit_cell_edges,
+            submit_owner_note,
+            submit_reask,
+            submit_recheck,
+        )
 
         if args.sample is None and action != "collect":
             raise SystemExit("recheck needs --sample, the sample file the owner checked")
@@ -162,6 +169,11 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
         elif action == "edges":
             batch, count = submit_cell_edges(ctx, api, book)
             print(f"{key.id}: cell edges batch {batch}, {count} items")
+        elif action == "note":
+            rect = tuple(int(part) for part in args.rect.split(",")) if args.rect else None
+            mine = [name.partition(":")[2].partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
+            batch, count = submit_owner_note(ctx, rect, mine, args.note, api, book)  # type: ignore[arg-type]
+            print(f"{key.id}: owner's note batch {batch}, {count} items")
         elif action == "reask":
             mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
             if mine:
@@ -228,6 +240,8 @@ def main(argv: list[str] | None = None) -> int:
         help="combine: a sample file whose owner's verdicts the provenance counts, repeatable",
     )
     parser.add_argument("--sample", type=Path, default=None, help="recheck: the sample file whose verdicts to act on")
+    parser.add_argument("--rect", default=None, help="recheck note: the cells to re-settle, as x,y,width,height")
+    parser.add_argument("--note", default="", help="recheck note: the owner's note, as one reading of each item")
     parser.add_argument(
         "--call",
         action="append",
@@ -272,6 +286,7 @@ def main(argv: list[str] | None = None) -> int:
         "check-collect",
         "resettle",
         "final",
+        "note",
     ):
         action = words.pop()
     if not words or words[-1] not in stages:

@@ -941,3 +941,35 @@ def test_a_join_gap_is_the_cheapest_way_through_rock_and_walls():
     far = _GridWorld(["." + "#" * 7 + "."])
     gap = joins._gap(far, ("d", 1), {("p", 0, 0), ("p", 8, 0)}, {("p", 0, 0)}, {("p", 8, 0)}, ("1", "2"), "passage")
     assert gap.cost is None and gap.cells == []
+
+
+def test_a_dungeons_letter_at_a_cave_mouth_puts_the_mouths_inner_cell_in_its_outline(tmp_path, monkeypatch):
+    from osrforge.tracing.truth import Mark, Symbol
+
+    survey = {
+        "dungeons": [
+            {"id": "orc-b", "name": "Orc Lair B", "levels": [{"number": 1, "areas": [{"key": "11"}]}]},
+            {"id": "cave", "name": "Cave of Horrors", "levels": [{"number": 1, "areas": [{"key": "c1"}]}]},
+        ]
+    }
+    (tmp_path / "survey.json").write_text(json.dumps(survey))
+    key = KeySpec(
+        id="m",
+        specs=tmp_path,
+        member="x",
+        style_note="x",
+        work=tmp_path,
+        key=tmp_path / "g.json",
+        levels=(("orc-b", 1), ("cave", 1)),
+        survey=tmp_path / "survey.json",
+    )
+    ctx = MapContext(key=key, spec=None, rgb=None, fit=None)  # type: ignore[arg-type]
+    symbols = [Symbol(kind="cave_mouth", edge="5,5:west"), Symbol(kind="cave_mouth", edge="1,1:north")]
+    # "b" names a word of Orc Lair B, ignoring case; it stands east of the mouth between 4,5 and 5,5, so the inner
+    # cell is 4,5. "of" is a word of Cave of Horrors but no letter; "C" names no word.
+    marks = [Mark(text="b", cell="6,5"), Mark(text="of", cell="1,2"), Mark(text="C", cell="1,0")]
+    monkeypatch.setattr(assemble, "_final_symbols", lambda *_args: symbols)
+    monkeypatch.setattr(assemble, "_final_marks", lambda *_args: marks)
+    monkeypatch.setattr(readings, "load_items", lambda _ctx: None)
+    cells = [["."] * 8 for _ in range(8)]
+    assert letters.lettered_mouths(ctx, cells, {}) == {"orc-b/1": {(4, 5)}}
