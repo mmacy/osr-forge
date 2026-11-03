@@ -610,7 +610,10 @@ def submit_pass(
             resettle.append(item)
         resettle_store = BatchStore(ctx.key.directory / "resettle")
         count = _add_jobs(ctx, resettle_store, f"{ctx.key.id}__resettle__", resettle, False)
-        return resettle_store.submit(client, ledger, f"resettle {ctx.key.id}", limit), count
+        batch = resettle_store.submit(client, ledger, f"resettle {ctx.key.id}", limit)
+        if batch is not None or count:
+            return batch, count
+        # The challenges are already being re-settled, so the pass's next part can go out meanwhile.
     round_items = adversary_items(ctx, items, settled)
     mouths = _mouth_cells(items)
     first = [item for item in round_items if _touches(item["id"], mouths)]
