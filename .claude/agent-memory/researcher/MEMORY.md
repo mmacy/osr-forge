@@ -13,3 +13,5 @@
 - [Recheck cells before edges](recheck-cells-before-edges.md) — after a recheck changes cells, re-ask their edges with the key's cells, and read changed reasons before sampling
 - [Batch counts lag](batch-counts-lag.md) — a batch can show 0 succeeded for hours while answers exist; cancel, collect, resend the rest by id
 - [Measure joins before handover](measure-joins-before-handover.md) — window scores miss connection; count prose joins and entrance reach per level before calling a key done
+- [Simulate before settling](simulate-before-settling.md) — patch final values offline with scripts/sim.py and resolve before any round or outline-code change
+- [Passage width resolution](passage-width-resolution.md) — quote widths at 24 samples per cell, Euclidean; 12 reads about 0.1 low; lines over rock read 0.15 to 0.21

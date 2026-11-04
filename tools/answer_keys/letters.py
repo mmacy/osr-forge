@@ -18,7 +18,7 @@ from .keyspec import MapContext
 from .marks import wholemap_answer
 from .readings import Items, edge_cells, edge_key
 
-__all__ = ["OutlineState", "final_cells", "final_edges", "level_id", "outline_state"]
+__all__ = ["OutlineState", "final_cells", "final_edges", "level_id", "outline_box", "outline_state"]
 
 EXPANSION_CAP = 40
 """The most cells one outline call adds to a level's outline: the floor joined to the settled cell across passable
@@ -140,15 +140,33 @@ def _rect_cells(rect: list[int], width: int, height: int) -> set[tuple[int, int]
     return {(cx, cy) for cy in range(max(0, y), min(height, y + h)) for cx in range(max(0, x), min(width, x + w))}
 
 
-def extend_path(path: list[tuple[int, int]], width: int, height: int) -> list[tuple[int, int]]:
+def outline_box(rects: list[Any]) -> tuple[int, int, int, int]:
+    """The rectangle that bounds a level's outline rectangles, `(x, y, width, height)`: the box a slope item asks
+    about."""
+    x0 = min(r[0] for r in rects)
+    y0 = min(r[1] for r in rects)
+    x1 = max(r[0] + r[2] for r in rects)
+    y1 = max(r[1] + r[3] for r in rects)
+    return (x0, y0, x1 - x0, y1 - y0)
+
+
+def extend_path(
+    path: list[tuple[int, int]], width: int, height: int, box: tuple[int, int, int, int] | None = None
+) -> list[tuple[int, int]]:
     """A slope path carried on in a straight line at each end to the panel's edge, so a line the reader stopped
-    short of the edge still closes the outline."""
+    short of the edge still closes the outline. An end whose last step runs along an edge of the line's box isn't
+    carried on: the line leaves the box there, and going on along the box's edge would cross cells the reader never
+    traced."""
     if len(path) < 2:
         return list(path)
     out = list(path)
     for end, before in ((path[0], path[1]), (path[-1], path[-2])):
         dx, dy = end[0] - before[0], end[1] - before[1]
         x, y = end
+        if box is not None:
+            x0, y0, w, h = box
+            if (dy == 0 and y in (y0, y0 + h - 1)) or (dx == 0 and x in (x0, x0 + w - 1)):
+                continue
         while True:
             x, y = x + dx, y + dy
             if not (0 <= x < width and 0 <= y < height):
@@ -162,10 +180,12 @@ def slope_side(
     seeds: list[tuple[int, int]],
     paths: list[list[tuple[int, int]]],
     joined: Callable[[tuple[int, int], tuple[int, int]], bool] | None = None,
+    traced: set[tuple[int, int]] | None = None,
 ) -> set[tuple[int, int]]:
     """The cells of an outline on its seeds' side of its slopes: the cells joined to a seed by sides without
-    stepping onto a slope cell (the level's ground), plus each slope cell that `joined` says an edge joins to the
-    ground, or every slope cell when `joined` is `None`. A slope cell beyond a wall from the ground, such as the line
+    stepping onto a slope cell (the level's ground), plus each slope cell that `joined` says edges join to the
+    ground, directly or through other cells of the line as the reader traced it (`traced`, every slope cell when
+    `None`), or every slope cell when `joined` is `None`. A slope cell beyond a wall from the ground, such as the line
     running outside a cave wall, isn't the level's. An outline whose seeds lie on no cell of it, or with no slope,
     is returned whole."""
     blocked = {cell for path in paths for cell in path}
@@ -183,11 +203,22 @@ def slope_side(
                 queue.append(nxt)
     line = blocked & owned
     if joined is not None:
-        line = {
+        # A slope cell is the level's when passable edges join it to the ground, directly or through other slope
+        # cells, as where the line runs along a corridor.
+        kept = {
             (x, y)
             for x, y in line
             if any((x + dx, y + dy) in found and joined((x, y), (x + dx, y + dy)) for _side, (dx, dy) in _SIDES)
         }
+        queue = deque(kept)
+        while queue:
+            x, y = queue.popleft()
+            for _side, (dx, dy) in _SIDES:
+                nxt = (x + dx, y + dy)
+                if nxt in line and nxt not in kept and (traced is None or nxt in traced) and joined((x, y), nxt):
+                    kept.add(nxt)
+                    queue.append(nxt)
+        line = kept
     return found | line
 
 
@@ -360,13 +391,17 @@ def outline_state(
     # The slope calls: a level's outline ends at the elevation line that bounds its ground. A later call for the
     # same level (`l:x,y|level#2`) replaces an earlier one.
     slopes: dict[str, list[list[tuple[int, int]]]] = {}
+    traced: dict[str, set[tuple[int, int]]] = {}
     for name, call in sorted(final.items()):
         if name.startswith("l:"):
             from .settler import slope_paths
 
             level = name[2:].split("|", 1)[1].split("#")[0]
             if level in owned:
-                slopes[level] = [extend_path(path, width, height) for path in slope_paths(call["value"])]
+                rects = [rect for rect in (answers.get(level) or {}).get("rects", []) if len(rect) == 4]
+                box = outline_box(rects) if rects else None
+                traced[level] = {cell for path in slope_paths(call["value"]) for cell in path}
+                slopes[level] = [extend_path(path, width, height, box) for path in slope_paths(call["value"])]
     blocked = {cell for paths in slopes.values() for path in paths for cell in path}
     # The calls: a cell placed in a level grows that level's outline across the floor joined to it.
     for name, call in sorted(final.items()):
@@ -388,7 +423,9 @@ def outline_state(
         return cells[a[1]][a[0]] != "#" and cells[b[1]][b[0]] != "#" and edges.at(a, side) in CROSSING
 
     for level, paths in slopes.items():
-        owned[level] = slope_side(owned[level], [parse_cell(text) for text in seeds[level]], paths, joined)
+        owned[level] = slope_side(
+            owned[level], [parse_cell(text) for text in seeds[level]], paths, joined, traced.get(level)
+        )
     # A level's outline always holds the cells where its own keys are printed, except a key printed within two
     # cells of one of the level's cave mouths on its outer side, which the key-placement rules move inside.
     if len(levels) > 1:

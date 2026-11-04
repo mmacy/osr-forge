@@ -680,9 +680,17 @@ def test_slope_answers_are_checked_and_bound_an_outline():
     # No slope, or a seed off the outline, leaves the outline whole.
     assert letters.slope_side(owned, [(0, 0)], []) == owned
     assert letters.slope_side(owned, [(9, 9)], [path]) == owned
-    # A line stopped short of the edge is carried on straight at both ends.
+    # A slope cell joined to the ground only through other slope cells, as where the line runs along a corridor, is
+    # the level's.
+    corridor = letters.slope_side(owned, [(0, 0)], [path], lambda a, b: {a, b} != {(1, 0), (2, 0)})
+    assert (2, 0) in corridor and (2, 1) in corridor
+    # A line stopped short of the edge is carried on straight at both ends to the panel's edge.
     assert letters.extend_path([(2, 1), (2, 2)], 5, 5) == [(2, 1), (2, 2), (2, 0), (2, 3), (2, 4)]
     assert letters.extend_path([(1, 1), (2, 2)], 4, 4) == [(1, 1), (2, 2), (0, 0), (3, 3)]
+    # An end whose last step runs along an edge of the line's box isn't carried on along that edge.
+    assert letters.extend_path([(1, 3), (2, 2), (3, 2)], 6, 6, (1, 2, 4, 3)) == [(1, 3), (2, 2), (3, 2), (0, 4)]
+    assert letters.extend_path([(2, 3), (2, 2)], 6, 6, (2, 2, 3, 3)) == [(2, 3), (2, 2)]
+    assert letters.outline_box([[1, 2, 2, 1], [0, 3, 1, 2]]) == (0, 2, 3, 3)
 
 
 # --- the recheck after the owner's sample --------------------------------------------------------------------
@@ -992,3 +1000,28 @@ def test_supersession_runs_through_a_chain_of_jobs(tmp_path):
     again = {"calls": 0, "retries": 0}
     settler._harvest(store, calls, False, again)
     assert again["calls"] == 0 and calls["c:1,1"]["value"] == "~"
+
+
+# --- passages narrower than a cell ---------------------------------------------------------------------------------
+
+
+def test_the_widest_white_path_measures_a_passage_in_any_direction():
+    from tools.answer_keys.passages import clearance, widest_path
+
+    band = np.zeros((40, 60), dtype=bool)
+    band[10:15, :] = True
+    assert clearance(band)[12, 30] == 3.0  # five samples wide: 2 * 3 - 1
+    rows, columns = np.mgrid[0:60, 0:60]
+    diagonal = np.abs(rows - columns) / np.sqrt(2) <= 3.0
+    assert abs((2 * clearance(diagonal)[30, 30] - 1) - 6.36) < 0.5
+    # Two rooms joined by a neck three samples wide and one seven wide: the widest path keeps clearance 4.
+    rooms = np.zeros((30, 60), dtype=bool)
+    rooms[:, :15] = rooms[:, 45:] = True
+    rooms[4:7, 15:45] = True
+    rooms[18:25, 15:45] = True
+    left, right = np.zeros_like(rooms), np.zeros_like(rooms)
+    left[:, :15] = right[:, 45:] = True
+    depth, path = widest_path(rooms, left & rooms, right & rooms)
+    assert depth == 4.0 and all(18 <= y < 25 for y, x in path if 15 <= x < 45)
+    rooms[18:25, 30] = rooms[4:7, 30] = False
+    assert widest_path(rooms, left & rooms, right & rooms) == (0, [])
