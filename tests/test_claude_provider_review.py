@@ -203,7 +203,6 @@ def test_a_server_error_on_every_attempt_keeps_the_worst_case(tmp_path: Path):
     assert "pending" not in entry and entry["cost_usd"] == worst_case_usd(MODEL, REQUEST)
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: claude-refused")
 @pytest.mark.parametrize("status", [408, 409])
 def test_a_timeout_or_conflict_on_every_attempt_keeps_the_worst_case(tmp_path: Path, status: int):
     failures: list[Exception | FakeStream] = [status_error(anthropic.APIStatusError, status, {}) for _ in range(5)]
