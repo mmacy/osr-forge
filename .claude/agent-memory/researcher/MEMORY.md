@@ -16,3 +16,4 @@
 - [Simulate before settling](simulate-before-settling.md) — patch final values offline with scripts/sim.py and resolve before any round or outline-code change
 - [Passage width resolution](passage-width-resolution.md) — quote widths at 24 samples per cell, Euclidean; 12 reads about 0.1 low; lines over rock read 0.15 to 0.21
 - [Register before keying](register-before-keying.md) — compare the spec grid with register_image's rectangle before keying; record a difference as the spec's frame
+- [Wording check per output](wording-check-per-output.md) — after a wording change, check every output against it independently, diff old and new, look at each change
