@@ -1025,3 +1025,19 @@ def test_the_widest_white_path_measures_a_passage_in_any_direction():
     assert depth == 4.0 and all(18 <= y < 25 for y, x in path if 15 <= x < 45)
     rooms[18:25, 30] = rooms[4:7, 30] = False
     assert widest_path(rooms, left & rooms, right & rooms) == (0, [])
+
+
+def test_an_outline_answer_of_outside_binds_and_a_group_answer_settles_every_cell():
+    cells = [["."] * 6]
+    edges = EdgeGrids(vertical=("wooooow",), horizontal=("wwwwww", "wwwwww"))
+    owned = {"a/1": {(0, 0), (1, 0)}, "b/1": {(4, 0), (5, 0)}}
+    final = {
+        "o:2,0|a/1": {"value": "a/1"},
+        "o:4,0|b/1": {"value": "outside"},
+        "r:5,0,1,1|b/1": {"value": "a/1", "cells": ["5,0"]},
+    }
+    letters.apply_outline_calls(owned, final, cells, edges, set())
+    # The growth from 2,0 stops at 4,0, which a call put outside; 4,0 leaves b's outline although b's rectangle
+    # held it; the group's answer gives 5,0 to a alone.
+    assert owned["a/1"] == {(0, 0), (1, 0), (2, 0), (3, 0), (5, 0)}
+    assert owned["b/1"] == set()

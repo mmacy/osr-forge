@@ -152,6 +152,8 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
                         print(f"{key.id}: retry batch {batch}")
             print(f"{key.id}: {stage} spent ${store.spent():.4f}")
     elif stage == "recheck":
+        from osrforge.tracing.truth import parse_cell
+
         from .recheck import (
             collect_recheck,
             record_corrections,
@@ -159,6 +161,7 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             submit_owner_note,
             submit_reask,
             submit_recheck,
+            submit_region,
         )
 
         if args.sample is None and action != "collect":
@@ -174,6 +177,12 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
             batch, count = submit_owner_note(ctx, rect, mine, args.note, api, book, args.reader)  # type: ignore[arg-type]
             print(f"{key.id}: owner's note batch {batch}, {count} items")
+        elif action == "region":
+            if args.level is None or not args.cells:
+                raise SystemExit("recheck region needs --level and --cells")
+            group = [parse_cell(text) for text in args.cells.split(";") if text]
+            batch, count = submit_region(ctx, args.level, group, args.note, api, book)
+            print(f"{key.id}: region batch {batch}, {count} items")
         elif action == "reask":
             mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
             if mine:
@@ -243,11 +252,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rect", default=None, help="recheck note: the cells to re-settle, as x,y,width,height")
     parser.add_argument("--note", default="", help="recheck note: the owner's note, as one reading of each item")
     parser.add_argument("--reader", default="the map's owner", help="recheck note: whose note it is, as its reading")
+    parser.add_argument("--level", default=None, help="recheck region: the level whose outline holds the group")
+    parser.add_argument("--cells", default="", help="recheck region: the group's cells, as x,y;x,y")
     parser.add_argument(
         "--call",
         action="append",
         default=[],
-        help="recheck reask: a call whose answer contradicts its reason, as <map id>:<call id>, repeatable",
+        help="recheck reask or note, or joins check: a call, as <map id>:<call id>, repeatable",
     )
     parser.add_argument(
         "--set",
@@ -289,6 +300,7 @@ def main(argv: list[str] | None = None) -> int:
         "final",
         "note",
         "orphans",
+        "region",
     ):
         action = words.pop()
     if not words or words[-1] not in stages:
@@ -345,7 +357,8 @@ def main(argv: list[str] | None = None) -> int:
             elif action == "edges":
                 print(f"{ctx.key.id}: join edges {submit_edges(ctx, api, book)}")
             elif action == "check":
-                print(f"{ctx.key.id}: join check {submit_check(ctx, api, book)}")
+                named = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == ctx.key.id]
+                print(f"{ctx.key.id}: join check {submit_check(ctx, api, book, named or None)}")
             elif action == "check-collect":
                 print(f"{ctx.key.id}: join check {collect_check(ctx, api, book)}")
             elif action == "resettle":

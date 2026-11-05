@@ -548,6 +548,84 @@ def enclosed_shares(
     return shares
 
 
+def region_item(ctx: MapContext, level: str, cells: list[tuple[int, int]], note: str = "") -> dict[str, Any]:
+    """One outline item that asks which level's floor a group of cells is, or the outside, for the whole group.
+
+    Its id is `r:x,y,width,height|level`, the group's bounding rectangle and the level whose outline holds it, and
+    its `cells` are the group's. Its readings are the whole-map read's outlines over the group, the printed keys
+    near it, and every earlier outline call on one of its cells, grouped by answer, so disagreeing calls are
+    answered once.
+    """
+    from .letters import level_id
+    from .marks import wholemap_answer
+    from .settler import _readings_text, keys_near
+
+    xs = [x for x, _ in cells]
+    ys = [y for _, y in cells]
+    rect = (min(xs), min(ys), max(xs) - min(xs) + 1, max(ys) - min(ys) + 1)
+    group = set(cells)
+    covering = []
+    for answer in (wholemap_answer(ctx) or {}).get("levels", []):
+        rects = [r for r in answer.get("rects", []) if len(r) == 4]
+        if any(rx <= x < rx + rw and ry <= y < ry + rh for rx, ry, rw, rh in rects for x, y in group):
+            covering.append(level_id(answer["dungeon"], answer["level"]))
+    options = [*dict.fromkeys([level, *covering]), "outside"]
+    earlier: dict[str, list[str]] = {}
+    for name, call in final_values(ctx).items():
+        if name.startswith("o:") and parse_cell(name[2:].split("|")[0]) in group:
+            earlier.setdefault(call["value"].strip(), []).append(name[2:].split("|")[0])
+    readings = [
+        ("the whole-map read", f"the outlines of {', '.join(covering) or 'no level'} cover cells of the group"),
+        ("the survey's keys", f"printed near the group: {keys_near(ctx, load_items(ctx), (xs[0], ys[0]))}"),
+    ]
+    if earlier:
+        readings.append(
+            (
+                "earlier outline calls, cell by cell",
+                "; ".join(f"{value} at {', '.join(sorted(places))}" for value, places in sorted(earlier.items())),
+            )
+        )
+    if note:
+        readings.append(("the recheck", note))
+    listed = ", ".join(f"{x},{y}" for x, y in sorted(group, key=lambda c: (c[1], c[0])))
+    return {
+        "id": f"r:{rect[0]},{rect[1]},{rect[2]},{rect[3]}|{level}",
+        "kind": "outline",
+        "rect": list(rect),
+        "cells": [f"{x},{y}" for x, y in sorted(group, key=lambda c: (c[1], c[0]))],
+        "options": options,
+        "text": f"the floor cells {listed}, in the boxed rectangle, are one group, now in the outline of level "
+        f"{level}. Which level's floor is the whole group part of, or is it outside? Answer for the group as a "
+        f"whole with exactly one of: {', '.join(options)}. Readings: {_readings_text(readings)}.",
+        "readings": readings,
+    }
+
+
+def submit_region(
+    ctx: MapContext, level: str, cells: list[tuple[int, int]], note: str, client: Any, ledger: Any
+) -> tuple[str | None, int]:
+    """Ask one group of cells' outline as one question, in a recheck job (see `region_item`)."""
+    from .settler import RECHECK_SYSTEM, SCHEMA, _request
+
+    store = BatchStore(ctx.key.directory / "recheck")
+    item = region_item(ctx, level, cells, note)
+    prefix = f"{ctx.key.id}__recheck__zregion"
+    number = sum(1 for custom_id in store.job_ids() if custom_id.startswith(prefix) and not custom_id.endswith("__r"))
+    custom_id = f"{prefix}{number:03d}"
+    store.add_job(custom_id, _request(ctx, [item], RECHECK_SYSTEM, SCHEMA, False), {"map": ctx.key.id, "items": [item]})
+    return store.submit(client, ledger, f"recheck region {ctx.key.id}", ids=[custom_id]), 1
+
+
+def recheck_item(ctx: MapContext, name: str) -> dict[str, Any] | None:
+    """A recheck call's item as the job that answered it asked it, or `None` when the recheck has no such call."""
+    call = _load_calls(ctx, "recheck").get(name)
+    if call is None:
+        return None
+    store = BatchStore(ctx.key.directory / "recheck")
+    job = store.job(call["job"])
+    return next((item for item in job["meta"]["items"] if item["id"] == name), None)
+
+
 def submit_owner_note(
     ctx: MapContext,
     rect: tuple[int, int, int, int] | None,

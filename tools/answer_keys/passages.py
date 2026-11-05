@@ -69,7 +69,8 @@ def _passable(ctx: MapContext) -> np.ndarray:
             rock = box_max(box_min(fill, 2), 2)
         else:
             rock = np.zeros_like(paper)
-        _MATERIALS[key] = close(paper, LINE_REACH) & ~rock
+        wall = gray <= levels.ink_max
+        _MATERIALS[key] = close(paper, LINE_REACH) & ~rock & ~wall
     return _MATERIALS[key]
 
 

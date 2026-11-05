@@ -1117,6 +1117,9 @@ def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: boo
                     "kind": item["kind"],
                     "readings": item["readings"],
                 }
+                if "cells" in item:
+                    # A group's call answers for each of its cells.
+                    call["cells"] = item["cells"]
                 if adversary:
                     # A challenge that names the recorded value isn't one.
                     recorded = item["recorded"].split(" ")[0]
@@ -1210,6 +1213,8 @@ def final_values(ctx: MapContext) -> dict[str, dict[str, Any]]:
         final["before_recheck"] = final.get("value")
         final["value"] = call["value"]
         final["recheck_reason"] = call["reason"]
+        if "cells" in call:
+            final["cells"] = call["cells"]
     # The owner's correction of a call judged wrong in the sample is final: it replaces whatever the recheck found.
     for name, call in corrected.items():
         final = out.get(name)

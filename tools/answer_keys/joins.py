@@ -424,8 +424,10 @@ def changed_by_round(ctx: MapContext) -> list[str]:
     return [name for name in changed_calls(ctx) if "__zjoins" in rechecked.get(name, {}).get("job", "")]
 
 
-def submit_check(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | None, int]:
-    """The adversarial pass over the calls the join round changed, in the map's `joins-adversary` store."""
+def submit_check(ctx: MapContext, client: Any, ledger: Any, names: list[str] | None = None) -> tuple[str | None, int]:
+    """The adversarial pass over the calls the join round changed, or over the named recheck calls, in the map's
+    `joins-adversary` store. A named call is checked as the recheck asked it."""
+    from .recheck import recheck_item
     from .settler import ADVERSARY_SCHEMA, ADVERSARY_SYSTEM, _recorded_text, final_values
 
     store = BatchStore(ctx.key.directory / "joins-adversary")
@@ -433,14 +435,15 @@ def submit_check(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | None,
     items_table = load_items(ctx)
     asked = {item["id"] for custom_id in store.job_ids() for item in store.job(custom_id)["meta"]["items"]}
     items = []
-    for name in changed_by_round(ctx):
+    for name in names if names is not None else changed_by_round(ctx):
         if name in asked:
             continue
-        item = _rebuild_item(ctx, items_table, name)
+        item = recheck_item(ctx, name) if names is not None else None
+        item = item or _rebuild_item(ctx, items_table, name)
         if item is None:
             continue
         kind = item["kind"]
-        if kind == "cell":
+        if kind == "cell" and names is None:
             x, y = (int(part) for part in name[2:].split(","))
             item = with_reading(item, "the pixel count", pixel_count_text(_shares(ctx), (x, y)))
         items.append({**item, "recorded": _recorded_text(kind, final[name]["value"]), "category": "joins"})
@@ -477,6 +480,8 @@ def collect_check(ctx: MapContext, client: Any, ledger: Any) -> dict[str, Any]:
 def submit_resettle(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | None, int]:
     """Settle each challenged join-round call once more, with the challenge among its readings, in recheck jobs that
     supersede the round's answer; that value is final."""
+    from .recheck import recheck_item
+
     store = BatchStore(ctx.key.directory / "recheck")
     rechecked = _load_calls(ctx, "recheck")
     checks = _load_calls(ctx, "joins-adversary")
@@ -492,13 +497,14 @@ def submit_resettle(ctx: MapContext, client: Any, ledger: Any) -> tuple[str | No
     for name, check in sorted(checks.items()):
         if not check.get("challenged") or name in asked:
             continue
-        item = _rebuild_item(ctx, items_table, name)
+        item = _rebuild_item(ctx, items_table, name) or recheck_item(ctx, name)
         if item is None:
             continue
         if item["kind"] == "cell":
             x, y = (int(part) for part in name[2:].split(","))
             item = with_reading(item, "the pixel count", pixel_count_text(_shares(ctx), (x, y)))
-        item = with_reading(item, "the join round", rechecked[name]["value"])
+        asker = "the join round" if "__zjoins" in rechecked[name]["job"] else "the recheck"
+        item = with_reading(item, asker, rechecked[name]["value"])
         item = with_reading(item, "the adversarial check", check["value"])
         item["earlier_job"] = rechecked[name]["job"]
         items.append(item)

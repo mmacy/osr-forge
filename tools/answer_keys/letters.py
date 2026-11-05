@@ -18,7 +18,15 @@ from .keyspec import MapContext
 from .marks import wholemap_answer
 from .readings import Items, edge_cells, edge_key
 
-__all__ = ["OutlineState", "final_cells", "final_edges", "level_id", "outline_box", "outline_state"]
+__all__ = [
+    "OutlineState",
+    "apply_outline_calls",
+    "final_cells",
+    "final_edges",
+    "level_id",
+    "outline_box",
+    "outline_state",
+]
 
 EXPANSION_CAP = 40
 """The most cells one outline call adds to a level's outline: the floor joined to the settled cell across passable
@@ -249,6 +257,44 @@ def _expand(
     return found
 
 
+def apply_outline_calls(
+    owned: dict[str, set[tuple[int, int]]],
+    final: dict[str, dict[str, Any]],
+    cells: list[list[str]],
+    edges: EdgeGrids,
+    blocked: set[tuple[int, int]],
+) -> None:
+    """Place the outline calls' cells in the levels' outlines, in place.
+
+    An `o:x,y|level` call that names a level grows that level's outline from its cell across the floor joined to it
+    (`_expand`), never into a cell that a call put outside. An `r:` call answers for a group of cells at once, its
+    `cells`: the group belongs to the level it names and to no other. A cell that a call put outside is in no
+    outline, whatever a whole-map rectangle or another call's growth would give it.
+    """
+    outside: set[tuple[int, int]] = set()
+    for name, call in final.items():
+        if call["value"].strip() != "outside":
+            continue
+        if name.startswith("o:"):
+            outside.add(parse_cell(name[2:].split("|")[0]))
+        elif name.startswith("r:"):
+            outside |= {parse_cell(text) for text in call.get("cells", [])}
+    for name, call in sorted(final.items()):
+        value = call["value"].strip()
+        if name.startswith("o:") and value in owned:
+            cell = parse_cell(name[2:].split("|")[0])
+            owned[value] |= _expand(cell, cells, edges, owned[value], blocked | outside)
+        elif name.startswith("r:") and value in owned:
+            group = {parse_cell(text) for text in call.get("cells", [])}
+            for level, held in owned.items():
+                if level == value:
+                    held |= group
+                else:
+                    held -= group
+    for held in owned.values():
+        held -= outside
+
+
 CROSSING = "opdls"
 """The edge letters across which an outline's border crosses floor: open, a printed open line, and every door."""
 
@@ -403,14 +449,9 @@ def outline_state(
                 traced[level] = {cell for path in slope_paths(call["value"]) for cell in path}
                 slopes[level] = [extend_path(path, width, height, box) for path in slope_paths(call["value"])]
     blocked = {cell for paths in slopes.values() for path in paths for cell in path}
-    # The calls: a cell placed in a level grows that level's outline across the floor joined to it.
+    apply_outline_calls(owned, final, cells, edges, blocked)
     for name, call in sorted(final.items()):
-        if name.startswith("o:"):
-            cell = parse_cell(name[2:].split("|")[0])
-            value = call["value"].strip()
-            if value in owned:
-                owned[value] |= _expand(cell, cells, edges, owned[value], blocked)
-        elif name.startswith("g:"):
+        if name.startswith("g:"):
             _coords, level, index = name[2:].split("|")
             if level in open_ground and call["value"].strip() == "outside":
                 position = int(index)
