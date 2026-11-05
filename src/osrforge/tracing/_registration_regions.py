@@ -19,9 +19,13 @@ frame is four sides around the printed lines, each covered by ink and fill
 from one perpendicular side to the other: a drawn line, the edge of a fill,
 or, where no frame is drawn, the outermost grid lines printed across the
 whole drawing. A side may run on past its corner, as a wall does into a
-corridor. The sides are looked for on lines a pixel apart, so a frame drawn
-off the grid is found, and the paper between a drawn frame and the drawing
-inside it doesn't matter. The grid takes the lines on and inside a frame.
+corridor, but it is an edge: none of the drawing's fill lies just beyond it.
+A frame encloses every printed grid line of its drawing inside the outermost
+frame that closes, so a rectangle that walls or grid lines inside the drawing
+close is no frame. The sides are looked for on lines a pixel apart, so a
+frame drawn off the grid is found, and the paper between a drawn frame and
+the drawing inside it doesn't matter. The grid takes the lines on and inside
+a frame.
 The frames that close are tried in turn, the outermost first, and the region
 takes the first under which the fit passes the gate, so a page border whose
 paper and legend fail it gives way to the drawing's own frame. Where no frame
@@ -670,6 +674,9 @@ class Side:
     middle: float
     """The run's middle line index, fractional."""
 
+    outward: int
+    """-1 for a side before the printed lines, the west or the north, and 1 for one after them."""
+
     hits: BoolArray
     """Whether ink or fill lies along any of the run's lines, at each pixel along the other axis from the drawing
     box's start."""
@@ -730,18 +737,32 @@ def _sides(
             run_hits = hits[members].any(axis=0)
             run_middle = float(indices[members].mean())
             if lowest <= printed[0]:
-                before.append(Side(lowest, highest, run_middle, run_hits))
+                before.append(Side(lowest, highest, run_middle, -1, run_hits))
             if highest >= printed[1]:
-                after.append(Side(highest, lowest, run_middle, run_hits))
+                after.append(Side(highest, lowest, run_middle, 1, run_hits))
     return before, after
 
 
-def _closes(side: Side, fit: AxisFit, other: AxisFit, ends: tuple[Side, Side], other_lo: int, middle: float) -> bool:
-    """Whether a side's ink and fill run from one perpendicular side to the other, as a frame's side does.
+def _closes(
+    side: Side,
+    fit: AxisFit,
+    other: AxisFit,
+    ends: tuple[Side, Side],
+    other_lo: int,
+    middle: float,
+    fill: BoolArray,
+    vertical: bool,
+) -> bool:
+    """Whether a side is a drawn line or a fill's edge that runs from one perpendicular side to the other.
 
-    The side is covered between the two perpendicular sides' middle lines as `_covered_lines` covers a line,
-    and no gap at either end is longer than `FRAME_CORNER` of a pitch, so the side reaches both of them. What
-    lies past them doesn't matter: a side may run on past its corner, as a wall does into a corridor.
+    The side is covered between the two perpendicular sides' middle lines as `_covered_lines` covers a line, and
+    no gap at either end is longer than `FRAME_CORNER` of a pitch, so the side reaches both of them. What lies past
+    them doesn't matter: a side may run on past its corner, as a wall does into a corridor. Just outside the side,
+    `FRAME_BAND` of a pitch past its outer edge and from one perpendicular side's outer edge to the other's, fill
+    covers at most `1 - FRAME_COVERAGE` of that length. So the side is an edge, not a line through a fill's inside:
+    a wall or a grid line inside a filled drawing, with rock beyond it, closes no frame. Ink outside the side that
+    isn't fill, such as art, a label, or a corridor's walls, doesn't count against it, and nor does another
+    drawing's fill.
     """
     at = float(fit.model.position(side.middle, middle))
     start = round(float(other.model.position(ends[0].middle, at))) - other_lo
@@ -756,45 +777,89 @@ def _closes(side: Side, fit: AxisFit, other: AxisFit, ends: tuple[Side, Side], o
     leading = int(np.argmax(hits))
     trailing = int(np.argmax(hits[::-1]))
     longest = int(run_lengths(~hits[None, :], 1).max())
-    return (
-        float(hits.mean()) >= FRAME_COVERAGE
-        and longest <= FRAME_GAP * fit.pitch
-        and leading <= corner
-        and trailing <= corner
-    )
+    if float(hits.mean()) < FRAME_COVERAGE or longest > FRAME_GAP * fit.pitch or leading > corner or trailing > corner:
+        return False
+    first = math.floor(float(other.model.position(ends[0].outer, at)))
+    last = math.ceil(float(other.model.position(ends[1].outer, at)))
+    across = np.arange(first, last + 1, dtype=np.float64)
+    along = np.round(fit.model.position(side.outer + side.outward * FRAME_BAND, across)).astype(np.int64)
+    height, width = fill.shape
+    size_along, size_across = (width, height) if vertical else (height, width)
+    c = across.astype(np.int64)
+    inside = (along >= 0) & (along < size_along) & (c >= 0) & (c < size_across)
+    a, c = np.clip(along, 0, size_along - 1), np.clip(c, 0, size_across - 1)
+    outside = (fill[c, a] if vertical else fill[a, c]) & inside
+    return float(outside.mean()) <= 1 - FRAME_COVERAGE
 
 
 type Frame = tuple[tuple[int, int], tuple[int, int]]
 """A frame's grid lines: the first and last vertical lines, and the first and last horizontal lines."""
 
 
-def _closed_frames(
-    x_fit: AxisFit, y_fit: AxisFit, near_x: BoolArray, near_y: BoolArray, box: Rect, settings: Settings
-) -> list[Frame]:
+def _printed_inside(
+    x_fit: AxisFit, y_fit: AxisFit, reading: Reading, frame: Frame
+) -> tuple[tuple[int, int] | None, tuple[int, int] | None]:
+    """The first and last printed grid lines of each axis inside a frame.
+
+    A line is printed when the drawing's thin runs lie along it, within `PHASE_TOLERANCE` of a pitch, for at least
+    a pitch inside the frame. Every thin run counts, not only the band peaks the fit explains, so a line that fill
+    breaks into short pieces, as a stairwell does, counts too. Runs outside the frame, such as art printed below
+    it, are no part of the framed drawing and don't count.
+    """
+    extents: list[tuple[int, int] | None] = []
+    for fit, other, runs, vertical, own, cross in (
+        (x_fit, y_fit, reading.vertical, True, frame[0], frame[1]),
+        (y_fit, x_fit, reading.horizontal, False, frame[1], frame[0]),
+    ):
+        rows, columns = np.nonzero(runs)
+        along, across = (columns, rows) if vertical else (rows, columns)
+        index = fit.model.index_at(along.astype(np.float64), across.astype(np.float64))
+        other_index = other.model.index_at(across.astype(np.float64), along.astype(np.float64))
+        nearest = np.round(index)
+        keep = (np.abs(index - nearest) <= PHASE_TOLERANCE) & (nearest >= own[0]) & (nearest <= own[1])
+        keep &= (other_index >= cross[0]) & (other_index <= cross[1])
+        lines, counts = np.unique(nearest[keep].astype(np.int64), return_counts=True)
+        lines = lines[counts >= fit.pitch]
+        extents.append(None if len(lines) == 0 else (int(lines.min()), int(lines.max())))
+    return extents[0], extents[1]
+
+
+def _encloses(frame: Frame, printed: tuple[tuple[int, int] | None, tuple[int, int] | None]) -> bool:
+    """Whether a frame's grid lines take in the first and last printed lines of each axis."""
+    return all(
+        lines is None or (extent[0] <= lines[0] and extent[1] >= lines[1])
+        for extent, lines in zip(frame, printed, strict=True)
+    )
+
+
+def _closed_frames(x_fit: AxisFit, y_fit: AxisFit, reading: Reading, box: Rect, settings: Settings) -> list[Frame]:
     """The grid lines on and inside each frame that closes around the printed lines, the outermost first.
 
     A frame is four sides, each covered from one perpendicular side to the other, that enclose the printed lines
     of both axes (see `_closes`). A drawn line, a filled frame's edge, and the outermost grid lines printed across
     the whole drawing all close, wherever they lie on the grid and whatever paper lies between them and the
-    drawing inside. A frame's grid takes every line on or inside its sides, within `FRAME_BAND` of a pitch, so a
-    frame drawn off the grid keeps the lines inside it. Frames are ordered by their area, largest first, and two
-    that take the same lines are one.
+    drawing inside. Each side is an edge with no fill beyond it, so a rectangle that a wall or a grid line inside
+    a filled drawing closes, with rock beyond it, is no frame. A frame also encloses every printed grid line of its
+    drawing: every line inside the outermost frame that closes (see `_printed_inside`), so a rectangle that walls
+    or grid lines inside the drawing close, with printed lines outside it, is no frame. A frame's grid takes every
+    line on or inside its sides, within `FRAME_BAND` of a pitch, so a frame drawn off the grid keeps the lines
+    inside it. Frames are ordered by their area, largest first, and two that take the same lines are one.
     """
     printed_x, printed_y = _printed(x_fit, settings), _printed(y_fit, settings)
     if printed_x is None or printed_y is None:
         return []
-    west, east = _sides(x_fit, y_fit, near_x, box, printed_x, printed_y, True)
-    north, south = _sides(y_fit, x_fit, near_y, box, printed_y, printed_x, False)
+    west, east = _sides(x_fit, y_fit, reading.near_x, box, printed_x, printed_y, True)
+    north, south = _sides(y_fit, x_fit, reading.near_y, box, printed_y, printed_x, False)
     middle_x, middle_y = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
     found: list[tuple[float, Frame]] = []
     for w, e, n, s in itertools.product(west, east, north, south):
         if e.outer <= w.outer or s.outer <= n.outer:
             continue
         if not (
-            _closes(w, x_fit, y_fit, (n, s), box[1], middle_y)
-            and _closes(e, x_fit, y_fit, (n, s), box[1], middle_y)
-            and _closes(n, y_fit, x_fit, (w, e), box[0], middle_x)
-            and _closes(s, y_fit, x_fit, (w, e), box[0], middle_x)
+            _closes(w, x_fit, y_fit, (n, s), box[1], middle_y, reading.fill, True)
+            and _closes(e, x_fit, y_fit, (n, s), box[1], middle_y, reading.fill, True)
+            and _closes(n, y_fit, x_fit, (w, e), box[0], middle_x, reading.fill, False)
+            and _closes(s, y_fit, x_fit, (w, e), box[0], middle_x, reading.fill, False)
         ):
             continue
         columns = (math.ceil(w.outer - 1e-9), math.floor(e.outer + 1e-9))
@@ -806,6 +871,9 @@ def _closed_frames(
     for _, frame in found:
         if frame not in frames:
             frames.append(frame)
+    if len(frames) > 1:
+        printed = _printed_inside(x_fit, y_fit, reading, frames[0])
+        frames = [frame for frame in frames if _encloses(frame, printed)]
     return frames
 
 
@@ -939,6 +1007,10 @@ class Reading:
     near_y: BoolArray
     """`own` grown across horizontal lines by `FRAME_BAND` of a pitch."""
 
+    fill: BoolArray
+    """The fill among `own`: what the drawing holds as dark as `FILL_DARKNESS` or darker. Another drawing's fill, such
+    as the map beyond a frame line that splits two, isn't the drawing's."""
+
 
 def fit_region(
     image: InkImage,
@@ -964,12 +1036,13 @@ def fit_region(
         own,
         max_filter_bool(own, max(1, round(FRAME_BAND * pitch_x)), axis=1),
         max_filter_bool(own, max(1, round(FRAME_BAND * pitch_y)), axis=0),
+        image.fill & candidate.cover,
     )
     x_fit = fit_axis(_axis_data(reading.vertical & candidate.tiles, box, True), pitch_y, settings, pitch_x)
     y_fit = fit_axis(_axis_data(reading.horizontal & candidate.tiles, box, False), pitch_x, settings, pitch_y)
     if x_fit is None or y_fit is None:
         return RegionResult(box, reason="fewer than 3 grid lines found on an axis")
-    frames: list[Frame | None] = [*_closed_frames(x_fit, y_fit, reading.near_x, reading.near_y, box, settings), None]
+    frames: list[Frame | None] = [*_closed_frames(x_fit, y_fit, reading, box, settings), None]
     result = RegionResult(box)
     for frame in frames:
         result = _fit_stages(image, candidate, settings, reading, (x_fit, y_fit), frame)
@@ -1081,7 +1154,7 @@ def _nearest_frame(
         The frame, or `None` when none lies within a pitch of the target on every side.
     """
     best: tuple[float, Frame] | None = None
-    for frame in _closed_frames(x_fit, y_fit, reading.near_x, reading.near_y, box, settings):
+    for frame in _closed_frames(x_fit, y_fit, reading, box, settings):
         rect = _frame_rect(x_fit, y_fit, frame, box)
         distance = max(abs(a - b) for a, b in zip(rect, target, strict=True))
         if best is None or distance < best[0]:
