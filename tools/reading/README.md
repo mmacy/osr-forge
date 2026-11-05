@@ -69,7 +69,7 @@ Run from the osr-forge checkout. Each driver keeps what it has stored and asks o
 - The local Clef runs need a System One server, such as the maintainer's Ollama with `clef-flash`. Never start, stop, or restart it.
 - The hosted Clef runs need `OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login. They stop at their first failure and are held to `--spend` dollars on the Clef ledger.
 
-Add the commercial maps' files after each committed file, as in `tools/reading/maps.json $P/palace-maps.json`. In the commands, `R` is the results directory and `P` the commercial specs:
+Add the commercial maps' files after each committed file, as in `tools/reading/maps.json $P/<module>-maps.json`. In the commands, `R` is the results directory and `P` the commercial specs:
 
 ```text
 R=~/.re-pod/map-plan/osr-suite/reading
