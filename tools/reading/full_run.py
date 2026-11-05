@@ -391,6 +391,7 @@ def run(
             "after_whole": summary(scores.after_whole),
         }
         by_level = {(c.dungeon, c.level): c for c in trace_checks}
+        traced = [(d.id, lv.number) for d in key.dungeons for lv in d.levels if lv.verdict == "traced"]
         for dungeon in key.dungeons:
             for level in dungeon.levels:
                 if level.verdict != "traced":
@@ -413,7 +414,7 @@ def run(
                         "checks": checks.to_json() if checks else {"traced": False},
                         "needs_no_repair": bool(checks and checks.needs_no_repair),
                         "key_checks": key_checks[(dungeon.id, level.number)].to_json(),
-                        "costs": _level_costs(member, dungeon.id, level.number, result.readings, sources, pages),
+                        "costs": _level_costs(member, dungeon.id, level.number, result.readings, sources, traced),
                     }
                 )
     result.report = {
@@ -449,23 +450,52 @@ def run(
     return result
 
 
+def _named_level(message: str) -> tuple[str, int] | None:
+    """The level an open case names, as the reference script writes it: `('<dungeon>', <number>)`."""
+    import re
+
+    found = re.search(r"\('([^']+)', (\d+)\)", message)
+    return (found.group(1), int(found.group(2))) if found else None
+
+
+def _without_outline(document: GeometryTruth, level: tuple[str, int]) -> GeometryTruth:
+    """The reading with one level's outlines taken out of every panel, so the level falls back."""
+    panels = tuple(
+        panel.model_copy(update={"outlines": tuple(o for o in panel.outlines if (o.dungeon, o.level) != level)})
+        for panel in document.panels
+    )
+    return document.model_copy(update={"panels": panels})
+
+
 def resolve_member(document: GeometryTruth, survey: Any, contents: Any, mapread: Any) -> tuple[GeometryTruth, str]:
     """A member's reading resolved, salvaging what the conventions can resolve when they meet an open case.
 
     The whole reading is resolved first. When the reference script meets a case the conventions give no answer for,
-    each panel is resolved on its own, with only its half pairs, and each level takes its resolution from the first
-    panel whose reading resolves it. A level no panel resolves falls back. If the salvaged document doesn't validate,
-    every level falls back.
+    and the case names a level, that level's outlines are taken out of the reading, so it falls back, and the reading
+    is resolved again, until it resolves or a case names no level or a level already taken out. Then each panel is
+    resolved on its own, with only its half pairs, and each level takes its resolution from the first panel whose
+    reading resolves it. A level no panel resolves falls back. If the salvaged document doesn't validate, every level
+    falls back.
 
     Returns:
-        The trace, and how it was made: `resolved`, or the open case and what was salvaged.
+        The trace, and how it was made: `resolved`, the levels taken out with their cases, or the open case and what
+        was salvaged.
     """
     from tools.answer_keys.resolve import ConventionGap, reading_of, resolve
 
-    try:
-        return resolve(document, survey, contents, mapread), "resolved"
-    except ConventionGap as gap:
-        whole = str(gap)
+    taken: list[str] = []
+    while True:
+        try:
+            trace = resolve(document, survey, contents, mapread)
+            return trace, "resolved" if not taken else "resolved with levels fallen back: " + "; ".join(taken)
+        except ConventionGap as gap:
+            whole = str(gap)
+        level = _named_level(whole)
+        if level is None or any(entry.startswith(f"{level[0]}/{level[1]} ") for entry in taken):
+            break
+        taken.append(f"{level[0]}/{level[1]} ({whole})")
+        document = _without_outline(document, level)
+    whole = "; ".join([*taken, whole])
     shells = reading_of(document)
     levels: dict[tuple[str, int], Level] = {}
     entrances: dict[str, Any] = {}
@@ -521,44 +551,48 @@ def _level_costs(
     number: int,
     readings: dict[str, MapReading],
     sources: Sources,
-    pages: dict[str, Any],
+    traced: list[tuple[str, int]],
 ) -> dict[str, Any]:
-    """One level's share of the requests and dollars."""
+    """One level's share of the requests and dollars.
+
+    A page's whole-page read is shared evenly among the levels the page lists, a map's item requests and Clef
+    questions among the levels whose read outline holds the map's items, in proportion to the items, and a member's
+    offset picks evenly among its traced levels (`traced`). A page and a map can share an id, so each share counts
+    only its own kind of request.
+    """
     from .screen_wholemap import levels_on
 
     tally = sources.tally
-    claude_requests = 0.0
-    claude_usd = 0.0
-    clef_requests = 0.0
-    clef_usd = 0.0
-    for page in member.pages:
-        listed = [(d, n) for d, n, _keys in levels_on(page)]
-        if (dungeon_id, number) not in listed:
-            continue
-        for (owner, kind, how), count in tally.counts.items():
-            if owner == page.id and how != "missing":
-                claude_requests += count / len(listed)
-                claude_usd += tally.dollars[(owner, kind, how)] / len(listed)
-    for reading in readings.values():
-        if reading.run_map.member != member.id:
-            continue
-        share = _shares(reading).get((dungeon_id, number), 0.0)
-        if not share:
-            continue
-        for (owner, kind, how), count in tally.counts.items():
-            if owner != reading.run_map.uid or how == "missing":
+    totals = {"claude_requests": 0.0, "claude_usd": 0.0, "clef_requests": 0.0, "clef_usd": 0.0}
+
+    def add(owner: str, kinds: tuple[str, ...], share: float) -> None:
+        for (who, kind, how), count in tally.counts.items():
+            if who != owner or how == "missing" or not kind.startswith(kinds):
                 continue
             if kind.startswith("clef"):
-                clef_requests += count * share
-                clef_usd += (HOSTED_FLASH_USD * count if how == "hosted" else 0.0) * share
+                totals["clef_requests"] += count * share
+                totals["clef_usd"] += (HOSTED_FLASH_USD * count if how == "hosted" else 0.0) * share
             else:
-                claude_requests += count * share
-                claude_usd += tally.dollars[(owner, kind, how)] * share
+                totals["claude_requests"] += count * share
+                totals["claude_usd"] += tally.dollars[(who, kind, how)] * share
+
+    for page in member.pages:
+        listed = [(d, n) for d, n, _keys in levels_on(page)]
+        if (dungeon_id, number) in listed:
+            add(page.id, ("reading-wholemap",), 1 / len(listed))
+    for reading in readings.values():
+        if reading.run_map.member == member.id:
+            share = _shares(reading).get((dungeon_id, number), 0.0)
+            if share:
+                add(reading.run_map.uid, ("reading-items", "clef"), share)
+    if (dungeon_id, number) in traced:
+        for spec in member.halves:
+            add(spec.id, ("reading-offset",), 1 / len(traced))
     return {
-        "claude_requests": round(claude_requests, 2),
-        "claude_usd": round(claude_usd, 4),
-        "clef_requests": round(clef_requests, 1),
-        "clef_usd": round(clef_usd, 4),
+        "claude_requests": round(totals["claude_requests"], 2),
+        "claude_usd": round(totals["claude_usd"], 4),
+        "clef_requests": round(totals["clef_requests"], 1),
+        "clef_usd": round(totals["clef_usd"], 4),
     }
 
 

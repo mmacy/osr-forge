@@ -197,18 +197,33 @@ def test_a_run_on_fake_answers_joins_the_fold_and_scores_every_family(tmp_path: 
     assert after["edges"]["all"]["right"] >= 0.95 * after["edges"]["all"]["total"]
     assert set(after) == set(summary(score_trace(trace, members[0].document()).after))
     assert report["requests"]["reading-wholemap fake"]["requests"] == 2
+    claude = sum(v["requests"] for k, v in report["requests"].items() if k.startswith("reading-"))
+    assert level["costs"]["claude_requests"] == pytest.approx(claude)
     assert "needs_no_repair" in level and "key_checks" in level
 
 
-def test_an_open_case_salvages_nothing_it_cannot_and_falls_back() -> None:
-    directory = SYNTHETIC / "manor"
-    answer = load_geometry_truth(directory / "geometry.json")
-    survey, contents, mapread = load_caches(directory)
-    panel = answer.panels[0]
-    unmarked = answer.model_copy(update={"panels": (panel.model_copy(update={"marks": ()}),)})
-    trace, how = resolve_member(unmarked, survey, contents, mapread)
-    assert how.startswith("open case")
-    assert all(level.verdict == "fallback" for dungeon in trace.dungeons for level in dungeon.levels)
+def test_an_open_case_takes_out_the_level_it_names_and_the_rest_resolves(monkeypatch: pytest.MonkeyPatch) -> None:
+    import tools.answer_keys.resolve as reference
+
+    key = load_geometry_truth(CAVES)
+    survey, contents, mapread = load_caches(ROOT / "tests" / "assets" / "chaotic-caves")
+    real = reference.resolve
+    seen: list[set[tuple[str, int]]] = []
+
+    def resolve(document: Any, *caches: Any) -> Any:
+        outlined = {(o.dungeon, o.level) for panel in document.panels for o in panel.outlines}
+        seen.append(outlined)
+        if ("orc-lair-a", 1) in outlined:
+            raise reference.ConventionGap("letter 'A' at ('jn1-p038', 47, 64): ('orc-lair-a', 1)'s outline is open")
+        return real(document, *caches)
+
+    monkeypatch.setattr(reference, "resolve", resolve)
+    trace, how = resolve_member(key, survey, contents, mapread)
+    assert how.startswith("resolved with levels fallen back: orc-lair-a/1")
+    assert len(seen) == 2 and ("orc-lair-a", 1) not in seen[1]
+    verdicts = {(d.id, level.number): level.verdict for d in trace.dungeons for level in d.levels}
+    assert verdicts[("orc-lair-a", 1)] == "fallback"
+    assert verdicts[("orc-lair-b", 1)] == verdicts[("roslof-manor", 1)] == "traced"
 
 
 def test_a_fault_picture_puts_the_trace_beside_it_with_its_cut_off_floor_marked() -> None:
