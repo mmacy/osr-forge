@@ -1024,8 +1024,9 @@ def fit_region(
     The first fit reads the drawing's tiles on the grid, and the frames that close around its printed lines are
     found along its lines. Each is tried in turn, the outermost first, and the region takes the first under which
     the fit passes the gate (`passes`), so a page border whose paper and legend fail the gate gives way to the
-    drawing's own frame. Where no frame closes, or the fit passes under none, the region is fitted as a drawing
-    with no frame.
+    drawing's own frame. Where no frame closes, the region is fitted as a drawing with no frame. Where frames close
+    and the fit passes under none, the region is the outermost frame's failed fit: a drawing with a frame never
+    takes the extent of one without, which a wall inside it could cut short.
     """
     box = candidate.drawing.box
     pitch_x, pitch_y = candidate.pitch
@@ -1042,13 +1043,17 @@ def fit_region(
     y_fit = fit_axis(_axis_data(reading.horizontal & candidate.tiles, box, False), pitch_x, settings, pitch_y)
     if x_fit is None or y_fit is None:
         return RegionResult(box, reason="fewer than 3 grid lines found on an axis")
-    frames: list[Frame | None] = [*_closed_frames(x_fit, y_fit, reading, box, settings), None]
-    result = RegionResult(box)
+    frames = _closed_frames(x_fit, y_fit, reading, box, settings)
+    if not frames:
+        return _fit_stages(image, candidate, settings, reading, (x_fit, y_fit), None)
+    outermost: RegionResult | None = None
     for frame in frames:
         result = _fit_stages(image, candidate, settings, reading, (x_fit, y_fit), frame)
         if result.figures is not None and passes(result.figures):
-            break
-    return result
+            return result
+        outermost = outermost or result
+    assert outermost is not None
+    return outermost
 
 
 def _fit_stages(
@@ -1136,7 +1141,7 @@ def _fit_stages(
         min(height, math.floor(float(corners[..., 1].max()) + 0.5) + 1),
     )
     pitch = grid.pitches()
-    figures = _figures(grid, image, pitch, settings)
+    figures = _figures(grid, image, candidate.mask, pitch, settings)
     return RegionResult(rect, pitch, figures, corners)
 
 
@@ -1164,10 +1169,15 @@ def _nearest_frame(
     return best[1]
 
 
-def _figures(grid: GridFit, image: InkImage, pitch: tuple[float, float], settings: Settings) -> Figures:
+def _figures(grid: GridFit, image: InkImage, own: BoolArray, pitch: tuple[float, float], settings: Settings) -> Figures:
+    """The gate's figures for a grid.
+
+    The coverage reads only the ink of `own`, the drawing the grid was fitted to, so the marks of a legend or another
+    drawing inside the rectangle are no part of it.
+    """
     totals = [0, 0, 0, 0]
     for fit, axis_pitch in ((grid.x, pitch[0]), (grid.y, pitch[1])):
         for k, value in enumerate(line_figures(fit, axis_pitch, settings)):
             totals[k] += value
-    counted, covered = coverage_figures(grid, image.ink, image.fill, pitch, settings)
+    counted, covered = coverage_figures(grid, image.ink & own, image.fill, pitch, settings)
     return Figures(totals[0], totals[1], totals[2], totals[3], counted, covered)
