@@ -8,8 +8,9 @@ most `GAP` cells and their heights overlap by half; labels stacked one above the
 widths with at most `GAP` cells between them, join into one mark. A mark's cell is the cell under its centre.
 
 Clef is asked about each mark on a crop of the mark with half a cell around it, scaled to about 100 pixels per
-cell, with the mark boxed in red. The options are the survey's keys of every level whose outline lies within two
-cells of the mark, the letters, and `none`.
+cell, with the mark boxed in red. A choice question takes at most 26 options, so the survey's keys of every level
+whose outline lies within two cells of the mark go in chunks of 25, each with `none`, and the most probable key
+across the chunks wins; when every chunk answers `none`, a letter question decides between 25 letters and `none`.
 """
 
 from collections.abc import Sequence
@@ -21,7 +22,19 @@ from osrforge.providers.decisions import ClefModel, DecisionRequest
 
 from .clefask import _render
 
-__all__ = ["GAP", "LINE", "FoundMark", "find_marks", "mark_crop", "mark_request", "pixel_to_grid"]
+__all__ = [
+    "GAP",
+    "LINE",
+    "MAX_OPTIONS",
+    "FoundMark",
+    "find_marks",
+    "key_chunks",
+    "letter_request",
+    "mark_answer",
+    "mark_crop",
+    "mark_request",
+    "pixel_to_grid",
+]
 
 LINE = 0.7
 GLYPH_MIN = 0.12
@@ -30,7 +43,12 @@ GLYPH_WIDE = 0.9
 GAP = 0.18
 MARK_CELL_PX = 100
 
-LETTERS = tuple("abcdefghijklmnopqrstuvwxyz") + tuple("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+LETTERS = tuple("abcdefghijkl") + tuple("ABCDEFGHIJKLM")
+"""The letters a mark question offers: 25, with `none` the most a choice question takes."""
+
+MAX_OPTIONS = 26
+"""The most options a System One choice question takes: the local server refuses more ("criteria must contain 2-26
+candidates")."""
 
 
 @dataclass(frozen=True)
@@ -201,17 +219,46 @@ MARK_STATE = "Crop of a printed dungeon map, magnified. A red box marks one labe
 MARK_QUESTION = "Which label is printed inside the red box?"
 
 
+def key_chunks(keys: Sequence[str]) -> list[list[str]]:
+    """The keys split into chunks that, with `none`, fit one choice question, in the order given."""
+    unique = list(dict.fromkeys(keys))
+    size = MAX_OPTIONS - 1
+    return [unique[start : start + size] for start in range(0, len(unique), size)] or [[]]
+
+
 def mark_request(crop: bytes, keys: Sequence[str], model: ClefModel) -> DecisionRequest:
-    """The question for one mark: which of the nearby levels' keys, which letter, or none."""
+    """One key question for a mark: which of these keys is printed in the box, or none of them."""
     options: list[tuple[str, str | None]] = [(f"key:{key}", f"The room key {key}") for key in keys]
-    options += [(f"letter:{letter}", f"The single letter {letter}") for letter in LETTERS]
-    options.append(("none", "No room key or letter: a word, a symbol, a number not in this list, or nothing"))
-    seen: set[str] = set()
-    unique = []
-    for option in options:
-        if option[0] not in seen:
-            seen.add(option[0])
-            unique.append(option)
+    options.append(("none", "None of these keys: another key, a letter, a word, a symbol, or nothing"))
+    if len(options) < 2:
+        raise ValueError("a key question needs at least one key")
     return DecisionRequest(
-        tag="mark", image=crop, state=MARK_STATE, question=MARK_QUESTION, options=tuple(unique), model=model
+        tag="mark", image=crop, state=MARK_STATE, question=MARK_QUESTION, options=tuple(options), model=model
     )
+
+
+def letter_request(crop: bytes, model: ClefModel) -> DecisionRequest:
+    """The letter question for a mark that no key question named: which single letter, or none."""
+    options: list[tuple[str, str | None]] = [(f"letter:{letter}", f"The single letter {letter}") for letter in LETTERS]
+    options.append(("none", "No single letter: a key, a word, a symbol, or nothing"))
+    return DecisionRequest(
+        tag="mark", image=crop, state=MARK_STATE, question=MARK_QUESTION, options=tuple(options), model=model
+    )
+
+
+def mark_answer(chunks: Sequence[dict[str, float]], letter: dict[str, float] | None) -> str:
+    """A mark's reading from its key questions' answers and, when every one said none, its letter question's.
+
+    The key with the highest probability across the chunks wins when it beats that chunk's `none`; otherwise the
+    letter question decides, and with no letter question the answer is `none`.
+    """
+    best, best_p = "none", 0.0
+    for answer in chunks:
+        top = max(answer, key=answer.__getitem__)
+        if top != "none" and answer[top] > best_p:
+            best, best_p = top, answer[top]
+    if best != "none":
+        return best
+    if letter is None:
+        return "none"
+    return max(letter, key=letter.__getitem__)

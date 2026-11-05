@@ -1,8 +1,9 @@
 """Find the label-sized marks, ask Clef which key each is, and score both against the key's marks.
 
 The marks asked are every found mark within one cell of one of the key's marks, and a fixed-seed sample of the
-others, so Clef's `none` is measured too. The options for a mark are the survey's keys of the levels whose outline
-(the key's) lies within two cells of the mark, the letters, and `none`.
+others, so Clef's `none` is measured too. A mark's key questions offer the survey's keys of the levels whose outline
+(the key's) lies within two cells of the mark, in chunks of 25 with `none`; a mark that every chunk answers `none`
+gets the letter question (`marks.mark_answer`).
 
 The score matches each key mark to the found mark nearest it, within one cell, by Chebyshev distance and then by the
 pixel distance of their centres. A key mark is *found* when it has a match, and *read* when Clef's top answer for the
@@ -28,7 +29,7 @@ from osrforge.tracing.truth import Registration, parse_cell
 from .clefask import AnswerStore, Item, run_items
 from .ink import INK_STYLES, MapInk
 from .maps import ScreenMap, key_panel, key_region, load_maps, load_rgb
-from .marks import LETTERS, FoundMark, find_marks, mark_crop, mark_request
+from .marks import LETTERS, FoundMark, find_marks, key_chunks, letter_request, mark_answer, mark_crop, mark_request
 from .screen_wholemap import levels_on, load_pages
 
 __all__ = ["main", "nearby_keys"]
@@ -91,6 +92,16 @@ def main(argv: list[str] | None = None) -> int:
         far = [i for i in range(len(found)) if i not in set(near)]
         asked = sorted(near + random.Random(7).sample(far, min(args.sample, len(far))))
         store = AnswerStore(args.out / "marks" / f"{screen.id}.mark.jsonl")
+        chunks_of = {i: key_chunks(nearby_keys(screen, found[i].cell, keys_by_level)) for i in asked}
+
+        def stored(store: AnswerStore = store) -> dict[str, dict[str, float]]:
+            out: dict[str, dict[str, float]] = {}
+            if store.path.exists():
+                for line in store.path.read_text().splitlines():
+                    record = json.loads(line)
+                    out[record["item"]] = record["probabilities"]
+            return out
+
         if provider is not None:
             rgb = load_rgb(screen.image)
 
@@ -99,21 +110,34 @@ def main(argv: list[str] | None = None) -> int:
                 rgb: np.ndarray = rgb,
                 found: list[FoundMark] = found,
                 registration: Registration = registration,
-                screen: ScreenMap = screen,
-                keys_by_level: dict[tuple[str, int], list[str]] = keys_by_level,
+                chunks_of: dict[int, list[list[str]]] = chunks_of,
             ) -> object:
-                mark = found[int(item.name)]
-                return mark_request(
-                    mark_crop(rgb, registration, mark), nearby_keys(screen, mark.cell, keys_by_level), "clef-flash"
-                )
+                index, part = item.name.split("/")
+                crop = mark_crop(rgb, registration, found[int(index)])
+                if part == "L":
+                    return letter_request(crop, "clef-flash")
+                return mark_request(crop, chunks_of[int(index)][int(part[1:])], "clef-flash")
 
-            items = [Item(kind="mark", name=str(i), cell=found[i].cell) for i in asked]
-            run_items(provider, store, items, request_for, workers=args.workers)  # type: ignore[arg-type]
-        answers = {}
-        if store.path.exists():
-            for line in store.path.read_text().splitlines():
-                record = json.loads(line)
-                answers[int(record["item"])] = record["choice"]
+            key_items = [
+                Item(kind="mark", name=f"{i}/k{c}", cell=found[i].cell)
+                for i in asked
+                for c, chunk in enumerate(chunks_of[i])
+                if chunk
+            ]
+            run_items(provider, store, key_items, request_for, workers=args.workers)  # type: ignore[arg-type]
+            done = stored()
+            letter_items = [
+                Item(kind="mark", name=f"{i}/L", cell=found[i].cell)
+                for i in asked
+                if mark_answer([done[f"{i}/k{c}"] for c, chunk in enumerate(chunks_of[i]) if chunk], None) == "none"
+            ]
+            run_items(provider, store, letter_items, request_for, workers=args.workers)  # type: ignore[arg-type]
+        done = stored()
+        answers: dict[int, str] = {}
+        for i in asked:
+            names = [f"{i}/k{c}" for c, chunk in enumerate(chunks_of[i]) if chunk]
+            if all(name in done for name in names):
+                answers[i] = mark_answer([done[name] for name in names], done.get(f"{i}/L"))
         # Match each key mark to its nearest found mark.
         taken: set[int] = set()
         tally: Counter[str] = Counter()
