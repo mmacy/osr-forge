@@ -900,18 +900,7 @@ PREDICATES: dict[str, Callable[[SyntheticMap], bool]] = {
 """What a map's answer must show for each feature it declares, where the answer can show it."""
 
 
-@pytest.mark.parametrize(
-    "feature",
-    [
-        pytest.param(
-            name,
-            marks=pytest.mark.xfail(reason=PASSAGES, strict=True)
-            if name in ("diagonal_passage", "door_across_a_corner")
-            else (),
-        )
-        for name in FEATURES
-    ],
-)
+@pytest.mark.parametrize("feature", list(FEATURES))
 def test_feature_coverage(feature: str):
     holders = [item for item in loaded_maps() if feature in item.manifest.features]
     assert holders, f"no synthetic map declares {feature}"
