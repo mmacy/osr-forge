@@ -113,6 +113,11 @@ class RequestKind:
         effort: The effort for this kind.
         max_tokens: The most output tokens a request of this kind allows,
             with room above the longest answer measured for the kind.
+        model: The model id for this kind, or `None` for the provider's
+            default model. Each kind is sent and charged on its own model and
+            effort, and requests share a cached prefix only when their model,
+            effort, thinking setting, and schema match. Recordings key each
+            request on its kind's model.
     """
 
     name: str
@@ -120,6 +125,7 @@ class RequestKind:
     schema: dict[str, object]
     effort: Effort
     max_tokens: int
+    model: str | None = None
 
     def __post_init__(self) -> None:
         if not _NAME_PATTERN.match(self.name):
@@ -431,13 +437,14 @@ class RecordedReadingProvider:
     """
 
     def __init__(self, recordings: Path, model: str) -> None:
-        """Bind to a directory of recordings made on one model.
+        """Bind to a directory of recordings.
 
         Args:
             recordings: The directory of `<kind>.<key[:12]>.json` files.
-            model: The model id the recordings were made on. It is part of
-                every key, so a request is replayed only against recordings of
-                its own model.
+            model: The model id the recordings of a kind that names no model
+                were made on. A request is keyed on its kind's model, or on
+                this one when the kind names none, so it is replayed only
+                against recordings of its own model.
         """
         self.recordings = recordings
         self.model = model
@@ -467,7 +474,8 @@ class RecordedReadingProvider:
             ProviderError: If the recording's schema version isn't this
                 package's.
         """
-        key = request.key(self.model)
+        model = request.kind.model or self.model
+        key = request.key(model)
         kind = request.kind.name
         path = self.recordings / recording_filename(kind, key)
         if not path.is_file():
@@ -488,7 +496,7 @@ class RecordedReadingProvider:
             raise ProviderError(f"recording {path} is malformed: {error}") from error
         if recording.key != key:
             raise FixtureMissError(f"recording {path} has key {recording.key}, but the {kind!r} request's is {key}")
-        if recording.request != json.loads(json.dumps(_recorded_body(request, self.model))):
+        if recording.request != json.loads(json.dumps(_recorded_body(request, model))):
             raise StaleRecordingError(
                 f"recording {path} stores a body the current code no longer builds for the {kind!r} request; "
                 "record it again"
@@ -539,7 +547,9 @@ class RecordingReadingProvider:
         Args:
             inner: The provider that answers.
             recordings: Where recordings land; created if missing.
-            model: The model id `inner` sends to, for the keys.
+            model: The model id `inner` sends a kind that names no model to.
+                Each request is keyed and recorded on its kind's model, or on
+                this one when the kind names none.
         """
         self.inner = inner
         self.recordings = recordings
@@ -590,17 +600,23 @@ class RecordingReadingProvider:
     def _record_failure(self, request: ReadingRequest, failure: ReadingFailure) -> None:
         self._write(
             request,
-            _RecordedResponse(data=None, usage=ReadingUsage(), model_id=self.model, stop_reason=failure.stop_reason),
+            _RecordedResponse(
+                data=None,
+                usage=ReadingUsage(),
+                model_id=request.kind.model or self.model,
+                stop_reason=failure.stop_reason,
+            ),
         )
 
     def _write(self, request: ReadingRequest, response: _RecordedResponse) -> None:
-        key = request.key(self.model)
+        model = request.kind.model or self.model
+        key = request.key(model)
         recording = _Recording(
             schema_version=SCHEMA_VERSION,
             key=key,
             kind=request.kind.name,
-            model=self.model,
-            request=_recorded_body(request, self.model),
+            model=model,
+            request=_recorded_body(request, model),
             response=response,
         )
         self.recordings.mkdir(parents=True, exist_ok=True)
