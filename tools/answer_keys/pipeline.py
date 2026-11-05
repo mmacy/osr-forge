@@ -1,0 +1,413 @@
+"""The answer-key pipeline, one stage at a time.
+
+Run from the osr-forge checkout, with a spec file (`keys.json` here, or a commercial map's spec outside the repository):
+
+    uv run python -m tools.answer_keys.pipeline <keys.json> <map id>... <stage> [options]
+
+Every stage and action, and the commands that built the Chaotic Caves key, are in `tools/answer_keys/README.md`,
+"Build an answer key". `collect` actions take `--wait` to poll until every open batch has ended. Every stage is safe
+to run again: jobs and answers that exist are kept.
+"""
+
+import argparse
+import sys
+import time
+from collections.abc import Callable
+from pathlib import Path
+
+import anthropic
+
+from osrforge.providers.ledger import Ledger
+
+from .batches import BatchStore, api_key, ledger_path
+from .keyspec import KeySpec, context, load_key_specs
+
+__all__ = ["main"]
+
+
+def client() -> anthropic.Anthropic:
+    """An API client with the key from the environment file."""
+    return anthropic.Anthropic(api_key=api_key(), max_retries=3)
+
+
+def ledger() -> Ledger:
+    """The Claude ledger `OSRFORGE_CLAUDE_LEDGER` names."""
+    return Ledger(ledger_path(), cost_key="cost_usd")
+
+
+def _wait(collect: Callable[[], dict[str, int]], interval: float, limit: float) -> dict[str, int]:
+    """Call `collect` until no batch is open or the time limit passes."""
+    started = time.time()
+    while True:
+        counts = collect()
+        if counts.get("open", 0) == 0 or time.time() - started > limit:
+            return counts
+        print(f"  {counts['open']} batch(es) still running; waiting {interval:.0f}s", flush=True)
+        time.sleep(interval)
+
+
+def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Namespace) -> None:
+    """Run one stage for one map."""
+    ctx = context(key)
+    batch_stage = stage in ("windows", "marks", "wholemap", "settle", "adversary", "recheck")
+    api = client() if batch_stage else None
+    book = ledger()
+    if stage == "windows":
+        from .windows import collect_windows, submit_windows
+
+        store = BatchStore(key.directory / "windows")
+        if action == "submit":
+            batch = submit_windows(ctx, store, api, book)
+            print(f"{key.id}: windows batch {batch}, {len(store.job_ids())} jobs")
+        else:
+            log = key.directory / "windows" / "malformed.jsonl"
+
+            def collect():
+                return collect_windows(ctx, store, api, book, log)
+
+            counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
+            print(f"{key.id}: windows {counts}")
+            if counts["retries"] or counts["fresh"]:
+                batch = store.submit(api, book, f"windows {key.id} retries", ids=store.added)
+                print(f"{key.id}: retry batch {batch}")
+            print(f"{key.id}: windows spent ${store.spent():.4f}")
+    elif stage == "marks":
+        from .marks import collect_marks, submit_marks
+
+        store = BatchStore(key.directory / "marks")
+        if action == "submit":
+            batch = submit_marks(ctx, store, api, book)
+            print(f"{key.id}: marks batch {batch}, {len(store.job_ids())} jobs")
+        else:
+
+            def collect():
+                return collect_marks(ctx, store, api, book)
+
+            counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
+            print(f"{key.id}: marks {counts}")
+            if counts.get("retries"):
+                batch = store.submit(api, book, f"marks {key.id} retries", ids=store.added)
+                print(f"{key.id}: retry batch {batch}")
+            print(f"{key.id}: marks spent ${store.spent():.4f}")
+    elif stage == "wholemap":
+        from .marks import collect_wholemap, submit_wholemap
+
+        store = BatchStore(key.directory / "wholemap")
+        if action == "submit":
+            batch = submit_wholemap(ctx, store, api, book)
+            print(f"{key.id}: wholemap batch {batch}, {len(store.job_ids())} jobs")
+        else:
+
+            def collect():
+                return collect_wholemap(ctx, store, api, book)
+
+            counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
+            print(f"{key.id}: wholemap {counts}")
+            if counts.get("retries"):
+                batch = store.submit(api, book, f"wholemap {key.id} retries", ids=store.added)
+                print(f"{key.id}: retry batch {batch}")
+            print(f"{key.id}: wholemap spent ${store.spent():.4f}")
+    elif stage == "clef":
+        from .clefpass import export_requests, run_clef
+
+        if action == "export":
+            print(f"{key.id}: clef export {export_requests(ctx)}")
+        else:
+            print(f"{key.id}: clef {run_clef(ctx, args.workers, args.cap)}")
+    elif stage == "disagree":
+        from .readings import write_items
+
+        print(f"{key.id}: {write_items(ctx)}")
+    elif stage in ("settle", "adversary"):
+        from .settler import collect_pass, submit_pass
+
+        store = BatchStore(key.directory / stage)
+        if action == "submit":
+            batch, count = submit_pass(ctx, stage, store, api, book, args.jobs)
+            print(f"{key.id}: {stage} batch {batch}, {count} items in {len(store.job_ids())} jobs")
+        else:
+
+            def collect():
+                return collect_pass(ctx, stage, store, api, book)
+
+            counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
+            print(f"{key.id}: {stage} {counts}")
+            if counts.get("retries"):
+                # A retry may belong to the adversarial store or, for a re-settling, to the resettle store.
+                for retry_store in (store, BatchStore(key.directory / "resettle")):
+                    batch = retry_store.submit(api, book, f"{stage} {key.id} retries", ids=counts["retry_ids"])
+                    if batch is not None:
+                        print(f"{key.id}: retry batch {batch}")
+            print(f"{key.id}: {stage} spent ${store.spent():.4f}")
+    elif stage == "recheck":
+        from osrforge.tracing.truth import parse_cell
+
+        from .recheck import (
+            collect_recheck,
+            record_corrections,
+            submit_cell_edges,
+            submit_choices,
+            submit_owner_note,
+            submit_reask,
+            submit_recheck,
+            submit_region,
+        )
+
+        if args.sample is None and action in ("submit", "correct"):
+            raise SystemExit(f"recheck {action} needs --sample, the sample file the owner checked")
+        if action == "submit":
+            batch, count = submit_recheck(ctx, args.sample, api, book, args.jobs)
+            print(f"{key.id}: recheck batch {batch}, {count} items")
+        elif action == "edges":
+            batch, count = submit_cell_edges(ctx, api, book)
+            print(f"{key.id}: cell edges batch {batch}, {count} items")
+        elif action == "note":
+            rect = tuple(int(part) for part in args.rect.split(",")) if args.rect else None
+            mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
+            batch, count = submit_owner_note(ctx, rect, mine, args.note, api, book, args.reader)  # type: ignore[arg-type]
+            print(f"{key.id}: owner's note batch {batch}, {count} items")
+        elif action == "choices":
+            pairs = []
+            for text in args.cells.split(";"):
+                if text:
+                    kept, _, other = text.partition("|")
+                    pairs.append((parse_cell(kept), parse_cell(other)))
+            batch, count = submit_choices(ctx, pairs, api, book)
+            print(f"{key.id}: choices batch {batch}, {count} items")
+        elif action == "region":
+            if args.level is None or not args.cells:
+                raise SystemExit("recheck region needs --level and --cells")
+            group = [parse_cell(text) for text in args.cells.split(";") if text]
+            batch, count = submit_region(ctx, args.level, group, args.note, api, book)
+            print(f"{key.id}: region batch {batch}, {count} items")
+        elif action == "reask":
+            mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
+            if mine:
+                batch, count = submit_reask(ctx, mine, api, book)
+                print(f"{key.id}: reask batch {batch}, {count} items")
+        elif action == "correct":
+            mine = {}
+            for text in args.set:
+                name, _, value = text.rpartition("=")
+                map_id, _, call_id = name.partition(":")
+                if map_id == key.id:
+                    mine[call_id] = value
+            print(f"{key.id}: corrections {record_corrections(ctx, args.sample, mine)}")
+        else:
+
+            def collect():
+                return collect_recheck(ctx, api, book)
+
+            counts = _wait(collect, args.interval, args.limit) if args.wait else collect()
+            print(f"{key.id}: recheck {counts}")
+            if counts.get("retries"):
+                batch = BatchStore(key.directory / "recheck").submit(
+                    api, book, f"recheck {key.id} retries", ids=counts["retry_ids"]
+                )
+                print(f"{key.id}: retry batch {batch}")
+    elif stage == "assemble":
+        from .assemble import assemble
+
+        print(f"{key.id}: {assemble(ctx, args.out)}")
+    elif stage == "score":
+        from .scoring import score_map, summary_line
+
+        result = score_map(ctx, args.settled)
+        print(f"{key.id}: {summary_line(result)}")
+    else:
+        raise SystemExit(f"unknown stage {stage}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="The answer-key pipeline, one stage at a time.")
+    parser.add_argument("keys", type=Path, help="the answer-key spec file")
+    parser.add_argument("maps", nargs="+", help="map ids, then the stage and its action")
+    parser.add_argument("--wait", action="store_true", help="poll until every open batch has ended")
+    parser.add_argument("--interval", type=float, default=30.0, help="seconds between polls")
+    parser.add_argument("--limit", type=float, default=3600.0, help="the most seconds to wait")
+    parser.add_argument(
+        "--jobs", type=int, default=None, help="settle or adversary submit: send at most this many jobs now"
+    )
+    parser.add_argument("--workers", type=int, default=4, help="threads for the Clef pass")
+    parser.add_argument("--cap", type=float, default=2.0, help="the most dollars this work may spend on Clef")
+    parser.add_argument("--out", type=Path, default=None, help="where assemble or sample writes")
+    parser.add_argument("--size", type=int, default=50, help="calls per style in a sample")
+    parser.add_argument("--seed", type=int, default=7, help="the sample's random seed")
+    parser.add_argument("--settled", type=Path, default=None, help="settled windows to score against")
+    parser.add_argument(
+        "--stages", type=Path, default=None, help="combine: the directory whose stages/ the resolver reads"
+    )
+    parser.add_argument("--cases", action="append", default=[], help="combine: a case the key depends on, repeatable")
+    parser.add_argument(
+        "--license",
+        default=None,
+        help="combine: the licence the key is under, with its attribution, for the provenance",
+    )
+    parser.add_argument(
+        "--residual",
+        action="append",
+        default=[],
+        help="combine: floor the key leaves unreached from its level's entrance, with its cause, repeatable",
+    )
+    parser.add_argument(
+        "--verdicts",
+        type=Path,
+        action="append",
+        default=[],
+        help="combine: a sample file whose owner's verdicts the provenance counts, repeatable",
+    )
+    parser.add_argument("--sample", type=Path, default=None, help="recheck: the sample file whose verdicts to act on")
+    parser.add_argument("--rect", default=None, help="recheck note: the cells to re-settle, as x,y,width,height")
+    parser.add_argument("--note", default="", help="recheck note: the owner's note, as one reading of each item")
+    parser.add_argument("--reader", default="the map's owner", help="recheck note: whose note it is, as its reading")
+    parser.add_argument("--level", default=None, help="recheck region: the level whose outline holds the group")
+    parser.add_argument(
+        "--cells",
+        default="",
+        help="recheck region: the group's cells, as x,y;x,y; recheck choices: pairs, as x,y|x,y;...",
+    )
+    parser.add_argument(
+        "--call",
+        action="append",
+        default=[],
+        help="recheck reask or note, or joins check: a call, as <map id>:<call id>, repeatable",
+    )
+    parser.add_argument(
+        "--set",
+        action="append",
+        default=[],
+        help="recheck correct: the owner's value for a call judged wrong, as <map id>:<call id>=<value>, repeatable",
+    )
+    args = parser.parse_args(argv)
+    words = list(args.maps)
+    stages = {
+        "windows",
+        "marks",
+        "wholemap",
+        "clef",
+        "disagree",
+        "settle",
+        "adversary",
+        "recheck",
+        "assemble",
+        "sample",
+        "score",
+        "combine",
+        "joins",
+        "passages",
+    }
+    action = None
+    if words and words[-1] in (
+        "submit",
+        "collect",
+        "export",
+        "correct",
+        "edges",
+        "reask",
+        "resample",
+        "measure",
+        "cells",
+        "check",
+        "check-collect",
+        "resettle",
+        "final",
+        "note",
+        "orphans",
+        "region",
+        "choices",
+    ):
+        action = words.pop()
+    if not words or words[-1] not in stages:
+        parser.error("the last words name a stage and, for a batch stage, submit or collect")
+    stage = words.pop()
+    specs = {spec.id: spec for spec in load_key_specs(args.keys)}
+    for map_id in words:
+        if map_id not in specs:
+            parser.error(f"no map {map_id!r} in {args.keys}")
+    if stage == "sample":
+        from .samples import build_sample
+
+        if args.out is None:
+            parser.error("sample needs --out")
+        print(build_sample([context(specs[map_id]) for map_id in words], args.out, args.size, args.seed))
+        return 0
+    if stage == "joins":
+        from .joins import (
+            collect_check,
+            confirmed,
+            join_gaps,
+            load_gaps,
+            resolved,
+            save_gaps,
+            submit_check,
+            submit_consistency,
+            submit_edges,
+            submit_gaps,
+            submit_orphans,
+            submit_resettle,
+        )
+
+        contexts = [context(specs[map_id]) for map_id in words]
+        if action == "measure":
+            if args.stages is None:
+                parser.error("joins measure needs --stages, the directory whose stages/ the resolver reads")
+            resolver, contents = resolved([specs[map_id] for map_id in words], args.stages, lenient=True)
+            for gap in resolver.passed_over:
+                print(f"passed over for the measure: {gap}")
+            gaps = join_gaps(resolver, contents, {ctx.key.id: confirmed(ctx) for ctx in contexts})
+            for ctx in contexts:
+                save_gaps(ctx, gaps)
+            for gap in gaps:
+                print(
+                    f"{gap.level} {gap.areas[0]}-{gap.areas[1]} ({gap.via}) on {gap.panel}: cost {gap.cost}, "
+                    f"cells {gap.cells}, edges {gap.edges}"
+                )
+            print(f"{len(gaps)} joins not made, {sum(1 for gap in gaps if gap.cost is not None)} with a gap")
+            return 0
+        book, api = ledger(), client()
+        for ctx in contexts:
+            if action == "cells":
+                print(f"{ctx.key.id}: join cells {submit_gaps(ctx, load_gaps(ctx), 'cells', api, book)}")
+            elif action == "edges":
+                print(f"{ctx.key.id}: join edges {submit_edges(ctx, api, book)}")
+            elif action == "check":
+                named = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == ctx.key.id]
+                print(f"{ctx.key.id}: join check {submit_check(ctx, api, book, named or None)}")
+            elif action == "check-collect":
+                print(f"{ctx.key.id}: join check {collect_check(ctx, api, book)}")
+            elif action == "resettle":
+                print(f"{ctx.key.id}: join re-settling {submit_resettle(ctx, api, book)}")
+            elif action == "orphans":
+                print(f"{ctx.key.id}: join orphan edges {submit_orphans(ctx, api, book)}")
+            elif action == "final":
+                print(f"{ctx.key.id}: join consistency {submit_consistency(ctx, api, book)}")
+        return 0
+    if stage == "recheck" and action == "resample":
+        from .recheck import recheck_sample
+
+        if args.out is None:
+            parser.error("recheck resample needs --out, the new sample file")
+        print(recheck_sample([context(specs[map_id]) for map_id in words], args.out))
+        return 0
+    if stage == "passages":
+        from .kept import apply_passages
+
+        if args.stages is None:
+            parser.error("passages needs --stages, the directory whose stages/ the resolver reads")
+        print(apply_passages([specs[map_id] for map_id in words], args.stages))
+        return 0
+    if stage == "combine":
+        from .assemble import combine
+
+        # The regions and panels go in keys.json's order, whatever order the command names the maps in.
+        keys = [spec for spec in specs.values() if spec.id in words]
+        out = args.out or keys[0].key
+        print(combine(keys, out, args.stages, args.cases, args.verdicts, args.residual, args.license))
+        return 0
+    for map_id in words:
+        run_stage(specs[map_id], stage, action, args)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

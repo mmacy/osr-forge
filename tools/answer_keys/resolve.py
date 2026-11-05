@@ -782,10 +782,18 @@ class Resolver:
         return self.levels[level_id].areas.get(key, set())
 
     def assign(self, level_id: LevelId, key: str, cells: set[WCell]) -> None:
-        """Give cells to an area, skipping cells an earlier rule took."""
+        """Give cells to an area, skipping cells an earlier rule took and cells outside the level's outlines.
+
+        An area takes only the level's own floor: an open space that runs out of a level's outline into
+        another level's, as a cave passage that opens into a neighbouring lair does, gives the area only the
+        cells inside its own level's outline. Cells inside both outlines stay with the area, and the cut
+        between the levels moves around the area.
+        """
         area = self.levels[level_id].areas.setdefault(key, set())
         for wcell in cells:
             if wcell in self.assigned or wcell in self.outside or wcell in self.corridor_runs:
+                continue
+            if level_id not in self.outlines_containing(wcell):
                 continue
             self.assigned[wcell] = (level_id, key)
             area.add(wcell)

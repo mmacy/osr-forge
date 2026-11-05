@@ -97,4 +97,4 @@ STYLES: dict[str, Style] = {
     ),
     "dark_rock": Style(name="dark_rock", wall_min=3.5, wall_scale=0.7, cave=True),
 }
-"""The styles by name. `tsr_blue_white` is TSR blue with paper outside the building, like Palace level 2."""
+"""The styles by name. `tsr_blue_white` is TSR blue with paper outside the building."""

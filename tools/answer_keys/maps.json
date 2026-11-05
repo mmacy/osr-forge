@@ -30,7 +30,8 @@
     "north": "top",
     "compass_printed": true,
     "legend_printed": true,
-    "notes": "The manor's ground floor. The moat is the rock band."
+    "frame": [0, 5, 32, 38],
+    "notes": "The manor's ground floor. The moat is the rock band. The registered grid, the framed drawing, starts five rows below the working grid's row 0, under the title, compass, and legend."
   },
   {
     "id": "jn1-p047",
@@ -46,7 +47,8 @@
     "north": "top",
     "compass_printed": false,
     "legend_printed": false,
-    "notes": "The manor's upper floor. The void over the entranceway is the rock band."
+    "frame": [0, 3, 16, 16],
+    "notes": "The manor's upper floor. The void over the entranceway is the rock band. The registered grid, the framed drawing, starts three rows below the working grid's row 0, under the title."
   },
   {
     "id": "jn1-p021-halfling",

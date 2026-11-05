@@ -1,0 +1,67 @@
+[
+  {
+    "id": "crypt",
+    "image": "../../tests/assets/synthetic-maps/crypt/images/crypt.jpg",
+    "page": 1,
+    "style": "tsr_blue",
+    "levels": {
+      "channel": "red",
+      "ink_max": 100,
+      "paper_min": 200,
+      "dark_max": 160,
+      "wall_max": 112,
+      "fill": null
+    },
+    "line_ink_max": 222,
+    "rect": [
+      25,
+      58,
+      651,
+      553
+    ],
+    "pitch_range": [
+      20,
+      35
+    ],
+    "scale_feet": 10,
+    "scale_printed": true,
+    "north": "top",
+    "compass_printed": true,
+    "legend_printed": true,
+    "notes": "The synthetic TSR blue map the pipeline is checked on. Its answer is exact."
+  },
+  {
+    "id": "manor",
+    "image": "../../tests/assets/synthetic-maps/manor/images/manor.png",
+    "page": 1,
+    "style": "black_white",
+    "levels": {
+      "channel": "gray",
+      "ink_max": 60,
+      "paper_min": 225,
+      "dark_max": 65,
+      "fill": [
+        120,
+        200
+      ],
+      "hatched": true
+    },
+    "line_ink_max": 215,
+    "rect": [
+      24,
+      58,
+      553,
+      491
+    ],
+    "pitch_range": [
+      20,
+      35
+    ],
+    "scale_feet": 10,
+    "scale_printed": true,
+    "north": "top",
+    "compass_printed": true,
+    "legend_printed": true,
+    "notes": "The synthetic black and white map the pipeline is checked on. Its answer is exact. The outside is hatched."
+  }
+]
