@@ -329,8 +329,10 @@ class ClaudeProvider:
         so a refusal writes nothing to the ledger. It streams the response,
         settles the reservation at
         [`cost_usd`][osrforge.providers.claude.cost_usd] of the answer's usage
-        whether or not the answer is good (a request whose attempts all fail
-        keeps its worst case), and then checks the answer: a
+        whether or not the answer is good, and then checks the answer. A
+        request the API refuses with a 4xx status on every attempt, before any
+        model runs, settles at zero, and any other request whose attempts all
+        fail keeps its worst case. After an answer, a
         `stop_reason` of `max_tokens` or `refusal` is a
         [`ReadingFailure`][osrforge.errors.ReadingFailure], and the first text
         block's JSON is checked against the kind's schema.

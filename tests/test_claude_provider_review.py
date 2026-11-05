@@ -161,6 +161,50 @@ def test_a_transport_failure_while_the_stream_is_read_is_retried(tmp_path: Path)
     assert "pending" not in entry and entry["cost_usd"] == worst_case_usd(MODEL, REQUEST)
 
 
+@pytest.mark.xfail(strict=True, reason="chunk: claude-refused")
+@pytest.mark.parametrize(
+    ("error", "status"),
+    [
+        (anthropic.BadRequestError, 400),
+        (anthropic.AuthenticationError, 401),
+        (anthropic.PermissionDeniedError, 403),
+        (anthropic.NotFoundError, 404),
+        (anthropic.RequestTooLargeError, 413),
+        (anthropic.UnprocessableEntityError, 422),
+    ],
+)
+def test_a_request_the_api_refuses_before_any_model_runs_is_settled_at_zero(
+    tmp_path: Path, error: type[anthropic.APIStatusError], status: int
+):
+    reader, client, path, _ = make_provider(tmp_path, [status_error(error, status, {})])
+    with pytest.raises(ProviderError, match=str(status)):
+        reader.read(REQUEST)
+    assert client.sent == 1
+    entry = only_entry(path)
+    assert "pending" not in entry and entry["cost_usd"] == 0.0
+
+
+@pytest.mark.xfail(strict=True, reason="chunk: claude-refused")
+def test_a_request_refused_as_rate_limited_on_every_attempt_is_settled_at_zero(tmp_path: Path):
+    refusals: list[Exception | FakeStream] = [status_error(anthropic.RateLimitError, 429, {}) for _ in range(5)]
+    reader, client, path, _ = make_provider(tmp_path, refusals)
+    with pytest.raises(ProviderError, match="after 5 attempts"):
+        reader.read(REQUEST)
+    assert client.sent == 5
+    entry = only_entry(path)
+    assert "pending" not in entry and entry["cost_usd"] == 0.0
+
+
+def test_a_server_error_on_every_attempt_keeps_the_worst_case(tmp_path: Path):
+    failures: list[Exception | FakeStream] = [status_error(anthropic.InternalServerError, 500, {}) for _ in range(5)]
+    reader, client, path, _ = make_provider(tmp_path, failures)
+    with pytest.raises(ProviderError, match="after 5 attempts"):
+        reader.read(REQUEST)
+    assert client.sent == 5
+    entry = only_entry(path)
+    assert "pending" not in entry and entry["cost_usd"] == worst_case_usd(MODEL, REQUEST)
+
+
 def png(size: tuple[int, int]) -> bytes:
     buffer = io.BytesIO()
     Image.new("L", size).save(buffer, "PNG")
