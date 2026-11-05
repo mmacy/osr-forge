@@ -220,18 +220,23 @@ class _Grid:
         across, along = (self.ox, self.oy) if axis == "vertical" else (self.oy, self.ox)
         return (axis, (line + across) // 2, (index + along) // 2)
 
-    def read_letter(self, edge: _Edge) -> str | None:
+    def read_letter(self, edge: _Edge, rows: list[str]) -> str | None:
         """A 10-foot edge's letter from its read segments, `None` when neither is read.
 
         The letter is the first of the read segments in precedence order, except
-        that a wall or window beside an opening between two floor squares gives
-        the edge the opening's letter.
+        that a wall or window beside an opening gives the edge the opening's
+        letter when the opening lies between two floor squares of one open
+        space after the moves and both of the edge's cells are floor in `rows`,
+        the converted cell rows.
         """
         segments = self.covered(edge)
         letters = [self.segment(segment) for segment in segments]
-        for segment, letter, other in ((segments[0], letters[0], letters[1]), (segments[1], letters[1], letters[0])):
-            if letter in _PASSABLE and other in "wn" and all(self.kind(side) == "." for side in _sides(segment)):
-                return letter
+        if all(0 <= x < self.columns and 0 <= y < self.rows and rows[y][x] == "." for x, y in _sides(edge)):
+            for segment, letter, other in zip(segments, letters, reversed(letters), strict=True):
+                low, high = _sides(segment)
+                space = self.space.get(low)
+                if letter in _PASSABLE and other in "wn" and space is not None and space == self.space.get(high):
+                    return letter
         read = [letter for letter in letters if letter != "-"]
         return min(read, key=_PRECEDENCE.index) if read else None
 
@@ -452,7 +457,7 @@ class _Grid:
             low, high = _sides(edge)
             if not (occupied(low) or occupied(high)):
                 return "-"
-            read = self.read_letter(edge)
+            read = self.read_letter(edge, rows)
             result = "w" if read is None else read
             if edge in self.narrow_edges and result not in _PASSABLE:
                 result = "o"
