@@ -2,7 +2,7 @@
 
 The tracing stage reads each printed map with three readers: Clef, a deterministic ink measurement, and Claude. See `docs/plans/map-tracing.md` in re-pod, "Reading the map" and step 8 of "Measurements before the contracts". This tool measures how well that reading scores against the answer keys before the stage exists, with the scorer's own code. It is the reference for osr-forge chunk 8.
 
-Step 8 runs in two parts. The screening, which is done, chose the stage's settings:
+The plan's step 8 runs in two parts. The screening, which is done, chose the stage's settings:
 
 - the bar for walls read as open
 - how Clef is asked, and the calibration with its thresholds
@@ -37,26 +37,29 @@ Commercial maps' specs, answers, and results stay outside the repository, under 
   - passable or blocked on the measured edges, raw and calibrated at each threshold
   - the share of answers, ranked by confidence, before the first and the fifth wrong one
   - each letter's recall
+- `screen_letters.py` compares option sets letter by letter, with no calibration, on the windows that every set answered whole: each letter's recall, the raw passable errors, and what a set answers instead when it is wrong.
+- `screen_cells.py` scores the ink's cells on whole maps (floor or not by the half rule, the cells left unsettled, and the settled cells that are wrong) and Clef's cell question on the cells the ink leaves unsettled.
 - `stage_reading.py` and `screen_bar.py` give the stage's reading before Claude.
   - A cell is the ink's, or Clef's where the ink leaves it unsettled.
   - An edge between floor cells is the door Clef reads when a door kind is Clef's top answer, and otherwise the calibrated decision.
   - An edge against rock is a wall, or the door Clef reads there.
   - The reading is scored against the classifier's reading of the same edges. The script also counts the band Claude would judge (edges with calibrated P(passable) between ε and 1 - ε), per map, with the errors inside it.
-- `screen_synthetic.py` applies the real keys' calibrations to synthetic maps with exact answers, with and without the other synthetic maps in the fit.
-- `screen_marks.py` finds the marks, asks Clef which key each is, and scores both against the key's marks.
+- `screen_synthetic.py` applies the real keys' calibrations to synthetic maps with exact answers, with and without the other synthetic maps in the fit. It also gives the calibration with the ink without doors first, and counts the doors each calibration reads as open.
+- `screen_marks.py` finds the marks, asks Clef which key each is, and scores both against the key's marks. It also scores the keys with each key keeping only its most probable mark.
 - `export_stored.py` puts the answer-key pass's stored Clef answers onto the keys' grids for `screen_bar`.
 - `hosted_exported.py` rebuilds the answer-key pass's exported edge requests and checks each against its exported key, so its crop, state, question, and options are the exported request's byte for byte. Hosted Clef gets the request as exported. Hosted Clef-flash gets the same request with only the model changed. Either way the backends pair with the stored local answers on the same crop and text.
+- `screen_backends.py` compares the backends on those identical requests, with no calibration: how often their top answers agree, each letter's recall, and the passable errors at one half and at the best threshold.
 - `wholemap.py`, `items.py`, and `offsets.py` are the three kinds of Claude request. Their drivers are `screen_wholemap.py`, `screen_items.py`, and `screen_offsets.py`.
   - Every request goes through the stage's provider, `ClaudeProvider`, with one retry of a malformed answer and a cap on the screening's requests (`claude_run.py`).
   - `pictures.py` draws a region with its grid ticked.
-  - `screen_summary.py` pools the stored outcomes by model and effort.
+  - `screen_summary.py` pools the stored outcomes by model and effort. It also scores the decision the items were chosen by on the same items, and counts the screening's entries on the Claude ledger.
 
 ## The files
 
-Each file here has a counterpart for commercial maps, in the same format, under `~/.re-pod/map-plan/osr-suite/reading/specs/`.
+Each file here except `windows-variants.json` has a counterpart for commercial maps, in the same format, under `~/.re-pod/map-plan/osr-suite/reading/specs/`.
 
 - `maps.json` lists each map region with its key, its image, the answer-key work directory, the frame from the working grid to the key's grid, and its classifier spec.
-- `windows.json` lists the screening windows: per map, the 12 by 12 windows with the most universe edges, chosen to hold every rare letter the map has. `windows-hosted.json` lists the window the hosted run read.
+- `windows.json` lists the screening windows: per map, the 12 by 12 windows with the most universe edges, chosen to hold every rare letter the map has. `windows-hosted.json` lists the window the hosted run read. `windows-variants.json` lists the two black-and-white windows that the option sets `sevenk` and `keysetp` were asked on.
 - `pages.json` lists the map pages and the regions on each.
 - `halves.json` lists the synthetic pairs of halves, with the letter of their true join.
 - `synthetic-maps.json` and `synthetic-windows.json` cover seven synthetic regions whole.
@@ -66,7 +69,7 @@ Each file here has a counterpart for commercial maps, in the same format, under 
 Run from the osr-forge checkout. Each driver keeps what it has stored and asks only what's missing. Each needs the following:
 
 - The Claude drivers need `OSRFORGE_CLAUDE_LEDGER`. They read the API key from the `ANTHROPIC_API_KEY=` line of `~/repos/re-pod/.env`, inside the process.
-- `--cap` counts every entry on the Claude ledger whose label starts with `reading-`, the screening's 128 among them, and refuses a request once the count reaches the cap. Step 8's budget is 350 Claude requests in all, so the full run passes `--cap 350`, which leaves it 222.
+- `--cap` counts every entry on the Claude ledger whose label starts with `reading-`, the screening's 128 among them, and refuses a request once the count reaches the cap. The plan's step 8 has a budget of 350 Claude requests in all, so the full run passes `--cap 350`, which leaves it 222.
 - The local Clef runs need a System One server, such as the maintainer's Ollama with `clef-flash`. Never start, stop, or restart it.
 - The hosted Clef runs need `OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login. They stop at their first failure and are held to `--spend` dollars on the Clef ledger.
 
@@ -84,31 +87,55 @@ P=$R/specs
    uv run python -m tools.reading.bar $R/classifier tools/reading/maps.json --out $R/bar.json
    ```
 
-2. Local Clef-flash on the screening windows' edges, one option set at a time, and on the cells the ink leaves unsettled:
+2. Local Clef-flash on the screening windows, one option set at a time, and on the cells the ink leaves unsettled there. The answer-key set's answers are the answer-key pass's own, which the later steps name `keyset-stored`, so that set isn't asked again:
 
    ```text
    uv run python -m tools.reading.clefask tools/reading/maps.json --windows tools/reading/windows.json \
-       --set keyset --kind edge --backend local --workers 2 --out $R/clef
+       --set seven --kind edge --backend local --workers 2 --out $R/clef
+   uv run python -m tools.reading.clefask tools/reading/maps.json --windows tools/reading/windows-variants.json \
+       --set sevenk --kind edge --backend local --workers 2 --out $R/clef
+   uv run python -m tools.reading.clefask tools/reading/maps.json --windows tools/reading/windows-variants.json \
+       --only jn1-p046 --set keysetp --kind edge --backend local --workers 2 --out $R/clef
    uv run python -m tools.reading.clefask tools/reading/maps.json --windows tools/reading/windows.json \
        --set seven --kind cell --backend local --out $R/clef
    ```
 
-3. The option sets compared per style, on the edges every set answered. `keyset-stored` names the answer-key pass's own answers:
+3. The option sets compared per style. `screen_clef` compares them calibrated, on the edges every set answered, and on every measured edge of the keys when no windows are given. `screen_letters` compares them letter by letter, on the windows every set answered whole:
 
    ```text
    uv run python -m tools.reading.screen_clef tools/reading/maps.json --windows tools/reading/windows.json \
        --source keyset=keyset-stored --source seven=$R/clef/local/seven --paired --json $R/clef/sets.json
+   uv run python -m tools.reading.screen_clef tools/reading/maps.json --source keyset=keyset-stored \
+       --json $R/clef/keyset-whole.json
+   uv run python -m tools.reading.screen_letters tools/reading/maps.json --windows tools/reading/windows.json \
+       --source keyset=keyset-stored --source seven=$R/clef/local/seven --json $R/clef/letters-seven.json
+   uv run python -m tools.reading.screen_letters tools/reading/maps.json --windows tools/reading/windows.json \
+       --source keyset=keyset-stored --source seven=$R/clef/local/seven --source sevenk=$R/clef/local/sevenk \
+       --json $R/clef/letters-sevenk.json
+   uv run python -m tools.reading.screen_letters tools/reading/maps.json --windows tools/reading/windows.json \
+       --source keyset=keyset-stored --source keysetp=$R/clef/local/keysetp --json $R/clef/letters-keysetp.json
    ```
 
-4. The stage's reading of every key edge against the classifier's, with the band per map:
+4. The ink's cells on whole maps, and the cell question:
+
+   ```text
+   uv run python -m tools.reading.screen_cells tools/reading/maps.json --answers $R/clef/local/seven \
+       --json $R/clef/cells.json
+   ```
+
+5. The stage's reading of every key edge against the classifier's, with the band per map, calibrated with the ink and without it:
 
    ```text
    uv run python -m tools.reading.export_stored tools/reading/maps.json --out $R/clef/stored-keyset
    uv run python -m tools.reading.screen_bar tools/reading/maps.json --windows $R/clef/stored-keyset/whole-maps.json \
-       --set keyset=$R/clef/stored-keyset --classifier $R/classifier --calibration clef+ink --json $R/clef/bar.json
+       --set keyset=$R/clef/stored-keyset --classifier $R/classifier --calibration clef+ink \
+       --json $R/clef/bar-whole-keyset-clef+ink.json
+   uv run python -m tools.reading.screen_bar tools/reading/maps.json --windows $R/clef/stored-keyset/whole-maps.json \
+       --set keyset=$R/clef/stored-keyset --classifier $R/classifier --calibration clef \
+       --json $R/clef/bar-whole-keyset-clef.json
    ```
 
-5. The calibrations on synthetic maps with exact answers:
+6. The calibrations on synthetic maps with exact answers, with and without doors first:
 
    ```text
    uv run python -m tools.reading.clefask tools/reading/synthetic-maps.json \
@@ -117,14 +144,14 @@ P=$R/specs
        --synthetic tools/reading/synthetic-maps.json --answers $R/clef/local/keyset --json $R/clef/synthetic.json
    ```
 
-6. The marks, with Clef's key and letter questions:
+7. The marks, with Clef's key and letter questions. Without `--ask`, the driver scores the stored answers and asks nothing:
 
    ```text
    uv run python -m tools.reading.screen_marks tools/reading/maps.json --pages tools/reading/pages.json \
        --out $R/clef --ask
    ```
 
-7. The Claude grid, over models and efforts:
+8. The Claude grid, over models and efforts, and its summary. `--ledger` only reads the ledger:
 
    ```text
    uv run python -m tools.reading.screen_wholemap tools/reading/pages.json --out $R/claude \
@@ -139,16 +166,18 @@ P=$R/specs
        --models claude-sonnet-5-5 claude-opus-5-5 --efforts low medium high --cap 160
    uv run python -m tools.reading.screen_offsets $P/halves.json --out $R/claude \
        --models claude-sonnet-5-5 --efforts low medium --tag .t2 --cap 160
-   uv run python -m tools.reading.screen_summary $R/claude --json $R/claude/summary.json
+   uv run python -m tools.reading.screen_summary $R/claude --ledger ~/.re-pod/map-plan/claude-ledger.json \
+       --json $R/claude/summary.json
    ```
 
-8. The backends on identical requests:
+9. The backends on identical requests:
 
    ```text
    uv run python -m tools.reading.hosted_exported tools/reading/maps.json --windows tools/reading/windows-hosted.json \
        --out $R/clef --model clef --workers 4 --max-requests 470 --spend 0.15
    uv run python -m tools.reading.hosted_exported tools/reading/maps.json --windows tools/reading/windows-hosted.json \
        --out $R/clef --model clef-flash --workers 4 --max-requests 470 --spend 0.15
+   uv run python -m tools.reading.screen_backends tools/reading/maps.json --hosted $R/clef --json $R/clef/backends.json
    uv run python -m tools.reading.screen_clef tools/reading/maps.json --source local=keyset-stored \
        --source hosted=keyset-hosted-stored --paired
    ```
@@ -183,9 +212,9 @@ The screening chose the rest:
 
 ## What the screening found
 
-The figures pool the committed Chaotic Caves maps and the maintainer's private corpus, as counts by style. The full log, with every command and the private maps' figures, is `~/.re-pod/map-plan/osr-suite/reading/progress.md`.
+The figures pool the committed Chaotic Caves maps and the maintainer's private corpus, as counts by style. Each finding names the step under "Run it" that rebuilds it. The full log, with every command and the private maps' figures, is `~/.re-pod/map-plan/osr-suite/reading/progress.md`.
 
-The bar for walls read as open is the classifier's rate on the keys over the scorer's edge universe:
+The bar for walls read as open is the classifier's rate on the keys over the scorer's edge universe (step 1):
 
 | Style | Walls read as open | Edges | Rate |
 | --- | --- | --- | --- |
@@ -194,43 +223,48 @@ The bar for walls read as open is the classifier's rate on the keys over the sco
 | Dark rock | 4 | 628 | 0.64% |
 | Cave | 56 | 5,339 | 1.05% |
 
-The Claude ledger holds 128 screening requests. 127 were answered, and the 127 stored outcomes hold no malformed first answer, so none needed the retry. The 128th was the first whole-page request: the API refused its schema with HTTP 400 before any model ran, its reservation was released to $0, and no outcome was stored.
+Claude (step 8):
 
+- **Requests:** the Claude ledger holds 128 screening requests. 127 were answered, and the 127 stored outcomes hold no malformed first answer, so none needed the retry. The 128th was the first whole-page request: the API refused its schema with HTTP 400 before any model ran, and its entry is charged $0, with no outcome stored.
 - **Whole-page reads:**
   - Every setting reads the scale and north of all 7 regions right.
   - Every setting except Opus at medium effort reads all 7 styles right.
   - Opus at high effort finds 66 of the keys' 104 symbols, including 40 of 42 stairs and 13 of 16 cave mouths. Sonnet at high effort finds 39.
 - **Uncertain items,** 30 to a request on 204 items:
-  - Opus at medium effort gets 198 right, Opus at high 193, Sonnet at low 172. The calibrated Clef-and-ink decision gets 155 of the same items.
-  - Thirty items a request is as accurate as ten on the same items.
-  - Sonnet doesn't think on item requests at any effort: it writes about 143 output tokens a request.
+  - Opus at medium effort gets 198 right, Opus at high 193, Sonnet at low 172.
+  - The decision the items were chosen by gets 155 of the same items right: the calibrated Clef-and-ink decision on edges, and the ink's half rule on cells.
+  - On the first ten items of each map, thirty items a request and ten give the same counts: 67, 65, and 59 of 70.
+  - Sonnet doesn't think on item requests at any effort: it writes about 143 output tokens a ten-item request.
 - **Offset picks** on two real pairs of halves: Sonnet at low and medium effort picks right 4 of 4 times over two trials. Sonnet at high effort, and Opus at every effort, pick at least one wrong offset, so under the plan's rule the halves stay apart.
 
-The ink settles a cell (floor or not, at half floor) with at most 10 errors in each style's cells that aren't partly floor. It leaves between 8% (dark rock) and 27% (black and white) of them to Clef.
+The ink settles a cell (floor or not, at half floor) with at most 10 errors in each style's cells that aren't partly floor. It leaves between 8% (dark rock) and 27% (black and white) of them unsettled (step 4).
 
 Clef, on local Clef-flash unless a backend is named:
 
-- **The plan's seven options read doors and windows as open.**
+- **The plan's seven options read doors and windows as open** (step 3).
   - On two black-and-white windows they name 2 of 20 doors and 0 of 22 windows, where the answer-key sets name 16 and 13.
   - On two TSR blue windows they read 141 of 150 walls as open.
   - Any option added to a style's set costs it its windows.
-- **Doors and the ink.** A door's box breaks the drawn line, so the ink alone makes a door look open. Without doors first, a calibration with the ink reads all 19 of the synthetic black-and-white doors as open.
-- **The calibration's held-out error** is 0.009 to 0.021. Fitted on the real keys alone, it reads 9 to 13 of a synthetic dark-rock map's 15 interior walls as open. With the other synthetic maps of the style in the fit, it reads none. A style with few blocked edges in its real keys needs the synthetic maps in its fit.
-- **Before Claude, on every key edge,** the stage's reading with the ink reads no more walls as open than the classifier:
+- **Doors and the ink.** A door's box breaks the drawn line, so the ink alone makes a door look open. Without doors first, a calibration with the ink reads all 19 of the synthetic black-and-white doors as open at the style's threshold, 0.9 (step 6).
+- **The calibration's expected calibration error,** held out by map on the keys' measured edges, is 0.009 to 0.021 (step 3). Fitted on the real keys alone, it reads 9 to 13 of a synthetic dark-rock map's 15 interior walls as open. With the other synthetic maps of the style in the fit, it reads none (step 6). A style with few blocked edges in its real keys needs the synthetic maps in its fit.
+- **Before Claude, on every key edge,** the stage's reading with the ink reads no more walls as open than the classifier (step 5):
   - TSR blue: 16 against 34, at 0.7.
   - Black and white: 23 against 25, at 0.9.
   - Cave: 23 against 56, at 0.9.
   - Dark rock: 3 against 4, at every threshold.
-- **Clef alone** misses black and white's bar at every threshold, and needs a threshold of 0.9 on TSR blue and cave.
-- **The cell question** reads floor or not no better than the ink's half rule. It reads a plain grey moat as rock: 0 of 33 water cells. It names the stairs of TSR blue and black and white: 16 of 16 symbol cells.
-- **Marks:**
+- **Clef alone** misses black and white's bar at every threshold, and needs a threshold of 0.9 on TSR blue and cave (step 5).
+- **The cell question,** on the cells the ink leaves unsettled (step 4):
+  - It reads floor or not about as well as the ink's half rule on TSR blue (153 against 151 of 241 cells), and worse in the other styles.
+  - It reads a plain grey moat as rock: 0 of 33 water cells.
+  - It names the stairs and ladders of TSR blue and black and white: 16 of 16 symbol cells.
+- **Marks** (step 7):
   - The detector finds a mark within a cell of all 209 key marks.
   - Clef reads 175 of the 209 right, and 5 of 30 single letters.
-  - Clef gives a key to most marks that aren't labels. Keeping each key's most probable mark leaves 166 keys right and 33 false keys among 561 other marks.
-- **Backends,** on identical requests:
+  - Clef gives a key to 331 of the 521 found marks that aren't labels. Keeping each key's most probable mark leaves 164 keys right and 35 false keys among 571 other marks.
+- **Backends,** on identical requests (step 9):
   - Hosted Clef-flash agrees with local Clef-flash on 96% to 98% of top answers.
-  - Hosted Clef is no better than local Clef-flash on TSR blue, cave, and black and white. It is better only on dark rock's few blocked edges.
-  - The free Workers AI plan allows about 1,250 requests a day, fewer than a large level's 2,000 or so edges.
+  - At its best threshold, hosted Clef reads more open edges as blocked than local Clef-flash on TSR blue, cave, and black and white, and fewer on dark rock's few blocked edges. On cave it names both secret doors, where local Clef-flash names neither.
+  - The free Workers AI plan allows about 1,250 requests a day, by the maintainer's account. That is fewer than a large level's 2,000 or so edges.
 
 ## Tests
 
@@ -244,5 +278,6 @@ Clef, on local Clef-flash unless a backend is named:
 - The whole-page check and score on an answer made from the key, and the item check.
 - The retry of a malformed answer with its faults, the request cap, and the summary of stored outcomes.
 - The join pictures, and the marks found on the upper floor.
+- The findings' tallies: the letters by option set, the ink's cells and the cell question, the backends' agreement and best threshold, a mark's reading and one mark per key, the summary's first ten items, symbols by kind, and the decision the items were chosen by, and the ledger count.
 
 No test calls a service or reads a ledger outside its temporary directory.

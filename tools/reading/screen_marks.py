@@ -3,12 +3,16 @@
 The marks asked are every found mark within one cell of one of the key's marks, and a fixed-seed sample of the
 others, so Clef's `none` is measured too. A mark's key questions offer the survey's keys of the levels whose outline
 (the key's) lies within two cells of the mark, in chunks of 25 with `none`. A mark that every chunk answers `none`
-gets the letter question (`marks.mark_answer`).
+gets the letter question (`marks.mark_reading`).
 
-The score matches each key mark to the found mark nearest it, within one cell, by Chebyshev distance and then by the
-pixel distance of their centres. A key mark is *found* when it has a match, and *read* when Clef's top answer for the
-match is its text: `key:<text>` for a survey key, `letter:<text>` for a single letter, and `none` for any other
-label. Found marks with no key mark should be answered `none`.
+The score takes the key's marks in order and matches each to the nearest found mark not yet matched, within one
+cell by Chebyshev distance, the earlier found mark on a tie. A key mark is *found* when it has a match, and *read*
+when Clef's top answer for the match is its text: `key:<text>` for a survey key, `letter:<text>` for a single
+letter, and `none` for any other label. Found marks with no key mark should be answered `none`.
+
+The score is also given with each key keeping only its most probable mark (`marks.one_mark_per_key`), the other
+marks that read it answering `none`. Under both, the *other marks* are the answered marks that no survey key's mark
+matched, and the ones *given a key* are false keys.
 
 Run from the osr-forge checkout:
 
@@ -29,7 +33,17 @@ from osrforge.tracing.truth import Registration, parse_cell
 from .clefask import AnswerStore, Item, run_items
 from .ink import INK_STYLES, MapInk
 from .maps import ScreenMap, key_panel, key_region, load_maps, load_rgb
-from .marks import LETTERS, FoundMark, find_marks, key_chunks, letter_request, mark_answer, mark_crop, mark_request
+from .marks import (
+    LETTERS,
+    FoundMark,
+    find_marks,
+    key_chunks,
+    letter_request,
+    mark_crop,
+    mark_reading,
+    mark_request,
+    one_mark_per_key,
+)
 from .screen_wholemap import levels_on, load_pages
 
 __all__ = ["main", "nearby_keys"]
@@ -129,17 +143,20 @@ def main(argv: list[str] | None = None) -> int:
             letter_items = [
                 Item(kind="mark", name=f"{i}/L", cell=found[i].cell)
                 for i in asked
-                if mark_answer([done[f"{i}/k{c}"] for c, chunk in enumerate(chunks_of[i]) if chunk], None) == "none"
+                if mark_reading([done[f"{i}/k{c}"] for c, chunk in enumerate(chunks_of[i]) if chunk], None)[0] == "none"
             ]
             run_items(provider, store, letter_items, request_for, workers=args.workers)  # type: ignore[arg-type]
         done = stored()
-        answers: dict[int, str] = {}
+        readings: dict[int, tuple[str, float]] = {}
         for i in asked:
             names = [f"{i}/k{c}" for c, chunk in enumerate(chunks_of[i]) if chunk]
             if all(name in done for name in names):
-                answers[i] = mark_answer([done[name] for name in names], done.get(f"{i}/L"))
+                readings[i] = mark_reading([done[name] for name in names], done.get(f"{i}/L"))
+        answers = {i: reading[0] for i, reading in readings.items()}
+        filtered = one_mark_per_key(readings)
         # Match each key mark to its nearest found mark.
         taken: set[int] = set()
+        key_matches: set[int] = set()
         tally: Counter[str] = Counter()
         every_key = [key for keys in keys_by_level.values() for key in keys]
         for text, cell in key_marks:
@@ -150,16 +167,26 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             best = min(candidates, key=lambda i: (chebyshev(found[i].cell, cell), i))
             taken.add(best)
+            if kind == "key":
+                key_matches.add(best)
             tally[f"{kind} found"] += 1
             if best in answers:
                 tally[f"{kind} asked"] += 1
                 expected = _expected(text, nearby_keys(screen, found[best].cell, keys_by_level))
                 tally[f"{kind} read right"] += answers[best] == expected
+                tally[f"{kind} read right, one mark per key"] += filtered[best] == expected
         for i in asked:
             if i in taken or i not in answers:
                 continue
             tally["extra asked"] += 1
             tally["extra answered none"] += answers[i] == "none"
+            tally["extra given a key"] += answers[i].startswith("key:")
+        for i in answers:
+            if i in key_matches:
+                continue
+            tally["other marks asked"] += 1
+            tally["other marks given a key"] += answers[i].startswith("key:")
+            tally["other marks given a key, one mark per key"] += filtered[i].startswith("key:")
         tally["found"] += len(found)
         totals.update(tally)
         print(screen.id, dict(tally), flush=True)
