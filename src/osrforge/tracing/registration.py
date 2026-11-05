@@ -206,7 +206,9 @@ class RegionFit(BaseModel):
     label inside the rectangle doesn't move the fit. A frame is four sides,
     each a drawn line or the edge of a fill, that reach the sides beside
     them, and a side may run on past its corner, as a wall does into a
-    corridor. Of the frames around a drawing, the region takes the outermost
+    corridor. A frame encloses every printed grid line of its drawing, so a
+    rectangle that a wall inside the drawing closes is no frame. Of the
+    frames around a drawing, the region takes the outermost
     under which the fit passes the gate, so a page border whose paper and
     legend fail the gate gives way to the drawing's own frame. Each framed
     drawing is one region: two candidate grids that reach the same frame are
