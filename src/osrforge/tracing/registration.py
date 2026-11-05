@@ -25,7 +25,7 @@ from typing import Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from osrforge.tracing._registration_fit import Settings
+from osrforge.tracing._registration_fit import Figures, Settings
 from osrforge.tracing._registration_halves import align
 from osrforge.tracing._registration_ink import InkSettings, ink_image, read_darkness
 from osrforge.tracing._registration_regions import RegionResult, find_regions
@@ -328,7 +328,7 @@ def register_image(image: Path) -> tuple[RegionFit, ...]:
         OSError: If the image can't be read.
     """
     ink = ink_image(read_darkness(image), _INK)
-    return tuple(_region_fit(result) for result in find_regions(ink, _SETTINGS))
+    return tuple(_region_fit(result) for result in find_regions(ink, _SETTINGS, _passes))
 
 
 def align_halves(first: Path, first_fit: RegionFit, second: Path, second_fit: RegionFit) -> HalfAlignment:
@@ -370,12 +370,9 @@ def align_halves(first: Path, first_fit: RegionFit, second: Path, second_fit: Re
     return HalfAlignment(rows=result.rows, columns=result.columns, gaps=result.gaps)
 
 
-def _region_fit(result: RegionResult) -> RegionFit:
-    """The public form of one region's fit, with the gate's verdict."""
-    if result.figures is None or result.pitch is None or result.corners is None:
-        return RegionFit(rect=result.rect, verdict="unregistered", reason=result.reason or "no fit")
-    figures = result.figures
-    gate = GateFigures(
+def _gate(figures: Figures) -> GateFigures:
+    """The gate's figures for one fit."""
+    return GateFigures(
         detected_lines=figures.detected,
         rejected_lines=figures.rejected,
         explained_share=figures.explained / figures.detected if figures.detected else 0.0,
@@ -384,6 +381,18 @@ def _region_fit(result: RegionResult) -> RegionFit:
         covered_cells=figures.covered,
         coverage=figures.covered / figures.counted if figures.counted else 0.0,
     )
+
+
+def _passes(figures: Figures) -> bool:
+    """Whether a fit passes the gate, for the frame search to choose among frames."""
+    return _gate(figures).passes
+
+
+def _region_fit(result: RegionResult) -> RegionFit:
+    """The public form of one region's fit, with the gate's verdict."""
+    if result.figures is None or result.pitch is None or result.corners is None:
+        return RegionFit(rect=result.rect, verdict="unregistered", reason=result.reason or "no fit")
+    gate = _gate(result.figures)
     pitch = (round(result.pitch[0], 4), round(result.pitch[1], 4))
     if not gate.passes:
         return RegionFit(rect=result.rect, pitch=pitch, verdict="unregistered", reason=_failure(gate), gate=gate)
