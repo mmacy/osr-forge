@@ -14,23 +14,30 @@ lines per axis on one lattice. A warped grid is still a grid, so it is a
 region, and its fit fails the gate.
 
 A region's grid is fitted in up to three passes. The first reads only the
-drawing's tiles on the grid, and finds the frame along the fitted lines: on
-each axis, the outermost lines in one unbroken run of lines that ink and
-fill cover along their length. Those are the lines of a drawn frame, the
-edges of a filled one, or, where no frame is drawn, the outermost grid lines
-printed across the whole drawing; following the fitted lines, the search
-follows a scan's skew, bow, and stretch. Where no line is covered on an axis,
-the outermost lines the fit explains are the grid's extent there. The second
-pass reads all of the drawing's thin runs inside the frame. The third adds
-points on a filled frame's edges, which hold the drift correction to the
-frame at the far corners where no line is printed. On a side where the
-drawing reaches the image edge, the grid takes each further line that lies
-partly outside the image and within half a pitch of it, along the whole
-side: the image edge cuts the grid there. A line that lies wholly inside the
-image but isn't framed or printed ends the grid instead. The region's
-rectangle is its grid's extent, clipped to the image.
+drawing's tiles on the grid, and finds the frame along the fitted lines. A
+frame is four sides around the printed lines, each covered by ink and fill
+from one perpendicular side to the other: a drawn line, the edge of a fill,
+or, where no frame is drawn, the outermost grid lines printed across the
+whole drawing. The sides are looked for on lines a pixel apart, so a frame
+drawn off the grid is found, and the paper between a drawn frame and the
+drawing inside it doesn't matter. Of the frames that close, the outermost is
+the drawing's, and the grid takes the lines on and inside it. Where no frame
+closes, each axis's frame is the outermost lines in one unbroken run of grid
+lines that ink and fill cover along their length, and where no line is
+covered on an axis, the outermost lines the fit explains are the grid's
+extent there. Following the fitted lines, the search follows a scan's skew,
+bow, and stretch. The second pass reads all of the drawing's thin runs inside
+the frame. The third adds points on a filled frame's edges, which hold the
+drift correction to the frame at the far corners where no line is printed.
+On a side where the drawing reaches the image edge, the grid takes each
+further line that comes within half a pitch of the image edge, inside or
+outside it, along the whole side: the image edge cuts the grid there. A line
+more than half a pitch inside the image that isn't framed or printed ends the
+grid instead. The region's rectangle is its grid's extent, clipped to the
+image.
 """
 
+import itertools
 import math
 from dataclasses import dataclass
 
@@ -105,6 +112,12 @@ FRAME_GAP = 2.0
 opens a gap a cell or two wide in it, and a line through paper between grid lines is mostly gaps. At 1 gatehouse's
 west half is fitted over a strip 28 px wide and fails the gate, and at 3 Chaotic Caves page 21's lower map takes 20
 rows where 23 are printed."""
+
+FRAME_CORNER = 0.2
+"""Pitches. A frame's side reaches each perpendicular side to within this distance: its ink and fill leave no longer
+gap at either end. It matches `FRAME_BAND`, the distance across the side that its ink may lie from the line. From 0 to 1
+the tests give the same results. At 2 the title above gatehouse's east half, a pitch above its fill, closes a frame
+with the fill's sides, and the grid takes a row of the title."""
 
 MIN_REGION_TILES = 12
 """A drawing needs at least this many gridded tiles to be a region."""
@@ -636,6 +649,157 @@ def _extent(fit: AxisFit, frame: IntArray, settings: Settings) -> tuple[tuple[in
     return None if printed is None else (printed, False)
 
 
+@dataclass(frozen=True)
+class Side:
+    """A candidate side of a frame.
+
+    It is a run of neighbouring fitted lines, a pixel apart, that ink and fill cover across the other axis's printed
+    lines.
+    """
+
+    outer: float
+    """The run's outermost line index, fractional. It lies `FRAME_BAND` of a pitch past the side's ink."""
+
+    middle: float
+    """The run's middle line index, fractional."""
+
+    hits: BoolArray
+    """Whether ink or fill lies along any of the run's lines, at each pixel along the other axis from the drawing
+    box's start."""
+
+
+def _sides(
+    fit: AxisFit,
+    other: AxisFit,
+    near: BoolArray,
+    box: Rect,
+    printed: tuple[int, int],
+    other_printed: tuple[int, int],
+    vertical: bool,
+) -> tuple[list[Side], list[Side]]:
+    """The candidate sides of a frame on one axis: those before the printed lines and those after them.
+
+    Lines a pixel apart are tried, not only the grid's, so a frame drawn off the grid is found. A line is covered
+    as `_covered_lines` covers one, across the other axis's printed lines, and the covered lines next to each other
+    make one side.
+    """
+    lo, hi = (box[0], box[2]) if vertical else (box[1], box[3])
+    other_lo, other_hi = (box[1], box[3]) if vertical else (box[0], box[2])
+    middle = (other_lo + other_hi) / 2
+    step = 1 / fit.pitch
+    first = float(fit.model.index_at(lo - fit.pitch / 2, middle))
+    last = float(fit.model.index_at(hi + fit.pitch / 2, middle))
+    indices = np.arange(first, last + step / 2, step)
+    # A side encloses the printed lines, so only lines outside them can be its outer edge. Those up to half a pitch
+    # inside them are tried too, so a side on the outermost printed line is whole.
+    indices = indices[(indices <= printed[0] + 0.5) | (indices >= printed[1] - 0.5)]
+    if len(indices) == 0:
+        return [], []
+    across = np.arange(other_lo, other_hi, dtype=np.float64)
+    along = fit.model.position(indices[:, None], across[None, :])
+    height, width = near.shape
+    size_along = width if vertical else height
+    a = np.round(along).astype(np.int64)
+    c = np.broadcast_to(across.astype(np.int64)[None, :], a.shape)
+    inside = (a >= 0) & (a < size_along)
+    a = np.clip(a, 0, size_along - 1)
+    hits = (near[c, a] if vertical else near[a, c]) & inside
+    at = fit.model.position(indices, middle)
+    start = other.model.position(float(other_printed[0]), at) - other_lo
+    end = other.model.position(float(other_printed[1]), at) - other_lo
+    pixel = np.arange(len(across))[None, :]
+    window = (pixel >= start[:, None]) & (pixel <= end[:, None])
+    length = window.sum(axis=1)
+    share = (hits & window).sum(axis=1) / np.maximum(length, 1)
+    longest = run_lengths(~hits & window, 1).max(axis=1)
+    covered = (length > 0) & (share >= FRAME_COVERAGE) & (longest <= FRAME_GAP * fit.pitch)
+    before: list[Side] = []
+    after: list[Side] = []
+    breaks = np.nonzero(np.diff(indices) > 1.5 * step)[0] + 1
+    for part in np.split(np.arange(len(indices)), breaks):
+        for run_first, run_last in _runs(covered[part]):
+            members = part[run_first : run_last + 1]
+            lowest, highest = float(indices[members[0]]), float(indices[members[-1]])
+            run_hits = hits[members].any(axis=0)
+            run_middle = float(indices[members].mean())
+            if lowest <= printed[0]:
+                before.append(Side(lowest, run_middle, run_hits))
+            if highest >= printed[1]:
+                after.append(Side(highest, run_middle, run_hits))
+    return before, after
+
+
+def _closes(side: Side, fit: AxisFit, other: AxisFit, ends: tuple[Side, Side], other_lo: int, middle: float) -> bool:
+    """Whether a side's ink and fill run from one perpendicular side to the other, as a frame's side does.
+
+    The side is covered between the two perpendicular sides' middle lines as `_covered_lines` covers a line,
+    and no gap at either end is longer than `FRAME_CORNER` of a pitch, so the side meets both of them.
+    """
+    at = float(fit.model.position(side.middle, middle))
+    start = round(float(other.model.position(ends[0].middle, at))) - other_lo
+    end = round(float(other.model.position(ends[1].middle, at))) - other_lo
+    start, end = max(0, start), min(len(side.hits) - 1, end)
+    if end <= start:
+        return False
+    hits = side.hits[start : end + 1]
+    if not hits.any():
+        return False
+    corner = FRAME_CORNER * fit.pitch
+    leading = int(np.argmax(hits))
+    trailing = int(np.argmax(hits[::-1]))
+    longest = int(run_lengths(~hits[None, :], 1).max())
+    return (
+        float(hits.mean()) >= FRAME_COVERAGE
+        and longest <= FRAME_GAP * fit.pitch
+        and leading <= corner
+        and trailing <= corner
+    )
+
+
+def _closed_frame(
+    x_fit: AxisFit, y_fit: AxisFit, near_x: BoolArray, near_y: BoolArray, box: Rect, settings: Settings
+) -> tuple[tuple[int, int], tuple[int, int]] | None:
+    """The grid lines on and inside the frame around the printed lines, or `None` when no frame closes around them.
+
+    A frame is four sides, each covered from one perpendicular side to the other, that enclose the printed lines
+    of both axes. A drawn line, a filled frame's edge, and the outermost grid lines printed across the whole
+    drawing all close, wherever they lie on the grid and whatever paper lies between them and the drawing inside.
+    Of the frames that close, the outermost is the drawing's. Its grid takes every line on or inside its sides,
+    within `FRAME_BAND` of a pitch, so a frame drawn off the grid keeps the lines inside it.
+
+    Returns:
+        The first and last vertical lines, and the first and last horizontal lines.
+    """
+    printed_x, printed_y = _printed(x_fit, settings), _printed(y_fit, settings)
+    if printed_x is None or printed_y is None:
+        return None
+    west, east = _sides(x_fit, y_fit, near_x, box, printed_x, printed_y, True)
+    north, south = _sides(y_fit, x_fit, near_y, box, printed_y, printed_x, False)
+    middle_x, middle_y = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    best: tuple[float, tuple[Side, Side, Side, Side]] | None = None
+    for w, e, n, s in itertools.product(west, east, north, south):
+        if e.outer <= w.outer or s.outer <= n.outer:
+            continue
+        area = (e.outer - w.outer) * x_fit.pitch * (s.outer - n.outer) * y_fit.pitch
+        if best is not None and area <= best[0]:
+            continue
+        if (
+            _closes(w, x_fit, y_fit, (n, s), box[1], middle_y)
+            and _closes(e, x_fit, y_fit, (n, s), box[1], middle_y)
+            and _closes(n, y_fit, x_fit, (w, e), box[0], middle_x)
+            and _closes(s, y_fit, x_fit, (w, e), box[0], middle_x)
+        ):
+            best = (area, (w, e, n, s))
+    if best is None:
+        return None
+    w, e, n, s = best[1]
+    columns = (math.ceil(w.outer - 1e-9), math.floor(e.outer + 1e-9))
+    rows = (math.ceil(n.outer - 1e-9), math.floor(s.outer + 1e-9))
+    if columns[1] <= columns[0] or rows[1] <= rows[0]:
+        return None
+    return columns, rows
+
+
 def _frame_anchors(
     fit: AxisFit,
     extent: tuple[int, int],
@@ -701,22 +865,23 @@ def _cut(
     """Extend an axis's lines to those the image edge cuts.
 
     On a side where the drawing reaches the image edge, the grid takes the
-    next line while part of that line lies outside the image and the line
-    comes within half a pitch of it somewhere along the side, so a cell at
-    least half inside the image is part of the grid. A line that lies wholly
-    inside the image but isn't printed or framed ends the grid.
+    next line while that line comes within half a pitch of the image edge,
+    inside or outside it, somewhere along the side, so a cell at least half
+    inside the image is part of the grid whether or not its outer line shows.
+    A line more than half a pitch inside the image along the whole side that
+    isn't printed or framed ends the grid.
     """
     lo, hi = extent
     half = fit.pitch / 2
     edges = (-0.5, size - 0.5)
     while reach[0]:
         along, _ = _along(fit, np.array([lo - 1]), span)
-        if not (along.min() < edges[0] and along.max() >= edges[0] - half):
+        if not (along.min() < edges[0] + half and along.max() >= edges[0] - half):
             break
         lo -= 1
     while reach[1]:
         along, _ = _along(fit, np.array([hi + 1]), span)
-        if not (along.max() > edges[1] and along.min() <= edges[1] + half):
+        if not (along.max() > edges[1] - half and along.min() <= edges[1] + half):
             break
         hi += 1
     return lo, hi
@@ -771,13 +936,19 @@ def fit_region(image: InkImage, structure: BoolArray, candidate: Candidate, sett
         core = candidate.core
         span_x, span_y = (float(core[0]), float(core[2])), (float(core[1]), float(core[3]))
         columns = rows = None
-        for _ in range(2):
-            columns = _extent(x_fit, _covered_lines(x_fit, near_x, (box[0], box[2]), span_y, True), settings)
-            rows = _extent(y_fit, _covered_lines(y_fit, near_y, (box[1], box[3]), span_x, False), settings)
-            if columns is None or rows is None:
-                break
+        frame = _closed_frame(x_fit, y_fit, near_x, near_y, box, settings)
+        if frame is not None:
+            columns, rows = (frame[0], True), (frame[1], True)
             span_x = _position_span(x_fit, columns[0], (span_y[0] + span_y[1]) / 2)
             span_y = _position_span(y_fit, rows[0], (span_x[0] + span_x[1]) / 2)
+        else:
+            for _ in range(2):
+                columns = _extent(x_fit, _covered_lines(x_fit, near_x, (box[0], box[2]), span_y, True), settings)
+                rows = _extent(y_fit, _covered_lines(y_fit, near_y, (box[1], box[3]), span_x, False), settings)
+                if columns is None or rows is None:
+                    break
+                span_x = _position_span(x_fit, columns[0], (span_y[0] + span_y[1]) / 2)
+                span_y = _position_span(y_fit, rows[0], (span_x[0] + span_x[1]) / 2)
         if columns is None or rows is None:
             return RegionResult(window, reason="the fit explains no grid line on an axis")
         if stage == 1:

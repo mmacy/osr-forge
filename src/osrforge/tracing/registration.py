@@ -196,12 +196,14 @@ class RegionFit(BaseModel):
     The region's rectangle is the framed drawing. Where a frame is drawn, the
     grid runs from the frame's west line to its east line and from its north
     line to its south line, so a title, a legend, or a compass outside the
-    frame is no part of the region, and rock inside the frame is. Where no
-    frame is drawn, the grid runs from the first printed grid line to the
-    last on each axis. On a side that the image edge cuts, the grid runs to
-    the outermost fitted line that lies no more than half a pitch outside the
-    image, so a cell at least half inside the image is part of the grid. A
-    legend or a label inside the rectangle doesn't move the fit. Each framed
+    frame is no part of the region, and rock inside the frame is. So is paper
+    between the frame and the drawing inside it, however wide, and a frame
+    drawn off the grid keeps the grid lines inside it. Where no frame is
+    drawn, the grid runs from the first printed grid line to the last on each
+    axis. On a side that the image edge cuts, the grid runs to the outermost
+    fitted line that lies no more than half a pitch outside the image, so a
+    cell at least half inside the image is part of the grid. A legend or a
+    label inside the rectangle doesn't move the fit. Each framed
     drawing is one region: two candidate grids that reach the same frame are
     one region. An inset, a framed drawing inside another drawing's frame, is
     a region of its own, and its rectangle lies inside the outer region's.
