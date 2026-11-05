@@ -395,7 +395,6 @@ FRAME_RECT_TOLERANCE = 3
 """Pixels, before scaling. The rectangle's sides lie this close to the frame's lines."""
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: reg-frame")
 @pytest.mark.parametrize("variant", list(FRAMED_VARIANTS))
 def test_a_framed_drawing_registers_from_frame_to_frame(tmp_path: Path, variant: str):
     """A thin frame with paper margins wider than two pitches on its west and south bounds the region.
@@ -430,7 +429,6 @@ def test_a_framed_drawing_registers_from_frame_to_frame(tmp_path: Path, variant:
         assert abs(pitch - BAND_PITCH * scale) <= SYNTHETIC_PITCH_TOLERANCE * BAND_PITCH * scale, fit.pitch
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: reg-frame")
 def test_a_cell_the_image_edge_cuts_is_part_of_the_grid():
     """Page 38 has no frame, and its drawing runs off the image on every side.
 
