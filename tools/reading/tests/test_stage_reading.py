@@ -80,3 +80,60 @@ def test_the_summary_counts_items_and_offset_picks(tmp_path: Path) -> None:
     assert summary["items"]["edges right"] == 0 and summary["items"]["cells right"] == 1
     assert summary["offset"]["real_right"] == "0/1" and summary["offset"]["real_wrong_pick"] == 1
     assert summary["offset"]["synthetic_right"] == "1/1"
+
+
+def test_exported_requests_rebuild_with_their_keys_and_move_by_the_frame(tmp_path: Path) -> None:
+    import io
+
+    from PIL import Image
+    from tools.reading.hosted_exported import exported_requests
+
+    from osrforge.providers.decisions import DecisionRequest
+
+    folder = tmp_path / "clef" / "requests"
+    folder.mkdir(parents=True)
+    buffer = io.BytesIO()
+    Image.new("RGB", (8, 8), "white").save(buffer, "PNG")
+    (folder / "3-7_west.png").write_bytes(buffer.getvalue())
+    options = [["open", "a grid line"], ["wall", "a heavy line"]]
+    request = DecisionRequest(
+        tag="edge",
+        image=buffer.getvalue(),
+        state="s",
+        question="q",
+        options=tuple((o, t) for o, t in options),
+        model="clef",
+    )
+    lines = [
+        {
+            "item": "3,7:west",
+            "kind": "edge",
+            "png": "3-7_west.png",
+            "state": "s",
+            "question": "q",
+            "options": options,
+            "key": request.key(),
+        },
+        {
+            "item": "3,1:west",
+            "kind": "edge",
+            "png": "3-7_west.png",
+            "state": "s",
+            "question": "q",
+            "options": options,
+            "key": "x",
+        },
+        {
+            "item": "2,2",
+            "kind": "cell",
+            "png": "3-7_west.png",
+            "state": "s",
+            "question": "q",
+            "options": options,
+            "key": "y",
+        },
+    ]
+    (folder / "requests.jsonl").write_text("\n".join(json.dumps(line) for line in lines) + "\n")
+    rebuilt = exported_requests(tmp_path, (0, 3))
+    assert set(rebuilt) == {"3,4:west"}
+    assert rebuilt["3,4:west"][0].key() == rebuilt["3,4:west"][1]

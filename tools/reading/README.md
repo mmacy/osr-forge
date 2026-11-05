@@ -59,6 +59,21 @@ uv run python -m tools.reading.clefask tools/reading/maps.json --windows tools/r
     --set seven --kind edge --backend hosted --model clef --workers 4 --max-requests 1100 --spend 0.4 --out $R/clef
 ```
 
+## What the screening found
+
+The figures pool the committed Chaotic Caves maps and the maintainer's private corpus; counts only, by style. The full log, with every command and the private maps' figures, is `~/.re-pod/map-plan/osr-suite/reading/progress.md`.
+
+The bar for walls read as open, the classifier's rate on the keys over the scorer's edge universe: TSR blue 34 of 3,380 edges (1.01%), black and white 25 of 3,307 (0.76%), dark rock 4 of 628 (0.64%), cave 56 of 5,339 (1.05%).
+
+Claude, over 128 requests with no malformed answer:
+
+- Whole-page reads: every setting reads the scale and north of all 7 regions right, and every setting but Opus at medium effort reads all 7 styles right. Opus at high effort finds 66 of the keys' 104 symbols, 40 of 42 stairs and 13 of 16 cave mouths among them; Sonnet at high effort finds 39.
+- Judgments of uncertain items, 30 to a request on 204 items: Opus at medium effort 198 right, Opus at high 193, Sonnet at low 172, against 155 for the calibrated Clef-and-ink decision on the same items. Thirty items a request is as accurate as ten on the same items.
+- Sonnet writes no thinking on item requests at any effort, about 143 output tokens a request.
+- Offset picks on two real pairs of halves: Sonnet at low and medium effort 4 of 4 over two trials; Sonnet at high effort and Opus at every effort pick at least one wrong offset.
+
+The ink settles a cell (floor, or not, at half floor) with at most 10 errors in each style's cells that aren't partly floor, and leaves 8% (dark rock) to 27% (black and white) of them to Clef. Clef-flash reads a plain grey moat as rock, not water.
+
 ## Tests
 
 `tests/` runs offline on the committed Chaotic Caves key and images, and on made-up answers. It covers the following:
