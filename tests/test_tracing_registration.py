@@ -468,11 +468,66 @@ def outline(rgb: npt.NDArray[np.uint8], x0: int, y0: int, x1: int, y1: int) -> N
     rgb[y0:y1, x1 - 2 : x1] = BAND_INK
 
 
+def margin_label(rgb: npt.NDArray[np.uint8], frame: tuple[int, int, int, int]) -> None:
+    """Five short strokes, like a printed label, in the frame's west margin two pitches above its south line."""
+    fx0, _fy0, _fx1, fy1 = frame
+    for k in range(5):
+        rgb[fy1 - 2 * BAND_PITCH : fy1 - 2 * BAND_PITCH + 10, fx0 + 10 + k * 8 : fx0 + 14 + k * 8] = BAND_INK
+
+
+def margin_legend(rgb: npt.NDArray[np.uint8], frame: tuple[int, int, int, int]) -> None:
+    """A small legend box in the frame's west margin."""
+    fx0, fy0, _fx1, _fy1 = frame
+    outline(rgb, fx0 + 8, fy0 + BAND_PITCH, fx0 + 2 * BAND_PITCH, fy0 + 6 * BAND_PITCH)
+
+
+def corridor_past_corner(rgb: npt.NDArray[np.uint8], frame: tuple[int, int, int, int]) -> None:
+    """The frame's north line runs on two pitches east past its corner, with a parallel line, as a corridor's walls."""
+    _fx0, fy0, fx1, _fy1 = frame
+    rgb[fy0 - 1 : fy0 + 1, fx1 : fx1 + 2 * BAND_PITCH] = BAND_INK
+    rgb[fy0 + 2 * BAND_PITCH - 1 : fy0 + 2 * BAND_PITCH + 1, fx1 : fx1 + 2 * BAND_PITCH] = BAND_INK
+
+
+def north_line_runs_on(rgb: npt.NDArray[np.uint8], frame: tuple[int, int, int, int]) -> None:
+    """The frame's north line runs on three pitches east past its corner."""
+    _fx0, fy0, fx1, _fy1 = frame
+    rgb[fy0 - 1 : fy0 + 1, fx1 : fx1 + 3 * BAND_PITCH] = BAND_INK
+
+
+FRAME_EXTRAS: dict[str, tuple[int, Callable[[npt.NDArray[np.uint8], tuple[int, int, int, int]], None]]] = {
+    "label in the margin": (8, margin_label),
+    "legend box in the margin": (8, margin_legend),
+    "corridor past a corner": (0, corridor_past_corner),
+    "band, north line runs on": (8, north_line_runs_on),
+}
+"""Each framed drawing with something more drawn: the band's width in columns, and what's drawn."""
+
+
+@pytest.mark.xfail(strict=True, reason="chunk: reg-frame")
+@pytest.mark.parametrize("extra", list(FRAME_EXTRAS))
+def test_marks_in_a_margin_and_walls_past_a_corner_leave_the_frame(tmp_path: Path, extra: str):
+    """A label or a legend box in the frame's margin, or a side that runs on past its corner, leaves the frame.
+
+    The region is still the framed drawing, 27 by 35 cells, from the frame's west line to its east line and from
+    its north line to its south line.
+    """
+    band, draw = FRAME_EXTRAS[extra]
+    rgb, frame = framed_drawing(band)
+    draw(rgb, frame)
+    fits = registered(register_image(save_rgb(tmp_path / "extra.png", rgb)))
+    assert len(fits) == 1, [fit.rect for fit in fits]
+    assert all(abs(side - want) <= FRAME_RECT_TOLERANCE for side, want in zip(fits[0].rect, frame, strict=True)), (
+        fits[0].rect,
+        frame,
+    )
+    assert grid_of(fits[0]) == (27, 35)
+
+
 def test_a_border_around_a_drawing_and_its_legend_is_no_frame(tmp_path: Path):
     """A 20 by 20 room with a legend box east of it, inside a page border around both.
 
-    A corridor's two walls run from the room's west wall to the border, so the drawing's ink reaches it. The
-    border encloses the legend, so it's no frame of the region, and the region is the room, 20 by 20.
+    A corridor's two walls run from the room's west wall to the border, so the drawing's ink reaches it. Under the
+    border, the legend and the paper beside it fail the gate, so the region is the room's own frame, 20 by 20.
     """
     rgb = np.full((800, 1100, 3), 255, dtype=np.uint8)
     gridded_room(rgb, 100, 100, 20, 20)

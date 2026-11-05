@@ -203,9 +203,12 @@ class RegionFit(BaseModel):
     axis. On a side that the image edge cuts, the grid runs to the outermost
     fitted line that lies no more than half a pitch outside the image, so a
     cell at least half inside the image is part of the grid. A legend or a
-    label inside the rectangle doesn't move the fit. A border that also
-    encloses a legend, a title, or another drawing is no frame of the
-    region, whether or not the drawing's ink reaches it. Each framed
+    label inside the rectangle doesn't move the fit. A frame is four sides,
+    each a drawn line or the edge of a fill, that reach the sides beside
+    them, and a side may run on past its corner, as a wall does into a
+    corridor. Of the frames around a drawing, the region takes the outermost
+    under which the fit passes the gate, so a page border whose paper and
+    legend fail the gate gives way to the drawing's own frame. Each framed
     drawing is one region: two candidate grids that reach the same frame are
     one region. An inset, a framed drawing inside another drawing's frame, is
     a region of its own, and its rectangle lies inside the outer region's.
