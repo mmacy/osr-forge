@@ -165,9 +165,11 @@ class GateFigures(BaseModel):
     apart. The coverage fails it: half the lattice's lines run over paper."""
 
     counted_cells: int = Field(ge=0)
-    """The cells of the fitted grid that hold ink and aren't fill. Ink is what `register_image` defines by
-    `INK_MARGIN`. A cell is blank when it holds fewer ink pixels, as a count, than three tenths of the mean pitch
-    in pixels, and fill when `FILL_DARKNESS` or darker covers at least half its pixels. Neither is counted."""
+    """The cells of the fitted grid that hold the region's own drawing's ink and aren't fill. Ink is what
+    `register_image` defines by `INK_MARGIN`, and only the drawing the grid was fitted to counts: the marks of a
+    separate drawing inside the rectangle, such as a legend, are no part of it. A cell is blank when it holds fewer
+    ink pixels, as a count, than three tenths of the mean pitch in pixels, and fill when `FILL_DARKNESS` or darker
+    covers at least half its pixels. Neither is counted."""
 
     covered_cells: int = Field(ge=0)
     """The counted cells whose west and north fitted lines each have ink within `COVERAGE_TOLERANCE` of a pitch
