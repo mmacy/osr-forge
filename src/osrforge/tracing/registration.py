@@ -25,7 +25,7 @@ from typing import Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from osrforge.tracing._registration_fit import Settings
+from osrforge.tracing._registration_fit import Figures, Settings
 from osrforge.tracing._registration_halves import align
 from osrforge.tracing._registration_ink import InkSettings, ink_image, read_darkness
 from osrforge.tracing._registration_regions import RegionResult, find_regions
@@ -196,12 +196,22 @@ class RegionFit(BaseModel):
     The region's rectangle is the framed drawing. Where a frame is drawn, the
     grid runs from the frame's west line to its east line and from its north
     line to its south line, so a title, a legend, or a compass outside the
-    frame is no part of the region, and rock inside the frame is. Where no
-    frame is drawn, the grid runs from the first printed grid line to the
-    last on each axis. On a side that the image edge cuts, the grid runs to
-    the outermost fitted line that lies no more than half a pitch outside the
-    image, so a cell at least half inside the image is part of the grid. A
-    legend or a label inside the rectangle doesn't move the fit. Each framed
+    frame is no part of the region, and rock inside the frame is. So is paper
+    between the frame and the drawing inside it, however wide, and a frame
+    drawn off the grid keeps the grid lines inside it. Where no frame is
+    drawn, the grid runs from the first printed grid line to the last on each
+    axis. On a side that the image edge cuts, the grid runs to the outermost
+    fitted line that lies no more than half a pitch outside the image, so a
+    cell at least half inside the image is part of the grid. A legend or a
+    label inside the rectangle doesn't move the fit. A frame is four sides,
+    each a drawn line or the edge of a fill, that reach the sides beside
+    them, and a side may run on past its corner, as a wall does into a
+    corridor. A frame encloses every printed grid line inside the outermost
+    frame that closes around the drawing, so a rectangle that a wall inside
+    the drawing closes is no frame. Of the
+    frames around a drawing, the region takes the outermost
+    under which the fit passes the gate, so a page border whose paper and
+    legend fail the gate gives way to the drawing's own frame. Each framed
     drawing is one region: two candidate grids that reach the same frame are
     one region. An inset, a framed drawing inside another drawing's frame, is
     a region of its own, and its rectangle lies inside the outer region's.
@@ -321,7 +331,7 @@ def register_image(image: Path) -> tuple[RegionFit, ...]:
         OSError: If the image can't be read.
     """
     ink = ink_image(read_darkness(image), _INK)
-    return tuple(_region_fit(result) for result in find_regions(ink, _SETTINGS))
+    return tuple(_region_fit(result) for result in find_regions(ink, _SETTINGS, _passes))
 
 
 def align_halves(first: Path, first_fit: RegionFit, second: Path, second_fit: RegionFit) -> HalfAlignment:
@@ -363,12 +373,9 @@ def align_halves(first: Path, first_fit: RegionFit, second: Path, second_fit: Re
     return HalfAlignment(rows=result.rows, columns=result.columns, gaps=result.gaps)
 
 
-def _region_fit(result: RegionResult) -> RegionFit:
-    """The public form of one region's fit, with the gate's verdict."""
-    if result.figures is None or result.pitch is None or result.corners is None:
-        return RegionFit(rect=result.rect, verdict="unregistered", reason=result.reason or "no fit")
-    figures = result.figures
-    gate = GateFigures(
+def _gate(figures: Figures) -> GateFigures:
+    """The gate's figures for one fit."""
+    return GateFigures(
         detected_lines=figures.detected,
         rejected_lines=figures.rejected,
         explained_share=figures.explained / figures.detected if figures.detected else 0.0,
@@ -377,6 +384,18 @@ def _region_fit(result: RegionResult) -> RegionFit:
         covered_cells=figures.covered,
         coverage=figures.covered / figures.counted if figures.counted else 0.0,
     )
+
+
+def _passes(figures: Figures) -> bool:
+    """Whether a fit passes the gate, for the frame search to choose among frames."""
+    return _gate(figures).passes
+
+
+def _region_fit(result: RegionResult) -> RegionFit:
+    """The public form of one region's fit, with the gate's verdict."""
+    if result.figures is None or result.pitch is None or result.corners is None:
+        return RegionFit(rect=result.rect, verdict="unregistered", reason=result.reason or "no fit")
+    gate = _gate(result.figures)
     pitch = (round(result.pitch[0], 4), round(result.pitch[1], 4))
     if not gate.passes:
         return RegionFit(rect=result.rect, pitch=pitch, verdict="unregistered", reason=_failure(gate), gate=gate)
