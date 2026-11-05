@@ -1,0 +1,6 @@
+{
+  "pairs": [
+    {"id": "fold", "first": "../../tests/assets/synthetic-maps/fold-joined/images/fold-west.jpg", "second": "../../tests/assets/synthetic-maps/fold-joined/images/fold-east.jpg", "truth": "A"},
+    {"id": "gatehouse", "first": "../../tests/assets/synthetic-maps/gatehouse-joined/images/gatehouse-west.jpg", "second": "../../tests/assets/synthetic-maps/gatehouse-joined/images/gatehouse-east.jpg", "truth": "A"}
+  ]
+}

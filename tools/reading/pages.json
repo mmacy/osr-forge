@@ -1,0 +1,36 @@
+{
+  "pages": [
+    {
+      "id": "jn1-p021",
+      "page": 21,
+      "image": "../../tests/assets/chaotic-caves/maps/p021.png",
+      "regions": [["R1", "jn1-p021-halfling"], ["R2", "jn1-p021-cave"]],
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "survey": "../../tests/assets/chaotic-caves/stages/survey.json"
+    },
+    {
+      "id": "jn1-p038",
+      "page": 38,
+      "image": "../../tests/assets/chaotic-caves/maps/p038.png",
+      "regions": [["R1", "jn1-p038"]],
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "survey": "../../tests/assets/chaotic-caves/stages/survey.json"
+    },
+    {
+      "id": "jn1-p046",
+      "page": 46,
+      "image": "../../tests/assets/chaotic-caves/maps/p046.png",
+      "regions": [["R1", "jn1-p046"]],
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "survey": "../../tests/assets/chaotic-caves/stages/survey.json"
+    },
+    {
+      "id": "jn1-p047",
+      "page": 47,
+      "image": "../../tests/assets/chaotic-caves/maps/p047.png",
+      "regions": [["R1", "jn1-p047"]],
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "survey": "../../tests/assets/chaotic-caves/stages/survey.json"
+    }
+  ]
+}

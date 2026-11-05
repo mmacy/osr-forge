@@ -49,6 +49,7 @@ __all__ = [
     "ScoreSet",
     "TraceScore",
     "VerdictsScore",
+    "edge_universe",
     "score_trace",
     "walk",
 ]
@@ -484,6 +485,43 @@ def _shift(edge: _Edge, dx: int, dy: int) -> _Edge:
     return (axis, line + dy, index + dx)
 
 
+def _in_universe(sides: tuple[_Cell, _Cell], occupied: set[_Cell], partial: set[_Cell]) -> bool:
+    """Whether the edges family counts an edge: floor or water on a side, and no left-out partly-floor cell."""
+    return partial.isdisjoint(sides) and not occupied.isdisjoint(sides)
+
+
+def _edge_name(edge: _Edge, width: int, height: int) -> tuple[_Cell, str]:
+    """The cell and side `EdgeGrids.positions` names an edge by: its east or south cell, or the frame cell inside it."""
+    axis, line, index = edge
+    if axis == "vertical":
+        return ((line, index), "west") if line < width else ((line - 1, index), "east")
+    return ((index, line), "north") if line < height else ((index, line - 1), "south")
+
+
+def edge_universe(panel: Panel, *, whole: bool = False) -> list[tuple[_Cell, str]]:
+    """The edges the edges family counts on a panel: the scorer's own edge universe.
+
+    An edge counts when floor or water lies on either side of it. With `whole`, an edge that touches a cell the panel
+    marks as partly floor doesn't count, as in the whole-cell scores. The scorer applies this to the key's panel after
+    converting a 5-foot panel. This function takes the panel as it is given.
+
+    Args:
+        panel: The panel, usually an answer key's.
+        whole: Leave out the edges that touch a partly-floor cell.
+
+    Returns:
+        Each counted edge once, named by the cell and side that `EdgeGrids.positions` names it by, vertical edges
+        first, then horizontal.
+    """
+    partial = {parse_cell(text) for text in panel.partial} if whole else set[_Cell]()
+    occupied = _cells_of(panel.cells, ".~")
+    return [
+        _edge_name(edge, panel.width, panel.height)
+        for edge in _grid_edges(panel.width, panel.height)
+        if _in_universe(_edge_cells(edge), occupied, partial)
+    ]
+
+
 def _grid_edges(width: int, height: int) -> Iterator[_Edge]:
     for index in range(height):
         for line in range(width + 1):
@@ -741,7 +779,7 @@ class _Comparison:
                 if key_letter in DOOR_LETTERS:
                     doors[key_letter][0] += 1
                     doors[key_letter][2] += trace_letter == key_letter
-                if occupied.isdisjoint(sides):
+                if not _in_universe(sides, occupied, partial):
                     continue
                 key_open, trace_open = key_letter in PASSABLE_LETTERS, trace_letter in PASSABLE_LETTERS
                 for name in ("all", "straight" if cave.isdisjoint(sides) else "cave"):
