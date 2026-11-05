@@ -72,7 +72,17 @@ Claude, over 128 requests with no malformed answer:
 - Sonnet writes no thinking on item requests at any effort, about 143 output tokens a request.
 - Offset picks on two real pairs of halves: Sonnet at low and medium effort 4 of 4 over two trials; Sonnet at high effort and Opus at every effort pick at least one wrong offset.
 
-The ink settles a cell (floor, or not, at half floor) with at most 10 errors in each style's cells that aren't partly floor, and leaves 8% (dark rock) to 27% (black and white) of them to Clef. Clef-flash reads a plain grey moat as rock, not water.
+The ink settles a cell (floor, or not, at half floor) with at most 10 errors in each style's cells that aren't partly floor, and leaves 8% (dark rock) to 27% (black and white) of them to Clef.
+
+Clef, local Clef-flash unless named:
+
+- The edge question asks each style's answer-key set: open, wall, door, window on black and white; open, wall, door, secret door on TSR blue; open, wall, door, locked door, secret door on cave; open, wall, door on dark rock. The plan's seven options read doors and windows as open: on two black-and-white windows they name 2 of 20 doors and 0 of 22 windows, against 16 and 13; on a TSR blue window they read 141 of 150 walls as open. Any option added to a style's set costs it its windows.
+- A door kind on top of Clef's answer decides the edge before the passable threshold, because a door's box breaks the drawn line and the ink alone makes it look open.
+- The calibration is a logistic model per style on Clef's passable and door log-odds and the ink's line measurements, held-out calibration error 0.009 to 0.021. Fitted on the real keys alone, it reads 9 to 13 of a synthetic dark-rock map's 15 interior walls as open; with the other synthetic maps of the style in the fit, none. A style with few blocked edges in its real keys needs the synthetic maps in its fit.
+- On every key edge, before Claude, the stage-like reading with the ink meets the classifier's walls-read-as-open count at a passable threshold of 0.6 on TSR blue, 0.9 on black and white and cave, and any threshold on dark rock. Clef alone meets it from 0.9 on TSR blue and cave, at every threshold on dark rock, and not at all on black and white.
+- The cell question reads floor or not no better than the ink's half rule and reads a plain grey moat as rock (0 of 33 water cells). It names the stairs of TSR blue and black and white (16 of 16 symbol cells).
+- Label-sized marks: a choice question takes at most 26 options, so the keys go in chunks of 25. Clef reads 175 of 209 key marks right and 5 of 30 single letters, and gives a key to most marks that aren't labels; keeping only the most probable mark for each key leaves 166 right and 33 false keys among 561 other marks.
+- Backends, on identical requests: hosted Clef-flash agrees with local Clef-flash on 96% to 98% of top answers; hosted Clef is no better than local Clef-flash on TSR blue, cave, and black and white, and better only on dark rock's few blocked edges. The free Workers AI plan allows about 1,250 requests a day, fewer than a large level's 2,000 or so edges.
 
 ## Tests
 
