@@ -96,7 +96,9 @@ class Plan:
     """A panel's exact reading, and how to draw it.
 
     `edge_styles` names edges drawn other than by their letter's default:
-    `dashdot` for a dash-dot partition, `hidden` for edges an ornament draws.
+    `dashdot` for a dash-dot partition, `hidden` for edges an ornament draws,
+    and `line` for an open edge with a wall's line drawn across it, which
+    only a stairway's top end may have.
     `stair_runs` gives the direction a stair or steps symbol runs, by its
     first cell, when its cells don't show it.
     """
@@ -571,6 +573,20 @@ class Sketch:
             return "o"
         return "w"
 
+    def _stair_top(self, cell: Cell, side: str) -> bool:
+        """Whether an edge is open from a stair symbol's cell onto floor outside that symbol."""
+        if self._letter(cell, side) != "o":
+            return False
+        other = neighbour(cell, side)
+        for symbol in self.symbols:
+            if symbol.kind != "stairs":
+                continue
+            stairs = {parse_cell(text) for text in symbol.cells}
+            for here, there in ((cell, other), (other, cell)):
+                if here in stairs and there not in stairs and there in self.space and self.space[there] != "~":
+                    return True
+        return False
+
     def build(self) -> Plan:
         """The plan the sketch describes.
 
@@ -578,11 +594,15 @@ class Sketch:
             The plan.
 
         Raises:
-            ValueError: If an edge set by hand touches no floor or water.
+            ValueError: If an edge set by hand touches no floor or water, or an edge drawn with a line across it
+                isn't an open edge from a stair symbol's cell onto floor outside that symbol.
         """
         for (cell, side), letter in self.overrides.items():
             if cell not in self.space and neighbour(cell, side) not in self.space and letter != "-":
                 raise ValueError(f"edge {edge_key(cell, side)} touches no floor or water but is set to {letter!r}")
+        for named, style in self.edge_styles.items():
+            if style == "line" and not self._stair_top(*parse_edge(named)):
+                raise ValueError(f"edge {named} has a line across it but isn't open from stairs onto floor")
         cells = tuple(
             "".join(
                 "#" if (x, y) not in self.space else "~" if self.space[(x, y)] == "~" else "."

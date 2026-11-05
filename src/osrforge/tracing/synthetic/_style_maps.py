@@ -30,12 +30,19 @@ NO_LEGEND = Legend(printed=False)
 
 
 def sunken_temple() -> MapSpec:
-    """Two dark-rock levels; the second page prints no compass and uses the first page's legend."""
+    """Two dark-rock levels; the second page prints no compass and uses the first page's legend.
+
+    The shrine is a gallery around an opening in its floor. The stairs down
+    to the flooded hall are drawn inside the opening, and the line along the
+    opening's edge runs across their top end, which opens onto the gallery.
+    """
     upper = Sketch(20, 14)
     upper.room("hall", 5, 4, 10, 6).mark("1", (8, 6))
     upper.run("a", (9, 10), (9, 13)).edge((9, 13), "south", "o").edge((9, 9), "south", "o")
-    upper.room("shrine", 15, 5, 4, 4).edge((14, 6), "east", "d").mark("2", (16, 7))
-    upper.symbol("stairs", (17, 5), (17, 6), direction="down", run="ns")
+    upper.room("shrine", 15, 4, 4, 6).rock((17, 8)).run("flight", (17, 6), (17, 7))
+    upper.edge((14, 6), "east", "d").mark("2", (16, 4))
+    upper.symbol("stairs", (17, 6), (17, 7), direction="down", run="ns")
+    upper.edge((17, 6), "north", "o", style="line")
     upper.outline((0, 0, 20, 14))
     lower = Sketch(18, 12)
     lower.room("r3", 2, 2, 8, 6).water(4, 5, 3, 3).mark("3", (5, 3))
@@ -67,7 +74,7 @@ def sunken_temple() -> MapSpec:
         AreaSpec(
             "2",
             "Shrine",
-            "Stairs in the shrine's corner go down to the flooded hall.",
+            "Stairs go down through an opening in the shrine's floor to the flooded hall.",
             links=(AreaConnection(to_key="Level 2", direction="down", via="stairs"),),
         ),
     )
@@ -83,7 +90,7 @@ def sunken_temple() -> MapSpec:
     return MapSpec(
         name="sunken-temple",
         title="The sunken temple",
-        features=("legend_on_another_page", "no_compass"),
+        features=("legend_on_another_page", "no_compass", "line_across_stair_top"),
         dungeons=(dungeon,),
         regions=regions,
         panels=panels,

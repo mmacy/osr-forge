@@ -27,7 +27,7 @@
     },
     {
       "key": "2",
-      "description": "Stairs in the shrine's corner go down to the flooded hall.",
+      "description": "Stairs go down through an opening in the shrine's floor to the flooded hall.",
       "encounters": [],
       "trap": null,
       "treasure": [],
