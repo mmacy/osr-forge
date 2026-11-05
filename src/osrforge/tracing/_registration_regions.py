@@ -27,13 +27,15 @@ frame drawn off the grid is found, and the paper between a drawn frame and
 the drawing inside it doesn't matter. The grid takes the lines on and inside
 a frame.
 The frames that close are tried in turn, the outermost first, and the region
-takes the first under which the fit passes the gate, so a page border whose
-paper and legend fail it gives way to the drawing's own frame. Where no frame
-closes, or the fit passes under none, each axis's extent is the outermost
-lines in one unbroken run of grid lines that ink and fill cover along their
-length, and where no line is covered on an axis, the outermost lines the fit
-explains. Following the fitted lines, the search follows a scan's skew, bow,
-and stretch. The second pass reads all of the drawing's thin runs inside the
+takes the first under which the fit passes the gate. A page border around a
+drawing and its legend is such a frame, since the legend is no part of the
+drawing and its ink doesn't count against the fit. Where frames close and
+the fit passes under none, the region is the outermost frame, unregistered.
+Where no frame closes, each axis's extent is the outermost lines in one
+unbroken run of grid lines that ink and fill cover along their length, and
+where no line is covered on an axis, the outermost lines the fit explains.
+Following the fitted lines, the search follows a scan's skew, bow, and
+stretch. The second pass reads all of the drawing's thin runs inside the
 frame. The third adds points on a filled frame's edges, which hold the drift
 correction to the frame at the far corners where no line is printed.
 On a side where the drawing reaches the image edge, the grid takes each
@@ -1023,10 +1025,10 @@ def fit_region(
 
     The first fit reads the drawing's tiles on the grid, and the frames that close around its printed lines are
     found along its lines. Each is tried in turn, the outermost first, and the region takes the first under which
-    the fit passes the gate (`passes`), so a page border whose paper and legend fail the gate gives way to the
-    drawing's own frame. Where no frame closes, the region is fitted as a drawing with no frame. Where frames close
-    and the fit passes under none, the region is the outermost frame's failed fit: a drawing with a frame never
-    takes the extent of one without, which a wall inside it could cut short.
+    the fit passes the gate (`passes`). A page border around a drawing and its legend is such a frame, since only
+    the drawing's own ink counts. Where no frame closes, the region is fitted as a drawing with no frame. Where
+    frames close and the fit passes under none, the region is the outermost frame's failed fit: a drawing with a
+    frame never takes the extent of one without, which a wall inside it could cut short.
     """
     box = candidate.drawing.box
     pitch_x, pitch_y = candidate.pitch
