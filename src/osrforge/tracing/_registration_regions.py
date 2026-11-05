@@ -16,12 +16,15 @@ region, and its fit fails the gate.
 A region's grid is fitted in up to three passes. The first reads only the
 drawing's tiles on the grid, and finds the frame along the fitted lines. A
 frame is four sides around the printed lines, each covered by ink and fill
-from one perpendicular side to the other: a drawn line, the edge of a fill,
-or, where no frame is drawn, the outermost grid lines printed across the
-whole drawing. The sides are looked for on lines a pixel apart, so a frame
-drawn off the grid is found, and the paper between a drawn frame and the
-drawing inside it doesn't matter. Of the frames that close, the outermost is
-the drawing's, and the grid takes the lines on and inside it. Where no frame
+from one perpendicular side to the other and stopping there: a drawn line,
+the edge of a fill, or, where no frame is drawn, the outermost grid lines
+printed across the whole drawing. The sides are looked for on lines a pixel
+apart, so a frame drawn off the grid is found, and the paper between a drawn
+frame and the drawing inside it doesn't matter. A border whose inside a
+straight line of paper parts into two drawings, such as a drawing and a
+legend beside it, is no frame of either. Of the frames that close, the
+outermost is the drawing's, and the grid takes the lines on and inside it.
+Where no frame
 closes, each axis's frame is the outermost lines in one unbroken run of grid
 lines that ink and fill cover along their length, and where no line is
 covered on an axis, the outermost lines the fit explains are the grid's
@@ -115,9 +118,17 @@ rows where 23 are printed."""
 
 FRAME_CORNER = 0.2
 """Pitches. A frame's side reaches each perpendicular side to within this distance: its ink and fill leave no longer
-gap at either end. It matches `FRAME_BAND`, the distance across the side that its ink may lie from the line. From 0 to 1
-the tests give the same results. At 2 the title above gatehouse's east half, a pitch above its fill, closes a frame
-with the fill's sides, and the grid takes a row of the title."""
+gap at either end. It matches `FRAME_BAND`, the distance across the side that its ink may lie from the line. From 0 to 2
+the tests and the committed maps give the same results. At 2 the title above gatehouse's east half, a pitch above its
+fill, reaches the fill's sides, and only the line of paper between the title and the fill keeps it out of the frame
+(see `_parted`)."""
+
+FRAME_OVERRUN = 1.0
+"""Pitches. A frame's side stops at its corners: ink and fill covering `FRAME_COVERAGE` of this distance along its
+outer edge, past a perpendicular side, mean the two lines cross. Walls that run on past a drawing's corners, with a
+line drawn across them, make no frame. At 0.5 the tests and the committed maps give the same results. At 1.5 a line
+that runs on a pitch past a corner and stops no longer covers enough of the distance, and Monkey Isle page 44 loses
+its first row, as its test allows."""
 
 MIN_REGION_TILES = 12
 """A drawing needs at least this many gridded tiles to be a region."""
@@ -660,12 +671,19 @@ class Side:
     outer: float
     """The run's outermost line index, fractional. It lies `FRAME_BAND` of a pitch past the side's ink."""
 
+    inner: float
+    """The run's innermost line index, fractional. It lies `FRAME_BAND` of a pitch inside the side's ink."""
+
     middle: float
     """The run's middle line index, fractional."""
 
     hits: BoolArray
     """Whether ink or fill lies along any of the run's lines, at each pixel along the other axis from the drawing
     box's start."""
+
+    edge: BoolArray
+    """The same along the run's lines within twice `FRAME_BAND` of a pitch of its outermost line: the side's outer
+    edge alone, which a wide run of fill holds far inside it."""
 
 
 def _sides(
@@ -722,18 +740,24 @@ def _sides(
             lowest, highest = float(indices[members[0]]), float(indices[members[-1]])
             run_hits = hits[members].any(axis=0)
             run_middle = float(indices[members].mean())
+            band = 2 * FRAME_BAND
             if lowest <= printed[0]:
-                before.append(Side(lowest, run_middle, run_hits))
+                edge = hits[members[indices[members] <= lowest + band]].any(axis=0)
+                before.append(Side(lowest, highest, run_middle, run_hits, edge))
             if highest >= printed[1]:
-                after.append(Side(highest, run_middle, run_hits))
+                edge = hits[members[indices[members] >= highest - band]].any(axis=0)
+                after.append(Side(highest, lowest, run_middle, run_hits, edge))
     return before, after
 
 
 def _closes(side: Side, fit: AxisFit, other: AxisFit, ends: tuple[Side, Side], other_lo: int, middle: float) -> bool:
-    """Whether a side's ink and fill run from one perpendicular side to the other, as a frame's side does.
+    """Whether a side's ink and fill run from one perpendicular side to the other and stop there, as a frame's do.
 
     The side is covered between the two perpendicular sides' middle lines as `_covered_lines` covers a line,
-    and no gap at either end is longer than `FRAME_CORNER` of a pitch, so the side meets both of them.
+    and no gap at either end is longer than `FRAME_CORNER` of a pitch, so the side meets both of them. Past
+    each perpendicular side's outer edge, ink and fill cover less than `FRAME_COVERAGE` of the next
+    `FRAME_OVERRUN` of a pitch along the side's own outer edge: a line that runs on across another crosses it, and
+    the two make no corner.
     """
     at = float(fit.model.position(side.middle, middle))
     start = round(float(other.model.position(ends[0].middle, at))) - other_lo
@@ -748,24 +772,76 @@ def _closes(side: Side, fit: AxisFit, other: AxisFit, ends: tuple[Side, Side], o
     leading = int(np.argmax(hits))
     trailing = int(np.argmax(hits[::-1]))
     longest = int(run_lengths(~hits[None, :], 1).max())
-    return (
-        float(hits.mean()) >= FRAME_COVERAGE
-        and longest <= FRAME_GAP * fit.pitch
-        and leading <= corner
-        and trailing <= corner
-    )
+    if float(hits.mean()) < FRAME_COVERAGE or longest > FRAME_GAP * fit.pitch or leading > corner or trailing > corner:
+        return False
+    reach = max(1, round(FRAME_OVERRUN * fit.pitch))
+    for perpendicular, outward in ((ends[0], -1), (ends[1], 1)):
+        edge = round(float(other.model.position(perpendicular.outer, at))) - other_lo
+        past = np.arange(edge + outward, edge + outward * (reach + 1), outward)
+        past = past[(past >= 0) & (past < len(side.edge))]
+        if past.size and float(side.edge[past].sum()) >= FRAME_COVERAGE * reach:
+            return False
+    return True
+
+
+def _parted(
+    fit: AxisFit,
+    other: AxisFit,
+    sides: tuple[Side, Side],
+    ends: tuple[Side, Side],
+    structure: BoolArray,
+    box: Rect,
+    vertical: bool,
+) -> bool:
+    """Whether a straight line of paper across a frame's inside has ink on both sides of it.
+
+    Lines a pixel apart are read across the frame's inside, from one side to the other, each from one
+    perpendicular side to the other, on all of the image's ink and fill. The inside starts `FRAME_BAND` of a pitch
+    in from each side's inner edge, so the sides' own ink isn't read. A line of paper with ink on both sides of
+    it parts two drawings that the frame both encloses: a drawing and a legend, a title, or another drawing
+    printed beside it. A frame that holds two drawings is no frame of either.
+    """
+    step = 1 / fit.pitch
+    indices = np.arange(sides[0].inner + FRAME_BAND, sides[1].inner - FRAME_BAND, step)
+    if len(indices) < 3:
+        return False
+    other_lo, other_hi = (box[1], box[3]) if vertical else (box[0], box[2])
+    middle = (other_lo + other_hi) / 2
+    at = fit.model.position(indices, middle)
+    first = other.model.position(ends[0].inner + FRAME_BAND, at)
+    last = other.model.position(ends[1].inner - FRAME_BAND, at)
+    across = np.arange(max(other_lo, math.floor(float(first.min()))), min(other_hi, math.ceil(float(last.max())) + 1))
+    across = across.astype(np.float64)
+    along = fit.model.position(indices[:, None], across[None, :])
+    within = (across[None, :] >= first[:, None]) & (across[None, :] <= last[:, None])
+    height, width = structure.shape
+    size_along = width if vertical else height
+    a = np.round(along).astype(np.int64)
+    c = np.broadcast_to(across.astype(np.int64)[None, :], a.shape)
+    inside = (a >= 0) & (a < size_along)
+    a = np.clip(a, 0, size_along - 1)
+    inked = ((structure[c, a] if vertical else structure[a, c]) & inside & within).any(axis=1)
+    return len(_runs(inked)) >= 2
 
 
 def _closed_frame(
-    x_fit: AxisFit, y_fit: AxisFit, near_x: BoolArray, near_y: BoolArray, box: Rect, settings: Settings
+    x_fit: AxisFit,
+    y_fit: AxisFit,
+    near_x: BoolArray,
+    near_y: BoolArray,
+    structure: BoolArray,
+    box: Rect,
+    settings: Settings,
 ) -> tuple[tuple[int, int], tuple[int, int]] | None:
     """The grid lines on and inside the frame around the printed lines, or `None` when no frame closes around them.
 
-    A frame is four sides, each covered from one perpendicular side to the other, that enclose the printed lines
-    of both axes. A drawn line, a filled frame's edge, and the outermost grid lines printed across the whole
-    drawing all close, wherever they lie on the grid and whatever paper lies between them and the drawing inside.
-    Of the frames that close, the outermost is the drawing's. Its grid takes every line on or inside its sides,
-    within `FRAME_BAND` of a pitch, so a frame drawn off the grid keeps the lines inside it.
+    A frame is four sides, each covered from one perpendicular side to the other and stopping there, that enclose
+    the printed lines of both axes (see `_closes`). A drawn line, a filled frame's edge, and the outermost grid
+    lines printed across the whole drawing all close, wherever they lie on the grid and whatever paper lies
+    between them and the drawing inside. A border that also encloses another drawing, parted from it by a
+    straight line of paper across the border's inside, is no frame of the region (see `_parted`). Of the frames
+    that close, the outermost is the drawing's. Its grid takes every line on or inside its sides, within `FRAME_BAND`
+    of a pitch, so a frame drawn off the grid keeps the lines inside it.
 
     Returns:
         The first and last vertical lines, and the first and last horizontal lines.
@@ -788,6 +864,8 @@ def _closed_frame(
             and _closes(e, x_fit, y_fit, (n, s), box[1], middle_y)
             and _closes(n, y_fit, x_fit, (w, e), box[0], middle_x)
             and _closes(s, y_fit, x_fit, (w, e), box[0], middle_x)
+            and not _parted(x_fit, y_fit, (w, e), (n, s), structure, box, True)
+            and not _parted(y_fit, x_fit, (n, s), (w, e), structure, box, False)
         ):
             best = (area, (w, e, n, s))
     if best is None:
@@ -936,7 +1014,7 @@ def fit_region(image: InkImage, structure: BoolArray, candidate: Candidate, sett
         core = candidate.core
         span_x, span_y = (float(core[0]), float(core[2])), (float(core[1]), float(core[3]))
         columns = rows = None
-        frame = _closed_frame(x_fit, y_fit, near_x, near_y, box, settings)
+        frame = _closed_frame(x_fit, y_fit, near_x, near_y, structure, box, settings)
         if frame is not None:
             columns, rows = (frame[0], True), (frame[1], True)
             span_x = _position_span(x_fit, columns[0], (span_y[0] + span_y[1]) / 2)
