@@ -382,14 +382,27 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--only", action="append", default=None)
+    parser.add_argument("--max-requests", type=int, default=None, help="send at most this many requests in all")
+    parser.add_argument(
+        "--spend", type=float, default=0.40, help="hosted only: the most dollars this run may add to the Clef ledger"
+    )
     args = parser.parse_args(argv)
     if args.backend == "local":
         provider: DecisionProvider = LocalClefProvider(LocalClefSettings())
     else:
         from osrforge.providers.clef import ClefProvider, ClefSettings
+        from osrforge.providers.ledger import Ledger
 
-        settings = ClefSettings.from_env().model_copy(update={"run_label": f"reading screening {args.option_set}"})
+        settings = ClefSettings.from_env()
+        spent = Ledger(settings.ledger_path, cost_key="usd").spent()
+        settings = settings.model_copy(
+            update={
+                "run_label": f"reading screening {args.option_set} {args.model}",
+                "ledger_stop_usd": min(settings.ledger_stop_usd or 8.0, round(spent + args.spend, 6)),
+            }
+        )
         provider = ClefProvider(settings)
+    budget = args.max_requests
     windows = [window for path in args.windows for window in load_windows(path)]
     for screen in [screen for path in args.map_files for screen in load_maps(path)]:
         if args.only and screen.id not in args.only:
@@ -398,7 +411,15 @@ def main(argv: list[str] | None = None) -> int:
         if not mine:
             continue
         panel = key_panel(screen)
-        items = edge_items(window_edges(panel, mine)) if args.kind == "edge" else cell_items(window_cells(panel, mine))
+        if args.kind == "edge":
+            items = edge_items(window_edges(panel, mine))
+        else:
+            from .ink import INK_STYLES, MapInk, unsettled_cells
+
+            registration = key_region(screen).registration
+            assert registration is not None
+            ink = MapInk(load_rgb(screen.image), registration, INK_STYLES[screen.style])
+            items = cell_items(unsettled_cells(ink, ink.floor_fractions(), window_cells(panel, mine)))
         backend = args.backend if args.backend == "local" else f"hosted-{args.model}"
         store = AnswerStore(args.out / backend / args.option_set / f"{screen.id}.{args.kind}.jsonl")
         registration = key_region(screen).registration
@@ -410,8 +431,16 @@ def main(argv: list[str] | None = None) -> int:
             args.option_set,
             args.model,  # type: ignore[arg-type]
         )
+        if budget is not None:
+            done = store.answered()
+            items = [item for item in items if item.name not in done][:budget]
         started = time.monotonic()
         added = run_items(provider, store, items, request_for, workers=args.workers)
+        if budget is not None:
+            budget -= added
+            if budget <= 0:
+                print(f"{screen.id}: the request budget is spent", flush=True)
+                break
         print(
             f"{screen.id}: {added} new answers of {len(items)} items in {time.monotonic() - started:.0f}s", flush=True
         )

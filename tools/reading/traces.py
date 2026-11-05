@@ -33,7 +33,9 @@ def one_panel(key: GeometryTruth, panel: Panel) -> GeometryTruth:
 
     Args:
         key: The answer key, for the panel's regions.
-        panel: The key's panel or a reading of it. Its outlines are dropped, because they name the key's levels.
+        panel: The key's panel or a reading of it. Its outlines, marks, and symbols are dropped: the outlines name
+            the key's levels, the marks and symbols name cells a reading may not have as floor, and none of them
+            counts in the floor, edges, or doors families.
 
     Returns:
         The document.
@@ -42,7 +44,8 @@ def one_panel(key: GeometryTruth, panel: Panel) -> GeometryTruth:
         KeyError: If the key lacks one of the panel's regions.
     """
     regions = tuple(key.region(part.region) for part in panel.regions)
-    return GeometryTruth(regions=regions, panels=(panel.model_copy(update={"outlines": ()}),), dungeons=(_PLACEHOLDER,))
+    bare = Panel.model_validate(panel.model_dump() | {"outlines": (), "marks": (), "symbols": ()})
+    return GeometryTruth(regions=regions, panels=(bare,), dungeons=(_PLACEHOLDER,))
 
 
 def score_panel(key: GeometryTruth, panel: Panel) -> tuple[ScoreSet, ScoreSet]:

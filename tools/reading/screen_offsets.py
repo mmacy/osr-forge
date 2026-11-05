@@ -1,7 +1,8 @@
 """Send the offset picks over the grid of models and efforts, store each outcome, and score it.
 
 A halves file is JSON: `{"pairs": [...]}`, each with `id`, `first` and `second` (the two halves' images, the one cut
-off at its right edge first), `truth` (the letter of the true join, or `none`), and optionally `first_fit` and
+off at its right edge first), `truth` (the letter of the true join, or `none`), `real` (true for a pair from a
+printed module rather than a synthetic map), and optionally `first_fit` and
 `second_fit`, a registration measurement's result file whose first region's corners stand in for osr-forge's
 registration where that leaves a half unregistered. Otherwise each half is registered with
 [`register_image`][osrforge.tracing.registration.register_image], taking its largest registered region. The row
@@ -75,18 +76,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--efforts", nargs="+", default=["low", "medium", "high"])
     parser.add_argument("--only", action="append", default=None)
     parser.add_argument("--cap", type=int, default=160)
+    parser.add_argument("--tag", default="", help="a suffix that keeps a repeated trial's outcomes apart")
     parser.add_argument("--render", type=Path, default=None, help="write the join pictures here and send nothing")
     args = parser.parse_args(argv)
     pairs = []
     for path in args.halves:
         for item in json.loads(path.read_text())["pairs"]:
             if not args.only or item["id"] in args.only:
-                pairs.append((item["id"], *load_pair(item, path.parent)))
+                pairs.append((item["id"], *load_pair(item, path.parent), bool(item.get("real", False))))
     if args.render is not None:
         from .offsets import LETTERS, join_picture
 
         args.render.mkdir(parents=True, exist_ok=True)
-        for pair_id, pair, columns, truth in pairs:
+        for pair_id, pair, columns, truth, _real in pairs:
             print(pair_id, "rows", pair.rows, "columns", columns, "gaps", pair.gaps, "truth", truth)
             for gap, letter in zip(pair.gaps, LETTERS, strict=True):
                 join_picture(pair, gap, letter).save(args.render / f"{pair_id}-{letter}.png")
@@ -96,11 +98,16 @@ def main(argv: list[str] | None = None) -> int:
         cap = RequestCap(provider.settings.ledger_path, args.cap)
         for effort in args.efforts:
             kind = offset_kind(effort)  # type: ignore[arg-type]
-            for pair_id, pair, columns, truth in pairs:
-                path = args.out / "offset" / model / effort / f"{pair_id}.json"
+            for pair_id, pair, columns, truth, real in pairs:
+                path = args.out / "offset" / model / effort / f"{pair_id}{args.tag}.json"
                 if not path.exists():
                     outcome = ask(provider, offset_request(kind, pair), check_offset, cap)
-                    record = outcome.to_json() | {"columns": list(columns), "gaps": list(pair.gaps), "truth": truth}
+                    record = outcome.to_json() | {
+                        "columns": list(columns),
+                        "gaps": list(pair.gaps),
+                        "truth": truth,
+                        "real": real,
+                    }
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text(json.dumps(record, indent=1) + "\n")
                 stored = json.loads(path.read_text())

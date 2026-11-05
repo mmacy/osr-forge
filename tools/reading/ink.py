@@ -24,7 +24,7 @@ import numpy as np
 
 from osrforge.tracing.truth import Registration
 
-__all__ = ["HEAVY", "INK_STYLES", "NEAR", "EdgeInk", "InkStyle", "MapInk"]
+__all__ = ["HEAVY", "INK_STYLES", "NEAR", "EdgeInk", "InkStyle", "MapInk", "unsettled_cells"]
 
 HEAVY = 0.07
 """Cells. A dark run across the line at least this wide is heavier than a printed grid line."""
@@ -187,6 +187,15 @@ class MapInk:
                     out[y, x] = paper / (paper + fill)
         return out
 
+    def ink_inside(self, cell: tuple[int, int]) -> float:
+        """The share of a cell's inner 76 percent that is dark ink and not fill: a label or a symbol drawn in it."""
+        x, y = cell
+        steps = (np.arange(_CELL_SAMPLES) + 0.5) / _CELL_SAMPLES * (1 - 2 * _INNER) + _INNER
+        gx = x + np.ones(_CELL_SAMPLES)[:, None] * steps[None, :]
+        gy = y + steps[:, None] * np.ones(_CELL_SAMPLES)[None, :]
+        dark = self._sample(self.darkness, gx, gy) >= self.style.dark
+        return float((dark & ~self._sample(self.fill, gx, gy)).mean())
+
     def fill_tone(self, cell: tuple[int, int]) -> float:
         """The median darkness of a cell's fill pixels, or 0 when it has none."""
         x, y = cell
@@ -252,3 +261,42 @@ def _run_width(row: np.ndarray, centre: int) -> int:
     while right + 1 < row.size and row[right + 1]:
         right += 1
     return right - left + 1
+
+
+INSIDE = 0.03
+"""The share of a floor cell's inside that is ink, at or above which the ink doesn't settle the cell."""
+
+TONE_SPREAD = 0.15
+"""How far a cell's fill tone may lie from the region's rock tone and still be rock."""
+
+
+def unsettled_cells(ink: MapInk, floors: np.ndarray, cells: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    """The cells the ink doesn't settle, which Clef is asked about.
+
+    A cell is unsettled when it is between a quarter and three quarters floor; when it is floor with ink inside it
+    (`INSIDE`), such as a label or a symbol; or when it is not floor and its fill's tone lies more than `TONE_SPREAD`
+    from the region's rock tone, the median tone of the region's cells under a quarter floor, as water or a grey
+    void would.
+
+    Args:
+        ink: The region's ink.
+        floors: Every cell's floor fraction.
+        cells: The cells to sort.
+
+    Returns:
+        The unsettled cells, in the order given.
+    """
+    rows, columns = floors.shape
+    rocky = [(x, y) for y in range(rows) for x in range(columns) if floors[y, x] <= 0.25]
+    tones = [ink.fill_tone(cell) for cell in rocky[:: max(1, len(rocky) // 400)]]
+    rock_tone = float(np.median(tones)) if tones else 1.0
+    out = []
+    for x, y in cells:
+        share = floors[y, x]
+        if (
+            0.25 < share < 0.75
+            or (share >= 0.75 and ink.ink_inside((x, y)) >= INSIDE)
+            or (share <= 0.25 and abs(ink.fill_tone((x, y)) - rock_tone) > TONE_SPREAD)
+        ):
+            out.append((x, y))
+    return out
