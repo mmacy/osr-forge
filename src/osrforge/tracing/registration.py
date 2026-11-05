@@ -165,9 +165,11 @@ class GateFigures(BaseModel):
     apart. The coverage fails it: half the lattice's lines run over paper."""
 
     counted_cells: int = Field(ge=0)
-    """The cells of the fitted grid that hold ink and aren't fill. Ink is what `register_image` defines by
-    `INK_MARGIN`. A cell is blank when it holds fewer ink pixels, as a count, than three tenths of the mean pitch
-    in pixels, and fill when `FILL_DARKNESS` or darker covers at least half its pixels. Neither is counted."""
+    """The cells of the fitted grid that hold the region's own drawing's ink and aren't fill. Ink is what
+    `register_image` defines by `INK_MARGIN`, and only the drawing the grid was fitted to counts: the marks of a
+    separate drawing inside the rectangle, such as a legend, are no part of it. A cell is blank when it holds fewer
+    ink pixels, as a count, than three tenths of the mean pitch in pixels, and fill when `FILL_DARKNESS` or darker
+    covers at least half its pixels. Neither is counted."""
 
     covered_cells: int = Field(ge=0)
     """The counted cells whose west and north fitted lines each have ink within `COVERAGE_TOLERANCE` of a pitch
@@ -193,28 +195,22 @@ class GateFigures(BaseModel):
 class RegionFit(BaseModel):
     """One gridded region of a map image, with its fit and the gate's verdict.
 
-    The region's rectangle is the framed drawing. Where a frame is drawn, the
-    grid runs from the frame's west line to its east line and from its north
-    line to its south line, so a title, a legend, or a compass outside the
-    frame is no part of the region, and rock inside the frame is. So is paper
-    between the frame and the drawing inside it, however wide, and a frame
-    drawn off the grid keeps the grid lines inside it. Where no frame is
-    drawn, the grid runs from the first printed grid line to the last on each
-    axis. On a side that the image edge cuts, the grid runs to the outermost
-    fitted line that lies no more than half a pitch outside the image, so a
-    cell at least half inside the image is part of the grid. A legend or a
-    label inside the rectangle doesn't move the fit. A frame is four sides,
-    each a drawn line or the edge of a fill, that reach the sides beside
-    them, and a side may run on past its corner, as a wall does into a
-    corridor. A frame encloses every printed grid line inside the outermost
-    frame that closes around the drawing, so a rectangle that a wall inside
-    the drawing closes is no frame. Of the
-    frames around a drawing, the region takes the outermost
-    under which the fit passes the gate, so a page border whose paper and
-    legend fail the gate gives way to the drawing's own frame. Each framed
-    drawing is one region: two candidate grids that reach the same frame are
-    one region. An inset, a framed drawing inside another drawing's frame, is
-    a region of its own, and its rectangle lies inside the outer region's.
+    The region's rectangle is the framed drawing. Where a frame is drawn, the grid runs from the frame's west line
+    to its east line and from its north line to its south line, so a title, a legend, or a compass outside the frame
+    is no part of the region, and rock inside the frame is. So is paper between the frame and the drawing inside it,
+    however wide, and a frame drawn off the grid keeps the grid lines inside it. Where no frame is drawn, the grid
+    runs from the first printed grid line to the last on each axis. On a side that the image edge cuts, the grid
+    runs to the outermost fitted line that lies no more than half a pitch outside the image, so a cell at least half
+    inside the image is part of the grid. A legend or a label inside the rectangle doesn't move the fit. A frame is
+    four sides, each a drawn line or the edge of a fill, that reach the sides beside them, and a side may run on
+    past its corner, as a wall does into a corridor. A frame encloses every printed grid line inside the outermost
+    frame that closes around the drawing, so a rectangle that a wall inside the drawing closes is no frame. Of the
+    frames around a drawing, the region takes the outermost under which the fit passes the gate. A page border
+    around a drawing and its legend is such a frame, since the legend is no part of the drawing. When a drawing's
+    frame closes but no fit under its frames passes the gate, the region is its outermost frame, unregistered. Each
+    framed drawing is one region: two candidate grids that reach the same frame are one region. An inset, a framed
+    drawing inside another drawing's frame, is a region of its own, and its rectangle lies inside the outer
+    region's.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

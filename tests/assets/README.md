@@ -68,6 +68,10 @@ uv run python -m osrforge.tracing.synthetic tests/assets/synthetic-maps
 
 A test regenerates the set and fails on any difference. A PNG image must match by its decoded pixels exactly, a JPEG image to within 6 on every channel and 0.5 on average, because JPEG encoders differ between platforms, and every other file byte for byte. Edit a level in the generator and regenerate. Never edit a committed answer or image by hand.
 
+## registration/
+
+`interior-wall-scan.jpg` is a scan of a variant of the synthetic sunken temple's first page, in which a two-column stairwell leaves one column of floor east of it. The scan is the registration tests' seed 22 (`Scan.draw(22)` in `tests/test_tracing_registration.py`), saved at quality 75. A wall inside the drawing divides it at grid line 15 of 20, and the scan tests that registration never registers that wall as the drawing's edge (issue 130). Like the synthetic maps, it is original work dedicated to the public domain under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+
 ## chaotic-caves/
 
 *JN1 The Chaotic Caves* — the real-module evidence set; see
