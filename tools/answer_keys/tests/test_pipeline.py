@@ -1394,3 +1394,31 @@ def test_combine_writes_regions_in_spec_order_and_keeps_the_key_on_a_convention_
     log = combine(keys, tmp_path / "geometry.json", tmp_path)
     assert log["open_case"] == "an open case"
     assert (tmp_path / "geometry.json").read_text() == "the key as committed\n"
+
+
+def test_a_stairway_s_top_end_opens_onto_the_floor_it_meets():
+    from types import SimpleNamespace
+
+    from tools.answer_keys.kept import stair_top_calls
+
+    from osrforge.tracing.truth import Symbol
+
+    # Floor in row 0; two stairways in rows 1 and 2 over a void in row 3. A wall is drawn across both tops, and a
+    # door across the second's. A third stairway leads up, and a fourth has floor beyond both ends.
+    cells = ("......", ".#.#..", ".#.#..", "#####.")
+    horizontal = ["oooooo", "wwdwww", "o#o#oo", "w#w#ow", "#####o"]
+    reading = SimpleNamespace(
+        cells=cells,
+        edges=SimpleNamespace(at=lambda cell, side: horizontal[cell[1] + (side == "south")][cell[0]]),
+        symbols=(
+            Symbol(kind="stairs", cells=("0,1", "0,2"), direction="down"),
+            Symbol(kind="stairs", cells=("2,1", "2,2"), direction="down"),
+            Symbol(kind="stairs", cells=("4,1", "4,2"), direction="up"),
+            Symbol(kind="stairs", cells=("5,1", "5,2"), direction="down"),
+        ),
+    )
+    ctx = SimpleNamespace(spec=SimpleNamespace(frame=None), fit=SimpleNamespace(columns=6, rows=4))
+    calls = stair_top_calls(ctx, reading)  # type: ignore[arg-type]
+    assert calls == {
+        "e:0,1:north": {"value": "o", "kind": "edge", "reason": "a stairway's top end opens onto the floor it meets"}
+    }

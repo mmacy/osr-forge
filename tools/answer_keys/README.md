@@ -109,7 +109,7 @@ Each of these asks a call again in a fresh request in the map's `recheck` store,
 - `recheck region --level <dungeon>/<number> --cells "x,y;x,y" [--note <text>]`: asks one group of cells' outline as one question.
 - `recheck choices --cells "x,y|x,y;..."`: asks which of each pair of cells has more floor, for the passage rule's close calls.
 - `recheck reask --call <map id>:<call id>`: asks again a recheck call whose answer contradicts its own reason.
-- `passages --stages <dir>`: applies the passage rule (`kept.py`) to the settled reading and writes its calls in each map's `passages` store, then assembles every map again.
+- `passages --stages <dir>`: applies the two rules of Cells and edges that a settled reading leaves to them, the passage rule and the stairway rule (`kept.py`), writes their calls in each map's `passages` store, and assembles every map again.
 
 ### The key, the sample, and the score
 

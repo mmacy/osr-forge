@@ -1143,10 +1143,10 @@ def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: boo
 
 
 def final_values(ctx: MapContext, passages: bool = True) -> dict[str, dict[str, Any]]:
-    """Every call's final value: the owner's correction where there is one, else the passage rule's (`kept.py`),
-    else the recheck's value, else the re-settled value where the adversary's challenge was re-settled, else the
-    settler's, with the adversary's value beside it. With `passages` false the passage rule's calls are left out, as
-    the rule is worked out from the reading without them."""
+    """Every call's final value: the owner's correction where there is one, else the rules' (the passage rule and
+    the stairway rule, `kept.py`), else the recheck's value, else the re-settled value where the adversary's
+    challenge was re-settled, else the settler's, with the adversary's value beside it. With `passages` false the
+    rules' calls are left out, as the rules are worked out from the reading without them."""
     settled = _load_calls(ctx, "settle")
     adversary = _load_calls(ctx, "adversary")
     resettled = _load_calls(ctx, "resettle")

@@ -38,6 +38,7 @@ __all__ = [
     "level_chains",
     "level_regions",
     "passage_calls",
+    "stair_top_calls",
 ]
 
 NARROWEST = 1 / 6
@@ -714,12 +715,65 @@ def _edge_name(cell: tuple[int, int], side: str, width: int, height: int) -> str
     return f"e:{edge_name(edge_key(f'{cell[0]},{cell[1]}:{side}'), width, height)}"
 
 
-def apply_passages(keys: list[Any], stages: Any) -> dict[str, dict[str, int]]:
-    """Work out the passage rule's calls on a corpus member's maps and write them in each map's `passages` store.
+def stair_top_calls(ctx: MapContext, reading: Any) -> dict[str, dict[str, Any]]:
+    """The edges the stairway rule opens on a map, from its reading as settled without the rules' calls.
 
-    The rule is worked out from the readings as settled without it: each map is assembled without its passage
+    `docs/tracing-conventions.md`, Cells and edges: a stairway's top end opens onto the floor it meets, whatever
+    line is drawn across it, unless a door is drawn there. A stairway that leads down from the map's level has its
+    top end on that level: of the two ends of its symbol, a straight run of at least two cells, the top end is the
+    one whose next cell along the run is floor, when only one end is. A stairway that leads up meets its floor on
+    another map, and one with no direction or with floor beyond both ends names no top end, so the rule opens
+    nothing there.
+
+    Args:
+        ctx: The map.
+        reading: The map's panel as assembled without the rules' calls, on the registered grid.
+
+    Returns:
+        The calls, by edge call name in working cells: each such edge that is neither passable nor a door, opened.
+    """
+    from osrforge.tracing.truth import parse_cell
+
+    calls: dict[str, dict[str, Any]] = {}
+    height, width = len(reading.cells), len(reading.cells[0])
+    for symbol in reading.symbols:
+        if symbol.kind != "stairs" or symbol.direction != "down" or len(symbol.cells) < 2:
+            continue
+        cells = sorted(parse_cell(text) for text in symbol.cells)
+        if len({x for x, _ in cells}) == 1:
+            ahead = (0, 1)
+        elif len({y for _, y in cells}) == 1:
+            ahead = (1, 0)
+        else:
+            continue
+        tops = []
+        for cell, (dx, dy) in ((cells[0], (-ahead[0], -ahead[1])), (cells[-1], ahead)):
+            x, y = cell[0] + dx, cell[1] + dy
+            if 0 <= x < width and 0 <= y < height and reading.cells[y][x] == ".":
+                tops.append((cell, _SIDES[(dx, dy)]))
+        if len(tops) != 1:
+            continue
+        cell, side = tops[0]
+        if reading.edges.at(cell, side) in "opdls":
+            continue
+        work = to_work(ctx, cell)
+        calls[_edge_name(work, side, ctx.fit.columns, ctx.fit.rows)] = {
+            "value": "o",
+            "kind": "edge",
+            "reason": "a stairway's top end opens onto the floor it meets",
+        }
+    return calls
+
+
+def apply_passages(keys: list[Any], stages: Any) -> dict[str, dict[str, int]]:
+    """Work out the calls of the rules of Cells and edges that a settled reading leaves to them, the passage rule
+    and the stairway rule, on a corpus member's maps, and write them in each map's `passages` store.
+
+    The rules are worked out from the readings as settled without them: each map is assembled without the rules'
     calls, the member is resolved for its levels, and each map is assembled again with the new calls.
     """
+    from osrforge.tracing.truth import GeometryTruth
+
     from .assemble import assemble
     from .joins import resolved
     from .keyspec import context
@@ -730,6 +784,9 @@ def apply_passages(keys: list[Any], stages: Any) -> dict[str, dict[str, int]]:
         assemble(ctx, passages=False)
     resolver, _contents = resolved(keys, stages)
     calls = passage_calls(resolver, contexts)
+    for map_id, ctx in contexts.items():
+        reading = GeometryTruth.model_validate_json((ctx.key.directory / "reading.json").read_text()).panels[0]
+        calls[map_id].update(stair_top_calls(ctx, reading))
     counts = {}
     for map_id, ctx in contexts.items():
         _save_calls(ctx, "passages", calls[map_id])
