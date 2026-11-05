@@ -186,8 +186,7 @@ P=$R/specs
 
 The maintainer decided the following for the stage:
 
-- **Claude model:** Opus 5.5 (`claude-opus-5-5`), for every kind of request.
-- **Efforts:** high for the whole-page read, medium for uncertain items, low for the offset pick.
+- **Claude model and effort,** per kind of request, each the setting that read best in the screening: Opus 5.5 (`claude-opus-5-5`) at high effort for the whole-page read, Opus 5.5 at medium effort for uncertain items, and Sonnet 5.5 (`claude-sonnet-5-5`) at low effort for the offset pick.
 - **Clef backend:** local Clef-flash, with hosted Clef-flash as the cloud fallback.
 
 The screening chose the rest:
