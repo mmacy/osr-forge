@@ -250,7 +250,9 @@ def test_claude_answers_only_for_the_owners_a_run_names(tmp_path: Path) -> None:
         claude_owners={"kept"},
     )
     assert sources.read(request, check_offset, "other", {"pair": "other"}) is None
-    assert sources.read(request, check_offset, "kept", {"pair": "kept"})["answer"]["choice"] == "A"
-    assert sources.read(request, check_offset, "other", {"pair": "other"})["source"] == "fake"
+    kept = sources.read(request, check_offset, "kept", {"pair": "kept"})
+    assert kept is not None and kept["answer"]["choice"] == "A"
+    reused = sources.read(request, check_offset, "other", {"pair": "other"})
+    assert reused is not None and reused["source"] == "fake"
     assert asked == ["kept"]
     assert sources.tally.of("other")["reading-offset"]["missing"] == 1
