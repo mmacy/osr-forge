@@ -517,21 +517,27 @@ def make_sources(args: argparse.Namespace, settings: FullRunSettings, members: S
     return sources
 
 
+HOSTED_LABEL = "reading full run"
+"""The run label of the full run's entries on the Clef ledger."""
+
+
 def clef_source(mode: str, settings: FullRunSettings) -> Any:
     """Local Clef-flash with hosted Clef-flash behind it (`local`), local alone (`local-only`), or hosted alone.
 
-    The hosted provider is made on its first question, held to the settings' hosted spend on the Clef ledger. Each
-    answer comes back with the request actually sent, so the store files it under that request's key, and with what
-    the hosted provider charged: `cost_usd` of the answer's input tokens, as the provider settles it.
+    The hosted provider is made on its first question, held to the settings' hosted spend on the Clef ledger. Hosted
+    questions go one at a time, so each answer's dollars are the ledger entry the provider settled for it. Each answer
+    comes back with the request actually sent, so the store files it under that request's key.
     """
+    import threading
+
     from osrforge.errors import ProviderError
-    from osrforge.providers.clef import cost_usd
 
     from .hosted_exported import for_model
 
-    hosted: list[Any] = []
+    hosted: list[tuple[Any, Path]] = []
+    one_at_a_time = threading.Lock()
 
-    def hosted_provider() -> Any:
+    def hosted_provider() -> tuple[Any, Path]:
         if not hosted:
             from osrforge.providers.clef import ClefProvider, ClefSettings
 
@@ -539,15 +545,18 @@ def clef_source(mode: str, settings: FullRunSettings) -> Any:
 
             base = ClefSettings.from_env()
             stop = capped_stop(base.ledger_path, base.ledger_stop_usd, settings.hosted_spend_usd)
-            hosted.append(
-                ClefProvider(base.model_copy(update={"run_label": "reading full run", "ledger_stop_usd": stop}))
-            )
+            provider = ClefProvider(base.model_copy(update={"run_label": HOSTED_LABEL, "ledger_stop_usd": stop}))
+            hosted.append((provider, base.ledger_path))
         return hosted[0]
 
     def ask_hosted(request: Any) -> ClefAnswer:
         sent = for_model(request, settings.hosted_model)  # type: ignore[arg-type]
-        response = hosted_provider().decide(sent)
-        return ClefAnswer(dict(response.probabilities), sent, "hosted", cost_usd(sent.model, response.input_tokens))
+        with one_at_a_time:
+            provider, ledger = hosted_provider()
+            before = _ledger_length(ledger)
+            response = provider.decide(sent)
+            usd = _settled_since(ledger, before)
+        return ClefAnswer(dict(response.probabilities), sent, "hosted", usd)
 
     if mode == "hosted":
         return lambda request, about: ask_hosted(request)
@@ -570,6 +579,16 @@ def clef_source(mode: str, settings: FullRunSettings) -> Any:
             return ask_hosted(request)
 
     return ask
+
+
+def _ledger_length(path: Path) -> int:
+    return len(json.loads(path.read_text())["entries"]) if path.exists() else 0
+
+
+def _settled_since(path: Path, before: int) -> float:
+    """What the full run's Clef ledger entries made after `before` entries were settled at."""
+    entries = json.loads(path.read_text())["entries"][before:]
+    return sum(float(entry.get("usd") or 0.0) for entry in entries if entry.get("what") == HOSTED_LABEL)
 
 
 def seed(
@@ -663,7 +682,7 @@ def main(argv: list[str] | None = None) -> int:
     clef_ledger_path = os.environ.get("OSRFORGE_CLEF_LEDGER", "").strip()
     clef_ledger = Path(clef_ledger_path).expanduser() if args.clef in ("local", "hosted") and clef_ledger_path else None
     before_claude = ledger_snapshot(claude_ledger, LABEL_PREFIX, "cost_usd") if claude_ledger else None
-    before_clef = ledger_snapshot(clef_ledger, "reading full run", "usd") if clef_ledger else None
+    before_clef = ledger_snapshot(clef_ledger, HOSTED_LABEL, "usd") if clef_ledger else None
     result = run(
         members,
         halves,
@@ -710,7 +729,7 @@ def _ledger_check(
     out: dict[str, Any] = {}
     for part, ledger, before, prefix, key in (
         ("claude", claude_ledger, before_claude, LABEL_PREFIX, "cost_usd"),
-        ("clef", clef_ledger, before_clef, "reading full run", "usd"),
+        ("clef", clef_ledger, before_clef, HOSTED_LABEL, "usd"),
     ):
         if ledger is None or before is None:
             continue

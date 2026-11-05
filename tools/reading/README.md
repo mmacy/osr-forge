@@ -197,7 +197,7 @@ The full run reads every map with a first answer key and every synthetic map as 
 - `full_score.py` scores a level on its own documents and resolves a member's reading, `full_pools.py` pools the families by style and builds the bar, and `full_costs.py` places every request on a level or a named row.
 - `full_run.py` drives the run and writes the report. `full_pictures.py` draws milestone 1's levels, each beside the same trace with its faults marked. `full_fakes.py` makes answers from the answer key, for tests and offline runs.
 
-The calibration a map is read with leaves out every map cut from an image with the same bytes: the map itself, the other regions of its page, and a synthetic twin drawn from the same image. Claude's answer on an item replaces the item's probabilities, weighted by Claude's accuracy on such items of the style as the screening measured it. At the screening's accuracies, 0.875 to 1 per style and kind, and the passable thresholds, every weighted reading is Claude's own answer.
+The calibration a map is read with leaves out every map cut from an image with the same bytes: the map itself, the other regions of its page, and a synthetic twin drawn from the same image. Claude's answer on an item replaces the item's probabilities, weighted by Claude's accuracy on such items of the style as the screening measured it. At the screening's accuracies, 0.83 to 1 per style and kind, and the passable thresholds, every weighted reading is Claude's own answer.
 
 The uncertain items are the edges between two cells the half rule makes floor whose calibrated P(passable) lies strictly between ε and 1 - ε, unless Clef reads a door there, and every cell the ink leaves unsettled. The plan's other kinds of item need the checks-and-repairs loop of osr-forge chunk 7, which isn't built, so the run sends none of them.
 
@@ -223,7 +223,7 @@ uv run python -m tools.reading.full_run --settings $S --out $R/full-run --maps t
 ```
 
 - `--dry-run` sends nothing. It reads with every stored answer, lets the answer key's whole-page answer stand in where none is stored, and estimates the requests and dollars each map still needs. `--ledger` only reads the ledger, to count what the cap leaves.
-- `--clef local` asks local Clef-flash, and hosted Clef-flash, within the settings' spend, for a question local fails on. `--clef local-only` leaves out the fallback, `--clef hosted` asks hosted alone, and `--clef fake` answers from the answer key. Each answer is filed under the request actually sent.
+- `--clef local` asks local Clef-flash, and hosted Clef-flash, within the settings' spend, for a question local fails on. `--clef local-only` leaves out the fallback, `--clef hosted` asks hosted alone, and `--clef fake` answers from the answer key. Each answer is filed under the request actually sent. Hosted questions go one at a time, so each is charged the Clef ledger entry the provider settled for it.
 - `--claude live` asks Claude within the settings' cap, and refuses to start unless `OSRFORGE_CLAUDE_LEDGER` names the settings' ledger, the one the cap counts. `--claude fake` answers from the answer key, so its scores measure the run's plumbing and the ink, not Claude.
 - `--classifier` names the classifier's readings, for the bar.
 - `--pictures` draws milestone 1's levels into `pictures/`.
@@ -231,7 +231,8 @@ uv run python -m tools.reading.full_run --settings $S --out $R/full-run --maps t
 
 What the dry run found, with every stored answer and the Clef store filled from local Clef-flash:
 
-- Claude still needs 330 requests, and the cap leaves 222. The real maps need 123 item requests, since their whole-page reads and the offset picks are stored. The synthetic maps need 29 whole-page reads and 178 item requests, 109 of them on the nine black-and-white maps.
+- Claude still needs 323 to 330 requests, and the cap leaves 352: about $28.19 to $28.79 at the screening's mean dollars a request. With one retry each they would be 660, but none of the screening's 127 answered requests needed one. The real maps need 123 item requests, since their whole-page reads and the offset picks are stored. The synthetic maps need 29 whole-page reads and 171 to 178 item requests, 109 of them on the nine black-and-white maps.
+- Before Claude's item judgments, the stage reads fewer walls as open than the classifier in every style of the keys: 19 against 34 on TSR blue, 16 against 25 on black and white, 52 against 56 on cave, and 3 against 4 on dark rock. It gets fewer edges right than the classifier in every style but dark rock, where both get 556 of 628, so no style passes the bar yet.
 - The ink leaves 15% to 37% of a real map's cells unsettled. Ink inside a cell is the largest reason on five of the seven real maps: partly floor leads on the dark-rock map, and the grid on fewer than two sides on one TSR blue map. It leaves 20% to 39% of a synthetic TSR blue map's cells unsettled, mostly because their faint grid fails the two-sides test, and 91% to 97% of a synthetic black-and-white map's, where hatched rock reads as partly floor on all but one of the nine. The second command of step 4 gives these figures.
 - The whole-page request answers each level on one region, so a level drawn on two regions of one page (the synthetic shrine and watchtower) keeps an outline on one of them only.
 - Each synthetic map whose halves stay apart shares its halves' images with its joined twin, so one offset pick can't be right for both.

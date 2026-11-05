@@ -27,8 +27,9 @@ the bar the screening set. The table gives, per style:
   reading with each panel's cells and edges replaced by the classifier's, resolved by the reference resolution
   script with the member's caches.
 - the edges the answer-key pass's readings disagreed on and its settler decided (`<work>/items.json`, status
-  `disputed`), and how many each reading gets right as passable or blocked. These are counted on the key's grid edge
-  by edge, 5-foot squares as drawn, because the scorer has no family for a subset of edges.
+  `disputed`), within the scorer's edge universe of the key's panel (`edge_universe`), and how many each reading gets
+  right as passable or blocked. These are counted on the key's grid edge by edge, 5-foot squares as drawn, because
+  the scorer has no family for a subset of edges.
 
 A style *passes* when the stage's rate of walls read as open is at most the classifier's, the stage gets more edges
 right than the classifier, and the stage makes fewer join errors than the classifier.
@@ -40,7 +41,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from osrforge.tracing.score import ScoreSet
+from osrforge.tracing.score import ScoreSet, edge_universe
 from osrforge.tracing.truth import GeometryTruth, Panel
 
 from .answers import _canonical
@@ -235,7 +236,9 @@ def bar_table(
             row = out.setdefault(style, {"stage": {}, "classifier": {}, "disputed": {"stage": {}, "classifier": {}}})
             screen = screens.get(panel.id)
             disputed = (
-                disputed_edges(screen.work, screen.frame, panel.width, panel.height) if screen is not None else set()
+                disputed_edges(screen.work, screen.frame, panel.width, panel.height) & set(edge_universe(panel))
+                if screen is not None
+                else set()
             )
             for name, panels in (("stage", stage_panels), ("classifier", classifier_panels)):
                 partner = panels.get(panel.id)

@@ -454,6 +454,8 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
             raise ProviderError("the local server is down")
 
     made: list[Any] = []
+    ledger = tmp_path / "clef-ledger.json"
+    ledger.write_text(json.dumps({"entries": [{"what": "reading full run", "usd": 0.5}]}))
 
     class Hosted:
         def __init__(self, settings: Any) -> None:
@@ -462,10 +464,13 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
         def decide(self, request: DecisionRequest) -> Any:
             from types import SimpleNamespace
 
+            document = json.loads(ledger.read_text())
+            document["entries"] += [{"what": "another run", "usd": 0.25}, {"what": "reading full run", "usd": 0.0042}]
+            ledger.write_text(json.dumps(document))
             return SimpleNamespace(probabilities={"open": 0.3, "wall": 0.7}, input_tokens=1000)
 
     class HostedSettings:
-        ledger_path = tmp_path / "clef-ledger.json"
+        ledger_path = ledger
         ledger_stop_usd = None
 
         @classmethod
@@ -495,7 +500,7 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
     assert spends == [0.95] and made == [{"run_label": "reading full run", "ledger_stop_usd": 5.0}]
     record = ClefStore(tmp_path / "clef.jsonl").record(request.key())
     assert record is not None and record["source"] == "hosted"
-    assert record["usd"] == pytest.approx(hosted_module.cost_usd("clef-flash", 1000))
+    assert record["usd"] == pytest.approx(0.0042)
     with pytest.raises(ProviderError):
         clef_source("local-only", settings)(_request("t"), {})
 
@@ -557,6 +562,29 @@ def test_the_bar_puts_the_stage_beside_the_classifier_per_style() -> None:
         assert row["stage"]["edges"]["right"] == row["stage"]["edges"]["total"] == row["classifier"]["edges"]["total"]
         assert row["stage"]["walls_rate"] == 0.0 and row["stage"]["joins"]["errors"] == 0
         assert row["passes"] == {"walls": True, "edges": False, "joins": False, "all": False}
+
+
+def test_the_bars_settled_edges_are_those_in_the_scorers_edge_universe(monkeypatch: pytest.MonkeyPatch) -> None:
+    import tools.reading.full_pools as full_pools
+
+    from osrforge.tracing.score import edge_universe
+
+    corner = {((x, y), side) for x in range(6) for y in range(6) for side in ("north", "west")}
+    monkeypatch.setattr(full_pools, "disputed_edges", lambda work, frame, width, height: set(corner))
+    members = real_members([TOOL / "maps.json"], [TOOL / "pages.json"], [ROOT / "tools" / "answer_keys" / "keys.json"])
+    (member,) = members
+    key = member.document()
+    screens = {run_map.screen.id for run_map in member.maps}
+    expected: dict[str, int] = {}
+    for panel in key.panels:
+        if panel.id in screens:
+            style = key.region(panel.regions[0].region).style
+            expected[style] = expected.get(style, 0) + len(corner & set(edge_universe(panel)))
+    table = full_pools.bar_table(members, {member.id: key}, {member.id: key}, [], {})
+    counted = {style: row["disputed"]["stage"].get("total", 0) for style, row in table.items()}
+    assert counted == expected
+    assert sum(expected.values()) < len(corner) * len(screens)
+    assert all(row["disputed"]["stage"].get("right", 0) == counted[style] for style, row in table.items())
 
 
 def test_the_settlers_edges_come_from_the_answer_key_pass_on_the_keys_grid(tmp_path: Path) -> None:
