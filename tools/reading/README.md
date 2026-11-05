@@ -70,7 +70,7 @@ Each file here except `windows-variants.json` has a counterpart for commercial m
 Run from the osr-forge checkout. Each driver keeps what it has stored and asks only what's missing. Each needs the following:
 
 - The Claude drivers need `OSRFORGE_CLAUDE_LEDGER`. They read the API key from the `ANTHROPIC_API_KEY=` line of `~/repos/re-pod/.env`, inside the process.
-- `--cap` counts every entry on the Claude ledger whose label starts with `reading-`, the screening's 128 among them, and refuses a request once the count reaches the cap. The plan's step 8 has a budget of 350 Claude requests in all, so the full run passes `--cap 350`, which leaves it 222.
+- `--cap` counts every entry on the Claude ledger whose label starts with `reading-`, the screening's 128 among them, and refuses a request once the count reaches the cap. The plan's step 8 had a budget of 350 Claude requests, and the maintainer raised it to 480. The full run takes its cap of 480 from its settings, which leaves it 352.
 - The local Clef runs need a System One server, such as the maintainer's Ollama with `clef-flash`. Never start, stop, or restart it.
 - The hosted Clef runs need `OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login. They stop at their first failure and are held to `--spend` dollars on the Clef ledger.
 
@@ -117,11 +117,13 @@ P=$R/specs
        --source keyset=keyset-stored --source keysetp=$R/clef/local/keysetp --json $R/clef/letters-keysetp.json
    ```
 
-4. The ink's cells on whole maps, and the cell question:
+4. The ink's cells on whole maps, and the cell question. The second command gives each map's unsettled cells by reason, the synthetic maps' included:
 
    ```text
    uv run python -m tools.reading.screen_cells tools/reading/maps.json --answers $R/clef/local/seven \
        --json $R/clef/cells.json
+   uv run python -m tools.reading.screen_cells tools/reading/maps.json --synthetic tests/assets/synthetic-maps \
+       --json $R/full-run/cells-reasons.json
    ```
 
 5. The stage's reading of every key edge against the classifier's, with the band per map, calibrated with the ink and without it:
@@ -189,19 +191,25 @@ The full run reads every map with a first answer key and every synthetic map as 
 
 - `full_settings.py` reads the settings file, which stays with the results: each kind of Claude request's model and effort, the request cap, the Clef backend and its hosted fallback's spend, the passable thresholds, ε, and the levels milestone 1 looks at.
 - `full_members.py` lists the members: the real ones from the map, pages, and answer-key spec files, and the synthetic ones from `tests/assets/synthetic-maps`.
-- `full_store.py` files every Clef answer and Claude outcome under its request's key, so an answer is reused only for the same request. `full_seed.py` fills the stores with the answer-key pass's and the screening's answers. A request the stores lack goes to the run's source: live, fake, or none.
-- `full_reading.py` reads a map in the plan's order: the whole-page read, the ink, Clef on every edge that touches floor or an unsettled cell, the calibration held out by map, the uncertain items, Claude's judgments, keys from marks, and the offset picks with the halves rule. Its docstring gives each step's rule.
+- `full_store.py` files every Clef answer and Claude outcome under the key of the request that was sent, so an answer is reused only for the same request. `full_seed.py` fills the stores with the answer-key pass's and the screening's answers. A request the stores lack goes to the run's source: live, fake, or none.
+- `full_reading.py` reads a map in the plan's order: the whole-page read, the ink, Clef on every edge that touches floor or an unsettled cell, the calibration, the uncertain items, Claude's judgments, keys from marks, and the offset picks with the halves rule. Its docstring gives each step's rule.
 - `full_checks.py` runs the structural checks on a resolved document with the scorer's walk: unreachable areas, cut-off floor, doors without floor or the outside, bypasses, and disputes.
+- `full_score.py` scores a level on its own documents and resolves a member's reading, `full_pools.py` pools the families by style and builds the bar, and `full_costs.py` places every request on a level or a named row.
 - `full_run.py` drives the run and writes the report. `full_pictures.py` draws milestone 1's levels, each beside the same trace with its faults marked. `full_fakes.py` makes answers from the answer key, for tests and offline runs.
+
+The calibration a map is read with leaves out every map cut from an image with the same bytes: the map itself, the other regions of its page, and a synthetic twin drawn from the same image. Claude's answer on an item replaces the item's probabilities, weighted by Claude's accuracy on such items of the style as the screening measured it. At the screening's accuracies, 0.875 to 1 per style and kind, and the passable thresholds, every weighted reading is Claude's own answer.
 
 The uncertain items are the edges between two cells the half rule makes floor whose calibrated P(passable) lies strictly between ε and 1 - ε, unless Clef reads a door there, and every cell the ink leaves unsettled. The plan's other kinds of item need the checks-and-repairs loop of osr-forge chunk 7, which isn't built, so the run sends none of them.
 
 The report gives the following:
 
-- Every scorer family per level, over every cell and without the partly-floor cells, with cave edges apart from straight ones. A level is scored on documents where every other level fell back and only its own panels are kept. A panel the key shares between levels, like page 38's, is cut to the level's outline in the key. Every calibration a map is read with was fitted without that map, so every score is held out.
-- The same families per member and pooled by style, real maps apart from synthetic ones.
+- Every scorer family per level, over every cell and without the partly-floor cells, with cave edges apart from straight ones. A level is scored on documents where every other level fell back and only its own panels are kept. A panel the key shares between levels, like page 38's, is cut to the level's outline in the key. Every score is held out.
+- Every family per member, and pooled by style, real maps apart from synthetic ones. A pool counts each drawn cell and edge once, scoring each panel once, and each level, pair, and request once. As in the scorer, it leaves out a panel used only by levels that fell back, so a pool's figures add up its members'.
+- The bar for each style of the answer keys: the stage beside the classifier on whether each edge is passable or blocked and on the joins between areas, over every edge of the keys, the rate of walls read as open against the classifier's, and both readings on the edges where the answer-key pass's readers disagreed and its settler decided. A style passes when the stage reads no more walls as open, gets more edges right, and makes fewer join errors than the classifier.
 - Whether each level *needs no repair*: no unreachable area, no cut-off floor, no door without floor, and a dungeon that can be walked from its entrance. A bypass or a dispute changes no geometry, so it's reported and doesn't count. The answer key's own checks are given beside the trace's, because the keys fail some of them.
-- Claude requests and Claude and Clef dollars per level. A whole-page read's are shared evenly by the levels its page lists, and a map's items and Clef questions by the levels whose read outline holds them. A stored answer counts at what it cost when it was asked.
+- Whether each level's reading is complete: the items Claude left without an answer (missing from the run, or malformed after the retry) and the edges between floor that became walls for want of a Clef answer, both counted on the level.
+- Every request the run counted, once each, on exactly one level or on a row the report names for what no level owns, such as the real pairs' offset picks or a whole-page read of a page with several levels. Each row splits its requests and dollars by origin: sent by this run, answered by an earlier invocation, reused from the screening or the answer-key pass, fake, or missing. The rows add up to the run's totals, and a live run's totals are checked against the entries it made on the Claude and Clef ledgers.
+- Claude's accuracy on the items per style and kind: the screening's, which weights the answers, and this run's against the keys.
 - How each member resolved. When the reference script meets a case the conventions give no answer for, the level the case names falls back and the rest resolve again, and the report names each case.
 
 Run it from the osr-forge checkout, with the commercial files added as in "Run it" and `S` the settings file:
@@ -210,19 +218,21 @@ Run it from the osr-forge checkout, with the commercial files added as in "Run i
 S=$R/full-run/settings.json
 uv run python -m tools.reading.full_run --settings $S --out $R/full-run --maps tools/reading/maps.json \
     --pages tools/reading/pages.json --keys tools/answer_keys/keys.json --halves $P/halves.json \
-    --synthetic tests/assets/synthetic-maps --screening $R --dry-run --ledger ~/.re-pod/map-plan/claude-ledger.json
+    --synthetic tests/assets/synthetic-maps --screening $R --classifier $R/classifier \
+    --dry-run --ledger ~/.re-pod/map-plan/claude-ledger.json
 ```
 
 - `--dry-run` sends nothing. It reads with every stored answer, lets the answer key's whole-page answer stand in where none is stored, and estimates the requests and dollars each map still needs. `--ledger` only reads the ledger, to count what the cap leaves.
-- `--clef local` fills the Clef store from local Clef-flash, `--clef hosted` from hosted Clef-flash within the settings' spend, and `--clef fake` from the answer key.
-- `--claude live` asks Claude within the cap and needs `OSRFORGE_CLAUDE_LEDGER`. `--claude fake` answers from the answer key, so its scores measure the run's plumbing and the ink, not Claude.
+- `--clef local` asks local Clef-flash, and hosted Clef-flash, within the settings' spend, for a question local fails on. `--clef local-only` leaves out the fallback, `--clef hosted` asks hosted alone, and `--clef fake` answers from the answer key. Each answer is filed under the request actually sent.
+- `--claude live` asks Claude within the settings' cap, and refuses to start unless `OSRFORGE_CLAUDE_LEDGER` names the settings' ledger, the one the cap counts. `--claude fake` answers from the answer key, so its scores measure the run's plumbing and the ink, not Claude.
+- `--classifier` names the classifier's readings, for the bar.
 - `--pictures` draws milestone 1's levels into `pictures/`.
 - `--claude-for <member>` keeps Claude to the named members, so a run within the cap can take the members in an order. Run every member together all the same: each style's calibration is fitted on every member's maps of that style, so a run on fewer members reads with another calibration.
 
 What the dry run found, with every stored answer and the Clef store filled from local Clef-flash:
 
 - Claude still needs 330 requests, and the cap leaves 222. The real maps need 123 item requests, since their whole-page reads and the offset picks are stored. The synthetic maps need 29 whole-page reads and 178 item requests, 109 of them on the nine black-and-white maps.
-- The ink leaves 15% to 37% of a real map's cells unsettled. Ink inside a cell is the largest reason on six of the seven real maps. It leaves 20% to 39% of a synthetic TSR blue map's, mostly because their faint grid fails the two-sides test, and 91% to 97% of a synthetic black-and-white map's, where hatched rock also reads as partly floor.
+- The ink leaves 15% to 37% of a real map's cells unsettled. Ink inside a cell is the largest reason on five of the seven real maps: partly floor leads on the dark-rock map, and the grid on fewer than two sides on one TSR blue map. It leaves 20% to 39% of a synthetic TSR blue map's cells unsettled, mostly because their faint grid fails the two-sides test, and 91% to 97% of a synthetic black-and-white map's, where hatched rock reads as partly floor on all but one of the nine. The second command of step 4 gives these figures.
 - The whole-page request answers each level on one region, so a level drawn on two regions of one page (the synthetic shrine and watchtower) keeps an outline on one of them only.
 - Each synthetic map whose halves stay apart shares its halves' images with its joined twin, so one offset pick can't be right for both.
 - The answer keys fail some checks themselves: 11 of the 16 real levels have a fault a repair would change, such as floor beyond the manor's moat, which the walk never crosses. Every synthetic answer passes.
@@ -323,6 +333,9 @@ Clef, on local Clef-flash unless a backend is named:
 - The retry of a malformed answer with its faults, the request cap, and the summary of stored outcomes.
 - The join pictures, and the marks found on the upper floor.
 - The findings' tallies: the letters by option set, the ink's cells and the cell question, the backends' agreement and best threshold, a mark's reading and one mark per key, the summary's first ten items, symbols by kind, and the decision the items were chosen by, and the ledger count.
-- The full run: answers reused by request key, the settings, the key's whole-page answer, a level scored alone on its part of a shared panel, the checks finding an area a removed door cuts off, wrong offset picks, a run on fake answers that joins the fold and scores every family, an open case that falls back, and a fault picture.
+- The full run: the settings, a request counted once with its answer's origin, the key's whole-page answer, a level scored alone on its part of a shared panel, the checks finding an area a removed door cuts off, wrong offset picks, an open case that falls back, and a fault picture.
+- A run on fake answers that joins the fold, scores every family, and places every request on one row, the rows adding up to the run's totals. A calibration that leaves out a twin drawn from the same image, a pool that counts a panel two levels share once, and a pool that leaves out the panels of a level that fell back.
+- The live paths, on stand-ins for the services: a run refused when its Claude ledger isn't the settings', the cap of 480 stopping the next request, a malformed attempt charged what the ledger settled with each attempt counted, a local server refused when it names another model for Clef-flash, and a question local Clef fails on going to hosted Clef within the spend, filed under the request sent at what hosted charged.
+- The bar beside the classifier per style, and the settler's edges from the answer-key pass.
 
 No test calls a service or reads a ledger outside its temporary directory.

@@ -13,7 +13,7 @@ the repaired trace the plan puts beside the trace before repair: it shows what a
 - bypasses: a thick violet line along the locked door
 - disputes: a dashed black line between the two areas' first cells
 
-The pictures are written outside the repository, because two of the maps are commercial.
+The pictures are written outside the repository, because one of the three levels is from a commercial module.
 """
 
 from collections.abc import Sequence

@@ -3,7 +3,7 @@
 A settings file is JSON with these parts (the maintainer's copy lives with the results, outside the repository):
 
 - `claude`: `whole_page`, `items`, and `offset_pick`, each with its `model` and `effort`, `items` also with
-  `items_per_request`, and the request `cap` the Claude ledger's `reading-` entries count against
+  `items_per_request`, the Claude `ledger`, and the request `cap` its `reading-` entries count against
 - `clef`: the `backend` (`local` or `hosted`), its `model`, and `cloud_fallback`, the hosted backend used when the
   local one isn't, with the most dollars it may add to the Clef ledger, `spend_usd`
 - `decision`: the per-style `passable_threshold` and `epsilon`
@@ -39,6 +39,9 @@ class FullRunSettings:
     items_per_request: int
     offset_pick: ClaudeSetting
     cap: int
+    ledger: Path | None
+    """The Claude ledger the cap counts on. A live run refuses to start when the provider would write elsewhere."""
+
     clef_backend: Literal["local", "hosted"]
     clef_model: str
     hosted_model: str
@@ -47,11 +50,6 @@ class FullRunSettings:
     epsilon: float
     milestone: tuple[tuple[str, str, str, int], ...] = ()
     """The levels milestone 1 looks at: `(member, region, dungeon, level)`."""
-
-    @property
-    def acceptance(self) -> float:
-        """The acceptance threshold, 1 - ε: a reading less probable than this goes to Claude."""
-        return 1.0 - self.epsilon
 
 
 def _claude(part: dict[str, object]) -> ClaudeSetting:
@@ -79,6 +77,7 @@ def load_settings(path: Path) -> FullRunSettings:
         items_per_request=int(claude["items"]["items_per_request"]),
         offset_pick=_claude(claude["offset_pick"]),
         cap=int(claude["cap"]),
+        ledger=Path(claude["ledger"]).expanduser() if claude.get("ledger") else None,
         clef_backend=clef["backend"],
         clef_model=clef["model"],
         hosted_model=fallback.get("model", clef["model"]),

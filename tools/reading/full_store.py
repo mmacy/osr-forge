@@ -1,23 +1,33 @@
-"""The full run's answers: stores keyed by each request's key, and where an answer comes from when the store lacks it.
+"""The full run's answers: stores keyed by each request's key, where an answer comes from, and what each request cost.
 
-Every Clef answer and Claude outcome the run uses is filed under its request's key (`DecisionRequest.key()`, and
-`ReadingRequest.key(model)` for the kind's model), so an answer is reused only for a request whose pixels, text,
-options, model, and parameters are the same:
+Every Clef answer and Claude outcome the run uses is filed under the key of the request that was sent
+(`DecisionRequest.key()`, and `ReadingRequest.key(model)` for the kind's model), so an answer is reused only for a
+request whose pixels, text, options, model, and parameters are the same:
 
-- [`ClefStore`][tools.reading.full_store.ClefStore] is a JSON-lines file of `{key, map, item, probabilities, source}`.
+- [`ClefStore`][tools.reading.full_store.ClefStore] is a JSON-lines file of `{key, map, item, probabilities, source,
+  usd}`.
 - [`ClaudeStore`][tools.reading.full_store.ClaudeStore] holds one JSON file per request, `<kind>/<key>.json`, with the
   outcome (its attempts, answer, and cost) and where it came from.
 
-The stores are seeded with the screening's and the answer-key pass's stored answers, each under the key of the request
-rebuilt the way it was asked (see `full_seed`). A request the store lacks goes to the run's
-[`Sources`][tools.reading.full_store.Sources]: live (local Clef-flash, hosted Clef within its spend, Claude within the
-cap), fake (made by a function, for tests and offline runs), or nothing, when a dry run only counts what it would ask.
-Every request is tallied by map or page, kind, and how it was answered.
+The stores are seeded with the screening's and the answer-key pass's stored answers (see `full_seed`). A request the
+stores lack goes to the run's [`Sources`][tools.reading.full_store.Sources]: live (local Clef-flash with hosted
+Clef-flash behind it, or Claude within the cap), fake (made by a function, for tests and offline runs), or nothing,
+when a dry run only counts what it would ask.
+
+The [`Tally`][tools.reading.full_store.Tally] counts each request once, by key, however many maps look it up: the
+first lookup names its owner (a map, a page, or a pair) and what it is about. Each request has an origin:
+
+- `sent`: asked of a live backend by this run, with the ledger entries it made (a Claude outcome's attempts) and
+  what they cost
+- `full run`: answered by an earlier invocation of the full run, at what it cost then
+- `screening` or `answer-key pass`: reused from the stores those passes left, at what it cost then
+- `fake`: made from the answer key, at no cost
+- `missing`: neither stored nor asked
 """
 
 import json
 import threading
-from collections import Counter, defaultdict
+from collections import Counter
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -27,10 +37,40 @@ from typing import Any
 from osrforge.providers.decisions import DecisionRequest
 from osrforge.providers.reading import ReadingRequest
 
-__all__ = ["ClaudeStore", "ClefStore", "Sources", "Tally"]
+__all__ = ["ClaudeStore", "ClefAnswer", "ClefStore", "Counted", "Sources", "Tally", "origin_of"]
 
-type ClefAsk = Callable[[DecisionRequest, dict[str, Any]], dict[str, float]]
-"""Answers a request with its probabilities by option id. The second argument says what the request is about."""
+ORIGINS = ("sent", "full run", "screening", "answer-key pass", "fake", "missing")
+"""Where a request's answer came from, in the order the report lists them."""
+
+_STORED_ORIGIN = {
+    "answer-key pass": "answer-key pass",
+    "screening": "screening",
+    "fake": "fake",
+}
+
+
+def origin_of(source: str | None) -> str:
+    """The origin of a stored answer, from the source its record names: any live backend's is `full run`."""
+    return _STORED_ORIGIN.get(source or "", "full run")
+
+
+@dataclass(frozen=True)
+class ClefAnswer:
+    """An answer from a Clef source, with the request that was sent for it."""
+
+    probabilities: dict[str, float]
+    sent: DecisionRequest
+    """The request actually sent: the asked one, or the same request named for the fallback's model."""
+
+    source: str
+    """`local`, `hosted`, or `fake`."""
+
+    usd: float = 0.0
+    """What the backend charged for it."""
+
+
+type ClefAsk = Callable[[DecisionRequest, dict[str, Any]], ClefAnswer]
+"""Answers a request. The second argument says what the request is about."""
 
 type ClaudeAsk = Callable[[ReadingRequest, Callable[[dict[str, Any]], list[str]], dict[str, Any]], dict[str, Any]]
 """Answers a request with an outcome's JSON: `attempts`, `answer` (`None` when malformed after the retry), `cost_usd`.
@@ -55,17 +95,30 @@ class ClefStore:
         record = self._answers.get(key)
         return None if record is None else record["probabilities"]
 
+    def record(self, key: str) -> dict[str, Any] | None:
+        """The whole stored record for a request key, or `None`."""
+        return self._answers.get(key)
+
     def source(self, key: str) -> str | None:
         """Where a stored answer came from."""
         record = self._answers.get(key)
         return None if record is None else record.get("source")
 
-    def put(self, key: str, map_uid: str, item: str, probabilities: dict[str, float], source: str) -> None:
+    def put(
+        self, key: str, map_uid: str, item: str, probabilities: dict[str, float], source: str, usd: float = 0.0
+    ) -> None:
         """Store an answer, unless one is stored under the key already."""
         with self._lock:
             if key in self._answers:
                 return
-            record = {"key": key, "map": map_uid, "item": item, "probabilities": probabilities, "source": source}
+            record = {
+                "key": key,
+                "map": map_uid,
+                "item": item,
+                "probabilities": probabilities,
+                "source": source,
+                "usd": usd,
+            }
             self._answers[key] = record
             self.path.parent.mkdir(parents=True, exist_ok=True)
             with self.path.open("a") as handle:
@@ -98,30 +151,50 @@ class ClaudeStore:
         path.write_text(json.dumps(record | {"key": key}, indent=1) + "\n")
 
 
+@dataclass(frozen=True)
+class Counted:
+    """One request, counted once."""
+
+    key: str
+    owner: str
+    kind: str
+    origin: str
+    requests: int
+    """Ledger entries: a Claude outcome's attempts, 1 for a Clef answer, 0 for a missing one."""
+
+    usd: float
+    about: dict[str, Any]
+
+
 @dataclass
 class Tally:
-    """Requests by `(owner, kind, how)`: `how` is `stored`, `asked`, `fake`, or `missing`; owner is a map or page."""
+    """Every request the run looked up, each counted once by its key."""
 
-    counts: Counter[tuple[str, str, str]] = field(default_factory=Counter)
+    entries: dict[str, Counted] = field(default_factory=dict)
+    lookups: Counter[tuple[str, str]] = field(default_factory=Counter)
+    """How many times each owner looked up each kind, a request looked up twice included."""
+
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
-    dollars: defaultdict[tuple[str, str, str], float] = field(default_factory=lambda: defaultdict(float))
-    """Dollars of the answers used, by the same keys: what a stored answer cost when it was asked."""
 
-    def add(self, owner: str, kind: str, how: str, usd: float = 0.0) -> None:
-        """Count one request."""
+    def add(self, counted: Counted) -> None:
+        """Count a request, unless its key is counted already."""
         with self._lock:
-            self.counts[(owner, kind, how)] += 1
-            self.dollars[(owner, kind, how)] += usd
+            self.lookups[(counted.owner, counted.kind)] += 1
+            self.entries.setdefault(counted.key, counted)
 
-    def of(self, owner: str) -> dict[str, dict[str, Any]]:
-        """One owner's requests and dollars, by kind and how."""
+    def totals(self) -> dict[str, dict[str, Any]]:
+        """Requests and dollars by kind and origin."""
         out: dict[str, dict[str, Any]] = {}
-        for (who, kind, how), count in sorted(self.counts.items()):
-            if who == owner:
-                entry = out.setdefault(kind, {})
-                entry[how] = count
-                entry[f"{how} usd"] = round(self.dollars[(who, kind, how)], 6)
-        return out
+        for entry in self.entries.values():
+            figures = out.setdefault(f"{entry.kind} {entry.origin}", {"requests": 0, "answers": 0, "usd": 0.0})
+            figures["requests"] += entry.requests
+            figures["answers"] += 1
+            figures["usd"] = round(figures["usd"] + entry.usd, 6)
+        return dict(sorted(out.items()))
+
+    def of(self, owner: str) -> list[Counted]:
+        """One owner's requests."""
+        return [entry for entry in self.entries.values() if entry.owner == owner]
 
 
 @dataclass
@@ -133,9 +206,10 @@ class Sources:
         claude_store: The Claude outcomes by key.
         clef: Asks Clef a request the store lacks, or `None` when the run may not.
         claude: Asks Claude a request the store lacks, or `None` when the run may not.
-        clef_how: What `clef`'s answers count as: `asked` for a live backend, `fake` otherwise.
-        claude_how: What `claude`'s answers count as.
-        tally: Every request, by owner, kind, and how it was answered.
+        claude_how: What `claude`'s outcomes count as: `sent` for a live backend, `fake` otherwise.
+        clef_alternates: The other models a Clef request may have been sent under, so a fallback's answer filed under
+            its own request's key is found again.
+        tally: Every request, counted once.
         claude_owners: The owners (maps, pages, and pairs) `claude` may answer for, or `None` for every owner. A
             request about another owner is answered from the store or counted missing.
     """
@@ -144,8 +218,8 @@ class Sources:
     claude_store: ClaudeStore
     clef: ClefAsk | None = None
     claude: ClaudeAsk | None = None
-    clef_how: str = "asked"
-    claude_how: str = "asked"
+    claude_how: str = "sent"
+    clef_alternates: tuple[str, ...] = ()
     tally: Tally = field(default_factory=Tally)
     claude_owners: set[str] | None = None
 
@@ -159,23 +233,32 @@ class Sources:
             owner: The map it is about, for the tally.
             item: The item's name, stored with the answer.
             kind: The kind of question, for the tally.
-            about: What the request is about, for a fake source.
+            about: What the request is about: a fake source reads it, and the report places the request by it.
 
         Returns:
             The probabilities by option id, or `None` when the store lacks them and the run may not ask.
         """
-        key = request.key()
-        stored = self.clef_store.get(key)
-        if stored is not None:
-            self.tally.add(owner, kind, "stored")
-            return stored
+        about = about or {}
+        candidates = [
+            request,
+            *(_for_model(request, model) for model in self.clef_alternates if model != request.model),
+        ]
+        for candidate in candidates:
+            key = candidate.key()
+            record = self.clef_store.record(key)
+            if record is not None:
+                origin = origin_of(record.get("source"))
+                self.tally.add(Counted(key, owner, kind, origin, 1, float(record.get("usd") or 0.0), about))
+                return record["probabilities"]
         if self.clef is None:
-            self.tally.add(owner, kind, "missing")
+            self.tally.add(Counted(request.key(), owner, kind, "missing", 0, 0.0, about))
             return None
-        probabilities = self.clef(request, {"map": owner, "item": item, "kind": kind} | (about or {}))
-        self.clef_store.put(key, owner, item, probabilities, self.clef_how)
-        self.tally.add(owner, kind, self.clef_how)
-        return probabilities
+        answer = self.clef(request, {"map": owner, "item": item, "kind": kind} | about)
+        key = answer.sent.key()
+        self.clef_store.put(key, owner, item, answer.probabilities, answer.source, answer.usd)
+        origin = "fake" if answer.source == "fake" else "sent"
+        self.tally.add(Counted(key, owner, kind, origin, 1, answer.usd, about))
+        return answer.probabilities
 
     def decide_many(
         self, asks: Sequence[tuple[DecisionRequest, str, str, str, dict[str, Any]]], workers: int = 1
@@ -202,8 +285,8 @@ class Sources:
         Args:
             request: The request, whose kind names its model.
             check: The kind's check of an answer.
-            owner: The map or page the request is about, for the tally.
-            about: What the request asks, stored with the outcome.
+            owner: The map, page, or pair the request is about, for the tally.
+            about: What the request asks, stored with the outcome and used to place it in the report.
 
         Returns:
             The outcome's JSON, or `None` when the store lacks it and the run may not ask.
@@ -214,13 +297,35 @@ class Sources:
         key = request.key(kind.model)
         stored = self.claude_store.get(kind.name, key)
         if stored is not None:
-            self.tally.add(owner, kind.name, "stored", float(stored.get("cost_usd") or 0.0))
+            origin = origin_of(stored.get("source"))
+            self.tally.add(Counted(key, owner, kind.name, origin, _attempts(stored), _usd(stored), about))
             return stored
         if self.claude is None or (self.claude_owners is not None and owner not in self.claude_owners):
-            self.tally.add(owner, kind.name, "missing")
+            self.tally.add(Counted(key, owner, kind.name, "missing", 0, 0.0, about))
             return None
         outcome = self.claude(request, check, about)
-        record = outcome | {"source": self.claude_how, "about": about}
+        record = outcome | {"source": "fake" if self.claude_how == "fake" else "asked", "about": about}
         self.claude_store.put(kind.name, key, record)
-        self.tally.add(owner, kind.name, self.claude_how, float(outcome.get("cost_usd") or 0.0))
+        origin = "fake" if self.claude_how == "fake" else "sent"
+        self.tally.add(Counted(key, owner, kind.name, origin, _attempts(outcome), _usd(outcome), about))
         return record
+
+
+def _attempts(outcome: dict[str, Any]) -> int:
+    """The ledger entries an outcome made: one per attempt."""
+    return max(1, len(outcome.get("attempts") or ()))
+
+
+def _usd(outcome: dict[str, Any]) -> float:
+    return float(outcome.get("cost_usd") or 0.0)
+
+
+def _for_model(request: DecisionRequest, model: str) -> DecisionRequest:
+    return DecisionRequest(
+        tag=request.tag,
+        image=request.image,
+        state=request.state,
+        question=request.question,
+        options=request.options,
+        model=model,  # type: ignore[arg-type]
+    )

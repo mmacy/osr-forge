@@ -9,7 +9,9 @@ outcome is charged at that model's prices. The API key is read from the `ANTHROP
 An answer is malformed when the provider can't read it (it stopped at `max_tokens`, was refused, or isn't JSON that
 fits the schema) or when the kind's own check finds faults. A malformed answer is asked once more, as the stage
 does: the original request with the answer and its faults appended when there is an answer to append, and the
-original request again when there isn't. Both attempts are recorded.
+original request again when there isn't. Both attempts are recorded, each with what the ledger charged for it: an
+answer the provider can't read was settled at its usage before the provider raised, so its cost is read back from the
+ledger entry.
 
 The screening's requests are capped: before each request, the runner counts the Claude ledger's entries whose label
 starts with `reading-` (every kind here is named so) and refuses to send past the cap.
@@ -29,7 +31,7 @@ from osrforge.errors import ReadingFailure, SchemaValidationError
 from osrforge.providers.claude import ClaudeProvider, ClaudeSettings, cost_usd
 from osrforge.providers.reading import ReadingRequest, ReadingResponse, Retry
 
-__all__ = ["Attempt", "Outcome", "RequestCap", "ask", "load_api_key", "make_provider"]
+__all__ = ["Attempt", "Outcome", "RequestCap", "ask", "load_api_key", "make_provider", "settled_since"]
 
 ENV_FILE = Path("~/repos/re-pod/.env").expanduser()
 LABEL_PREFIX = "reading-"
@@ -115,20 +117,53 @@ class Outcome:
         }
 
 
+def _entries(ledger: Path) -> list[dict[str, Any]]:
+    return json.loads(ledger.read_text())["entries"] if ledger.exists() else []
+
+
+def settled_since(ledger: Path, before: int, label: str, model: str) -> float | None:
+    """What the ledger's last entry for a request, made after `before` entries, was settled at.
+
+    The provider settles a request that ended with a malformed answer (a refusal, a stop at `max_tokens`, or JSON the
+    schema refuses) at the answer's usage before it raises, so the ledger, not the exception, holds what it cost.
+
+    Args:
+        ledger: The Claude ledger.
+        before: How many entries the ledger held before the request.
+        label: The entry's label, `<kind> <effort>`.
+        model: The entry's model.
+
+    Returns:
+        The cost of the last matching entry made since, or `None` when there is none.
+    """
+    for entry in reversed(_entries(ledger)[before:]):
+        if entry.get("label") == label and entry.get("model") == model:
+            return float(entry.get("cost_usd") or 0.0)
+    return None
+
+
 def _one(
     provider: ClaudeProvider, request: ReadingRequest, check: Callable[[dict[str, Any]], list[str]], retry: bool
 ) -> Attempt:
     started = time.monotonic()
+    model = request.kind.model or provider.settings.model
+    before = len(_entries(provider.settings.ledger_path))
     try:
         response: ReadingResponse = provider.read(request)
     except (ReadingFailure, SchemaValidationError) as error:
-        return Attempt(retry=retry, seconds=round(time.monotonic() - started, 1), error=str(error))
+        label = f"{request.kind.name} {request.kind.effort}"
+        return Attempt(
+            retry=retry,
+            seconds=round(time.monotonic() - started, 1),
+            cost_usd=settled_since(provider.settings.ledger_path, before, label, model),
+            error=str(error),
+        )
     usage = response.usage
     return Attempt(
         retry=retry,
         seconds=round(time.monotonic() - started, 1),
         usage=usage.model_dump(),
-        cost_usd=cost_usd(request.kind.model or provider.settings.model, usage),
+        cost_usd=cost_usd(model, usage),
         answer=cast(dict[str, Any], response.data),
         faults=check(cast(dict[str, Any], response.data)),
     )

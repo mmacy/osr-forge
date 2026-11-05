@@ -22,6 +22,7 @@ from osrforge.tracing.truth import GeometryTruth, parse_cell
 
 from .answers import LETTERS as OPTION_LETTERS
 from .full_reading import key_page_answer, region_key_panel
+from .full_store import ClefAnswer
 from .items import CELL_VALUES, EDGE_VALUES
 from .maps import ScreenMap, key_document
 from .screen_wholemap import Page
@@ -47,8 +48,11 @@ class FakeClef:
         """Answer for maps by uid."""
         self.maps = maps
 
-    def __call__(self, request: DecisionRequest, about: dict[str, Any]) -> dict[str, float]:
+    def __call__(self, request: DecisionRequest, about: dict[str, Any]) -> ClefAnswer:
         """The key's answer to a request."""
+        return ClefAnswer(self._answer(request, about), request, "fake")
+
+    def _answer(self, request: DecisionRequest, about: dict[str, Any]) -> dict[str, float]:
         options = [option for option, _text in request.options]
         panel = _panel(self.maps[about["map"]])
         if about["kind"] == "clef-edge":

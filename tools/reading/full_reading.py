@@ -15,15 +15,20 @@ The reading follows the plan's steps with the screening's settings:
    exported is asked the exported request, so the pass's answer is reused.
 4. **Calibration.** Per read style, the logistic model on Clef's passable and door log-odds and the ink's `width`,
    `heavy`, and `line` (`clef+ink`), fitted on the measured edges of every answer key and synthetic answer of that
-   style except the map it is applied to, so every map is scored held out. When the style has no other map, the
-   map's own measured edges are split into spatial folds (`calibrate.fold_of`). An edge whose most probable Clef answer
-   is a door kind is that door, whatever the calibration says (doors first).
+   style except the maps cut from an image with the same bytes as the map it is applied to (the map itself, the
+   other regions of its page, and a synthetic twin drawn from the same image), so every map is scored held out. When
+   the style has no other map, the map's own measured edges are split into spatial folds (`calibrate.fold_of`). An
+   edge whose most probable Clef answer is a door kind is that door, whatever the calibration says (doors first).
 5. **Uncertain items.** An edge between two cells the half rule makes floor whose calibrated P(passable) lies
    strictly between ε and 1 - ε, unless doors first decides it, and every cell the ink leaves unsettled. The plan's
    other kinds of item (edges that would change which areas connect, bypass and repair items, outline crossings,
    items at a fold, stretch pairings) need the resolution's checks and repairs, which aren't built, so the run sends
    none of them. Claude judges the items in requests of `items_per_request`, one region at a time, in north-then-west
-   order, and its answer decides each item.
+   order. Its answer replaces an item's probabilities, weighted by Claude's accuracy on such items of the style as the
+   screening measured it (`screening_accuracy`): an edge is passable with that accuracy when Claude reads it
+   passable, and the passable threshold decides, and a cell is floor with that accuracy when Claude reads it floor.
+   At the screening's accuracies (0.875 to 1 per style and kind) and the passable thresholds, every weighted reading is
+   Claude's own. Without the screening's figures, Claude's answer decides.
 6. **Cells and edges.** A cell is the half rule's, or Claude's answer for an item. An edge with floor or water on both
    sides is Claude's answer when it was an item, else the door Clef reads by doors first, else the calibrated
    decision at the read style's passable threshold, else a wall when Clef has no answer. An edge with floor or water
@@ -43,9 +48,12 @@ What the run takes from the answer key and nothing else: each region's registrat
 measurement measured.
 """
 
+import hashlib
+import json
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -168,6 +176,11 @@ class MapReading:
     cells: list[list[str]] = field(default_factory=list)
     letters: dict[Edge, str] = field(default_factory=dict)
     marks: list[Mark] = field(default_factory=list)
+    unjudged: list[AskedItem] = field(default_factory=list)
+    """Items Claude left without an answer: missing in the run, or malformed after the retry."""
+
+    unanswered: list[Edge] = field(default_factory=list)
+    """Edges between floor or water that became walls because Clef had no answer for them."""
 
     @property
     def screen(self) -> ScreenMap:
@@ -511,15 +524,25 @@ def _door_top(probabilities: dict[str, float]) -> str | None:
     return top if top in "dls" else None
 
 
-def calibrate(readings: Sequence[MapReading]) -> dict[str, int]:
-    """Each reading's calibrated P(passable), per edge Clef answered, held out by map.
+def image_digest(path: Path) -> str:
+    """The sha256 of an image file's bytes: maps cut from the same image share it."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def calibrate(readings: Sequence[MapReading]) -> dict[str, Any]:
+    """Each reading's calibrated P(passable), per edge Clef answered, held out by image.
+
+    A map's calibration leaves out every map cut from an image with the same bytes as its own: the map itself, the
+    other regions of its page, and a synthetic twin drawn from the same image, whose picture and answer are the
+    map's own.
 
     Args:
         readings: Every map's reading, Clef's answers in.
 
     Returns:
-        The training edges per style, for the report.
+        The training edges per style, and for each map the maps its calibration left out, for the report.
     """
+    digests = {reading.run_map.uid: image_digest(reading.run_map.screen.image) for reading in readings}
     training: dict[str, list[tuple[str, EdgeRow, EdgeInk]]] = {}
     for reading in readings:
         if reading.floors is None:
@@ -531,11 +554,14 @@ def calibrate(readings: Sequence[MapReading]) -> dict[str, int]:
                 continue
             row = EdgeRow(reading.run_map.uid, style, edge, reading.key.edges.at(*edge), False, False, probabilities)
             training.setdefault(style, []).append((reading.run_map.uid, row, reading.edge_ink[edge]))
+    left_out: dict[str, list[str]] = {}
     for reading in readings:
         if reading.style is None or not reading.clef:
             continue
         pool = training.get(reading.style, [])
-        others = [(row, ink) for uid, row, ink in pool if uid != reading.run_map.uid]
+        mine = digests[reading.run_map.uid]
+        others = [(row, ink) for uid, row, ink in pool if digests[uid] != mine]
+        left_out[reading.run_map.uid] = sorted(uid for uid in digests if digests[uid] == mine)
         edges = sorted(reading.clef)
         rows = [EdgeRow(reading.run_map.uid, reading.style, e, "-", False, False, reading.clef[e]) for e in edges]
         x = features(rows, [reading.edge_ink[e] for e in edges], "clef+ink")
@@ -549,7 +575,10 @@ def calibrate(readings: Sequence[MapReading]) -> dict[str, int]:
             p = _own_folds(reading, edges, x)
         for edge, q in zip(edges, p, strict=True):
             reading.passable[edge] = 0.0 if _door_top(reading.clef[edge]) else float(q)
-    return {style: len(rows) for style, rows in training.items()}
+    return {
+        "training_edges": {style: len(rows) for style, rows in training.items()},
+        "left_out": {uid: uids for uid, uids in left_out.items() if len(uids) > 1},
+    }
 
 
 def _own_folds(reading: MapReading, edges: list[Edge], x: np.ndarray) -> np.ndarray:
@@ -611,17 +640,109 @@ def read_items(reading: MapReading, page: Page, settings: FullRunSettings, sourc
     return unanswered
 
 
+def screening_accuracy(
+    screening: Path, model: str, effort: str, per_request: int, styles: dict[str, str]
+) -> dict[str, dict[str, list[int]]]:
+    """Claude's accuracy on the screening's uncertain items at one setting, per style and kind.
+
+    The screening asked each real map's chosen items (`<screening>/claude/items/items.json`, each with the key's
+    letter) in requests of `per_request` items (`<map>.<n>k<per_request>.json`, or `<map>.<n>.json` for requests of
+    10). An edge is right when Claude reads it passable or blocked as the key does, and a cell when Claude reads it
+    floor or not as the key does.
+
+    Args:
+        screening: The screening's results directory.
+        model: The items' model.
+        effort: The items' effort.
+        per_request: The items in a request.
+        styles: Each real map's style.
+
+    Returns:
+        Per style, `[right, judged]` for `edge` and for `cell`.
+    """
+    root = screening / "claude" / "items"
+    chosen = json.loads((root / "items.json").read_text()) if (root / "items.json").exists() else {}
+    tag = "" if per_request == 10 else f"k{per_request}"
+    out: dict[str, dict[str, list[int]]] = {}
+    for map_id, items in chosen.items():
+        style = styles.get(map_id)
+        if style is None:
+            continue
+        for path in sorted((root / model / effort).glob(f"{map_id}.*.json")):
+            part = path.name[len(map_id) + 1 : -len(".json")]
+            if not part[:1].isdigit() or part.lstrip("0123456789") != tag:
+                continue
+            outcome = json.loads(path.read_text())
+            if outcome.get("answer") is None:
+                continue
+            start = int(part.split("k")[0]) * per_request
+            letters = letters_of(outcome["answer"])
+            for number, item in enumerate(items[start : start + per_request], start=1):
+                read = letters.get(number)
+                if read is None:
+                    continue
+                kind = "cell" if item["side"] is None else "edge"
+                right = (
+                    (read in "op") == (item["key"] in "op") if kind == "edge" else (read == ".") == (item["key"] == ".")
+                )
+                tally = out.setdefault(style, {}).setdefault(kind, [0, 0])
+                tally[0] += right
+                tally[1] += 1
+    return out
+
+
 # 6. Cells and edges.
 
 
-def map_letters(reading: MapReading, threshold: float) -> None:
-    """The region's cells and edge letters, Claude's judgments in."""
+def weighted_cell(letter: str, accuracy: float | None) -> str:
+    """A cell item's reading from Claude's letter weighted by Claude's accuracy on cells of the style.
+
+    P(floor) is the accuracy when Claude reads floor, and one less the accuracy when it doesn't, and the cell is floor
+    at one half or more. With no accuracy, Claude's letter decides.
+    """
+    if accuracy is None:
+        return letter
+    floor = accuracy if letter == "." else 1.0 - accuracy
+    if floor >= 0.5:
+        return "."
+    return letter if letter != "." else "#"
+
+
+def weighted_edge(letter: str, accuracy: float | None, clef: dict[str, float], threshold: float) -> str:
+    """An edge item's reading from Claude's letter weighted by Claude's accuracy on edges of the style.
+
+    P(passable) is the accuracy when Claude reads the edge passable, and one less the accuracy when it doesn't, and
+    the style's passable threshold decides. Claude's letter stands when the decision agrees with it. Otherwise the
+    edge takes Clef's most probable letter of the decided kind (`edges.decide`). With no accuracy, Claude's letter
+    decides.
+    """
+    if accuracy is None:
+        return letter
+    passable = accuracy if letter in "op" else 1.0 - accuracy
+    agrees = (passable >= threshold) == (letter in "op")
+    return letter if agrees else decide(clef, passable, threshold)
+
+
+def map_letters(reading: MapReading, threshold: float, accuracy: dict[str, float] | None = None) -> None:
+    """The region's cells and edge letters, Claude's judgments in, each weighted by Claude's accuracy.
+
+    Args:
+        reading: The region's reading.
+        threshold: The read style's passable threshold.
+        accuracy: Claude's measured accuracy on the style's `edge` and `cell` items, or `None` to let Claude decide.
+
+    The reading records the items Claude left unjudged and the edges between floor that became walls for want of a
+    Clef answer.
+    """
     assert reading.floors is not None
+    accuracy = accuracy or {}
     width, height = reading.key.width, reading.key.height
     cells = [["." if reading.floors[y, x] >= 0.5 else "#" for x in range(width)] for y in range(height)]
     for (cell, side), letter in reading.judged.items():
         if side is None:
-            cells[cell[1]][cell[0]] = letter
+            cells[cell[1]][cell[0]] = weighted_cell(letter, accuracy.get("cell"))
+    reading.unjudged = [item for item in reading.items if (item.cell, item.side) not in reading.judged]
+    reading.unanswered = []
     letters: dict[Edge, str] = {}
     for (x, y), side in reading.key.edges.positions():
         edge = ((x, y), side)
@@ -635,13 +756,14 @@ def map_letters(reading: MapReading, threshold: float) -> None:
             letters[edge] = "-"
         elif all(occupied):
             if (edge[0], side) in reading.judged:
-                letters[edge] = reading.judged[(edge[0], side)]
+                letters[edge] = weighted_edge(reading.judged[(edge[0], side)], accuracy.get("edge"), answer, threshold)
             elif answer and _door_top(answer):
                 letters[edge] = _door_top(answer)  # type: ignore[assignment]
             elif edge in reading.passable:
                 letters[edge] = decide(answer, reading.passable[edge], threshold)
             else:
                 letters[edge] = "w"
+                reading.unanswered.append(edge)
         else:
             doors = {letter: answer.get(letter, 0.0) for letter in "dls"}
             best = max(doors, key=lambda letter: (doors[letter], -BLOCKED.index(letter)))
