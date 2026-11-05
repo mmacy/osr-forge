@@ -12,9 +12,10 @@ and runs the structural checks (`full_checks`). The report gives the following:
   rock, so the floor, edges, and doors families count that level's cells too. Every calibration a map is read with
   was fitted without that map, so every score is a held-out score.
 - the share of levels that need no repair, by the checks, beside the same checks on the answer key
-- Claude requests and Claude and Clef dollars per level: a whole-page read's are shared evenly by the levels its page
-  lists, and a map's item requests and Clef questions by the levels whose read outline holds their items, in
-  proportion to the items. Stored answers count at what they cost when they were asked.
+- Claude requests and Claude and Clef dollars per level, shared out: a whole-page read evenly among the levels its
+  page lists, and a map's item requests and Clef questions among the levels whose read outline holds their items, in
+  proportion to the items, so a level's requests can be a fraction. Stored answers count at what they cost when they
+  were asked.
 
 Run from the osr-forge checkout. `R` is the results directory and `P` the commercial specs:
 
@@ -349,7 +350,7 @@ def run(
         key = member.document()
         reads = [read_page(page, settings, sources, key if stand_in else None) for page in member.pages]
         page_reads.update({read.page.id: read for read in reads})
-        legends = page_legends(reads, key)
+        legends = page_legends(reads)
         for run_map in member.maps:
             read = page_reads[run_map.page]
             reading = start_map(run_map, read, legends.get(run_map.page))
@@ -536,7 +537,7 @@ def _level_costs(
             continue
         for (owner, kind, how), count in tally.counts.items():
             if owner == page.id and how != "missing":
-                claude_requests += count
+                claude_requests += count / len(listed)
                 claude_usd += tally.dollars[(owner, kind, how)] / len(listed)
     for reading in readings.values():
         if reading.run_map.member != member.id:

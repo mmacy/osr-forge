@@ -39,9 +39,8 @@ The reading follows the plan's steps with the screening's settings:
    the seam between the halves is open where both sides are floor, and the cells of a column gap are rock. A pair it
    doesn't join stays two panels.
 
-What the stage reads from the answer key and nothing else: each region's registration, which the registration
-measurement measured, and the legend page of a region whose page prints no legend when no page of the member prints
-one.
+What the run takes from the answer key and nothing else: each region's registration, which the registration
+measurement measured.
 """
 
 import math
@@ -307,7 +306,7 @@ def read_page(page: Page, settings: FullRunSettings, sources: Sources, stand_in:
     return PageRead(page=page, answer=outcome.get("answer"), label_of=label_of)
 
 
-def page_legends(reads: Sequence[PageRead], key: GeometryTruth) -> dict[str, Legend]:
+def page_legends(reads: Sequence[PageRead]) -> dict[str, Legend]:
     """Each page's legend by the plan's rule, by page id."""
     printed = {read.page.id: read for read in reads if read.answer and read.answer["legend_printed"]}
     dungeons = {read.page.id: {d for d, _n, _k in levels_on(read.page)} for read in reads}
@@ -322,8 +321,7 @@ def page_legends(reads: Sequence[PageRead], key: GeometryTruth) -> dict[str, Leg
         same = [printed[p] for p in printed if dungeons[p] & dungeons[read.page.id]]
         pool = same or [printed[p] for p in printed if printed[p].page.number < number]
         if not pool:
-            first = key.region(read.page.regions[0][1])
-            out[read.page.id] = Legend(printed=False, from_page=first.legend.from_page)
+            out[read.page.id] = Legend(printed=False)
             continue
         best = min(pool, key=lambda other: (abs(other.page.number - number), other.page.number))
         symbols = tuple(best.answer["legend_symbols"]) if best.answer else ()
