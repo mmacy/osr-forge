@@ -67,6 +67,10 @@ _MAX_BACKOFF_SECONDS = 30.0
 _RETRIED_STATUSES = frozenset({408, 409, 429})
 """The 4xx statuses the provider retries; it retries every 5xx too."""
 
+_REFUSED_STATUSES = frozenset({400, 401, 403, 404, 413, 422, 429})
+"""The statuses the API refuses a request with before any model runs. A request refused with them on every attempt
+settles at zero."""
+
 _MAX_THREADS = 8
 """The most requests `read_all` has in flight at once."""
 
@@ -423,17 +427,15 @@ class ClaudeProvider:
         reservation = self._ledger.open_reserved(entry, worst_case_usd(model, request))
         statuses: list[int | None] = []
         try:
-            message = self._send(request_body(request, model), kind.name, on_first_event, statuses)
-            usage = _usage(message, kind.name)
+            sent, statuses = self._send(request_body(request, model), kind.name, on_first_event)
+            if isinstance(sent, ProviderError):
+                raise sent
+            usage = _usage(sent, kind.name)
         except BaseException as error:
-            # No answer says what the attempts cost. The API ran no model when it refused every attempt with a 4xx,
-            # so that costs nothing. Any other ending, a lost connection or a 5xx included, may have run one and
-            # keeps the worst case.
-            refused = (
-                isinstance(error, ProviderError)
-                and bool(statuses)
-                and all(status is not None and 400 <= status < 500 for status in statuses)
-            )
+            # No answer says what the attempts cost. The API runs no model before it refuses a request with one of
+            # `_REFUSED_STATUSES`, so a request refused that way on every attempt costs nothing. Any other ending, a
+            # lost connection, a 5xx, or a 408 from a gateway included, may have run one and keeps the worst case.
+            refused = bool(statuses) and all(status in _REFUSED_STATUSES for status in statuses)
             try:
                 self._ledger.settle(reservation, 0.0 if refused else reservation.usd)
             except Exception as settle_error:
@@ -442,20 +444,21 @@ class ClaudeProvider:
                 )
             raise
         self._ledger.settle(reservation, cost_usd(model, usage))
-        return _answer(request, message, usage)
+        return _answer(request, sent, usage)
 
     def _send(
         self,
         body: dict[str, Any],
         kind: str,
         on_first_event: Callable[[], None] | None,
-        statuses: list[int | None],
-    ) -> Any:
-        """Stream the request under the transport policy and return the final message.
+    ) -> tuple[Any, list[int | None]]:
+        """Stream the request under the transport policy.
 
-        Appends each attempt's status to `statuses`: 200 for an answer, the error's status for an
-        `APIStatusError`, and `None` for an attempt that failed in another way.
+        Returns the final message, or the `ProviderError` that ended the attempts, with each attempt's status: 200
+        for an answer, the error's status for an `APIStatusError`, and `None` for an attempt that failed in another
+        way.
         """
+        statuses: list[int | None] = []
         last_error: anthropic.APIError | httpx2.TransportError | None = None
         for attempt in range(_ATTEMPTS):
             delay = min(2.0**attempt, _MAX_BACKOFF_SECONDS)
@@ -468,7 +471,7 @@ class ClaudeProvider:
                             break
                     message = stream.get_final_message()
                 statuses.append(200)
-                return message
+                return message, statuses
             except (anthropic.APIConnectionError, httpx2.TransportError) as error:
                 # The SDK wraps a transport failure while it sends the request, but one while it reads the
                 # stream escapes as the httpx2 error itself.
@@ -479,19 +482,25 @@ class ClaudeProvider:
                 status = error.status_code
                 statuses.append(status)
                 if status >= 400 and status < 500 and status not in _RETRIED_STATUSES:
-                    raise ProviderError(self._redact(f"the {kind!r} request failed: {error}")) from error
+                    return self._failure(f"the {kind!r} request failed: {error}", error), statuses
                 last_error = error
                 retry_after = _retry_after_seconds(error)
                 if retry_after is not None:
                     delay = min(retry_after, _MAX_BACKOFF_SECONDS)
             except anthropic.APIError as error:
                 statuses.append(None)
-                raise ProviderError(self._redact(f"the {kind!r} request failed: {error}")) from error
+                return self._failure(f"the {kind!r} request failed: {error}", error), statuses
             if attempt + 1 < _ATTEMPTS:
                 self._sleep(delay)
-        raise ProviderError(
-            self._redact(f"the {kind!r} request failed after {_ATTEMPTS} attempts: {last_error}")
-        ) from last_error
+        return self._failure(
+            f"the {kind!r} request failed after {_ATTEMPTS} attempts: {last_error}", last_error
+        ), statuses
+
+    def _failure(self, text: str, cause: BaseException | None) -> ProviderError:
+        """Build the error that ends a request's attempts, as `raise ... from cause` would chain it."""
+        failure = ProviderError(self._redact(text))
+        failure.__cause__ = cause
+        return failure
 
     def _redact(self, text: str) -> str:
         secret = self.settings.api_key.get_secret_value()
