@@ -19,7 +19,7 @@ from osrforge.providers.base import ImagePart, TextPart
 from osrforge.providers.reading import Effort, ReadingRequest, RequestKind
 from osrforge.tracing.truth import Registration
 
-from .clefask import RED, _render, cell_crop, edge_crop
+from .clefask import _render, cell_crop, edge_crop
 from .pictures import fit_for_api, png
 
 __all__ = [
@@ -140,7 +140,6 @@ def wide_crop(rgb: np.ndarray, registration: Registration, item: AskedItem) -> b
     else:
         line = y if item.side == "north" else y + 1
         centre, box = (x + 0.5, float(line)), (x + 0.1, line - 0.3, x + 0.9, line + 0.3)
-    assert RED
     return _render(rgb, registration, centre, 7.0, 56, box)
 
 

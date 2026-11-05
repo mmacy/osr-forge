@@ -61,7 +61,8 @@ def features(rows: Sequence[EdgeRow], ink: Sequence[EdgeInk], name: str) -> np.n
     Args:
         rows: The rows; each must have probabilities when the set uses Clef.
         ink: Each row's ink.
-        name: `clef`, `ink`, or `clef+ink`.
+        name: `clef` (Clef's passable and door log-odds), `ink`, or `clef+ink`. The door log-odds is there
+            because a door's box interrupts the drawn line, so the ink alone makes a door look open.
 
     Returns:
         n by k.
@@ -69,7 +70,9 @@ def features(rows: Sequence[EdgeRow], ink: Sequence[EdgeInk], name: str) -> np.n
     columns = []
     if "clef" in name:
         passable = np.array([passable_probability(row.probabilities or {}) for row in rows])
+        door = np.array([sum((row.probabilities or {}).get(letter, 0.0) for letter in "dls") for row in rows])
         columns.append(logit(passable)[:, None])
+        columns.append(logit(door)[:, None])
     if "ink" in name:
         columns.append(np.array([item.vector() for item in ink]))
     return np.hstack(columns)

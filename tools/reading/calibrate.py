@@ -3,7 +3,8 @@
 The model is logistic regression on standardised features, fitted by iteratively reweighted least squares with a
 small ridge, in numpy alone. Its features are named sets:
 
-- `clef`: Clef's passable probability as a log-odds, clipped to plus or minus 8
+- `clef`: Clef's passable probability and its door probability (door, locked door, and secret door) as log-odds,
+  clipped to plus or minus 8
 - `ink`: the ink measurements of [`EdgeInk`][tools.reading.ink.EdgeInk]
 - `clef+ink`: both
 

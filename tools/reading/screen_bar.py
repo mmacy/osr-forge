@@ -122,6 +122,14 @@ def main(argv: list[str] | None = None) -> int:
             for group in sorted(set(groups.tolist())):
                 train = measured & (groups != group)
                 p[groups == group] = Logistic().fit(x[train], y[train]).predict(x[groups == group])
+            # A door Clef reads is decided by Clef, not the threshold, and isn't sent to Claude.
+            door_top = np.array(
+                [
+                    max(row.probabilities or {"w": 1.0}, key=(row.probabilities or {"w": 1.0}).__getitem__) in "dls"
+                    for row in rows
+                ]
+            )
+            p = np.where(door_top, 0.0, p)
             calibrated = {(row.map, row.edge): float(q) for row, q in zip(rows, p, strict=True)}
             figures: dict[str, Any] = {
                 "maps": ids,

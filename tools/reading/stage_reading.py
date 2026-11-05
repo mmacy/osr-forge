@@ -2,7 +2,9 @@
 
 Inside the windows, a cell is what the ink says (floor at half floor or more) unless the ink leaves it unsettled
 ([`unsettled_cells`][tools.reading.ink.unsettled_cells]); then Clef's most probable answer decides, a symbol counting
-as floor. An edge with floor or water on both sides takes the calibrated decision at the style's passable threshold;
+as floor. An edge with floor or water on both sides is the door Clef reads when Clef's most probable answer is a
+door kind (a door's box breaks the drawn line, so the ink alone makes it look open), and otherwise takes the
+calibrated decision at the style's passable threshold;
 an edge with floor or water on one side only is a wall, or the door Clef reads there; an edge with neither is `-`.
 Outside the windows the panel is the key's, so every error the scorer counts lies inside them, and the classifier's
 reading is scored the same way, so the two compare on the same edges.
@@ -83,7 +85,11 @@ def stage_letters(
             letters[edge] = "-"
         elif all(occupied):
             p = passable(edge)
-            letters[edge] = decide(answer, p, threshold) if p is not None else "w"
+            top = max(answer, key=answer.__getitem__) if answer else None
+            if top is not None and top in "dls":
+                letters[edge] = top
+            else:
+                letters[edge] = decide(answer, p, threshold) if p is not None else "w"
         else:
             doors = {letter: answer.get(letter, 0.0) for letter in "dls"}
             best = max(doors, key=lambda letter: doors[letter])
