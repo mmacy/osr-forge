@@ -61,7 +61,6 @@ def test_an_opening_between_floor_squares_keeps_its_ten_foot_edge_open(blocked: 
     assert result.panel.edges == EdgeGrids(vertical=("ww-", "ww-"), horizontal=("w-", opening + "-", "w-"))
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: fivefoot-openings")
 def test_an_opening_that_the_moves_split_between_two_spaces_stays_a_wall():
     """Room A is squares 0,0, 1,0, 0,1, 1,1, and 2,1. Room B is 2,0, 3,0, and 3,1, open to the frame by a printed line.
 
@@ -76,7 +75,6 @@ def test_an_opening_that_the_moves_split_between_two_spaces_stays_a_wall():
     assert result.panel.edges == EdgeGrids(vertical=("www",), horizontal=("ww", "ww"))
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: fivefoot-openings")
 def test_an_opening_onto_a_cell_that_converts_to_rock_stays_a_wall():
     """A 2-square-wide room with one floor square, 2,2, east of it through an opening on x = 2 at y = 2.
 
