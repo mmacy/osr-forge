@@ -504,7 +504,6 @@ OPUS_KIND = RequestKind(
 )
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: claude-kind-model")
 def test_each_kind_is_sent_and_charged_on_its_own_model_and_effort(tmp_path: Path):
     default_request = make_request()
     opus_request = ReadingRequest(kind=OPUS_KIND, shared=default_request.shared, question=default_request.question)
@@ -522,7 +521,6 @@ def test_each_kind_is_sent_and_charged_on_its_own_model_and_effort(tmp_path: Pat
     assert entries[1]["cost_usd"] == pytest.approx(cost_usd(OPUS, second.usage))
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: claude-kind-model")
 def test_a_kind_on_a_model_without_prices_is_refused_before_sending(tmp_path: Path):
     kind = RequestKind(
         name="probe-x", system="s", schema=SCHEMA, effort="low", max_tokens=2000, model="claude-unpriced-1"
@@ -536,7 +534,6 @@ def test_a_kind_on_a_model_without_prices_is_refused_before_sending(tmp_path: Pa
     assert path.read_bytes() == before
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: claude-kind-model")
 def test_recordings_key_each_request_on_its_kind_model(tmp_path: Path):
     base = make_request()
     request = ReadingRequest(kind=OPUS_KIND, shared=base.shared, question=base.question)
