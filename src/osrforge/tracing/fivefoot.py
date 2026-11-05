@@ -221,8 +221,18 @@ class _Grid:
         return (axis, (line + across) // 2, (index + along) // 2)
 
     def read_letter(self, edge: _Edge) -> str | None:
-        """The first letter of a 10-foot edge's read segments in precedence order, `None` when neither is read."""
-        read = [letter for letter in map(self.segment, self.covered(edge)) if letter != "-"]
+        """A 10-foot edge's letter from its read segments, `None` when neither is read.
+
+        The letter is the first of the read segments in precedence order, except
+        that a wall or window beside an opening between two floor squares gives
+        the edge the opening's letter.
+        """
+        segments = self.covered(edge)
+        letters = [self.segment(segment) for segment in segments]
+        for segment, letter, other in ((segments[0], letters[0], letters[1]), (segments[1], letters[1], letters[0])):
+            if letter in _PASSABLE and other in "wn" and all(self.kind(side) == "." for side in _sides(segment)):
+                return letter
+        read = [letter for letter in letters if letter != "-"]
         return min(read, key=_PRECEDENCE.index) if read else None
 
     def _find_spaces(self) -> None:
