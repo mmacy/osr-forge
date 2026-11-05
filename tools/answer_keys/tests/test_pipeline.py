@@ -1084,6 +1084,52 @@ def test_a_course_keeps_one_cell_per_step_and_the_cell_with_more_floor_at_a_corn
     ]
 
 
+def test_a_course_takes_the_cell_with_the_most_floor_in_each_cross_section():
+    import numpy as np
+    from tools.answer_keys.kept import _course
+
+    # Four samples a cell. The passage runs east along the line between rows 0 and 1, from region one at 0,1 to
+    # region two at 3,0, and its body covers half of each cell in both rows.
+    res = 4
+    body = np.zeros((8, 16), dtype=bool)
+    body[2:6, :] = True
+    centre = [(4, x) for x in range(1, 15)]
+    shares = {(0, 0): 0.3, (0, 1): 0.1, (1, 0): 0.15, (1, 1): 0.35, (2, 0): 0.45, (2, 1): 0.3, (3, 1): 0.05}
+
+    def course(settled):
+        return _course(centre, body, res, (0, 0), {(0, 1)}, {(3, 0)}, set(), lambda c: shares.get(c, 0.0), settled)
+
+    # Column 0 takes region one's floor cell, though 0,0 has more floor; column 1 takes 1,1 and column 2 takes 2,0;
+    # between them the chain steps through 2,1, which has more floor than 1,0.
+    assert course({}) == ([(0, 1), (1, 1), (2, 1), (2, 0), (3, 0)], [])
+    # The settler's answer between the two step cells decides the step.
+    assert course({frozenset(((2, 1), (1, 0))): (1, 0)})[0] == [(0, 1), (1, 1), (1, 0), (2, 0), (3, 0)]
+    # Two step cells whose floor differs by less than a tenth are a close call.
+    shares[(1, 0)] = 0.22
+    assert course({})[1] == [((2, 1), (1, 0))]
+
+
+def test_a_grid_line_drawn_over_a_thin_band_of_rock_is_rock():
+    from types import SimpleNamespace
+
+    import numpy as np
+    from tools.answer_keys.ink import Levels, close
+    from tools.answer_keys.passages import LINE_REACH, rock
+
+    # Paper above and below a band of fill eight pixels thick, which a grid line two pixels wide crosses.
+    gray = np.full((24, 24), 255, dtype=np.uint8)
+    gray[8:16, :] = 150
+    gray[8:16, 11:13] = 90
+    levels = Levels(channel="gray", ink_max=50, dark_max=58, paper_min=225, fill=(130, 170))
+    ctx = SimpleNamespace(spec=SimpleNamespace(levels=levels), rgb=np.stack([gray] * 3, axis=2))
+    solid = rock(ctx)
+    assert solid[8:16, 11:13].all()
+    # The paper's closing bridges the band, and the rock, grid line and all, keeps the two papers apart.
+    bridged = close(gray >= 225, LINE_REACH)
+    assert bridged[8:16, 11:13].all()
+    assert not (bridged & ~solid)[8:16, :].any()
+
+
 def test_a_framed_map_writes_its_key_on_the_registered_grid():
     from tools.answer_keys.frame import crop_panel, shift_text
 

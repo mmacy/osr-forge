@@ -17,7 +17,17 @@ import numpy as np
 from .ink import sample
 from .keyspec import MapContext
 
-__all__ = ["LINE_REACH", "NOT_A_PASSAGE", "RES", "Passage", "clearance", "passage_between", "widest_path"]
+__all__ = [
+    "LINE_REACH",
+    "NOT_A_PASSAGE",
+    "RES",
+    "Passage",
+    "clearance",
+    "flood",
+    "passage_between",
+    "rock",
+    "widest_path",
+]
 
 RES = 12
 """Samples per cell along each axis."""
@@ -52,25 +62,33 @@ class Passage:
     """The edges between two floor cells that the key blocks and the path crosses, as `x,y:side` with the letter."""
 
 
+def rock(ctx: MapContext) -> np.ndarray:
+    """Pixels of rock: fill at least five pixels thick, counting a line up to four pixels wide drawn over fill, such
+    as a grid line, as fill. A thinner run of fill is the soft edge of a line drawn on paper."""
+    from .ink import box_max, box_min, channel_image, close
+
+    levels = ctx.spec.levels
+    gray = channel_image(ctx.rgb, levels.channel)
+    if levels.fill is None:
+        return np.zeros(gray.shape, dtype=bool)
+    fill = (gray >= levels.fill[0]) & (gray <= levels.fill[1])
+    lines = (gray < levels.fill[0]) & close(fill, 2)
+    return box_max(box_min(fill | lines, 2), 2)
+
+
 def _passable(ctx: MapContext) -> np.ndarray:
     """Pixels a passage may cross: paper, and a line drawn across paper. A line counts only where paper lies on both
     of its sides (the closing of the paper by `LINE_REACH` covers it), so a grid, contour, or stream line across a
-    passage leaves it whole while the same line drawn over rock is no passage. Rock is fill at least five pixels
-    thick, which no closing crosses."""
-    from .ink import box_max, box_min, channel_image, close
+    passage leaves it whole while the same line drawn over rock (`rock`) is no passage, and no closing crosses rock."""
+    from .ink import channel_image, close
 
     key = ctx.key.id
     if key not in _MATERIALS:
         levels = ctx.spec.levels
         gray = channel_image(ctx.rgb, levels.channel)
         paper = gray >= levels.paper_min
-        if levels.fill is not None:
-            fill = (gray >= levels.fill[0]) & (gray <= levels.fill[1])
-            rock = box_max(box_min(fill, 2), 2)
-        else:
-            rock = np.zeros_like(paper)
         wall = gray <= levels.ink_max
-        _MATERIALS[key] = close(paper, LINE_REACH) & ~rock & ~wall
+        _MATERIALS[key] = close(paper, LINE_REACH) & ~rock(ctx) & ~wall
     return _MATERIALS[key]
 
 
@@ -106,7 +124,7 @@ def clearance(mask: np.ndarray, limit: int = 48) -> np.ndarray:
     return np.minimum(np.sqrt(best), far) * mask
 
 
-def _flood(allowed: np.ndarray, sources: np.ndarray) -> np.ndarray:
+def flood(allowed: np.ndarray, sources: np.ndarray) -> np.ndarray:
     """Every allowed sample a 4-connected walk from the sources reaches."""
     reached = sources & allowed
     while True:
@@ -127,13 +145,13 @@ def widest_path(mask: np.ndarray, sources: np.ndarray, targets: np.ndarray) -> t
     Returns `(0, [])` when no white walk joins them.
     """
     depth = clearance(mask)
-    if not (_flood(mask, sources) & targets).any():
+    if not (flood(mask, sources) & targets).any():
         return 0, []
     levels = np.unique(depth[depth > 0])
     low, high = 0, len(levels) - 1
     while low < high:
         middle = (low + high + 1) // 2
-        if (_flood(depth >= levels[middle], sources) & targets).any():
+        if (flood(depth >= levels[middle], sources) & targets).any():
             low = middle
         else:
             high = middle - 1

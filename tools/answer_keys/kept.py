@@ -2,19 +2,19 @@
 
 `docs/tracing-conventions.md`, Cells and edges: a passage drawn as floor that joins two floor regions of a level,
 which the half-floor rule leaves apart, stays joined when it's at least a sixth of a cell wide at its narrowest. Each
-passage is judged on its own, so a second passage between the same two regions stays joined too. It keeps a chain of
-cells along its course, each sharing an open edge with the next: where it covers one cell across its course, that
-cell; where it covers two cells side by side across its course, or turns across a corner, the one with more floor,
-the first in page order on a tie. A door drawn across a corner, with floor drawn through the corner, stands on the
-step cell's edge with whichever of the two floor cells comes first in page order.
+passage is judged against the half-floor rule's cells, so a second passage between the same two regions stays joined
+too. It keeps a chain of cells along its course, each sharing an open edge with the next: where it covers one cell
+across its course, that cell; where it covers more than one cell across its course, or turns across a corner, the one
+with the most floor, the first in page order on a tie. A floor cell on its course joins the chain as it is. A door
+drawn across a corner, with floor drawn through the corner, stands on the step cell's edge with whichever of the two
+floor cells comes first in page order.
 
 `level_chains` finds, for one level, each passage between two of its floor regions (components across passable
-edges) with no other region on the way, widest first, and the chain of cells it keeps. A passage's body is the drawn
-floor its course runs through: the samples within its clearance of the centre line, the path through the passable
-samples that keeps furthest from their edges. The cells the body covers are the chain's candidates, and the chain is
-the shortest four-connected run of them from one region to the other, and of runs equally short, the one with the
-most floor. A step whose two candidates have nearly equal floor is marked close, for the settler. Once a passage is
-found, its body is closed to the next, which must run elsewhere.
+edges) with no other region on the way, widest first, and the chain of cells it keeps (`_course`). A passage's course
+is its centre line, the path through the passable samples that keeps furthest from their edges, and its body is the
+drawn floor the course runs through: the samples within its clearance of the centre line that join the centre line
+without crossing rock or wall ink. A choice between two cells whose floor is nearly equal is marked close, for the
+settler. Once a passage is found, its body is closed to the next, which must run elsewhere.
 """
 
 import heapq
@@ -26,7 +26,7 @@ import numpy as np
 
 from .frame import frame_of, to_registered, to_work
 from .keyspec import MapContext
-from .passages import clearance, fine_floor, widest_path
+from .passages import clearance, fine_floor, flood, widest_path
 
 __all__ = [
     "CLOSE",
@@ -126,10 +126,9 @@ def _chain(
     barred: set[tuple[int, int]],
     share: Any,
 ) -> list[tuple[int, int]]:
-    """The cells a passage keeps, from a cell of `one` to a cell of `other`: the shortest four-connected run through
-    the cells its body covers, and of runs equally short the one with the most floor, so where the passage covers two
-    cells side by side or turns across a corner the cell with more floor is kept. Ties go to the run first in page
-    order.
+    """The shortest four-connected run from a cell of `one` to a cell of `other` through the cells a passage's body
+    covers, and of runs equally short the one with the most floor, the first in page order on a tie. `_course` joins
+    two of its picks that are further apart than a corner with it.
 
     `cover` gives each cell the share of it the passage's body covers: a cell outside both regions is a candidate
     when the share is at least `COVER`, and a region's cell is an end of the run when the body touches it at all."""
@@ -188,17 +187,175 @@ def _chain(
     return chain[::-1]
 
 
-def _body(centre: list[tuple[int, int]], depth: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
-    """The samples within each centre-line sample's clearance of it: the drawn floor the course runs through."""
-    body = np.zeros(shape, dtype=bool)
+def _body(centre: list[tuple[int, int]], depth: np.ndarray, allowed: np.ndarray) -> np.ndarray:
+    """The drawn floor the course runs through: the allowed samples within each centre-line sample's clearance of it
+    that join the centre line through allowed samples, so the body never reaches across rock or wall ink."""
+    shape = allowed.shape
+    disks = np.zeros(shape, dtype=bool)
+    line = np.zeros(shape, dtype=bool)
     rows, columns = np.mgrid[0 : shape[0], 0 : shape[1]]
     for y, x in centre[:: max(1, len(centre) // 400)] + centre[-1:]:
         radius = float(depth[y, x])
         y0, y1 = max(0, int(y - radius) - 1), min(shape[0], int(y + radius) + 2)
         x0, x1 = max(0, int(x - radius) - 1), min(shape[1], int(x + radius) + 2)
         block = (rows[y0:y1, x0:x1] - y) ** 2 + (columns[y0:y1, x0:x1] - x) ** 2 <= radius**2
-        body[y0:y1, x0:x1] |= block
-    return body
+        disks[y0:y1, x0:x1] |= block
+    for y, x in centre:
+        line[y, x] = True
+    return flood(disks & allowed, line)
+
+
+def _page(cell: tuple[int, int]) -> tuple[int, int]:
+    return cell[1], cell[0]
+
+
+def _most_floor(
+    cells: list[tuple[int, int]],
+    share: Any,
+    settled: dict[frozenset, tuple[int, int]],
+    floor: set[tuple[int, int]],
+) -> list[tuple[int, int]]:
+    """Cells ranked by floor, most first, the first in page order on a tie. A floor cell, which the half-floor rule
+    reads as floor whatever its share, comes before any other, and the settler's answer to a close call between the
+    first two decides their order."""
+    ranked = sorted(cells, key=lambda cell: (cell not in floor, -share(cell), _page(cell)))
+    if len(ranked) > 1:
+        winner = settled.get(frozenset(ranked[:2]))
+        if winner == ranked[1]:
+            ranked[0], ranked[1] = ranked[1], ranked[0]
+    return ranked
+
+
+def _course(
+    centre: list[tuple[int, int]],
+    body: np.ndarray,
+    res: int,
+    origin: tuple[int, int],
+    one: set[tuple[int, int]],
+    other: set[tuple[int, int]],
+    blocked: set[tuple[int, int]],
+    share: Any,
+    settled: dict[frozenset, tuple[int, int]],
+) -> tuple[list[tuple[int, int]], list[tuple[tuple[int, int], tuple[int, int]]]]:
+    """The chain of cells a passage keeps along its course, from a cell of `one` to a cell of `other`.
+
+    The course is the centre line, in samples of a window whose first cell is `origin`. Where it runs at least as far
+    across as down, over half a cell either way, it is taken a column at a time, and elsewhere a row at a time; each
+    body sample belongs to the cross-section of the centre-line sample nearest it. In each cross-section the chain
+    takes, of the cells the body covers by at least `COVER` or touches in either region, the one with the most floor,
+    the first in page order on a tie: a floor cell joins it as it is. Where the chain moves on across the corner where
+    cells meet, it steps through the one of the corner's other two cells with the most floor. Picks further apart are
+    joined by `_chain`.
+
+    Args:
+        centre: The centre line's samples, `(row, column)`, from `one` to `other`.
+        body: The passage's body (`_body`).
+        res: Samples per cell along each axis.
+        origin: The window's first cell.
+        one: The first region's cells.
+        other: The second region's cells.
+        blocked: Cells the chain may not take: other levels' floor and the level's other regions.
+        share: A cell's share drawn as floor.
+        settled: Close calls the settler has answered: each pair of cells, to the one with more floor.
+
+    Returns:
+        The chain, a cell of `one` first and a cell of `other` last, or empty when the course makes none; and each
+        close call it made between a kept cell and the cell it passed over, two cells not both floor whose shares
+        differ by less than `CLOSE`.
+    """
+    x0, y0 = origin
+    floor = one | other
+    reach = max(1, res // 2)
+    sections: list[tuple[bool, int]] = []
+    section_of = []
+    for index, (y, x) in enumerate(centre):
+        (ya, xa), (yb, xb) = centre[max(0, index - reach)], centre[min(len(centre) - 1, index + reach)]
+        across = abs(xb - xa) >= abs(yb - ya)
+        section = (across, x0 + x // res if across else y0 + y // res)
+        if not sections or sections[-1] != section:
+            sections.append(section)
+        section_of.append(len(sections) - 1)
+    rows, columns = np.nonzero(body)
+    nearest = np.full(len(rows), np.inf)
+    owner = np.zeros(len(rows), dtype=int)
+    for index, (y, x) in enumerate(centre):
+        distance = (rows - y) ** 2 + (columns - x) ** 2
+        better = distance < nearest
+        nearest[better] = distance[better]
+        owner[better] = section_of[index]
+    found = np.stack([owner, x0 + columns // res, y0 + rows // res])
+    keys, counts = np.unique(found, axis=1, return_counts=True) if len(rows) else (np.zeros((3, 0), int), [])
+    whole = res * res
+    parts: dict[int, list[tuple[int, int]]] = {}
+    cover: dict[tuple[int, int], float] = {}
+    for (number, cx, cy), count in zip(keys.T.tolist(), list(counts), strict=True):
+        cell = (cx, cy)
+        cover[cell] = cover.get(cell, 0.0) + count / whole
+        across, line = sections[number]
+        # A region's cell is on the course wherever the body touches it.
+        if (count / whole >= COVER or cell in floor) and (cx if across else cy) == line and cell not in blocked:
+            parts.setdefault(number, []).append(cell)
+
+    choices: list[tuple[tuple[int, int], tuple[int, int]]] = []
+
+    def choose(cells: list[tuple[int, int]]) -> tuple[int, int]:
+        ranked = _most_floor(cells, share, settled, floor)
+        if len(ranked) > 1:
+            choices.append((ranked[0], ranked[1]))
+        return ranked[0]
+
+    chain: list[tuple[int, int]] = []
+
+    def add(cell: tuple[int, int]) -> None:
+        # A course that comes back to a cell drops the loop it made.
+        if cell in chain:
+            del chain[chain.index(cell) + 1 :]
+        else:
+            chain.append(cell)
+
+    for number in sorted(parts):
+        pick = choose(parts[number])
+        if not chain:
+            chain.append(pick)
+            continue
+        last = chain[-1]
+        dx, dy = pick[0] - last[0], pick[1] - last[1]
+        if abs(dx) + abs(dy) <= 1:
+            add(pick)
+            continue
+        if abs(dx) == 1 and abs(dy) == 1:
+            steps = [cell for cell in ((pick[0], last[1]), (last[0], pick[1])) if cell not in blocked]
+            if steps:
+                add(choose(steps))
+                add(pick)
+                continue
+        gap = _chain(cover, {last}, {pick}, blocked, share)
+        for cell in gap[1:]:
+            add(cell)
+    if not chain:
+        return [], []
+    if not any(cell in other for cell in chain):
+        tail = _chain(cover, {chain[-1]}, other, blocked, share)
+        for cell in tail[1:]:
+            add(cell)
+    end = next((index for index, cell in enumerate(chain) if cell in other), None)
+    if end is None:
+        return [], []
+    if not any(cell in one for cell in chain[:end]):
+        head = _chain(cover, one, {chain[0]}, blocked, share)
+        if not head:
+            return [], []
+        chain[:0] = head[:-1]
+        end += len(head) - 1
+    start = max(index for index in range(end) if chain[index] in one)
+    chain = chain[start : end + 1]
+    kept = set(chain[1:-1])
+    close = []
+    for taken, passed in choices:
+        mine = taken in kept and not {taken, passed} <= floor
+        if mine and abs(share(taken) - share(passed)) < CLOSE and frozenset((taken, passed)) not in settled:
+            close.append((taken, passed))
+    return chain, list(dict.fromkeys(close))
 
 
 def level_regions(
@@ -250,8 +407,6 @@ def level_chains(
         between one pair.
     """
     owner = {cell: index for index, region in enumerate(regions) for cell in region}
-    winners = set((settled or {}).values())
-    losers = {cell for pair in (settled or {}) for cell in pair} - winners
     chains: list[Chain] = []
     for a in range(len(regions)):
         for b in range(a + 1, len(regions)):
@@ -281,15 +436,9 @@ def level_chains(
             allowed = mask & ~np.kron(off, grow) & ((samples == -1) | (samples == a) | (samples == b))
             shares_window = floor_shares(ctx, window)
 
-            def share(cell: tuple[int, int], shares_window=shares_window, x0=x0, y0=y0) -> float:
-                # A close call the settler answered decides between its two cells.
-                if cell in winners:
-                    return 1.0
-                if cell in losers:
+            def drawn(cell: tuple[int, int], shares_window=shares_window, x0=x0, y0=y0, x1=x1, y1=y1) -> float:
+                if not (x0 <= cell[0] < x1 and y0 <= cell[1] < y1):
                     return 0.0
-                return float(shares_window[cell[1] - y0, cell[0] - x0])
-
-            def drawn(cell: tuple[int, int], shares_window=shares_window, x0=x0, y0=y0) -> float:
                 return float(shares_window[cell[1] - y0, cell[0] - x0])
 
             others = set().union(*(region for number, region in enumerate(regions) if number not in (a, b)))
@@ -305,17 +454,23 @@ def level_chains(
                 clear = clearance(allowed)
                 wide = allowed & (clear >= depth)
                 centre = _centre_line(wide, wide & (samples == a), wide & (samples == b))
-                body = _body(centre, clear, allowed.shape) & allowed
-                parts = body.reshape(y1 - y0, res, x1 - x0, res).mean(axis=(1, 3))
-                cover = {
-                    (x0 + int(column), y0 + int(row)): float(parts[row, column])
-                    for row, column in zip(*np.nonzero(parts > 0), strict=True)
-                }
-                covered = {cell for cell, part in cover.items() if part >= COVER}
+                body = _body(centre, clear, allowed)
+                # The chain compares cells by the floor in them that joins the passage without crossing rock or wall
+                # ink: paper beyond the drawing's edge, such as a title block's, is no floor.
+                line = np.zeros(allowed.shape, dtype=bool)
+                line[tuple(np.array(centre).T)] = True
+                joined = flood(allowed, line).reshape(y1 - y0, res, x1 - x0, res).mean(axis=(1, 3))
+
+                def floor(cell: tuple[int, int], joined=joined, x0=x0, y0=y0, x1=x1, y1=y1) -> float:
+                    if not (x0 <= cell[0] < x1 and y0 <= cell[1] < y1):
+                        return 0.0
+                    return float(joined[cell[1] - y0, cell[0] - x0])
+
                 # The next passage runs elsewhere: this one's body is closed to it.
                 allowed = allowed & ~body
-                # A close call the settler answered decides it: the other cell is no step of any course.
-                chain = _chain(cover, regions[a], regions[b], barred | others | losers, share)
+                chain, close = _course(
+                    centre, body, res, (x0, y0), regions[a], regions[b], barred | others, floor, settled or {}
+                )
                 if len(chain) < 2:
                     continue
                 if any(
@@ -325,17 +480,6 @@ def level_chains(
                     # A window is a wall: the white inside its symbol is no passage.
                     continue
                 kept = chain[1:-1]
-                close = []
-                for cell in kept:
-                    for dx, dy in _SIDES:
-                        alternative = (cell[0] + dx, cell[1] + dy)
-                        if alternative in chain or alternative not in covered:
-                            continue
-                        if alternative in barred or alternative in others or alternative in regions[a] | regions[b]:
-                            continue
-                        pair = frozenset((cell, alternative))
-                        if abs(drawn(cell) - drawn(alternative)) < CLOSE and pair not in (settled or {}):
-                            close.append((cell, alternative))
                 chains.append(
                     Chain(
                         regions=(a, b),
@@ -543,15 +687,12 @@ def passage_calls(resolver: Any, contexts: dict[str, MapContext]) -> dict[str, d
 def _through_corner(ctx: MapContext, one: tuple[int, int], other: tuple[int, int], res: int = 24) -> bool:
     """Whether floor is drawn through the corner where two cells meet, at least `NARROWEST` wide: paper, with the
     lines drawn across it, a door's among them, inside the two cells' square."""
-    from .ink import box_max, box_min, channel_image, close, sample
-    from .passages import LINE_REACH
+    from .ink import channel_image, close, sample
+    from .passages import LINE_REACH, rock
 
     levels = ctx.spec.levels
     gray = channel_image(ctx.rgb, levels.channel)
-    drawn = close(gray >= levels.paper_min, LINE_REACH)
-    if levels.fill is not None:
-        fill = (gray >= levels.fill[0]) & (gray <= levels.fill[1])
-        drawn &= ~box_max(box_min(fill, 2), 2)
+    drawn = close(gray >= levels.paper_min, LINE_REACH) & ~rock(ctx)
     x0, y0 = min(one[0], other[0]), min(one[1], other[1])
     across = x0 + (np.arange(2 * res) + 0.5) / res
     down = y0 + (np.arange(2 * res) + 0.5) / res
