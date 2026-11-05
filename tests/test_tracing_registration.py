@@ -468,7 +468,6 @@ def outline(rgb: npt.NDArray[np.uint8], x0: int, y0: int, x1: int, y1: int) -> N
     rgb[y0:y1, x1 - 2 : x1] = BAND_INK
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: reg-frame")
 def test_a_border_around_a_drawing_and_its_legend_is_no_frame(tmp_path: Path):
     """A 20 by 20 room with a legend box east of it, inside a page border around both.
 
