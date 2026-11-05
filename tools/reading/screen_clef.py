@@ -116,6 +116,7 @@ def score_source(
             figures[name] = {
                 "errors": {str(t): decision_errors(y, p, t) for t in THRESHOLDS},
                 "ranked_share": ranked_share(y, p, 0.5),
+                "ranked_share_5": ranked_share(y, p, 0.5, nth=5),
                 "ece": round(expected_calibration_error(y, p), 4),
             }
         out[style] = figures

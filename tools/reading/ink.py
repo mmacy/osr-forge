@@ -266,6 +266,9 @@ def _run_width(row: np.ndarray, centre: int) -> int:
 INSIDE = 0.03
 """The share of a floor cell's inside that is ink, at or above which the ink doesn't settle the cell."""
 
+GRIDDED = 0.6
+"""The share of a side's length that must carry ink on its line for the side to count as printed."""
+
 TONE_SPREAD = 0.15
 """How far a cell's fill tone may lie from the region's rock tone and still be rock."""
 
@@ -274,9 +277,10 @@ def unsettled_cells(ink: MapInk, floors: np.ndarray, cells: list[tuple[int, int]
     """The cells the ink doesn't settle, which Clef is asked about.
 
     A cell is unsettled when it is between a quarter and three quarters floor; when it is floor with ink inside it
-    (`INSIDE`), such as a label or a symbol; or when it is not floor and its fill's tone lies more than `TONE_SPREAD`
-    from the region's rock tone, the median tone of the region's cells under a quarter floor, as water or a grey
-    void would.
+    (`INSIDE`), such as a label or a symbol; when it is floor with the printed grid on fewer than two of its sides
+    (`GRIDDED`), as bare paper outside a building is; or when it is not floor and its fill's tone lies more than
+    `TONE_SPREAD` from the region's rock tone, the median tone of the region's cells under a quarter floor, as water
+    or a grey void would.
 
     Args:
         ink: The region's ink.
@@ -295,8 +299,13 @@ def unsettled_cells(ink: MapInk, floors: np.ndarray, cells: list[tuple[int, int]
         share = floors[y, x]
         if (
             0.25 < share < 0.75
-            or (share >= 0.75 and ink.ink_inside((x, y)) >= INSIDE)
+            or (share >= 0.75 and (ink.ink_inside((x, y)) >= INSIDE or _lined_sides(ink, floors, (x, y)) < 2))
             or (share <= 0.25 and abs(ink.fill_tone((x, y)) - rock_tone) > TONE_SPREAD)
         ):
             out.append((x, y))
     return out
+
+
+def _lined_sides(ink: MapInk, floors: np.ndarray, cell: tuple[int, int]) -> int:
+    """How many of a cell's four sides carry ink along their line for at least `GRIDDED` of their length."""
+    return sum(ink.edge(cell, side, floors).line >= GRIDDED for side in ("north", "east", "south", "west"))

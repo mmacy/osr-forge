@@ -1,0 +1,67 @@
+{
+ "maps": [
+  {
+   "id": "crypt",
+   "style": "tsr_blue",
+   "key": "../../tests/assets/synthetic-maps/crypt/geometry.json",
+   "image": "../../tests/assets/synthetic-maps/crypt/images/crypt.jpg",
+   "work": null,
+   "frame": null,
+   "classifier": null
+  },
+  {
+   "id": "undercroft",
+   "style": "tsr_blue",
+   "key": "../../tests/assets/synthetic-maps/undercroft/geometry.json",
+   "image": "../../tests/assets/synthetic-maps/undercroft/images/undercroft.jpg",
+   "work": null,
+   "frame": null,
+   "classifier": null
+  },
+  {
+   "id": "manor",
+   "style": "black_white",
+   "key": "../../tests/assets/synthetic-maps/manor/geometry.json",
+   "image": "../../tests/assets/synthetic-maps/manor/images/manor.png",
+   "work": null,
+   "frame": null,
+   "classifier": null
+  },
+  {
+   "id": "warrens",
+   "style": "black_white",
+   "key": "../../tests/assets/synthetic-maps/warrens/geometry.json",
+   "image": "../../tests/assets/synthetic-maps/warrens/images/warrens.png",
+   "work": null,
+   "frame": null,
+   "classifier": null
+  },
+  {
+   "id": "temple-1",
+   "style": "dark_rock",
+   "key": "../../tests/assets/synthetic-maps/sunken-temple/geometry.json",
+   "image": "../../tests/assets/synthetic-maps/sunken-temple/images/sunken-temple-1.png",
+   "work": null,
+   "frame": null,
+   "classifier": null
+  },
+  {
+   "id": "temple-2",
+   "style": "dark_rock",
+   "key": "../../tests/assets/synthetic-maps/sunken-temple/geometry.json",
+   "image": "../../tests/assets/synthetic-maps/sunken-temple/images/sunken-temple-2.png",
+   "work": null,
+   "frame": null,
+   "classifier": null
+  },
+  {
+   "id": "wyrm-caves",
+   "style": "cave",
+   "key": "../../tests/assets/synthetic-maps/wyrm-caves/geometry.json",
+   "image": "../../tests/assets/synthetic-maps/wyrm-caves/images/wyrm-caves.png",
+   "work": null,
+   "frame": null,
+   "classifier": null
+  }
+ ]
+}

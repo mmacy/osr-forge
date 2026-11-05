@@ -106,23 +106,24 @@ def held_out(x: np.ndarray, y: np.ndarray, groups: Sequence[str], ridge: float =
     return out
 
 
-def ranked_share(y: np.ndarray, p: np.ndarray, threshold: float) -> tuple[int, int]:
-    """How many decisions, ranked from most to least confident, come before the first wrong one.
+def ranked_share(y: np.ndarray, p: np.ndarray, threshold: float, nth: int = 1) -> tuple[int, int]:
+    """How many decisions, ranked from most to least confident, come before the `nth` wrong one.
 
     Args:
         y: Whether each edge is passable in the key.
         p: P(passable).
         threshold: The passable threshold that makes each decision.
+        nth: Which wrong decision ends the count: the first, as the plan judges Clef, or a later one, which one
+            confident error (or one error of the key's) can't decide alone.
 
     Returns:
-        `(right before the first wrong, decisions)`.
+        `(decisions before the nth wrong one, decisions)`.
     """
     decision = p >= threshold
     confidence = np.where(decision, p, 1 - p)
     order = np.argsort(-confidence, kind="stable")
-    wrong = decision[order] != y[order].astype(bool)
-    first = int(np.argmax(wrong)) if wrong.any() else len(y)
-    return first, len(y)
+    wrong = np.flatnonzero(decision[order] != y[order].astype(bool))
+    return (int(wrong[nth - 1]) if len(wrong) >= nth else len(y)), len(y)
 
 
 def decision_errors(y: np.ndarray, p: np.ndarray, threshold: float) -> tuple[int, int]:
