@@ -339,8 +339,14 @@ textarea[hidden] { display: none; }
 "use strict";
 const state = { calls: [], verdicts: new Map(), notes: new Map(), index: 0, busy: false };
 const $ = (id) => document.getElementById(id);
-const KINDS = { cell: "Cell", edge: "Edge", key_placement: "Key placement" };
-const CATEGORIES = { cave: "Cave", diagonal: "Diagonal", key: "Key", key_placement: "Key placement" };
+const KINDS = { cell: "Cell", edge: "Edge", key_placement: "Key placement", passage_step: "Passage step" };
+const CATEGORIES = {
+  cave: "Cave",
+  diagonal: "Diagonal",
+  key: "Key",
+  key_placement: "Key placement",
+  passage: "Passage",
+};
 const READERS = { claude: "Claude", classifier: "Classifier", clef: "Clef" };
 
 function rows(list, pairs) {

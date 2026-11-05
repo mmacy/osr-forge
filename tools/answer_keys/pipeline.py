@@ -251,6 +251,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--cases", action="append", default=[], help="combine: a case the key depends on, repeatable")
     parser.add_argument(
+        "--residual",
+        action="append",
+        default=[],
+        help="combine: floor the key leaves unreached from its level's entrance, with its cause, repeatable",
+    )
+    parser.add_argument(
         "--verdicts",
         type=Path,
         action="append",
@@ -402,7 +408,7 @@ def main(argv: list[str] | None = None) -> int:
 
         keys = [specs[map_id] for map_id in words]
         out = args.out or keys[0].key
-        print(combine(keys, out, args.stages, args.cases, args.verdicts))
+        print(combine(keys, out, args.stages, args.cases, args.verdicts, args.residual))
         return 0
     for map_id in words:
         run_stage(specs[map_id], stage, action, args)

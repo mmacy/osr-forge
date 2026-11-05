@@ -51,16 +51,18 @@ class SampleCall(BaseModel):
     style: str = Field(min_length=1)
     """The map style, such as `tsr_blue`."""
 
-    kind: Literal["cell", "edge", "key_placement"]
-    """What the call decided: a cell's letter, an edge's letter, or where a key is placed."""
+    kind: Literal["cell", "edge", "key_placement", "passage_step"]
+    """What the call decided: a cell's letter, an edge's letter, where a key is placed, or which of two cells a
+    passage keeps at a step where both have nearly equal floor."""
 
-    category: Literal["cave", "diagonal", "key", "key_placement"]
-    """Which part of the sample the call was drawn from: an item in a cave, on a diagonal, or around a key, or a key
-    placement the settler decided. When the owner finds an error, every call of the same category on the same map
-    goes back for a full recheck."""
+    category: Literal["cave", "diagonal", "key", "key_placement", "passage"]
+    """Which part of the sample the call was drawn from: an item in a cave, on a diagonal, or around a key, a key
+    placement the settler decided, or a cell or edge the passage rule keeps or opens. When the owner finds an error,
+    every call of the same category on the same map goes back for a full recheck."""
 
     item: str = Field(min_length=1)
-    """The item in its panel's coordinates: a cell `x,y`, an edge `x,y:side`, or a key's label."""
+    """The item in its panel's coordinates: a cell `x,y`, an edge `x,y:side`, a key's label, or a passage step's two
+    cells `x,y|x,y`."""
 
     zoom: str
     """The zoomed crop of the item, as a path relative to the sample file's directory."""

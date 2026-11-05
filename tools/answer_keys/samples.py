@@ -261,3 +261,78 @@ def build_sample(contexts: list[MapContext], out: Path, size: int, seed: int) ->
         **{name: sum(1 for c in calls if c.category == name) for name in pools},
         "pool_sizes": {name: len(pool) for name, pool in pools.items()},
     }
+
+
+def passage_sample_calls(ctx: MapContext, member: str, style: str, kept: list[str]) -> list[SampleCall]:
+    """The passage rule's calls for the owner to check: every close step the settler decided (`k:` recheck calls),
+    and the named cells the rule keeps or edges it opens, each with the reading's letter before the rule.
+
+    A step's crops cover its two cells, and its one reading is the cell the pixel count gives more floor."""
+    from osrforge.tracing.truth import parse_cell
+
+    from .recheck import _shares
+    from .settler import _load_calls
+
+    final = final_values(ctx)
+    before = final_values(ctx, passages=False)
+    checks = _load_calls(ctx, "joins-adversary")
+    shares = _shares(ctx)
+    items = load_items(ctx)
+    calls = []
+    for name, call in sorted(_load_calls(ctx, "recheck").items()):
+        if not name.startswith("k:"):
+            continue
+        first, second = (parse_cell(text) for text in name[2:].split("|"))
+        rect = (
+            min(first[0], second[0]),
+            min(first[1], second[1]),
+            abs(first[0] - second[0]) + 1,
+            abs(first[1] - second[1]) + 1,
+        )
+        zoom, wide = crops_for(ctx, name, rect)
+        favoured = max((first, second), key=lambda c: (float(shares[c[1], c[0]]), -c[1], -c[0]))
+        calls.append(
+            SampleCall(
+                id=f"{ctx.key.id}:{to_registered_text(ctx, name)}",
+                member=member,
+                map=Path(ctx.spec.image).name,
+                panel=ctx.key.id,
+                style=style,
+                kind="passage_step",
+                category="passage",
+                item=to_registered_text(ctx, name[2:]),
+                zoom=zoom.name,
+                wide=wide.name,
+                readings=(Reading(reader="classifier", value=to_registered_text(ctx, f"{favoured[0]},{favoured[1]}")),),
+                settled=to_registered_text(ctx, call["value"]),
+                adversarial=to_registered_text(ctx, checks[name]["value"]) if name in checks else None,
+                reason=to_registered_text(ctx, call["reason"]),
+            )
+        )
+    for name in kept:
+        call = final[name]
+        kind = "cell" if name.startswith("c:") else "edge"
+        earlier = before.get(name, {}).get("value")
+        if earlier is None:
+            entry = items.cells.get(name[2:]) if kind == "cell" else items.edges.get(name[2:])
+            earlier = (entry["claude"] or [entry["classifier"]])[0] if entry else ("#" if kind == "cell" else "w")
+        zoom, wide = _crops(ctx, name)
+        calls.append(
+            SampleCall(
+                id=f"{ctx.key.id}:{to_registered_text(ctx, name)}",
+                member=member,
+                map=Path(ctx.spec.image).name,
+                panel=ctx.key.id,
+                style=style,
+                kind=kind,  # type: ignore[arg-type]
+                category="passage",
+                item=to_registered_text(ctx, name[2:]),
+                zoom=zoom.name,
+                wide=wide.name,
+                readings=(Reading(reader="classifier", value=earlier),),
+                settled=call["value"],
+                adversarial=None,
+                reason=call.get("passage_reason", ""),
+            )
+        )
+    return calls

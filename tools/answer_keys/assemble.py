@@ -408,6 +408,7 @@ def combine(
     resolve_with: Path | None,
     cases: list[str] | None = None,
     samples: list[Path] | None = None,
+    residuals: list[str] | None = None,
 ) -> dict[str, Any]:
     """Join the region documents of one member, resolve them, and write the key.
 
@@ -418,6 +419,7 @@ def combine(
             layer alone.
         cases: The conventions cases the key depends on, one line each.
         samples: The owner's sample files whose verdicts the provenance counts.
+        residuals: The floor the key leaves unreached from its level's entrance, one line each with its cause.
 
     Returns:
         A log: the regions joined and the resolver's outcome.
@@ -446,7 +448,7 @@ def combine(
     if resolve_with is None:
         save_geometry_truth(out, reading)
         log["resolved"] = False
-        log["provenance"] = str(write_provenance(keys, out, cases or [], False, samples))
+        log["provenance"] = str(write_provenance(keys, out, cases or [], False, samples, residuals=residuals))
         return log
     survey, contents, mapread = load_caches(resolve_with)
     try:
@@ -458,7 +460,7 @@ def combine(
     save_geometry_truth(out, canonical_form(resolved))
     log["resolved"] = True
     log["prose_joins"] = prose_joins(resolved, contents)
-    log["provenance"] = str(write_provenance(keys, out, cases or [], True, samples, log["prose_joins"]))
+    log["provenance"] = str(write_provenance(keys, out, cases or [], True, samples, log["prose_joins"], residuals))
     log["levels"] = [
         f"{d.id}/{level.number}: {level.verdict}" + (f" ({level.reason})" if level.reason else "")
         for d in resolved.dungeons
@@ -620,9 +622,10 @@ def write_provenance(
     resolved: bool,
     samples: list[Path] | None = None,
     joins: list[str] | None = None,
+    residuals: list[str] | None = None,
 ) -> Path:
     """Write `geometry-provenance.yaml` beside a key: what made it, which checks ran, what it cost, the owner's
-    sample, and the cases it depends on."""
+    sample, the cases it depends on, and the floor it leaves unreached with each cause."""
     figures = [map_figures(key) for key in keys]
     owner = sample_summary(samples or [], {key.id for key in keys})
     rechecked = [f["map"] for f in figures if f.get("rechecked")]
@@ -690,6 +693,9 @@ def write_provenance(
         lines.append(f"  - {json.dumps(case)}")
     if not cases:
         lines.append("  []")
+    if residuals:
+        lines.append("residuals:")
+        lines += [f"  - {json.dumps(line)}" for line in residuals]
     path = out.with_name("geometry-provenance.yaml")
     path.write_text("\n".join(lines) + "\n")
     return path

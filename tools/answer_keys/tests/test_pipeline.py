@@ -1064,15 +1064,24 @@ def test_a_door_across_a_corner_goes_through_the_step_cell_with_more_floor():
 def test_a_course_keeps_one_cell_per_step_and_the_cell_with_more_floor_at_a_corner():
     from tools.answer_keys.kept import _chain
 
-    # Region one is 0,0; region two is 2,1. The course runs from 0,0 east along row 0 and crosses the corner at 2,1's
-    # north-west: the step cells are 1,1 and 2,0, and 2,0 has more floor.
-    line = [(0.5, 0.5), (1.0, 0.5), (1.5, 0.5), (1.9, 0.9), (2.0, 1.0), (2.1, 1.1), (2.5, 1.5)]
+    # Region one is 0,0; region two is 2,1. The passage covers 1,0 and turns across the corner at 2,1's north-west,
+    # covering both step cells, 1,1 and 2,0; 2,0 has more floor.
+    covered = {(0, 0), (1, 0), (2, 0), (1, 1), (2, 1)}
     shares = {(1, 0): 0.4, (2, 0): 0.35, (1, 1): 0.2}
-    chain = _chain(line, {(0, 0)}, {(2, 1)}, set(), lambda cell: shares.get(cell, 0.0), (0, 0, 4, 3))
+    chain = _chain(dict.fromkeys(covered, 0.5), {(0, 0)}, {(2, 1)}, set(), lambda cell: shares.get(cell, 0.0))
     assert chain == [(0, 0), (1, 0), (2, 0), (2, 1)]
     # Barring the step cell with more floor, as a settled close call does, takes the other.
-    barred = _chain(line, {(0, 0)}, {(2, 1)}, {(2, 0)}, lambda cell: shares.get(cell, 0.0), (0, 0, 4, 3))
+    barred = _chain(dict.fromkeys(covered, 0.5), {(0, 0)}, {(2, 1)}, {(2, 0)}, lambda cell: shares.get(cell, 0.0))
     assert barred == [(0, 0), (1, 0), (1, 1), (2, 1)]
+    # A passage covering two cells side by side along its course keeps the run with more floor.
+    along = {(0, 0), (0, 1), (1, 0), (2, 0), (1, 1), (2, 1), (3, 0), (3, 1)}
+    more = {(1, 0): 0.3, (2, 0): 0.3, (1, 1): 0.4, (2, 1): 0.45}
+    assert _chain(dict.fromkeys(along, 0.5), {(0, 0), (0, 1)}, {(3, 0), (3, 1)}, set(), lambda c: more.get(c, 0.0)) == [
+        (0, 1),
+        (1, 1),
+        (2, 1),
+        (3, 1),
+    ]
 
 
 def test_a_framed_map_writes_its_key_on_the_registered_grid():

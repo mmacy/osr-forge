@@ -579,11 +579,18 @@ def region_item(ctx: MapContext, level: str, cells: list[tuple[int, int]], note:
         rects = [r for r in answer.get("rects", []) if len(r) == 4]
         if any(rx <= x < rx + rw and ry <= y < ry + rh for rx, ry, rw, rh in rects for x, y in group):
             covering.append(level_id(answer["dungeon"], answer["level"]))
-    options = [*dict.fromkeys([level, *covering]), "outside"]
     earlier: dict[str, list[str]] = {}
     for name, call in final_values(ctx).items():
         if name.startswith("o:") and parse_cell(name[2:].split("|")[0]) in group:
             earlier.setdefault(call["value"].strip(), []).append(name[2:].split("|")[0])
+    # Every level the group could be: the outlines over it, the earlier calls on its cells, and the levels of the
+    # keys printed near it.
+    near = [
+        text.rsplit("(", 1)[1].rstrip(")")
+        for text in keys_near(ctx, load_items(ctx), (xs[0], ys[0])).split("; ")
+        if text.endswith(")")
+    ]
+    options = [*dict.fromkeys([level, *covering, *(v for v in earlier if v != "outside"), *near]), "outside"]
     readings = [
         ("the whole-map read", f"the outlines of {', '.join(covering) or 'no level'} cover cells of the group"),
         ("the survey's keys", f"printed near the group: {keys_near(ctx, load_items(ctx), (xs[0], ys[0]))}"),
@@ -622,7 +629,17 @@ def submit_region(
     prefix = f"{ctx.key.id}__recheck__zregion"
     number = sum(1 for custom_id in store.job_ids() if custom_id.startswith(prefix) and not custom_id.endswith("__r"))
     custom_id = f"{prefix}{number:03d}"
-    store.add_job(custom_id, _request(ctx, [item], RECHECK_SYSTEM, SCHEMA, False), {"map": ctx.key.id, "items": [item]})
+    # A group asked again supersedes every earlier asking of it.
+    supersedes = [
+        job_id
+        for job_id in store.job_ids()
+        if any(asked["id"] == item["id"] for asked in store.job(job_id)["meta"]["items"])
+    ]
+    store.add_job(
+        custom_id,
+        _request(ctx, [item], RECHECK_SYSTEM, SCHEMA, False),
+        {"map": ctx.key.id, "items": [item], "supersedes": supersedes},
+    )
     return store.submit(client, ledger, f"recheck region {ctx.key.id}", ids=[custom_id]), 1
 
 

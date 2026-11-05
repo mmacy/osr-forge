@@ -1,18 +1,20 @@
 """The passage rule applied to a settled reading: the cells a drawn passage keeps.
 
 `docs/tracing-conventions.md`, Cells and edges: a passage drawn as floor that joins two floor regions of a level,
-which the cells would otherwise leave apart, stays joined when it's at least a sixth of a cell wide at its narrowest.
-It keeps one cell at each step of its course: the cell the course runs through, or, along the line between two cells
-or across a corner, the one with more floor, the first in page order on a tie. Kept cells are floor, and each shares
-an open edge with the next. A door drawn across a corner stands on the step cell's edge with whichever of the two
-floor cells comes first in page order.
+which the half-floor rule leaves apart, stays joined when it's at least a sixth of a cell wide at its narrowest. Each
+passage is judged on its own, so a second passage between the same two regions stays joined too. It keeps a chain of
+cells along its course, each sharing an open edge with the next: where it covers one cell across its course, that
+cell; where it covers two cells side by side across its course, or turns across a corner, the one with more floor,
+the first in page order on a tie. A door drawn across a corner, with floor drawn through the corner, stands on the
+step cell's edge with whichever of the two floor cells comes first in page order.
 
-`level_chains` finds, for one level, every pair of its floor regions (components across passable edges) that a
-passage joins on its own, with no other region on the way, and the chain of cells the passage keeps between them.
-The course is the passage's centre line, the path through the passable samples that keeps furthest from their edges.
-The chain is the shortest four-connected run of cells along the course, and of runs equally short, the one with the
-most floor, so at each step the cell with more floor is kept. A step whose two candidates have nearly equal floor is
-marked close, for the settler.
+`level_chains` finds, for one level, each passage between two of its floor regions (components across passable
+edges) with no other region on the way, widest first, and the chain of cells it keeps. A passage's body is the drawn
+floor its course runs through: the samples within its clearance of the centre line, the path through the passable
+samples that keeps furthest from their edges. The cells the body covers are the chain's candidates, and the chain is
+the shortest four-connected run of them from one region to the other, and of runs equally short, the one with the
+most floor. A step whose two candidates have nearly equal floor is marked close, for the settler. Once a passage is
+found, its body is closed to the next, which must run elsewhere.
 """
 
 import heapq
@@ -44,8 +46,11 @@ NARROWEST = 1 / 6
 CLOSE = 0.1
 """Two step cells whose floor shares differ by less than this are a close call."""
 
-NEAR_LINE = 0.15
-"""How near a cell line, as a share of the pitch, the course runs for the cells on both sides to be candidates."""
+COVER = 1 / 12
+"""The least share of a cell a passage's body must cover for the cell to count as one it covers."""
+
+PASSAGES = 4
+"""The most passages looked for between one pair of regions."""
 
 _SIDES = {(1, 0): "east", (-1, 0): "west", (0, 1): "south", (0, -1): "north"}
 
@@ -115,40 +120,39 @@ def _centre_line(allowed: np.ndarray, sources: np.ndarray, targets: np.ndarray) 
 
 
 def _chain(
-    line: list[tuple[float, float]],
+    cover: dict[tuple[int, int], float],
     one: set[tuple[int, int]],
     other: set[tuple[int, int]],
     barred: set[tuple[int, int]],
     share: Any,
-    window: tuple[int, int, int, int],
 ) -> list[tuple[int, int]]:
-    """The cells a course keeps, from the cell of `one` it leaves to the cell of `other` it enters: the shortest
-    four-connected run of cells along the course between them, and of runs equally short the one with the most floor,
-    so where the course runs along a cell line or crosses a corner the cell with more floor is kept. Ties go to the
-    run first in page order."""
-    x0, y0, width, height = window
+    """The cells a passage keeps, from a cell of `one` to a cell of `other`: the shortest four-connected run through
+    the cells its body covers, and of runs equally short the one with the most floor, so where the passage covers two
+    cells side by side or turns across a corner the cell with more floor is kept. Ties go to the run first in page
+    order.
 
-    def cell_of(point: tuple[float, float]) -> tuple[int, int]:
-        return (int(np.floor(point[0])), int(np.floor(point[1])))
+    `cover` gives each cell the share of it the passage's body covers: a cell outside both regions is a candidate
+    when the share is at least `COVER`, and a region's cell is an end of the run when the body touches it at all."""
+    covered = {cell for cell, part in cover.items() if part >= COVER}
+    touched = {cell for cell, part in cover.items() if part > 0}
+    ends_too = touched & (one | other)
+    # Where the passage turns across a corner, both step cells are candidates, however little of either it covers.
+    steps = {
+        step
+        for x, y in covered | ends_too
+        for dx, dy in ((1, 1), (1, -1))
+        if (x + dx, y + dy) in covered | ends_too
+        for step in ((x + dx, y), (x, y + dy))
+    }
+    candidates = {cell for cell in covered | steps if cell not in one and cell not in other} - barred
 
-    exit_at = max(index for index, point in enumerate(line) if cell_of(point) in one)
-    entry_at = next(index for index in range(exit_at, len(line)) if cell_of(line[index]) in other)
+    def beside(cell: tuple[int, int], cells: set[tuple[int, int]]) -> bool:
+        return any((cell[0] + dx, cell[1] + dy) in cells for dx, dy in _SIDES)
 
-    def near(point: tuple[float, float]) -> set[tuple[int, int]]:
-        """The cell a point lies in, with the cells across any cell line within `NEAR_LINE` of it."""
-        u, v = point
-        cx, cy = int(np.floor(u)), int(np.floor(v))
-        xs = [cx] + ([cx - 1] if u - cx < NEAR_LINE else []) + ([cx + 1] if cx + 1 - u < NEAR_LINE else [])
-        ys = [cy] + ([cy - 1] if v - cy < NEAR_LINE else []) + ([cy + 1] if cy + 1 - v < NEAR_LINE else [])
-        return {(x, y) for x in xs for y in ys}
-
-    starts = (near(line[exit_at]) & one) or {cell_of(line[exit_at])}
-    ends = (near(line[entry_at]) & other) or {cell_of(line[entry_at])}
-    candidates: set[tuple[int, int]] = set()
-    for point in line[exit_at : entry_at + 1]:
-        candidates |= {cell for cell in near(point) if cell not in one and cell not in other}
-    candidates = {c for c in candidates - barred if x0 <= c[0] < x0 + width and y0 <= c[1] < y0 + height}
-    candidates |= starts | ends
+    ends_of_other = {cell for cell in touched & other if beside(cell, candidates | (touched & one))}
+    starts = {cell for cell in touched & one if beside(cell, candidates | ends_of_other)}
+    ends = {cell for cell in ends_of_other if beside(cell, candidates | starts)}
+    nodes = candidates | starts | ends
     # Length first, then floor: a kept cell costs one step plus a small charge for the floor it lacks, and the page
     # order of the run breaks what remains.
     best: dict[tuple[int, int], tuple[float, tuple]] = {}
@@ -168,7 +172,7 @@ def _chain(
             break
         for dx, dy in _SIDES:
             nxt = (cell[0] + dx, cell[1] + dy)
-            if nxt not in candidates or nxt in starts:
+            if nxt not in nodes or nxt in starts:
                 continue
             total = spent + 1.0 + 0.001 * (1.0 - share(nxt))
             key = (total, (*order, (nxt[1], nxt[0])))
@@ -182,6 +186,19 @@ def _chain(
     while chain[-1] not in starts:
         chain.append(parent[chain[-1]])
     return chain[::-1]
+
+
+def _body(centre: list[tuple[int, int]], depth: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+    """The samples within each centre-line sample's clearance of it: the drawn floor the course runs through."""
+    body = np.zeros(shape, dtype=bool)
+    rows, columns = np.mgrid[0 : shape[0], 0 : shape[1]]
+    for y, x in centre[:: max(1, len(centre) // 400)] + centre[-1:]:
+        radius = float(depth[y, x])
+        y0, y1 = max(0, int(y - radius) - 1), min(shape[0], int(y + radius) + 2)
+        x0, x1 = max(0, int(x - radius) - 1), min(shape[1], int(x + radius) + 2)
+        block = (rows[y0:y1, x0:x1] - y) ** 2 + (columns[y0:y1, x0:x1] - x) ** 2 <= radius**2
+        body[y0:y1, x0:x1] |= block
+    return body
 
 
 def level_regions(
@@ -229,7 +246,8 @@ def level_chains(
         settled: Close calls the settler has answered: each pair of cells, to the one with more floor.
 
     Returns:
-        One chain for each pair of regions that a passage at least `NARROWEST` wide joins on its own.
+        One chain for each passage at least `NARROWEST` wide that joins two regions on its own, up to `PASSAGES`
+        between one pair.
     """
     owner = {cell: index for index, region in enumerate(regions) for cell in region}
     winners = set((settled or {}).values())
@@ -261,17 +279,6 @@ def level_chains(
             grow = np.ones((res, res), dtype=bool)
             samples = np.kron(index, grow)
             allowed = mask & ~np.kron(off, grow) & ((samples == -1) | (samples == a) | (samples == b))
-            depth, path = widest_path(allowed, allowed & (samples == a), allowed & (samples == b))
-            if not path:
-                continue
-            width = (2 * depth - 1) / res
-            if width < NARROWEST:
-                continue
-            # The course keeps to the widest passage: its centre line runs through samples at least as clear as
-            # the passage's narrowest point.
-            wide = allowed & (clearance(allowed) >= depth)
-            centre = _centre_line(wide, wide & (samples == a), wide & (samples == b))
-            line = [(x0 + (x + 0.5) / res, y0 + (y + 0.5) / res) for y, x in centre]
             shares_window = floor_shares(ctx, window)
 
             def share(cell: tuple[int, int], shares_window=shares_window, x0=x0, y0=y0) -> float:
@@ -286,57 +293,59 @@ def level_chains(
                 return float(shares_window[cell[1] - y0, cell[0] - x0])
 
             others = set().union(*(region for number, region in enumerate(regions) if number not in (a, b)))
-            # A close call the settler answered decides it: the other cell is no step of any course.
-            chain = _chain(line, regions[a], regions[b], barred | others | losers, share, window)
-            if len(chain) < 2:
-                continue
-            if any(
-                letter(first, _SIDES[(second[0] - first[0], second[1] - first[1])]) == "n"
-                for first, second in pairwise(chain)
-            ):
-                # A window is a wall: the white inside its symbol is no passage.
-                continue
-            kept = chain[1:-1]
-            close = []
-            for index in range(1, len(chain) - 1):
-                cell, before, after = chain[index], chain[index - 1], chain[index + 1]
-                if before[0] != after[0] and before[1] != after[1]:
-                    # A corner: the other step cell is the alternative.
-                    alternatives = [(before[0] + after[0] - cell[0], before[1] + after[1] - cell[1])]
-                else:
-                    # A straight run: the cells beside it across a line the course runs near.
-                    dx, dy = after[0] - before[0], after[1] - before[1]
-                    alternatives = [(cell[0] + dy // 2, cell[1] + dx // 2), (cell[0] - dy // 2, cell[1] - dx // 2)]
-                for alternative in alternatives:
-                    if alternative in chain or alternative in barred or alternative in others:
-                        continue
-                    if alternative in regions[a] or alternative in regions[b]:
-                        continue
-                    if not (x0 <= alternative[0] < x1 and y0 <= alternative[1] < y1):
-                        continue
-                    line_x = max(cell[0], alternative[0]) if alternative[0] != cell[0] else None
-                    line_y = max(cell[1], alternative[1]) if alternative[1] != cell[1] else None
-                    near = any(
-                        (line_x is None or abs(u - line_x) < NEAR_LINE)
-                        and (line_y is None or abs(v - line_y) < NEAR_LINE)
-                        and abs(u - (cell[0] + 0.5)) <= 1.0
-                        and abs(v - (cell[1] + 0.5)) <= 1.0
-                        for u, v in line
+            for _passage in range(PASSAGES):
+                depth, path = widest_path(allowed, allowed & (samples == a), allowed & (samples == b))
+                if not path:
+                    break
+                width = (2 * depth - 1) / res
+                if width < NARROWEST:
+                    break
+                # The course keeps to the widest passage: its centre line runs through samples at least as clear as
+                # the passage's narrowest point.
+                clear = clearance(allowed)
+                wide = allowed & (clear >= depth)
+                centre = _centre_line(wide, wide & (samples == a), wide & (samples == b))
+                body = _body(centre, clear, allowed.shape) & allowed
+                parts = body.reshape(y1 - y0, res, x1 - x0, res).mean(axis=(1, 3))
+                cover = {
+                    (x0 + int(column), y0 + int(row)): float(parts[row, column])
+                    for row, column in zip(*np.nonzero(parts > 0), strict=True)
+                }
+                covered = {cell for cell, part in cover.items() if part >= COVER}
+                # The next passage runs elsewhere: this one's body is closed to it.
+                allowed = allowed & ~body
+                # A close call the settler answered decides it: the other cell is no step of any course.
+                chain = _chain(cover, regions[a], regions[b], barred | others | losers, share)
+                if len(chain) < 2:
+                    continue
+                if any(
+                    letter(first, _SIDES[(second[0] - first[0], second[1] - first[1])]) == "n"
+                    for first, second in pairwise(chain)
+                ):
+                    # A window is a wall: the white inside its symbol is no passage.
+                    continue
+                kept = chain[1:-1]
+                close = []
+                for cell in kept:
+                    for dx, dy in _SIDES:
+                        alternative = (cell[0] + dx, cell[1] + dy)
+                        if alternative in chain or alternative not in covered:
+                            continue
+                        if alternative in barred or alternative in others or alternative in regions[a] | regions[b]:
+                            continue
+                        pair = frozenset((cell, alternative))
+                        if abs(drawn(cell) - drawn(alternative)) < CLOSE and pair not in (settled or {}):
+                            close.append((cell, alternative))
+                chains.append(
+                    Chain(
+                        regions=(a, b),
+                        width=round(width, 2),
+                        cells=chain,
+                        shares={cell: round(drawn(cell), 2) for cell in kept},
+                        close=close,
+                        doors=_corner_doors(chain, letter),
                     )
-                    pair = frozenset((cell, alternative))
-                    if near and abs(drawn(cell) - drawn(alternative)) < CLOSE and pair not in (settled or {}):
-                        close.append((cell, alternative))
-            doors = _corner_doors(chain, letter)
-            chains.append(
-                Chain(
-                    regions=(a, b),
-                    width=round(width, 2),
-                    cells=chain,
-                    shares={cell: round(drawn(cell), 2) for cell in kept},
-                    close=close,
-                    doors=doors,
                 )
-            )
     return chains
 
 
@@ -365,16 +374,18 @@ def _corner_doors(chain: list[tuple[int, int]], letter: Any) -> dict[str, str]:
 
 
 def corner_doors(
-    floor: Any, letter: Any, share: Any, cells: list[tuple[int, int]]
+    floor: Any, letter: Any, share: Any, cells: list[tuple[int, int]], through: Any = None
 ) -> list[tuple[tuple[int, int], dict[str, str], dict[str, str]]]:
-    """Each door drawn across the corner where two floor cells meet, its step cells both rock: the chain through the
-    step cell with more floor, the first in page order on a tie.
+    """Each door drawn across the corner where two floor cells meet, with floor drawn through the corner, its step
+    cells both rock: the chain through the step cell with more floor, the first in page order on a tie.
 
     Args:
         floor: Whether a cell is floor, as `floor((x, y))`.
         letter: The settled letter of an edge, as `letter((x, y), side)`.
         share: A cell's share drawn as floor, as `share((x, y))`.
         cells: The cells to look at, each taken as a corner square's north-west cell.
+        through: Whether floor is drawn through the corner between two floor cells, as `through(one, other)`;
+            every corner when `None`.
 
     Returns:
         For each such door, the step cell kept, the edges it sets (`x,y:side` to a letter: the door on the step
@@ -396,7 +407,7 @@ def corner_doors(
                     if letter(cell, side) in "dls":
                         door = letter(cell, side)
                         moved[f"{cell[0]},{cell[1]}:{side}"] = "w"
-            if door is None:
+            if door is None or (through is not None and not through(one, other)):
                 continue
             step = max(steps, key=lambda c: (share(c), -c[1], -c[0]))
             first, second = sorted((one, other), key=lambda c: (c[1], c[0]))
@@ -506,7 +517,11 @@ def passage_calls(resolver: Any, contexts: dict[str, MapContext]) -> dict[str, d
                         }
             squares = sorted({(x + dx, y + dy) for x, y in mine for dx in (0, -1) for dy in (0, -1)})
             for step, sets, walls in corner_doors(
-                floor, letter, lambda c, shares=shares: float(shares[c[1], c[0]]), squares
+                floor,
+                letter,
+                lambda c, shares=shares: float(shares[c[1], c[0]]),
+                squares,
+                lambda one, other, ctx=ctx: _through_corner(ctx, one, other),
             ):
                 reason = "a door drawn across the corner where two floor cells meet"
                 calls[f"c:{step[0]},{step[1]}"] = {
@@ -523,6 +538,32 @@ def passage_calls(resolver: Any, contexts: dict[str, MapContext]) -> dict[str, d
                         "reason": reason,
                     }
     return out
+
+
+def _through_corner(ctx: MapContext, one: tuple[int, int], other: tuple[int, int], res: int = 24) -> bool:
+    """Whether floor is drawn through the corner where two cells meet, at least `NARROWEST` wide: paper, with the
+    lines drawn across it, a door's among them, inside the two cells' square."""
+    from .ink import box_max, box_min, channel_image, close, sample
+    from .passages import LINE_REACH
+
+    levels = ctx.spec.levels
+    gray = channel_image(ctx.rgb, levels.channel)
+    drawn = close(gray >= levels.paper_min, LINE_REACH)
+    if levels.fill is not None:
+        fill = (gray >= levels.fill[0]) & (gray <= levels.fill[1])
+        drawn &= ~box_max(box_min(fill, 2), 2)
+    x0, y0 = min(one[0], other[0]), min(one[1], other[1])
+    across = x0 + (np.arange(2 * res) + 0.5) / res
+    down = y0 + (np.arange(2 * res) + 0.5) / res
+    gx, gy = np.meshgrid(across, down)
+    px, py = ctx.fit.corners(gx, gy)
+    mask = sample(drawn.astype(float), px, py) > 0.5
+    first, second = np.zeros((2, 2), dtype=bool), np.zeros((2, 2), dtype=bool)
+    first[one[1] - y0, one[0] - x0] = True
+    second[other[1] - y0, other[0] - x0] = True
+    grow = np.ones((res, res), dtype=bool)
+    depth, path = widest_path(mask, np.kron(first, grow) & mask, np.kron(second, grow) & mask)
+    return bool(path) and (2 * depth - 1) / res >= NARROWEST
 
 
 def _edge_name(cell: tuple[int, int], side: str, width: int, height: int) -> str:
