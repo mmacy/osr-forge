@@ -126,7 +126,8 @@ def fault_picture(
         if len(ends) == 2:
             _dashed(draw, ends[0], ends[1], max(3, round(pitch / 10)))  # type: ignore[arg-type]
     marked = Image.alpha_composite(overlay, layer)
-    box = _bounds(corners, [region_cell(c) for c in to_panel] if to_panel else [], pitch, overlay.size)
+    own = [(x, y) for y, row in enumerate(level.cells) for x, letter in enumerate(row) if letter in ".~"]
+    box = _bounds(corners, [region_cell(c) for c in own], pitch, overlay.size)
     left, right = overlay.crop(box), marked.crop(box)
     width, height = left.size
     banner = 40
@@ -160,7 +161,7 @@ def _dashed(draw: ImageDraw.ImageDraw, start: tuple[float, float], end: tuple[fl
 def _bounds(
     corners: np.ndarray, cells: Sequence[tuple[int, int] | None], pitch: float, size: tuple[int, int]
 ) -> tuple[int, int, int, int]:
-    """The pixel box of the level's cells on the region, with a cell's margin, or the whole region's grid."""
+    """The pixel box of the level's floor and water on the region, with a cell's margin, or the region's whole grid."""
     cells = [cell for cell in cells if cell is not None]
     if cells:
         points = np.array(

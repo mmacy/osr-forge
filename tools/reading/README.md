@@ -202,6 +202,7 @@ The report gives the following:
 - The same families per member and pooled by style, real maps apart from synthetic ones.
 - Whether each level *needs no repair*: no unreachable area, no cut-off floor, no door without floor, and a dungeon that can be walked from its entrance. A bypass or a dispute changes no geometry, so it's reported and doesn't count. The answer key's own checks are given beside the trace's, because the keys fail some of them.
 - Claude requests and Claude and Clef dollars per level. A whole-page read's are shared evenly by the levels its page lists, and a map's items and Clef questions by the levels whose read outline holds them. A stored answer counts at what it cost when it was asked.
+- How each member resolved. When the reference script meets a case the conventions give no answer for, the level the case names falls back and the rest resolve again, and the report names each case.
 
 Run it from the osr-forge checkout, with the commercial files added as in "Run it" and `S` the settings file:
 
@@ -216,6 +217,15 @@ uv run python -m tools.reading.full_run --settings $S --out $R/full-run --maps t
 - `--clef local` fills the Clef store from local Clef-flash, `--clef hosted` from hosted Clef-flash within the settings' spend, and `--clef fake` from the answer key.
 - `--claude live` asks Claude within the cap and needs `OSRFORGE_CLAUDE_LEDGER`. `--claude fake` answers from the answer key, so its scores measure the run's plumbing and the ink, not Claude.
 - `--pictures` draws milestone 1's levels into `pictures/`.
+- `--claude-for <member>` keeps Claude to the named members, so a run within the cap can take the members in an order. Run every member together all the same: each style's calibration is fitted on every member's maps of that style, so a run on fewer members reads with another calibration.
+
+What the dry run found, with every stored answer and the Clef store filled from local Clef-flash:
+
+- Claude still needs 330 requests, and the cap leaves 222. The real maps need 123 item requests, since their whole-page reads and the offset picks are stored. The synthetic maps need 29 whole-page reads and 178 item requests, 109 of them on the nine black-and-white maps.
+- The ink leaves 15% to 37% of a real map's cells unsettled. Ink inside a cell is the largest reason on six of the seven real maps. It leaves 20% to 39% of a synthetic TSR blue map's, mostly because their faint grid fails the two-sides test, and 91% to 97% of a synthetic black-and-white map's, where hatched rock also reads as partly floor.
+- The whole-page request answers each level on one region, so a level drawn on two regions of one page (the synthetic shrine and watchtower) keeps an outline on one of them only.
+- Each synthetic map whose halves stay apart shares its halves' images with its joined twin, so one offset pick can't be right for both.
+- The answer keys fail some checks themselves: 11 of the 16 real levels have a fault a repair would change, such as floor beyond the manor's moat, which the walk never crosses. Every synthetic answer passes.
 
 ## The settings
 
