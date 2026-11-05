@@ -721,10 +721,10 @@ def test_pixel_count_text_gives_the_cell_and_its_neighbours_in_percent():
 def test_a_recheck_sample_id_names_the_same_call():
     from tools.answer_keys.recheck import RECHECK_MARK, sample_call_id
 
-    assert sample_call_id("m1:c:2,3") == ("m1", "c:2,3")
-    assert sample_call_id(f"m1:c:2,3{RECHECK_MARK}") == ("m1", "c:2,3")
-    assert sample_call_id(f"m:e:9,13:west{RECHECK_MARK}") == ("m", "e:9,13:west")
-    assert sample_call_id("p:m:23,36|39") == ("p", "m:23,36|39")
+    assert sample_call_id("jn1-p038:c:44,79") == ("jn1-p038", "c:44,79")
+    assert sample_call_id(f"jn1-p038:c:44,79{RECHECK_MARK}") == ("jn1-p038", "c:44,79")
+    assert sample_call_id(f"jn1-p038:e:15,50:west{RECHECK_MARK}") == ("jn1-p038", "e:15,50:west")
+    assert sample_call_id("jn1-p038:m:10,62|15") == ("jn1-p038", "m:10,62|15")
 
 
 def test_a_label_note_goes_with_the_edges_around_the_cells_its_readings_name():
@@ -1161,6 +1161,236 @@ def test_a_framed_map_writes_its_key_on_the_registered_grid():
     assert cropped.outlines[0].seeds == ("1,1",)
     assert cropped.symbols[0].cells == ("0,0",)
     # Call names move their cells; a group call moves its corner only; a cell address may end a sentence.
-    assert shift_text("e:4,5:north", 0, -5) == "e:4,0:north"
+    assert shift_text("e:26,33:west", 0, -5) == "e:26,28:west"
     assert shift_text("r:49,15,7,15|crypt/1", 0, -5) == "r:49,10,7,15|crypt/1"
     assert shift_text("so cell 13,10.", 0, -3) == "so cell 13,7."
+
+
+def _scratch_ledger(tmp_path, stop):
+    import json
+
+    from osrforge.providers.ledger import Ledger
+
+    path = tmp_path / "ledger.json"
+    path.write_text(json.dumps({"stop_usd": stop, "limit_usd": stop, "spent_usd": 0.0, "entries": []}))
+    return path, Ledger(path, cost_key="cost_usd")
+
+
+def _job_params():
+    return {"model": "claude-sonnet-5-5", "max_tokens": 1000, "messages": [{"role": "user", "content": "x"}]}
+
+
+def test_a_collect_that_stops_partway_never_settles_a_job_twice(tmp_path):
+    import json
+    from types import SimpleNamespace
+
+    import pytest
+    from tools.answer_keys.batches import BatchStore, batch_cost
+
+    path, ledger = _scratch_ledger(tmp_path, 10.0)
+    store = BatchStore(tmp_path / "store")
+    for number in range(3):
+        store.add_job(f"j{number}", _job_params(), {})
+    usage = {"input_tokens": 1000, "output_tokens": 100}
+
+    def result(custom_id):
+        message = SimpleNamespace(model_dump=lambda mode: {"usage": usage, "stop_reason": "end_turn"})
+        return SimpleNamespace(custom_id=custom_id, result=SimpleNamespace(type="succeeded", message=message))
+
+    stream = {"stop_after": 2}
+
+    def results(_batch_id):
+        for number in range(3):
+            if number == stream["stop_after"]:
+                raise ConnectionError("the results stream broke")
+            yield result(f"j{number}")
+
+    batches = SimpleNamespace(
+        create=lambda requests: SimpleNamespace(id="b1"),
+        retrieve=lambda _batch_id: SimpleNamespace(processing_status="ended"),
+        results=results,
+    )
+    client = SimpleNamespace(messages=SimpleNamespace(batches=batches))
+    store.submit(client, ledger, "test")
+    with pytest.raises(ConnectionError):
+        store.collect(client, ledger)
+    stream["stop_after"] = None
+    assert store.collect(client, ledger)["answered"] == 3
+    # Every job is settled once, at its answer's cost, and nothing stays reserved.
+    written = json.loads(path.read_text())
+    assert written["spent_usd"] == round(3 * batch_cost("claude-sonnet-5-5", usage), 6)
+    assert all("pending" not in entry for entry in written["entries"])
+
+
+def test_a_refused_reservation_releases_the_group_s_earlier_ones(tmp_path):
+    import json
+
+    import pytest
+    from tools.answer_keys.batches import BatchStore, worst_case
+
+    from osrforge.errors import LedgerStopError
+
+    one = worst_case(_job_params())
+    # The stop leaves room for two jobs' worst cases and not three.
+    path, ledger = _scratch_ledger(tmp_path, round(2.5 * one, 6))
+    store = BatchStore(tmp_path / "store")
+    for number in range(3):
+        store.add_job(f"j{number}", _job_params(), {})
+    with pytest.raises(LedgerStopError):
+        store.submit(object(), ledger, "test")
+    written = json.loads(path.read_text())
+    assert written["spent_usd"] == 0.0
+    assert all("pending" not in entry for entry in written["entries"])
+    assert store.pending() == ["j0", "j1", "j2"]
+
+
+def _sample_call(call_id, panel):
+    from tools.answer_keys.sample import SampleCall
+
+    return SampleCall(
+        id=call_id,
+        member="jn1-chaotic-caves",
+        map=f"{panel}.png",
+        panel=panel,
+        style="dark_rock",
+        kind="cell",
+        category="cave",
+        item=call_id.split(":", 2)[2],
+        zoom="a.png",
+        wide="b.png",
+        readings=({"reader": "classifier", "value": "#"},),  # type: ignore[arg-type]
+        settled="#",
+    )
+
+
+def test_the_sample_summary_says_pending_until_every_call_is_judged(tmp_path):
+    from tools.answer_keys.assemble import sample_summary
+    from tools.answer_keys.sample import SampleSet
+
+    sample = tmp_path / "dark_rock.json"
+    calls = (_sample_call("jn1-p021-cave:c:25,10", "jn1-p021-cave"), _sample_call("jn1-p038:c:44,79", "jn1-p038"))
+    sample.write_text(json.dumps(SampleSet(calls=calls).model_dump(mode="json")))
+    assert sample_summary([sample], {"jn1-p021-cave"}) == ("dark_rock.json, 1 call, pending", 0)
+    assert sample_summary([sample], {"other"}) == ("", 0)
+    verdict = {"call": "jn1-p038:c:44,79", "settled": "#", "verdict": "wrong", "note": ""}
+    (tmp_path / "dark_rock.verdicts.json").write_text(json.dumps({"verdicts": [verdict]}))
+    assert sample_summary([sample], {"jn1-p021-cave", "jn1-p038"}) == (
+        "dark_rock.json, 2 calls, pending with 1 judged: 0 right, 1 wrong, 0 unsure",
+        1,
+    )
+
+
+def test_the_provenance_states_the_licence_the_pending_sample_and_the_ledgers_charges(tmp_path, monkeypatch):
+    from tools.answer_keys.assemble import write_provenance
+
+    maps = Path(__file__).parents[1] / "maps.json"
+    keys = [
+        KeySpec(
+            id=map_id, specs=maps, member="jn1-chaotic-caves", style_note="", work=tmp_path, key=tmp_path / "g.json"
+        )
+        for map_id in ("jn1-p021-cave", "jn1-p038")
+    ]
+    clef = tmp_path / "jn1-p021-cave" / "clef"
+    clef.mkdir(parents=True)
+    (clef / "answers-hosted.jsonl").write_text("".join(json.dumps({"cost_usd": 0.01}) + "\n" for _ in range(7)))
+    (clef / "errors.jsonl").write_text("".join(json.dumps({"error": "HTTP 401"}) + "\n" for _ in range(3)))
+    ledger = tmp_path / "clef-ledger.json"
+    entry = {"date": "2026-11-02", "what": "answer-keys jn1-p021-cave 2026-11-02", "requests": 10, "usd": 0.5}
+    other = {"date": "2026-11-02", "what": "answer-keys another-map 2026-11-02", "requests": 4, "usd": 9.0}
+    ledger.write_text(json.dumps({"stop_usd": 8.0, "spent_usd": 9.5, "entries": [{**entry, "pending": 2}, other]}))
+    monkeypatch.setenv("OSRFORGE_CLEF_LEDGER", str(ledger))
+    path = write_provenance(
+        keys,
+        tmp_path / "geometry.json",
+        ["13 and 14: passages"],
+        True,
+        joins=["cave-of-horrors/1: 12 of 12 prose joins made"],
+        residuals=["cave-of-horrors/1: cell 1,1, walled on every side"],
+        reach=["cave-of-horrors/1: 231 of 231 floor cells reached; every area reached"],
+        license_text="CC BY-SA 4.0.",
+    )
+    text = " ".join(line.strip() for line in path.read_text().splitlines())
+    assert "license: >- CC BY-SA 4.0. The key is adapted from the maps on pages 21 and 38." in text
+    assert "(tools/answer_keys/sample_app.py): pending, none drawn." in text
+    assert "spend_usd: {claude: 0.0000, clef: 0.5000}" in text
+    assert (
+        "10 requests, of which the 7 answers kept beside the key cost $0.0700, 3 failed and were charged at their "
+        "estimates, and 2 reservations were never settled." in text
+    )
+    for heading in ("prose_joins:", "reach:", "cases:", "residuals:"):
+        assert heading in path.read_text().splitlines()
+
+
+def _region_reading(region_id, page):
+    from osrforge.tracing.truth import (
+        Compass,
+        Dungeon,
+        EdgeGrids,
+        GeometryTruth,
+        Legend,
+        Level,
+        Page,
+        PageImage,
+        Panel,
+        PanelRegion,
+        Region,
+        Registration,
+        Scale,
+    )
+
+    corners = tuple(tuple((float(x * 10), float(y * 10)) for x in range(2)) for y in range(2))
+    region = Region(
+        id=region_id,
+        page=page,
+        image=f"{region_id}.png",
+        style="black_white",
+        columns=1,
+        rows=1,
+        scale=Scale(feet=10, printed=True),
+        compass=Compass(north="top", printed=True),
+        legend=Legend(printed=True),
+        verdict="registered",
+        registration=Registration(corners=corners),
+    )
+    panel = Panel(
+        id=region_id,
+        regions=(PanelRegion(region=region_id, origin=(0, 0)),),
+        scale_feet=10,
+        cells=(".",),
+        edges=EdgeGrids(vertical=("ww",), horizontal=("w", "w")),
+    )
+    pages = (Page(number=page, images=(PageImage(file=f"{region_id}.png"),)),)
+    dungeon = Dungeon(id="d", name="d", levels=(Level(number=1, verdict="fallback", reason="reading only"),))
+    return GeometryTruth(pages=pages, regions=(region,), panels=(panel,), dungeons=(dungeon,))
+
+
+def test_combine_writes_regions_in_spec_order_and_keeps_the_key_on_a_convention_gap(tmp_path, monkeypatch):
+    import tools.answer_keys.resolve as resolve_module
+    from tools.answer_keys.assemble import combine
+    from tools.answer_keys.pipeline import main
+
+    from osrforge.tracing.truth import load_geometry_truth
+
+    spec = {"specs": "maps.json", "member": "m", "style_note": "", "key": "geometry.json", "levels": [["d", 1]]}
+    keys_file = tmp_path / "keys.json"
+    keys_file.write_text(json.dumps({"work": str(tmp_path), "maps": [{"id": "b", **spec}, {"id": "a", **spec}]}))
+    for region_id, page in (("a", 1), ("b", 2)):
+        (tmp_path / region_id).mkdir()
+        (tmp_path / region_id / "reading.json").write_text(_region_reading(region_id, page).model_dump_json())
+    # The command names a before b; the key follows keys.json, b before a.
+    assert main([str(keys_file), "a", "b", "combine"]) == 0
+    key = load_geometry_truth(tmp_path / "geometry.json")
+    assert [region.id for region in key.regions] == ["b", "a"]
+    assert [panel.id for panel in key.panels] == ["b", "a"]
+    # A case the conventions don't decide leaves the key as it was.
+    (tmp_path / "geometry.json").write_text("the key as committed\n")
+    monkeypatch.setattr(resolve_module, "load_caches", lambda _stages: (None, {}, None))
+
+    def gap(*_args):
+        raise resolve_module.ConventionGap("an open case")
+
+    monkeypatch.setattr(resolve_module, "resolve", gap)
+    keys = [spec for spec in load_key_specs(keys_file)]
+    log = combine(keys, tmp_path / "geometry.json", tmp_path)
+    assert log["open_case"] == "an open case"
+    assert (tmp_path / "geometry.json").read_text() == "the key as committed\n"

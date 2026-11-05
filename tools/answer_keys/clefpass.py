@@ -8,13 +8,12 @@ options and their descriptions depend only on the map style. Every request goes 
 settles it from the usage. The answers are appended to `<map>/clef/answers.jsonl`, one line per item, and a
 run skips the items that already have a line, so it can be stopped and started again.
 
-The account id is read from the probe's client script inside this process and never printed. The token comes
-from the wrangler login.
+The account id comes from `OSRFORGE_CLEF_ACCOUNT_ID` and the ledger from `OSRFORGE_CLEF_LEDGER`, as for the Clef
+provider's live check; the token comes from `OSRFORGE_CLEF_TOKEN` or the wrangler login. None of them is printed.
 """
 
 import json
 import os
-import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
@@ -32,10 +31,8 @@ from osrforge.providers.decisions import DecisionRequest
 from .keyspec import MapContext
 from .readings import classifier_reading, claude_cells, edges_touching
 
-__all__ = ["CLEF_LEDGER", "STYLE_OPTIONS", "clef_items", "edge_crop", "export_requests", "run_clef"]
+__all__ = ["STYLE_OPTIONS", "clef_items", "clef_ledger_path", "edge_crop", "export_requests", "run_clef"]
 
-CLEF_LEDGER = Path.home() / ".re-pod/map-plan/clef-ledger.json"
-PROBE_CLIENT = Path.home() / ".re-pod/map-plan/clef/probe/scripts/clef.py"
 RED = (228, 20, 20)
 EDGE_CELL_PX = 128
 CELL_CELL_PX = 96
@@ -92,13 +89,16 @@ CELL_OPTIONS = (
 )
 
 
-def account_id() -> str:
-    """The Cloudflare account id, from the probe's client script."""
-    for line in PROBE_CLIENT.read_text().splitlines():
-        match = re.match(r'^ACCOUNT\s*=\s*"([0-9a-f]+)"', line)
-        if match:
-            return match.group(1)
-    raise SystemExit(f"no ACCOUNT line in {PROBE_CLIENT}")
+def _required(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        raise SystemExit(f"set {name} for the Clef pass")
+    return value
+
+
+def clef_ledger_path() -> Path:
+    """The Clef ledger's path, from `OSRFORGE_CLEF_LEDGER`."""
+    return Path(_required("OSRFORGE_CLEF_LEDGER")).expanduser()
 
 
 def _crop(ctx: MapContext, cx: float, cy: float, span: float, cell_px: int) -> tuple[Image.Image, Any]:
@@ -200,9 +200,9 @@ def run_clef(ctx: MapContext, workers: int, cap: float) -> dict[str, Any]:
     water = ctx.spec.fill_kind == "water"
     cell_options = CELL_OPTIONS if water else CELL_OPTIONS[:2]
     settings = ClefSettings(
-        account_id=account_id(),
+        account_id=_required("OSRFORGE_CLEF_ACCOUNT_ID"),
         token=SecretStr(os.environ.get("OSRFORGE_CLEF_TOKEN", "").strip() or wrangler_token()),
-        ledger_path=CLEF_LEDGER,
+        ledger_path=clef_ledger_path(),
         run_label=f"answer-keys {ctx.key.id} {date.today().isoformat()}",
     )
     provider = ClefProvider(settings)
@@ -237,11 +237,11 @@ def run_clef(ctx: MapContext, workers: int, cap: float) -> dict[str, Any]:
         try:
             response = provider.decide(request)
         except Exception as error:
-            if isinstance(error, ClefAuthError):
-                # The wrangler token has expired: every further request would fail and be charged its estimate.
-                stop.set()
-                spent["auth_error"] = True
             with lock:
+                if isinstance(error, ClefAuthError):
+                    # The wrangler token has expired: every further request would fail and be charged its estimate.
+                    stop.set()
+                    spent["auth_error"] = True
                 spent["failed"] += 1
                 with (out.parent / "errors.jsonl").open("a") as handle:
                     handle.write(json.dumps({"item": item_id, "error": str(error)[:300]}) + "\n")

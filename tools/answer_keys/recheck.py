@@ -70,8 +70,9 @@ RECHECK_MARK = "@recheck"
 
 
 def sample_call_id(sample_id: str, ctx: MapContext | None = None) -> tuple[str, str]:
-    """A sample call's panel and call id: `m1:c:2,3` and `m1:c:2,3@recheck` both name `c:2,3`. With the map, a
-    framed map's registered call id is turned into the working grid's, which its stores use (`frame.py`)."""
+    """A sample call's panel and call id: `jn1-p038:c:44,79` and `jn1-p038:c:44,79@recheck` both name `c:44,79`.
+    With the map, a framed map's registered call id is turned into the working grid's, which its stores use
+    (`frame.py`)."""
     panel, _, call_id = sample_id.partition(":")
     call_id = call_id.split("@", 1)[0]
     if ctx is not None:
@@ -369,7 +370,7 @@ def record_corrections(ctx: MapContext, sample_path: Path, values: dict[str, str
     Args:
         ctx: The map.
         sample_path: The sample file whose verdicts judged the calls.
-        values: The owner's value by call id, such as `{"c:4,28": "."}`.
+        values: The owner's value by call id, such as `{"c:44,79": "."}`.
 
     Returns:
         The values recorded, by call id.

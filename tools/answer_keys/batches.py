@@ -9,13 +9,14 @@ Batches API's half price. A job whose result is an error is settled at nothing, 
 nothing for it, and the job is left without an answer so the next `submit` sends it again.
 
 The API key is the `ANTHROPIC_API_KEY=` line of `~/repos/re-pod/.env`, read inside this process and never
-printed or written.
+printed or written. The ledger is the file `OSRFORGE_CLAUDE_LEDGER` names.
 """
 
 import base64
 import io
 import json
 import math
+import os
 import time
 from collections.abc import Sequence
 from pathlib import Path
@@ -26,9 +27,8 @@ from PIL import Image
 from osrforge.providers.claude import PRICES
 from osrforge.providers.ledger import Ledger, Reservation
 
-__all__ = ["LEDGER_PATH", "SCRIPT", "BatchStore", "api_key", "batch_cost", "worst_case"]
+__all__ = ["SCRIPT", "BatchStore", "api_key", "batch_cost", "ledger_path", "worst_case"]
 
-LEDGER_PATH = Path.home() / ".re-pod/map-plan/claude-ledger.json"
 SCRIPT = "answer-keys"
 BATCH_DISCOUNT = 0.5
 """The Batches API charges half the list price for every kind of token."""
@@ -47,6 +47,14 @@ def api_key() -> str:
         if line.startswith("ANTHROPIC_API_KEY="):
             return line.split("=", 1)[1].strip().strip("'\"")
     raise SystemExit("no ANTHROPIC_API_KEY in ~/repos/re-pod/.env")
+
+
+def ledger_path() -> Path:
+    """The Claude ledger's path, from `OSRFORGE_CLAUDE_LEDGER`."""
+    value = os.environ.get("OSRFORGE_CLAUDE_LEDGER", "").strip()
+    if not value:
+        raise SystemExit("set OSRFORGE_CLAUDE_LEDGER to the Claude ledger's path")
+    return Path(value).expanduser()
 
 
 def _image_tokens(data: str) -> int:
@@ -240,14 +248,15 @@ class BatchStore:
         entry = {"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "script": SCRIPT, "label": label, "model": model}
         index = ledger.open(entry)
         reservations: dict[str, dict[str, Any]] = {}
-        for job in jobs:
-            usd = worst_case(job["params"])
-            reservation = ledger.reserve(index, usd)
-            reservations[job["custom_id"]] = {"index": reservation.index, "usd": reservation.usd}
-        requests = [{"custom_id": job["custom_id"], "params": job["params"]} for job in jobs]
         try:
+            for job in jobs:
+                reservation = ledger.reserve(index, worst_case(job["params"]))
+                reservations[job["custom_id"]] = {"index": reservation.index, "usd": reservation.usd}
+            requests = [{"custom_id": job["custom_id"], "params": job["params"]} for job in jobs]
             batch = client.messages.batches.create(requests=requests)
         except Exception:
+            # Nothing was sent: a refused reservation or a batch the API didn't create releases every reservation
+            # made for the group.
             for reservation in reservations.values():
                 ledger.settle(Reservation(index=reservation["index"], usd=reservation["usd"]), 0.0)
             raise
@@ -292,12 +301,10 @@ class BatchStore:
                 reservation = batch["reservations"].get(custom_id)
                 if reservation is None:
                     continue
-                kind = result.result.type
-                if kind == "succeeded":
+                if result.result.type == "succeeded":
                     message = result.result.message.model_dump(mode="json")
-                    usage = message.get("usage", {})
-                    cost = batch_cost(batch["model"], usage)
-                    ledger.settle(Reservation(index=reservation["index"], usd=reservation["usd"]), cost)
+                    cost = batch_cost(batch["model"], message.get("usage", {}))
+                    self._settle(data, reservation, ledger, cost)
                     (self.answers / f"{custom_id}.json").write_text(
                         json.dumps(
                             {
@@ -312,16 +319,34 @@ class BatchStore:
                     )
                     counts["answered"] += 1
                 else:
-                    ledger.settle(Reservation(index=reservation["index"], usd=reservation["usd"]), 0.0)
-                    error = result.result.model_dump(mode="json")
-                    (self.directory / "errors.jsonl").open("a").write(
-                        json.dumps({"custom_id": custom_id, "batch": batch["id"], "result": error}) + "\n"
-                    )
+                    if self._settle(data, reservation, ledger, 0.0):
+                        error = result.result.model_dump(mode="json")
+                        with (self.directory / "errors.jsonl").open("a") as log:
+                            log.write(
+                                json.dumps({"custom_id": custom_id, "batch": batch["id"], "result": error}) + "\n"
+                            )
                     counts["errored"] += 1
             batch["ended"] = True
             batch["ended_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
             self._save_batches(data)
         return counts
+
+    def _settle(self, data: dict[str, Any], reservation: dict[str, Any], ledger: Ledger, usd: float) -> bool:
+        """Settle one job's reservation once, whatever happens to the collect around it.
+
+        The reservation is marked settled in `batches.json` before the ledger is changed, so a collect that stops
+        part of the way through a batch's results, and runs again, never settles the same job twice. A process that
+        dies between the two writes leaves the job's worst case on the ledger, as an unsettled reservation does.
+
+        Returns:
+            Whether this call settled it; `False` when an earlier collect had.
+        """
+        if "settled_usd" in reservation:
+            return False
+        reservation["settled_usd"] = usd
+        self._save_batches(data)
+        ledger.settle(Reservation(index=reservation["index"], usd=reservation["usd"]), usd)
+        return True
 
     def spent(self) -> float:
         """The cost of every answer in the store, in dollars."""

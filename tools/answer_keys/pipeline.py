@@ -31,7 +31,7 @@ import anthropic
 
 from osrforge.providers.ledger import Ledger
 
-from .batches import LEDGER_PATH, BatchStore, api_key
+from .batches import BatchStore, api_key, ledger_path
 from .keyspec import KeySpec, context, load_key_specs
 
 __all__ = ["main"]
@@ -43,8 +43,8 @@ def client() -> anthropic.Anthropic:
 
 
 def ledger() -> Ledger:
-    """The shared Claude ledger."""
-    return Ledger(LEDGER_PATH, cost_key="cost_usd")
+    """The Claude ledger `OSRFORGE_CLAUDE_LEDGER` names."""
+    return Ledger(ledger_path(), cost_key="cost_usd")
 
 
 def _wait(collect: Callable[[], dict[str, int]], interval: float, limit: float) -> dict[str, int]:
@@ -63,7 +63,7 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
     ctx = context(key)
     batch_stage = stage in ("windows", "marks", "wholemap", "settle", "adversary", "recheck")
     api = client() if batch_stage else None
-    book = ledger() if batch_stage else Ledger(LEDGER_PATH, cost_key="cost_usd")
+    book = ledger()
     if stage == "windows":
         from .windows import collect_windows, submit_windows
 
@@ -251,6 +251,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--cases", action="append", default=[], help="combine: a case the key depends on, repeatable")
     parser.add_argument(
+        "--license",
+        default=None,
+        help="combine: the licence the key is under, with its attribution, for the provenance",
+    )
+    parser.add_argument(
         "--residual",
         action="append",
         default=[],
@@ -406,9 +411,10 @@ def main(argv: list[str] | None = None) -> int:
     if stage == "combine":
         from .assemble import combine
 
-        keys = [specs[map_id] for map_id in words]
+        # The regions and panels go in keys.json's order, whatever order the command names the maps in.
+        keys = [spec for spec in specs.values() if spec.id in words]
         out = args.out or keys[0].key
-        print(combine(keys, out, args.stages, args.cases, args.verdicts, args.residual))
+        print(combine(keys, out, args.stages, args.cases, args.verdicts, args.residual, args.license))
         return 0
     for map_id in words:
         run_stage(specs[map_id], stage, action, args)

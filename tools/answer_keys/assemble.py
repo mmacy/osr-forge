@@ -409,6 +409,7 @@ def combine(
     cases: list[str] | None = None,
     samples: list[Path] | None = None,
     residuals: list[str] | None = None,
+    license_text: str | None = None,
 ) -> dict[str, Any]:
     """Join the region documents of one member, resolve them, and write the key.
 
@@ -420,9 +421,11 @@ def combine(
         cases: The conventions cases the key depends on, one line each.
         samples: The owner's sample files whose verdicts the provenance counts.
         residuals: The floor the key leaves unreached from its level's entrance, one line each with its cause.
+        license_text: The licence the key is under, with its attribution, for the provenance.
 
     Returns:
-        A log: the regions joined and the resolver's outcome.
+        A log: the regions joined and the resolver's outcome. When the resolver meets a case the conventions don't
+        decide, the log names it under `open_case` and nothing is written, so the key stays as it was.
     """
     from .resolve import ConventionGap, load_caches, resolve
 
@@ -448,21 +451,24 @@ def combine(
     if resolve_with is None:
         save_geometry_truth(out, reading)
         log["resolved"] = False
-        log["provenance"] = str(write_provenance(keys, out, cases or [], False, samples, residuals=residuals))
+        log["provenance"] = str(
+            write_provenance(keys, out, cases or [], False, samples, residuals=residuals, license_text=license_text)
+        )
         return log
     survey, contents, mapread = load_caches(resolve_with)
     try:
         resolved = resolve(reading, survey, contents, mapread)
     except ConventionGap as gap:
         log["open_case"] = str(gap)
-        save_geometry_truth(out, reading)
         return log
     save_geometry_truth(out, canonical_form(resolved))
     log["resolved"] = True
     log["prose_joins"] = prose_joins(resolved, contents)
     log["reach"] = entrance_reach(resolved)
     log["provenance"] = str(
-        write_provenance(keys, out, cases or [], True, samples, log["prose_joins"], residuals, log["reach"])
+        write_provenance(
+            keys, out, cases or [], True, samples, log["prose_joins"], residuals, log["reach"], license_text
+        )
     )
     log["levels"] = [
         f"{d.id}/{level.number}: {level.verdict}" + (f" ({level.reason})" if level.reason else "")
@@ -558,29 +564,67 @@ def entrance_reach(truth: GeometryTruth) -> list[str]:
     return lines
 
 
-def map_figures(key: KeySpec) -> dict[str, Any]:
-    """One map's figures for the provenance: its spend by stage and its counts of items, disputes, and calls."""
+def _jsonl(path: Path) -> list[dict[str, Any]]:
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
+
+
+def clef_charges(key: KeySpec, ledger: Path | None) -> dict[str, Any]:
+    """What the Clef ledger charged a map's hosted Clef runs: the entries whose `what` names the map.
+
+    Args:
+        key: The map.
+        ledger: The Clef ledger, or `None` when `OSRFORGE_CLEF_LEDGER` isn't set.
+
+    Returns:
+        The charge, its requests, and the reservations never settled, or nothing without a ledger.
+    """
+    if ledger is None or not ledger.exists():
+        return {}
+    entries = [
+        entry
+        for entry in json.loads(ledger.read_text()).get("entries", [])
+        if str(entry.get("what", "")).startswith(f"answer-keys {key.id} ")
+    ]
+    if not entries:
+        return {}
+    return {
+        "clef_ledger_usd": round(sum(entry.get("usd", 0.0) for entry in entries), 6),
+        "clef_ledger_requests": sum(int(entry.get("requests", 0)) for entry in entries),
+        "clef_ledger_unsettled": sum(int(entry.get("pending", 0)) for entry in entries),
+    }
+
+
+def map_figures(key: KeySpec, clef_ledger: Path | None = None) -> dict[str, Any]:
+    """One map's figures for the provenance: its spend by store and its counts of items, disputes, and calls.
+
+    The Claude spend is every batch store's answers, so it matches what the Claude ledger charged the map. The Clef
+    figures count the answers kept beside the key, local and hosted, the hosted requests that failed, and what the
+    Clef ledger charged the map's hosted runs (`clef_charges`).
+    """
     from .batches import BatchStore
 
     figures: dict[str, Any] = {"map": key.id}
     claude = 0.0
-    for stage in ("windows", "marks", "wholemap", "settle", "adversary", "resettle", "recheck"):
-        store = BatchStore(key.directory / stage)
-        spent = store.spent()
+    for index in sorted(key.directory.glob("*/batches.json")):
+        spent = BatchStore(index.parent).spent()
         if spent:
-            figures[f"{stage}_usd"] = spent
+            figures[f"{index.parent.name}_usd"] = spent
             claude += spent
     figures["claude_usd"] = round(claude, 6)
-    clef = key.directory / "clef" / "answers.jsonl"
-    if clef.exists():
-        rows = [json.loads(line) for line in clef.read_text().splitlines() if line.strip()]
+    clef = key.directory / "clef"
+    rows = _jsonl(clef / "answers.jsonl")
+    if rows:
         figures["clef_requests"] = len(rows)
         figures["clef_usd"] = round(sum(row["cost_usd"] for row in rows), 6)
-        readers = sorted({row.get("model", "hosted clef on Workers AI") for row in rows})
-        figures["clef_reader"] = ", ".join(readers)
-    hosted = key.directory / "clef" / "answers-hosted.jsonl"
-    if hosted.exists():
-        figures["clef_hosted_record"] = sum(1 for line in hosted.read_text().splitlines() if line.strip())
+        figures["clef_reader"] = ", ".join(sorted({row.get("model", "hosted clef on Workers AI") for row in rows}))
+    hosted = _jsonl(clef / "answers-hosted.jsonl")
+    if hosted:
+        figures["clef_hosted_record"] = len(hosted)
+        figures["clef_hosted_usd"] = round(sum(row.get("cost_usd", 0.0) for row in hosted), 6)
+    failed = _jsonl(clef / "errors.jsonl")
+    if failed:
+        figures["clef_failed"] = len(failed)
+    figures.update(clef_charges(key, clef_ledger))
     items_file = key.directory / "items.json"
     if items_file.exists():
         items = json.loads(items_file.read_text())
@@ -611,11 +655,17 @@ def map_figures(key: KeySpec) -> dict[str, Any]:
     return figures
 
 
-def sample_summary(samples: list[Path], panels: set[str]) -> str:
-    """The owner's verdicts on the samples, counted over the calls of the given panels."""
+def sample_summary(samples: list[Path], panels: set[str]) -> tuple[str, int]:
+    """The owner's verdicts on the samples, counted over the calls of the given panels.
+
+    Returns:
+        One clause per sample with calls on the panels, `pending` until the owner has judged every call, and the
+        number of calls judged wrong.
+    """
     from .sample import SampleSet, Verdicts, verdicts_path
 
     parts = []
+    wrong = 0
     for path in samples:
         sample = SampleSet.model_validate(json.loads(path.read_text()))
         calls = {call.id for call in sample.calls if call.panel in panels}
@@ -627,14 +677,30 @@ def sample_summary(samples: list[Path], panels: set[str]) -> str:
         )
         given = [verdict for verdict in verdicts.verdicts if verdict.call in calls]
         counts = {kind: sum(1 for verdict in given if verdict.verdict == kind) for kind in ("right", "wrong", "unsure")}
+        wrong += counts["wrong"]
         tally = f"{counts['right']} right, {counts['wrong']} wrong, {counts['unsure']} unsure"
+        size = f"{len(calls)} call" + ("" if len(calls) == 1 else "s")
         if not given:
-            parts.append(f"{path.name}, {len(calls)} calls, PENDING")
+            parts.append(f"{path.name}, {size}, pending")
         elif len(given) < len(calls):
-            parts.append(f"{path.name}, {len(calls)} calls, PENDING with {len(given)} judged: {tally}")
+            parts.append(f"{path.name}, {size}, pending with {len(given)} judged: {tally}")
         else:
-            parts.append(f"{path.name}, {len(calls)} calls, done: {tally}")
-    return "; ".join(parts)
+            parts.append(f"{path.name}, {size}, done: {tally}")
+    return "; ".join(parts), wrong
+
+
+def _pages(keys: list[KeySpec]) -> str:
+    from .spec import load_specs
+
+    pages: list[int] = []
+    for key in keys:
+        page = next(spec.page for spec in load_specs(key.specs) if spec.id == key.id)
+        if page not in pages:
+            pages.append(page)
+    numbers = [str(page) for page in sorted(pages)]
+    if len(numbers) < 3:
+        return " and ".join(numbers)
+    return ", ".join(numbers[:-1]) + f", and {numbers[-1]}"
 
 
 def write_provenance(
@@ -646,23 +712,51 @@ def write_provenance(
     joins: list[str] | None = None,
     residuals: list[str] | None = None,
     reach: list[str] | None = None,
+    license_text: str | None = None,
 ) -> Path:
     """Write `geometry-provenance.yaml` beside a key: what made it, which checks ran, what it cost, the owner's
-    sample, the cases it depends on, and the floor it leaves unreached with each cause."""
-    figures = [map_figures(key) for key in keys]
-    owner = sample_summary(samples or [], {key.id for key in keys})
+    sample, the licence, the cases it depends on, and the floor it leaves unreached with each cause.
+
+    The Clef ledger is the file `OSRFORGE_CLEF_LEDGER` names, when it is set.
+    """
+    ledger = os.environ.get("OSRFORGE_CLEF_LEDGER", "").strip()
+    clef_ledger = Path(ledger).expanduser() if ledger else None
+    figures = [map_figures(key, clef_ledger) for key in keys]
+    owner, wrong = sample_summary(samples or [], {key.id for key in keys})
+    owner_text = f"Owner sample, in the sample app (tools/answer_keys/sample_app.py): {owner or 'pending, none drawn'}."
+    if wrong:
+        owner_text += (
+            " A wrong call sent every call of its category on its map back to the settler, and the owner's value for"
+            " each wrong call is the key's; the calls that changed in the key are in the next sample."
+        )
     rechecked = [f["map"] for f in figures if f.get("rechecked")]
     if rechecked:
-        owner += (
-            f". A wrong call sent every call of its category on its map ({', '.join(rechecked)}) back to the settler, "
-            "and the owner's value for each wrong call is the key's; the calls that changed in the key are in the "
-            "next sample"
+        owner_text += (
+            f" Calls on {', '.join(rechecked)} were asked again after the settling, each in a fresh request with the"
+            " earlier answer, a measure, or a note among its readings; each map's rechecked figure counts them."
         )
-    owner_lines = textwrap.wrap(
-        f"Owner sample, in the sample app (tools/answer_keys/sample_app.py): {owner or 'PENDING'}.", 110
-    )
     claude = round(sum(f["claude_usd"] for f in figures), 4)
-    clef = round(sum(f.get("clef_usd", 0.0) for f in figures), 4)
+    charged = [f for f in figures if "clef_ledger_usd" in f]
+    if charged:
+        clef = round(sum(f["clef_ledger_usd"] for f in charged), 4)
+        requests = sum(f["clef_ledger_requests"] for f in charged)
+        kept = sum(f.get("clef_hosted_record", 0) for f in figures)
+        kept_usd = round(sum(f.get("clef_hosted_usd", 0.0) for f in figures), 4)
+        failed = sum(f.get("clef_failed", 0) for f in figures)
+        unsettled = sum(f["clef_ledger_unsettled"] for f in charged)
+        clef_note = (
+            f"Clef is what the Clef ledger charged hosted Clef for these maps: {requests} requests, of which the"
+            f" {kept} answers kept beside the key cost ${kept_usd:.4f}, {failed} failed and were charged at their"
+            " estimates"
+            + (f", and {unsettled} reservations were never settled" if unsettled else "")
+            + ". The local Clef reading cost nothing."
+        )
+    else:
+        clef = round(sum(f.get("clef_usd", 0.0) + f.get("clef_hosted_usd", 0.0) for f in figures), 4)
+        clef_note = "Clef is the cost the kept answers record; OSRFORGE_CLEF_LEDGER wasn't set, so no ledger was read."
+    spend_note = (
+        "Claude is every batch store's answers, which match what the Claude ledger charged these maps. " + clef_note
+    )
     by_reader: dict[str, list[str]] = {}
     for f in figures:
         if f.get("clef_requests"):
@@ -686,6 +780,14 @@ def write_provenance(
     lines = [
         "# The provenance of geometry.json beside this file. Written by tools/answer_keys/assemble.py.",
         f'authored: "{date.today().isoformat()}"',
+    ]
+    if license_text:
+        lines.append("license: >-")
+        lines += [
+            f"  {line}"
+            for line in textwrap.wrap(f"{license_text} The key is adapted from the maps on pages {_pages(keys)}.", 110)
+        ]
+    lines += [
         "instrument: >-",
         "  Two independent readings per map: Claude Sonnet 5.5 (claude-sonnet-5-5) at high effort reading 12 by 12",
         "  cell windows with grid ticks through tools/answer_keys/reader.py, which isn't the tracing stage's code,",
@@ -702,8 +804,10 @@ def write_provenance(
         "  An adversarial pass of fresh Sonnet requests at high effort rechecked every settled call and the",
         "  agreed edges in caves, at diagonals, and around keys; a challenged call was settled once more in a",
         "  fresh request with the challenge among its readings, and that value is the key's.",
-        *(f"  {line}" for line in owner_lines),
+        *(f"  {line}" for line in textwrap.wrap(owner_text, 110)),
         f"spend_usd: {{claude: {claude:.4f}, clef: {clef:.4f}}}",
+        "spend_note: >-",
+        *(f"  {line}" for line in textwrap.wrap(spend_note, 110)),
         "maps:",
     ]
     for f in figures:
