@@ -442,6 +442,63 @@ def test_a_cell_the_image_edge_cuts_is_part_of_the_grid():
     assert grid_of(fits[0]) == (56, 80)
 
 
+def gridded_room(rgb: npt.NDArray[np.uint8], x0: int, y0: int, columns: int, rows: int) -> None:
+    """Draw a walled room of grid cells at `BAND_PITCH`, with grid lines 2 px wide and a wall 6 px wide."""
+    x1, y1 = x0 + columns * BAND_PITCH, y0 + rows * BAND_PITCH
+    for i in range(columns + 1):
+        x = x0 + i * BAND_PITCH
+        rgb[y0 - 1 : y1 + 1, x - 1 : x + 1] = BAND_INK
+    for j in range(rows + 1):
+        y = y0 + j * BAND_PITCH
+        rgb[y - 1 : y + 1, x0 - 1 : x1 + 1] = BAND_INK
+    for left, top, right, bottom in (
+        (x0 - 3, y0 - 3, x1 + 3, y0 + 3),
+        (x0 - 3, y1 - 3, x1 + 3, y1 + 3),
+        (x0 - 3, y0 - 3, x0 + 3, y1 + 3),
+        (x1 - 3, y0 - 3, x1 + 3, y1 + 3),
+    ):
+        rgb[top:bottom, left:right] = BAND_INK
+
+
+def outline(rgb: npt.NDArray[np.uint8], x0: int, y0: int, x1: int, y1: int) -> None:
+    """Draw a box's outline 2 px wide, inside `(x0, y0, x1, y1)`."""
+    rgb[y0 : y0 + 2, x0:x1] = BAND_INK
+    rgb[y1 - 2 : y1, x0:x1] = BAND_INK
+    rgb[y0:y1, x0 : x0 + 2] = BAND_INK
+    rgb[y0:y1, x1 - 2 : x1] = BAND_INK
+
+
+@pytest.mark.xfail(strict=True, reason="chunk: reg-frame")
+def test_a_border_around_a_drawing_and_its_legend_is_no_frame(tmp_path: Path):
+    """A 20 by 20 room with a legend box east of it, inside a page border around both.
+
+    A corridor's two walls run from the room's west wall to the border, so the drawing's ink reaches it. The
+    border encloses the legend, so it's no frame of the region, and the region is the room, 20 by 20.
+    """
+    rgb = np.full((800, 1100, 3), 255, dtype=np.uint8)
+    gridded_room(rgb, 100, 100, 20, 20)
+    outline(rgb, 700, 100, 1000, 500)
+    outline(rgb, 40, 40, 1060, 760)
+    rgb[300:304, 40:100] = BAND_INK
+    rgb[352:356, 40:100] = BAND_INK
+    path = save_rgb(tmp_path / "border.png", rgb)
+    fits = registered(register_image(path))
+    assert len(fits) == 1, [fit.rect for fit in fits]
+    assert grid_of(fits[0]) == (20, 20)
+    assert all(
+        abs(side - want) <= FRAME_RECT_TOLERANCE for side, want in zip(fits[0].rect, (100, 100, 620, 620), strict=True)
+    ), fits[0].rect
+
+
+def test_a_title_above_a_filled_frame_is_no_part_of_the_region():
+    """Gatehouse's east half has a title row above its filled frame, and registers as its answer's grid."""
+    truth = GeometryTruth.model_validate_json((SYNTHETIC / "gatehouse-apart" / "geometry.json").read_text())
+    region = next(region for region in truth.regions if region.image == "gatehouse-east.jpg")
+    fits = registered(register_image(SYNTHETIC / "gatehouse-apart" / "images" / "gatehouse-east.jpg"))
+    assert len(fits) == 1, [fit.rect for fit in fits]
+    assert grid_of(fits[0]) == (region.columns, region.rows)
+
+
 class SyntheticMap:
     """One committed synthetic map: its directory, truth, and features."""
 
