@@ -353,7 +353,7 @@ def test_a_live_claude_run_stops_at_the_settings_cap_on_the_settings_ledger(
     from types import SimpleNamespace
 
     import tools.reading.claude_run as claude_run
-    from tools.reading.full_run import make_sources
+    from tools.reading.full_run import ledger_check, ledger_snapshot, make_sources
     from tools.reading.offsets import check_offset, offset_kind
 
     from osrforge.providers.base import TextPart
@@ -368,7 +368,7 @@ def test_a_live_claude_run_stops_at_the_settings_cap_on_the_settings_ledger(
 
         def read(self, request: ReadingRequest) -> Any:
             document = json.loads(ledger.read_text())
-            document["entries"].append({"label": "reading-offset low", "cost_usd": 0.001})
+            document["entries"].append({"label": "reading-offset low", "model": "claude-sonnet-5-5", "cost_usd": 0.001})
             ledger.write_text(json.dumps(document))
             return ReadingResponse(
                 data={"choice": "A", "reason": ""}, usage=ReadingUsage(input_tokens=10, output_tokens=5), model_id="m"
@@ -380,9 +380,12 @@ def test_a_live_claude_run_stops_at_the_settings_cap_on_the_settings_ledger(
     assert settings.cap == 480
     args = argparse.Namespace(out=tmp_path / "out", claude="live", clef="none")
     sources = make_sources(args, settings, [])
+    before = ledger_snapshot(ledger, "reading-", "cost_usd")
     kind = offset_kind("low", "claude-sonnet-5-5")
     first = ReadingRequest(kind=kind, shared=(), question=(TextPart(text="first"),))
-    assert sources.read(first, check_offset, "pair", {"pair": "pair"}) is not None
+    outcome = sources.read(first, check_offset, "pair", {"pair": "pair"})
+    assert outcome is not None and outcome["cost_usd"] == 0.001
+    assert ledger_check(sources, (ledger, before), (None, None))["claude"]["agree"] is True
     second = ReadingRequest(kind=kind, shared=(), question=(TextPart(text="second"),))
     with pytest.raises(SystemExit, match="cap of 480"):
         sources.read(second, check_offset, "pair", {"pair": "pair"})
@@ -404,6 +407,7 @@ def test_a_malformed_attempt_is_charged_what_the_ledger_settled_and_each_attempt
     from types import SimpleNamespace
 
     from tools.reading.claude_run import RequestCap, ask
+    from tools.reading.full_run import ledger_check
     from tools.reading.offsets import check_offset, offset_kind
 
     from osrforge.errors import ReadingFailure
@@ -434,13 +438,19 @@ def test_a_malformed_attempt_is_charged_what_the_ledger_settled_and_each_attempt
     )
     sources.read(request, check_offset, "pair", {"pair": "pair", "truth": "A"})
     assert sources.tally.totals()["reading-offset sent"] == {"requests": 2, "answers": 1, "usd": 0.0246}
+    check = ledger_check(sources, (ledger, {"requests": 0, "usd": 0.0}), (None, None))
+    assert check["claude"] == {
+        "ledger": {"requests": 2, "usd": 0.0246},
+        "tally": {"requests": 2, "usd": 0.0246},
+        "agree": True,
+    }
 
 
 def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     import tools.reading.clefask as clefask
-    from tools.reading.full_run import clef_source
+    from tools.reading.full_run import clef_source, ledger_check, ledger_snapshot
 
     import osrforge.providers.clef as hosted_module
     import osrforge.providers.clef_local as local_module
@@ -455,17 +465,30 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
 
     made: list[Any] = []
     ledger = tmp_path / "clef-ledger.json"
-    ledger.write_text(json.dumps({"entries": [{"what": "reading full run", "usd": 0.5}]}))
+    earlier = {"date": "d", "what": "reading full run", "requests": 4, "usd": 0.5}
+    ledger.write_text(
+        json.dumps({"entries": [earlier, {"date": "d", "what": "another run", "requests": 1, "usd": 0.1}]})
+    )
+    charges = iter((0.000091, 0.000107))
 
     class Hosted:
+        """Keeps one ledger entry for its run and adds each request's cost to it, as the provider does."""
+
         def __init__(self, settings: Any) -> None:
             made.append(settings)
+            self.entry: int | None = None
 
         def decide(self, request: DecisionRequest) -> Any:
             from types import SimpleNamespace
 
             document = json.loads(ledger.read_text())
-            document["entries"] += [{"what": "another run", "usd": 0.25}, {"what": "reading full run", "usd": 0.0042}]
+            entries = document["entries"]
+            if self.entry is None:
+                self.entry = len(entries)
+                entries.append({"date": "d", "what": "reading full run", "requests": 0, "usd": 0.0})
+            entries[self.entry]["requests"] += 1
+            entries[self.entry]["usd"] = round(entries[self.entry]["usd"] + next(charges), 6)
+            entries[1]["usd"] = round(entries[1]["usd"] + 0.25, 6)
             ledger.write_text(json.dumps(document))
             return SimpleNamespace(probabilities={"open": 0.3, "wall": 0.7}, input_tokens=1000)
 
@@ -492,15 +515,27 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
         claude_store=ClaudeStore(tmp_path / "claude"),
         clef=clef_source("local", settings),
     )
-    request = _request()
-    assert sources.decide(request, "m", "0,0:west", "clef-edge", {"edge": [[0, 0], "west"]}) == {
-        "open": 0.3,
-        "wall": 0.7,
-    }
+    before = ledger_snapshot(ledger, "reading full run", "usd", "requests")
+    assert before == {"requests": 4, "usd": 0.5}
+    first, second = _request(), _request("s2")
+    for request in (first, second):
+        assert sources.decide(request, "m", "0,0:west", "clef-edge", {"edge": [[0, 0], "west"]}) == {
+            "open": 0.3,
+            "wall": 0.7,
+        }
     assert spends == [0.95] and made == [{"run_label": "reading full run", "ledger_stop_usd": 5.0}]
-    record = ClefStore(tmp_path / "clef.jsonl").record(request.key())
-    assert record is not None and record["source"] == "hosted"
-    assert record["usd"] == pytest.approx(0.0042)
+    store = ClefStore(tmp_path / "clef.jsonl")
+    records = [store.record(request.key()) for request in (first, second)]
+    assert [record and (record["source"], record["usd"]) for record in records] == [
+        ("hosted", 0.000091),
+        ("hosted", 0.000107),
+    ]
+    check = ledger_check(sources, (None, None), (ledger, before))
+    assert check["clef"] == {
+        "ledger": {"requests": 2, "usd": 0.000198},
+        "tally": {"requests": 2, "usd": 0.000198},
+        "agree": True,
+    }
     with pytest.raises(ProviderError):
         clef_source("local-only", settings)(_request("t"), {})
 

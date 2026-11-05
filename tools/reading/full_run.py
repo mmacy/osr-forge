@@ -82,7 +82,16 @@ from .full_seed import seed_claude, seed_clef_exported, seed_clef_stores
 from .full_settings import FullRunSettings, load_settings
 from .full_store import ORIGINS, ClaudeStore, ClefAnswer, ClefStore, Sources
 
-__all__ = ["RunResult", "classifier_trace", "estimate", "ledger_snapshot", "main", "make_sources", "run"]
+__all__ = [
+    "RunResult",
+    "classifier_trace",
+    "estimate",
+    "ledger_check",
+    "ledger_snapshot",
+    "main",
+    "make_sources",
+    "run",
+]
 
 
 @dataclass
@@ -460,16 +469,29 @@ def screening_means(path: Path, settings: FullRunSettings) -> dict[str, float]:
 # Ledgers.
 
 
-def ledger_snapshot(path: Path, prefix: str, cost_key: str) -> dict[str, Any]:
-    """A ledger's entries whose label starts with a prefix (or whose `what` does), and their dollars."""
+def ledger_snapshot(path: Path, prefix: str, cost_key: str, count_key: str | None = None) -> dict[str, Any]:
+    """The requests and dollars of a ledger's entries whose label (or `what`) starts with a prefix.
+
+    Args:
+        path: The ledger.
+        prefix: The start of the entries' label, or of their `what`.
+        cost_key: The entries' cost key.
+        count_key: The key that counts a per-run entry's requests, as on the Clef ledger, or `None` when each entry is
+            one request, as on the Claude ledger.
+
+    Returns:
+        `{"requests", "usd"}`, the dollars in whole micro-dollars as the ledger keeps them.
+    """
     if not path.exists():
-        return {"entries": 0, "usd": 0.0}
+        return {"requests": 0, "usd": 0.0}
     entries = [
         entry
         for entry in json.loads(path.read_text())["entries"]
         if str(entry.get("label") or entry.get("what") or "").startswith(prefix)
     ]
-    return {"entries": len(entries), "usd": round(sum(float(e.get(cost_key) or 0.0) for e in entries), 6)}
+    requests = sum(int(entry.get(count_key) or 0) for entry in entries) if count_key else len(entries)
+    micros = sum(round(float(entry.get(cost_key) or 0.0) * 1_000_000) for entry in entries)
+    return {"requests": requests, "usd": micros / 1_000_000}
 
 
 # Sources.
@@ -524,9 +546,10 @@ HOSTED_LABEL = "reading full run"
 def clef_source(mode: str, settings: FullRunSettings) -> Any:
     """Local Clef-flash with hosted Clef-flash behind it (`local`), local alone (`local-only`), or hosted alone.
 
-    The hosted provider is made on its first question, held to the settings' hosted spend on the Clef ledger. Hosted
-    questions go one at a time, so each answer's dollars are the ledger entry the provider settled for it. Each answer
-    comes back with the request actually sent, so the store files it under that request's key.
+    The hosted provider is made on its first question, held to the settings' hosted spend on the Clef ledger, where it
+    keeps one entry for the run (`HOSTED_LABEL`) and adds each request's settled cost to it. Hosted questions go one
+    at a time, so each answer's dollars are what its question added to the run's entries. Each answer comes back with
+    the request actually sent, so the store files it under that request's key.
     """
     import threading
 
@@ -553,9 +576,9 @@ def clef_source(mode: str, settings: FullRunSettings) -> Any:
         sent = for_model(request, settings.hosted_model)  # type: ignore[arg-type]
         with one_at_a_time:
             provider, ledger = hosted_provider()
-            before = _ledger_length(ledger)
+            before = ledger_snapshot(ledger, HOSTED_LABEL, "usd")["usd"]
             response = provider.decide(sent)
-            usd = _settled_since(ledger, before)
+            usd = round(ledger_snapshot(ledger, HOSTED_LABEL, "usd")["usd"] - before, 6)
         return ClefAnswer(dict(response.probabilities), sent, "hosted", usd)
 
     if mode == "hosted":
@@ -579,16 +602,6 @@ def clef_source(mode: str, settings: FullRunSettings) -> Any:
             return ask_hosted(request)
 
     return ask
-
-
-def _ledger_length(path: Path) -> int:
-    return len(json.loads(path.read_text())["entries"]) if path.exists() else 0
-
-
-def _settled_since(path: Path, before: int) -> float:
-    """What the full run's Clef ledger entries made after `before` entries were settled at."""
-    entries = json.loads(path.read_text())["entries"][before:]
-    return sum(float(entry.get("usd") or 0.0) for entry in entries if entry.get("what") == HOSTED_LABEL)
 
 
 def seed(
@@ -682,7 +695,7 @@ def main(argv: list[str] | None = None) -> int:
     clef_ledger_path = os.environ.get("OSRFORGE_CLEF_LEDGER", "").strip()
     clef_ledger = Path(clef_ledger_path).expanduser() if args.clef in ("local", "hosted") and clef_ledger_path else None
     before_claude = ledger_snapshot(claude_ledger, LABEL_PREFIX, "cost_usd") if claude_ledger else None
-    before_clef = ledger_snapshot(clef_ledger, HOSTED_LABEL, "usd") if clef_ledger else None
+    before_clef = ledger_snapshot(clef_ledger, HOSTED_LABEL, "usd", "requests") if clef_ledger else None
     result = run(
         members,
         halves,
@@ -694,7 +707,7 @@ def main(argv: list[str] | None = None) -> int:
         classifier=args.classifier,
     )
     result.report["seeded"] = seeded
-    result.report["ledger_check"] = _ledger_check(result, claude_ledger, before_claude, clef_ledger, before_clef)
+    result.report["ledger_check"] = ledger_check(sources, (claude_ledger, before_claude), (clef_ledger, before_clef))
     name = "dry-run" if args.dry_run else f"report-claude-{args.claude}-clef-{args.clef}"
     name += "-stand-in" if args.stand_in and not args.dry_run else ""
     if args.dry_run:
@@ -717,29 +730,49 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _ledger_check(
-    result: RunResult,
-    claude_ledger: Path | None,
-    before_claude: dict[str, Any] | None,
-    clef_ledger: Path | None,
-    before_clef: dict[str, Any] | None,
+def ledger_check(
+    sources: Sources,
+    claude: tuple[Path | None, dict[str, Any] | None],
+    clef: tuple[Path | None, dict[str, Any] | None],
 ) -> dict[str, Any]:
-    """The ledgers' entries this run made, beside what the tally says it sent."""
-    sent = result.report["costs"]["rows_added_up"]
+    """What this run added to each ledger, beside what its tally says it sent there.
+
+    The Claude ledger has an entry per attempt, and the tally counts each sent outcome's attempts. The Clef ledger has
+    an entry per run, counting its requests, and only hosted answers are on it, so the tally's side is the sent Clef
+    answers the store records as hosted.
+
+    Args:
+        sources: The run's sources, with its tally and stores.
+        claude: The Claude ledger and its snapshot before the run, or `None`s when the run sent Claude nothing.
+        clef: The Clef ledger and its snapshot before the run (with its request counts), or `None`s.
+
+    Returns:
+        Per ledger: what the ledger gained, what the tally counted, and whether they agree.
+    """
     out: dict[str, Any] = {}
-    for part, ledger, before, prefix, key in (
-        ("claude", claude_ledger, before_claude, LABEL_PREFIX, "cost_usd"),
-        ("clef", clef_ledger, before_clef, HOSTED_LABEL, "usd"),
+    sent = [entry for entry in sources.tally.entries.values() if entry.origin == "sent"]
+    claude_sent = [entry for entry in sent if not entry.kind.startswith("clef")]
+    hosted = [
+        entry
+        for entry in sent
+        if entry.kind.startswith("clef") and (sources.clef_store.record(entry.key) or {}).get("source") == "hosted"
+    ]
+    for part, (ledger, before), prefix, cost_key, count_key, counted in (
+        ("claude", claude, LABEL_PREFIX, "cost_usd", None, claude_sent),
+        ("clef", clef, HOSTED_LABEL, "usd", "requests", hosted),
     ):
         if ledger is None or before is None:
             continue
-        after = ledger_snapshot(ledger, prefix, key)
-        made = {"entries": after["entries"] - before["entries"], "usd": round(after["usd"] - before["usd"], 6)}
-        counted = sent[part]["sent"]
+        after = ledger_snapshot(ledger, prefix, cost_key, count_key)
+        made = {"requests": after["requests"] - before["requests"], "usd": round(after["usd"] - before["usd"], 6)}
+        tally = {
+            "requests": sum(entry.requests for entry in counted),
+            "usd": round(sum(entry.usd for entry in counted), 6),
+        }
         out[part] = {
             "ledger": made,
-            "tally": counted,
-            "agree": made["entries"] == counted["requests"] and abs(made["usd"] - counted["usd"]) < 1e-6,
+            "tally": tally,
+            "agree": made["requests"] == tally["requests"] and abs(made["usd"] - tally["usd"]) < 1e-6,
         }
     return out
 
