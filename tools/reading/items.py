@@ -103,10 +103,15 @@ ITEMS_SCHEMA: dict[str, Any] = {
 ITEMS_MAX_TOKENS = 32000
 
 
-def items_kind(effort: Effort) -> RequestKind:
-    """The item judgments at one effort."""
+def items_kind(effort: Effort, model: str | None = None) -> RequestKind:
+    """The item judgments at one effort, on a model or the provider's default."""
     return RequestKind(
-        name="reading-items", system=ITEMS_SYSTEM, schema=ITEMS_SCHEMA, effort=effort, max_tokens=ITEMS_MAX_TOKENS
+        name="reading-items",
+        system=ITEMS_SYSTEM,
+        schema=ITEMS_SCHEMA,
+        effort=effort,
+        max_tokens=ITEMS_MAX_TOKENS,
+        model=model,
     )
 
 

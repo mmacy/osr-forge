@@ -227,6 +227,7 @@ class _FakeClaude:
 
         class Settings:
             model = "claude-sonnet-5-5"
+            ledger_path = Path("no-such-ledger.json")
 
         self.settings = Settings()
 
