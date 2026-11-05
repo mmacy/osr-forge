@@ -203,6 +203,38 @@ def test_a_server_error_on_every_attempt_keeps_the_worst_case(tmp_path: Path):
     assert "pending" not in entry and entry["cost_usd"] == worst_case_usd(MODEL, REQUEST)
 
 
+@pytest.mark.xfail(strict=True, reason="chunk: claude-refused")
+@pytest.mark.parametrize("status", [408, 409])
+def test_a_timeout_or_conflict_on_every_attempt_keeps_the_worst_case(tmp_path: Path, status: int):
+    failures: list[Exception | FakeStream] = [status_error(anthropic.APIStatusError, status, {}) for _ in range(5)]
+    reader, client, path, _ = make_provider(tmp_path, failures)
+    with pytest.raises(ProviderError, match="after 5 attempts"):
+        reader.read(REQUEST)
+    assert client.sent == 5
+    entry = only_entry(path)
+    assert "pending" not in entry and entry["cost_usd"] == worst_case_usd(MODEL, REQUEST)
+
+
+def test_refusals_mixed_with_another_failure_keep_the_worst_case(tmp_path: Path):
+    failures: list[Exception | FakeStream] = [status_error(anthropic.RateLimitError, 429, {}) for _ in range(4)]
+    failures.append(status_error(anthropic.InternalServerError, 500, {}))
+    reader, _, path, _ = make_provider(tmp_path, failures)
+    with pytest.raises(ProviderError):
+        reader.read(REQUEST)
+    assert only_entry(path)["cost_usd"] == worst_case_usd(MODEL, REQUEST)
+
+
+def test_an_error_event_inside_a_stream_keeps_the_worst_case(tmp_path: Path):
+    """The SDK raises an error event inside a stream with the stream's own status, which is below 400."""
+    failures: list[Exception | FakeStream] = [
+        FakeStream(error=status_error(anthropic.APIStatusError, 200, {})) for _ in range(5)
+    ]
+    reader, _, path, _ = make_provider(tmp_path, failures)
+    with pytest.raises(ProviderError):
+        reader.read(REQUEST)
+    assert only_entry(path)["cost_usd"] == worst_case_usd(MODEL, REQUEST)
+
+
 def png(size: tuple[int, int]) -> bytes:
     buffer = io.BytesIO()
     Image.new("L", size).save(buffer, "PNG")
