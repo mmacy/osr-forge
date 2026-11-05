@@ -3,7 +3,8 @@
   "title": "The sunken temple",
   "features": [
     "legend_on_another_page",
-    "no_compass"
+    "no_compass",
+    "line_across_stair_top"
   ],
   "damage": [
     {
