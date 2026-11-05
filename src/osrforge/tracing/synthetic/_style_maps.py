@@ -92,8 +92,15 @@ def sunken_temple() -> MapSpec:
 
 
 def wyrm_caves() -> MapSpec:
-    """A gridded cave whose walls are drawn off the grid, with partly-floor cells and a door in a tunnel."""
-    sketch = Sketch(27, 16)
+    """A gridded cave whose walls are drawn off the grid, with partly-floor cells and a door in a tunnel.
+
+    Three passages that the half-floor rule would leave as rock join three
+    more caves, so each keeps one cell at each step of its course: a crawlway
+    a fifth of a cell wide through the middles of its cells, a passage drawn
+    along the line between two rows of cells, and a diagonal passage with a
+    door drawn across one of its corners.
+    """
+    sketch = Sketch(33, 21)
     caves = (
         Ornament("cave", ((-1.0, 7.5), (4.0, 7.5)), 0.62),
         Ornament("cave", ((6.5, 7.5), (6.5, 7.5)), 3.3),
@@ -101,23 +108,39 @@ def wyrm_caves() -> MapSpec:
         Ornament("cave", ((20.5, 6.5), (20.5, 6.5)), 2.7),
         Ornament("cave", ((20.5, 9.0), (20.5, 11.5)), 0.62),
         Ornament("cave", ((20.5, 13.0), (20.5, 13.0)), 2.2),
+        Ornament("cave", ((12.0, 13.0), (12.0, 13.0)), 1.7),
+        Ornament("cave", ((12.0, 13.5), (20.5, 13.5)), 0.1),
+        Ornament("cave", ((12.3, 14.0), (7.3, 19.0)), 0.2),
+        Ornament("cave", ((7.3, 19.0), (7.3, 19.0)), 1.4),
+        Ornament("cave", ((20.5, 5.9), (29.5, 5.9)), 0.3),
+        Ornament("cave", ((29.5, 5.65), (29.5, 5.65)), 1.25),
     )
     sketch.edge((0, 7), "west", "o").edge((13, 7), "east", "d")
     sketch.mark("1", (6, 7)).mark("2", (20, 6)).mark("3", (20, 13))
-    sketch.outline((0, 0, 27, 16))
-    plan = cave_plan(sketch, caves)
+    sketch.mark("4", (11, 12)).mark("5", (7, 19)).mark("6", (29, 5))
+    sketch.outline((0, 0, 33, 21))
+    plan = cave_plan(sketch, caves, corner_doors=((10, 16),))
     region = RegionSpec("wyrm-caves", 1, "wyrm-caves.png", "cave", plan, "THE WYRM CAVES")
     panel = PanelSpec("wyrm-caves", (("wyrm-caves", (0, 0)),), plan)
     areas = (
         AreaSpec("1", "Mouth cavern", "The tunnel from the hillside opens into a round cavern.", "cave"),
         AreaSpec("2", "Long cavern", "A long cavern, its floor littered with bones.", "cave"),
         AreaSpec("3", "Wyrm's den", "A low den at the end of a winding tunnel.", "cave"),
+        AreaSpec("4", "Bat roost", "Bats hang from the roof of a low cave. A crawlway runs east to the den.", "cave"),
+        AreaSpec("5", "Fungus grotto", "Pale fungus covers the floor. A door closes the slanting passage.", "cave"),
+        AreaSpec("6", "Larder", "Gnawed bones lie heaped in a small cave east of the long cavern.", "cave"),
     )
     dungeon = DungeonSpec("the-wyrm-caves", "The wyrm caves", (LevelSpec(1, areas, ("wyrm-caves",)),))
     return MapSpec(
         name="wyrm-caves",
         title="The wyrm caves",
-        features=("corridor_off_frame",),
+        features=(
+            "corridor_off_frame",
+            "passage_narrower_than_half_a_cell",
+            "passage_along_a_cell_line",
+            "diagonal_passage",
+            "door_across_a_corner",
+        ),
         dungeons=(dungeon,),
         regions=(region,),
         panels=(panel,),

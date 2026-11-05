@@ -337,7 +337,8 @@ def draw_plan(pen: Pen, plan: Plan, cut: Sequence[PageSide]) -> None:
             pen.line(a, b, look.wall, cap=look.wall / 2.0)
     for cell, side in positions:
         letter = plan.letter(cell, side)
-        if letter in "nlds":
+        hidden = (styles.get(f"{cell[0]},{cell[1]}:{side}") or styles.get(_other_name(cell, side))) == "hidden"
+        if letter in "nlds" and not hidden:
             _door(pen, cell, side, letter)
     for index in range(len(plan.symbols)):
         _symbol(pen, plan, index)
@@ -404,6 +405,27 @@ def _door(pen: Pen, cell: Cell, side: str, letter: str) -> None:
         canvas.segment(pixels[index], pixels[(index + 1) % 4], 0.07 * pen.pitch, cap=0.035 * pen.pitch)
     if letter == "l":
         canvas.disc(pen.px(middle), 0.075 * pen.pitch)
+
+
+def _corner_door(pen: Pen, ornament: Ornament) -> None:
+    """A door across a passage at `points[0]`, the passage running toward `points[1]` and `size` cells wide each side.
+
+    Its wall line runs across the passage into the rock on each side.
+    """
+    (cx, cy), (tx, ty) = ornament.points[0], ornament.points[1]
+    length = math.hypot(tx - cx, ty - cy)
+    nx, ny = (tx - cx) / length, (ty - cy) / length
+    ux, uy = -ny, nx
+    reach = ornament.size + pen.look.wall
+    pen.line((cx - reach * ux, cy - reach * uy), (cx + reach * ux, cy + reach * uy), pen.look.wall, cap=0.0)
+    corners = [
+        (cx + a * DOOR * ux + b * DOOR_ACROSS * nx, cy + a * DOOR * uy + b * DOOR_ACROSS * ny)
+        for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1))
+    ]
+    pixels = [pen.px(point) for point in corners]
+    pen.canvas.polygon(pixels, "paper")
+    for index in range(4):
+        pen.canvas.segment(pixels[index], pixels[(index + 1) % 4], 0.07 * pen.pitch, cap=0.035 * pen.pitch)
 
 
 def _run(plan: Plan, cells: list[Cell]) -> str:
@@ -565,6 +587,9 @@ def circle(centre: Point, radius: float, steps: int = 24) -> list[Point]:
 
 def _ornament(pen: Pen, ornament: Ornament) -> None:
     if ornament.kind == "cave":
+        return
+    if ornament.kind == "corner_door":
+        _corner_door(pen, ornament)
         return
     if ornament.kind == "contour":
         pen.path(chaikin(ornament.points), 0.035)

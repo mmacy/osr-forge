@@ -46,6 +46,33 @@
               "source_pages": [
                 1
               ]
+            },
+            {
+              "key": "4",
+              "name": "Bat roost",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "5",
+              "name": "Fungus grotto",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                1
+              ]
+            },
+            {
+              "key": "6",
+              "name": "Larder",
+              "source_label": null,
+              "kind": "cave",
+              "source_pages": [
+                1
+              ]
             }
           ]
         }
