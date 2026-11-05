@@ -159,13 +159,20 @@ def join_gaps(
             continue
         mine = {cell for cell, owner in resolver.owner.items() if owner == level_id}
 
-        def floor_part(start: Any, mine: set[Any] = mine) -> set[Any]:
-            seen, stack = {start}, [start]
+        def floor_part(starts: set[Any], mine: set[Any] = mine) -> set[Any]:
+            # The scorer's walk: onto floor across a passable edge or a door, never into water but a crossing.
+            seen = {cell for cell in starts if world.is_floor(cell)}
+            stack = list(seen)
             while stack:
                 cell = stack.pop()
                 for side in _SIDES:
                     other = world.across(cell, side)
-                    if other in mine and other not in seen and world.edge(cell, side) in "opdls":
+                    if (
+                        other in mine
+                        and other not in seen
+                        and world.is_floor(other)
+                        and world.edge(cell, side) in "opdls"
+                    ):
                         seen.add(other)
                         stack.append(other)
             return seen
@@ -182,8 +189,7 @@ def join_gaps(
                 if pair in pairs:
                     continue
                 pairs.add(pair)
-                start = next(iter(state.areas[one]))
-                if floor_part(start) & state.areas[other]:
+                if floor_part(set(state.areas[one])) & state.areas[other]:
                     continue
                 gaps.append(
                     _gap(

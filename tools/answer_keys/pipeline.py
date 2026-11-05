@@ -4,21 +4,9 @@ Run from the osr-forge checkout, with a spec file (`keys.json` here, or a commer
 
     uv run python -m tools.answer_keys.pipeline <keys.json> <map id>... <stage> [options]
 
-The stages, in the order a map goes through them:
-
-- `windows submit` and `windows collect`: Claude's window reads through the Batches API (`windows.py`).
-- `marks submit` and `marks collect`: the second reading of labels and symbols (`marks.py`).
-- `wholemap submit` and `wholemap collect`: the whole-map read of outlines, legend, and compass (`marks.py`).
-- `clef`: Clef's answer for each edge (`clefpass.py`).
-- `disagree`: the table of every item's readings and the disagreements (`readings.py`).
-- `settle submit` and `settle collect`: the settler (`settler.py`).
-- `adversary submit` and `adversary collect`: the adversarial pass and the re-settling it triggers.
-- `assemble`: the key's reading layer, as a geometry truth document (`assemble.py`).
-- `sample`: the owner's sample (`samples.py`).
-- `score`: the settled reading against a synthetic map's exact answer or the settled windows (`scoring.py`).
-
-`collect` stages take `--wait` to poll until every open batch has ended. Every stage is safe to run again:
-jobs and answers that exist are kept.
+Every stage and action, and the commands that built the Chaotic Caves key, are in `tools/answer_keys/README.md`,
+"Build an answer key". `collect` actions take `--wait` to poll until every open batch has ended. Every stage is safe
+to run again: jobs and answers that exist are kept.
 """
 
 import argparse
@@ -165,8 +153,8 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             submit_region,
         )
 
-        if args.sample is None and action != "collect":
-            raise SystemExit("recheck needs --sample, the sample file the owner checked")
+        if args.sample is None and action in ("submit", "correct"):
+            raise SystemExit(f"recheck {action} needs --sample, the sample file the owner checked")
         if action == "submit":
             batch, count = submit_recheck(ctx, args.sample, api, book, args.jobs)
             print(f"{key.id}: recheck batch {batch}, {count} items")
