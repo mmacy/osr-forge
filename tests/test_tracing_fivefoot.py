@@ -39,6 +39,29 @@ def test_two_rooms_with_a_door_on_one_segment():
     assert result.panel == ten.panels[0]
 
 
+@pytest.mark.xfail(strict=True, reason="chunk: fivefoot-openings")
+@pytest.mark.parametrize(("blocked", "opening"), [("w", "o"), ("n", "p")])
+def test_an_opening_between_floor_squares_keeps_its_ten_foot_edge_open(blocked: str, opening: str):
+    """A 2 by 4 room whose wall across its middle, on y = 2, has one blocked segment and one opening.
+
+    Phase: `ox = 0` lines x = 0, 2, 4 hold 4 + 4 + 0 = 8 against 0 for `ox = 1`; `oy = 0` lines y = 0, 2, 4 hold
+    2 + 1 + 2 = 5 against 0 for `oy = 1`. Phase (0, 0). The blocked segment lies on a 10-foot line, so it doesn't
+    move. Edge 0,1:north covers segment 0 (blocked) and segment 1 (the opening between floor squares 1,1 and 1,2),
+    so it takes the opening's letter.
+    """
+    result = convert_five_foot(
+        panel(
+            ("..##", "..##", "..##", "..##"),
+            ("wow--", "wow--", "wow--", "wow--"),
+            ("ww--", "oo--", blocked + opening + "--", "oo--", "ww--"),
+        )
+    )
+    assert result.phase == (0, 0)
+    assert result.moves == ()
+    assert result.panel.cells == (".#", ".#")
+    assert result.panel.edges == EdgeGrids(vertical=("ww-", "ww-"), horizontal=("w-", opening + "-", "w-"))
+
+
 def test_ten_foot_panel_is_refused():
     _five, ten = five_foot_pair()
     with pytest.raises(ValueError):
