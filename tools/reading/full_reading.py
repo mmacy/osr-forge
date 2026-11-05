@@ -185,7 +185,8 @@ def key_page_answer(page: Page, key: GeometryTruth) -> dict[str, Any]:
 
     It stands in for the whole-page read in a dry run, and it is the fake answer of an offline run on fake answers.
     Outlines on a joined panel are cut to each half, in the half's own cells, and a half that holds none of the
-    level's seeds gets its first floor cell inside the outline as one.
+    level's seeds gets its first floor cell inside the outline as one. The request answers each level once, on one
+    region, so a level drawn on two regions of a page is given on the first one only, as Claude has to give it.
     """
     regions, levels, symbols = [], [], []
     legend = Legend(printed=False)
@@ -226,7 +227,8 @@ def key_page_answer(page: Page, key: GeometryTruth) -> dict[str, Any]:
                     for x in range(x0, x0 + w)
                     if panel.cells[y][x] == "."
                 ][:1]
-            if rects and seeds:
+            answered = {(item["dungeon"], item["level"]) for item in levels}
+            if rects and seeds and (outline.dungeon, outline.level) not in answered:
                 levels.append(
                     {
                         "dungeon": outline.dungeon,

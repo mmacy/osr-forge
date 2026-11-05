@@ -227,3 +227,30 @@ def test_a_fault_picture_puts_the_trace_beside_it_with_its_cut_off_floor_marked(
     assert left.shape == right.shape
     cyan = (right[..., 0] < left[..., 0] - 40) & (right[..., 2] >= left[..., 2])
     assert cyan.sum() > 0
+
+
+def test_claude_answers_only_for_the_owners_a_run_names(tmp_path: Path) -> None:
+    from tools.reading.offsets import check_offset, offset_kind
+
+    from osrforge.providers.base import TextPart
+    from osrforge.providers.reading import ReadingRequest
+
+    request = ReadingRequest(kind=offset_kind("low", "claude-sonnet-5-5"), shared=(), question=(TextPart(text="q"),))
+    asked: list[str] = []
+
+    def fake(request: ReadingRequest, check: Any, about: dict[str, Any]) -> dict[str, Any]:
+        asked.append(about["pair"])
+        return {"answer": {"choice": "A", "reason": ""}, "attempts": [], "cost_usd": 0.01}
+
+    sources = Sources(
+        clef_store=ClefStore(tmp_path / "clef.jsonl"),
+        claude_store=ClaudeStore(tmp_path / "claude"),
+        claude=fake,
+        claude_how="fake",
+        claude_owners={"kept"},
+    )
+    assert sources.read(request, check_offset, "other", {"pair": "other"}) is None
+    assert sources.read(request, check_offset, "kept", {"pair": "kept"})["answer"]["choice"] == "A"
+    assert sources.read(request, check_offset, "other", {"pair": "other"})["source"] == "fake"
+    assert asked == ["kept"]
+    assert sources.tally.of("other")["reading-offset"]["missing"] == 1

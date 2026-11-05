@@ -136,6 +136,8 @@ class Sources:
         clef_how: What `clef`'s answers count as: `asked` for a live backend, `fake` otherwise.
         claude_how: What `claude`'s answers count as.
         tally: Every request, by owner, kind, and how it was answered.
+        claude_owners: The owners (maps, pages, and pairs) `claude` may answer for, or `None` for every owner. A
+            request about another owner is answered from the store or counted missing.
     """
 
     clef_store: ClefStore
@@ -145,6 +147,7 @@ class Sources:
     clef_how: str = "asked"
     claude_how: str = "asked"
     tally: Tally = field(default_factory=Tally)
+    claude_owners: set[str] | None = None
 
     def decide(
         self, request: DecisionRequest, owner: str, item: str, kind: str, about: dict[str, Any] | None = None
@@ -213,7 +216,7 @@ class Sources:
         if stored is not None:
             self.tally.add(owner, kind.name, "stored", float(stored.get("cost_usd") or 0.0))
             return stored
-        if self.claude is None:
+        if self.claude is None or (self.claude_owners is not None and owner not in self.claude_owners):
             self.tally.add(owner, kind.name, "missing")
             return None
         outcome = self.claude(request, check, about)

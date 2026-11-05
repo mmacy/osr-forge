@@ -26,8 +26,10 @@ Run from the osr-forge checkout. `R` is the results directory and `P` the commer
 
 `--dry-run` sends nothing: it reads with every stored answer, lets the answer key's whole-page answer stand in where
 none is stored, and estimates the requests and dollars each map still needs. `--claude live` needs
-`OSRFORGE_CLAUDE_LEDGER`, and is held to the settings' cap on the ledger's `reading-` entries. `--clef hosted` needs
-`OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login, and is held to the settings' hosted spend.
+`OSRFORGE_CLAUDE_LEDGER`, and is held to the settings' cap on the ledger's `reading-` entries. `--claude-for <member>`
+keeps Claude to the named members' maps and pages (and the real pairs), so a run within the cap can take the members in
+an order. `--clef hosted` needs `OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login, and is held
+to the settings' hosted spend.
 """
 
 import argparse
@@ -782,6 +784,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--claude", choices=("none", "fake", "live"), default="none")
     parser.add_argument("--clef", choices=("none", "fake", "local", "hosted"), default="none")
+    parser.add_argument(
+        "--claude-for", action="append", default=None, help="a member whose requests Claude answers, of several"
+    )
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--ledger", type=Path, default=None, help="the Claude ledger a dry run counts the cap on")
     parser.add_argument("--pictures", action="store_true")
@@ -806,6 +811,14 @@ def main(argv: list[str] | None = None) -> int:
     if fake:
         marker.write_text("The answers here include fake ones made from the answer keys.\n")
     sources = make_sources(args, settings, members)
+    if args.claude_for:
+        chosen = [member for member in members if member.id in args.claude_for]
+        sources.claude_owners = {
+            *(run_map.uid for member in chosen for run_map in member.maps),
+            *(page.id for member in chosen for page in member.pages),
+            *(spec.id for member in chosen for spec in member.halves),
+            *(spec.id for spec in halves),
+        }
     seeded = seed(sources, members, halves, args.screening, settings)
     print(f"seeded: {seeded}", flush=True)
     result = run(members, halves, settings, sources, stand_in=args.dry_run or args.stand_in, workers=args.workers)
