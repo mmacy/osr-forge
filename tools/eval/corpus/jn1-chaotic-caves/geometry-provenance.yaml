@@ -71,8 +71,8 @@ cases:
   - "13 and 14: passages drawn narrower than half a cell, or along a cell line or across a corner (ruled in pull request 126: a passage drawn as floor at least a sixth of a cell wide that joins two floor regions the half-floor rule leaves apart keeps a chain of cells along its course, taking the cell with the most floor where it covers more than one cell across its course or turns a corner, and a floor cell on its course as it is; a door across a corner with floor drawn through it stands on the step cell with more floor)"
   - "15: a 5-foot opening on a 10-foot edge (ruled in pull request 124: it keeps the edge open when its squares are floor in one open space and both cells are floor)"
   - "16: a panel's cells outside its drawn grid (decided by the registration contract: the manor maps are keyed on their registered grids, without the title and legend above the frame)"
-  - "17: a courtyard reached only along the top of a wall (ruled on branch stair-tops: steps up onto a wall lead onto the wall's top, which no level holds, so they join nothing, and ground that only a wall's top reaches stays unreached)"
-  - "18: stairs whose top meets a level across a drawn line (ruled on branch stair-tops: a stairway's top end opens onto the floor it meets, whatever line is drawn across it, unless a door is drawn there)"
+  - "17: a courtyard reached only along the top of a wall (ruled in pull request 131: steps up onto a wall lead onto the wall's top, which no level holds, so they join nothing, and ground that only a wall's top reaches stays unreached)"
+  - "18: stairs whose top meets a level across a drawn line (ruled in pull request 131: a stairway's top end opens onto the floor it meets, whatever line is drawn across it, unless a door is drawn there)"
 residuals:
   - "halfling-home/1: cell 2,4, walled on its north, east, and south sides, with a window, which the conventions make a wall, on its west side onto area h8"
   - "halfling-home/1: cells 6,11 and 6,12, open to each other, walled from areas h2 and h5 and from the rock east of them, with a window on the south side of 6,12 onto floor the walk reaches"
