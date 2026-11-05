@@ -161,7 +161,6 @@ def test_a_transport_failure_while_the_stream_is_read_is_retried(tmp_path: Path)
     assert "pending" not in entry and entry["cost_usd"] == worst_case_usd(MODEL, REQUEST)
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: claude-refused")
 @pytest.mark.parametrize(
     ("error", "status"),
     [
@@ -184,7 +183,6 @@ def test_a_request_the_api_refuses_before_any_model_runs_is_settled_at_zero(
     assert "pending" not in entry and entry["cost_usd"] == 0.0
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: claude-refused")
 def test_a_request_refused_as_rate_limited_on_every_attempt_is_settled_at_zero(tmp_path: Path):
     refusals: list[Exception | FakeStream] = [status_error(anthropic.RateLimitError, 429, {}) for _ in range(5)]
     reader, client, path, _ = make_provider(tmp_path, refusals)
