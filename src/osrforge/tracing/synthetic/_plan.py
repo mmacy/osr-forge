@@ -69,7 +69,7 @@ def canonical(cell: Cell, side: str) -> tuple[Cell, str]:
     return cell, side
 
 
-Decoration = Literal["contour", "track", "stream", "tree", "dashed_circle", "cave"]
+Decoration = Literal["contour", "track", "stream", "tree", "dashed_circle", "cave", "corner_door"]
 """An ornament drawn over the map that the reading doesn't record."""
 
 
@@ -80,7 +80,10 @@ class Ornament:
     A contour, a track, and a stream follow `points`. A tree and a dashed
     circle are centred on `points[0]` with radius `size`. A cave is the floor
     within `size` of the segment from `points[0]` to `points[-1]`: a plan with
-    caves draws its floor as their union, with walls off the grid.
+    caves draws its floor as their union, with walls off the grid. A corner
+    door is a door drawn across a passage `size` cells wide each side of its
+    course, at the grid corner `points[0]`, the course running toward
+    `points[1]`. The reading puts it on an edge the plan hides.
     """
 
     kind: Decoration
