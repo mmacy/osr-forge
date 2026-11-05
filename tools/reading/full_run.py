@@ -41,7 +41,7 @@ from pathlib import Path
 from typing import Any
 
 from osrforge.tracing.score import ScoreSet, score_trace
-from osrforge.tracing.truth import GeometryTruth, Level, Panel, cell_key
+from osrforge.tracing.truth import Entrance, GeometryTruth, Level, Panel, cell_key, parse_cell
 
 from .claude_run import RequestCap
 from .full_checks import LevelChecks, check_document
@@ -165,13 +165,60 @@ def _restricted(panel: Panel, rects: Sequence[tuple[int, int, int, int]]) -> Pan
 
 
 def _within(level: Level, dungeon_id: str) -> Level:
-    """A level without its passages and transitions into other dungeons."""
+    """A level without its passages to other levels and its transitions into other dungeons.
+
+    The truth format refuses a passage into a level that fell back. A transition into a fallen-back level of the
+    same dungeon is allowed, and the scorer compares it by level number.
+    """
     return level.model_copy(
         update={
-            "passages": tuple(p for p in level.passages if p.to_dungeon in (None, dungeon_id)),
+            "passages": tuple(
+                p for p in level.passages if p.to_dungeon in (None, dungeon_id) and p.to_level == level.number
+            ),
             "transitions": tuple(t for t in level.transitions if t.to_dungeon in (None, dungeon_id)),
         }
     )
+
+
+def entrance_on_level(key: GeometryTruth, dungeon_id: str, number: int) -> bool:
+    """Whether the key's entrance of a dungeon stands on a level."""
+    dungeon = next(d for d in key.dungeons if d.id == dungeon_id)
+    return dungeon.entrance is not None and dungeon.entrance.level == number
+
+
+def _entrance_area(key: GeometryTruth, dungeon_id: str, number: int) -> str | None:
+    dungeon = next(d for d in key.dungeons if d.id == dungeon_id)
+    level = next(lv for lv in dungeon.levels if lv.number == number)
+
+    def holding(cell: str) -> str | None:
+        return next((name for name, area in level.areas.items() if cell in area.cells), None)
+
+    if dungeon.entrance is not None and dungeon.entrance.level == number:
+        return holding(dungeon.entrance.cell)
+    arrivals = sorted(
+        (other.number, item.cell, item.to_cell)
+        for other in dungeon.levels
+        if other.number != number
+        for item in (*other.transitions, *other.passages)
+        if item.to_level == number and item.to_dungeon in (None, dungeon_id) and item.to_cell
+    )
+    for _number, _cell, to_cell in arrivals:
+        name = holding(to_cell)
+        if name is not None:
+            return name
+    return next(iter(level.areas), None)
+
+
+def _stand_in(level: Level, area: str | None) -> Entrance | None:
+    """An entrance at the first floor cell of an area of the level, or of its first area, or of the level."""
+    floor = [(x, y) for y, row in enumerate(level.cells) for x, letter in enumerate(row) if letter == "."]
+    names = [name for name in (area, *level.areas) if name in level.areas]
+    for name in names:
+        cells = {parse_cell(text) for text in level.areas[name].cells}
+        mine = sorted((c for c in floor if c in cells), key=lambda c: (c[1], c[0]))
+        if mine:
+            return Entrance(level=level.number, cell=cell_key(mine[0]))
+    return Entrance(level=level.number, cell=cell_key(floor[0])) if floor else None
 
 
 def level_documents(
@@ -181,9 +228,16 @@ def level_documents(
 
     Each document keeps only the panels its level uses, so the reading families count no other level's panel.
     Panels the key's level shares with another traced level of the key are cut, in both documents, to the level's
-    outline on that panel in the key, every other cell made rock. The entrance stays only when it stands on the level.
-    A passage or transition into another dungeon is left out, because that dungeon's levels fall back, so the
-    member's whole score counts it and the level's doesn't.
+    outline on that panel in the key, every other cell made rock. A passage to another level and a transition into
+    another dungeon are left out, because their levels fall back, so the member's whole score counts them and the
+    level's doesn't.
+
+    A dungeon with a traced level needs an entrance on a traced level. A document whose entrance stands on another
+    level gets a stand-in on this one, at the first floor cell of the area the key names: the key's area holding its
+    entrance when that is on this level, else the key's area where the first transition or passage from another level
+    arrives, else the key level's first area. A document without that area uses its own first area. The reachability
+    family then walks from the stand-in, and the level's entrance family counts only where the key's entrance stands
+    on the level (`entrance_on_level`).
     """
     level = next(lv for d in key.dungeons if d.id == dungeon_id for lv in d.levels if lv.number == number)
     users: Counter[str] = Counter(
@@ -201,6 +255,8 @@ def level_documents(
                 rect for o in panel.outlines if (o.dungeon, o.level) == (dungeon_id, number) for rect in o.rects
             ]
 
+    area = _entrance_area(key, dungeon_id, number)
+
     def only(document: GeometryTruth) -> GeometryTruth:
         dungeons = []
         for dungeon in document.dungeons:
@@ -210,9 +266,17 @@ def level_documents(
                 else Level(number=lv.number, verdict="fallback", reason="scored apart")
                 for lv in dungeon.levels
             )
-            entrance = dungeon.entrance
-            if dungeon.id != dungeon_id or entrance is None or entrance.level != number:
-                entrance = None
+            entrance = None
+            if dungeon.id == dungeon_id:
+                mine = next(lv for lv in levels if lv.number == number)
+                entrance = dungeon.entrance
+                if mine.verdict == "traced" and (entrance is None or entrance.level != number):
+                    entrance = _stand_in(mine, area)
+                    if entrance is None:
+                        levels = tuple(
+                            Level(number=lv.number, verdict="fallback", reason="no floor") if lv is mine else lv
+                            for lv in levels
+                        )
             dungeons.append(dungeon.model_copy(update={"levels": levels, "entrance": entrance}))
         kept = next(lv for d in document.dungeons if d.id == dungeon_id for lv in d.levels if lv.number == number)
         used = {placement.panel for placement in kept.panels}
@@ -329,6 +393,9 @@ def run(
                     continue
                 one_trace, one_key = level_documents(trace, key, dungeon.id, level.number)
                 level_score = score_trace(one_trace, one_key)
+                after, after_whole = summary(level_score.after), summary(level_score.after_whole)
+                if not entrance_on_level(key, dungeon.id, level.number):
+                    after["entrance"] = after_whole["entrance"] = None
                 checks = by_level.get((dungeon.id, level.number))
                 levels_report.append(
                     {
@@ -337,8 +404,8 @@ def run(
                         "dungeon": dungeon.id,
                         "level": level.number,
                         "style": _style_of(key, level),
-                        "after": summary(level_score.after),
-                        "after_whole": summary(level_score.after_whole),
+                        "after": after,
+                        "after_whole": after_whole,
                         "checks": checks.to_json() if checks else {"traced": False},
                         "needs_no_repair": bool(checks and checks.needs_no_repair),
                         "key_checks": key_checks[(dungeon.id, level.number)].to_json(),

@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pytest
 from tools.answer_keys.resolve import load_caches
 from tools.reading.full_checks import check_document
@@ -208,3 +209,21 @@ def test_an_open_case_salvages_nothing_it_cannot_and_falls_back() -> None:
     trace, how = resolve_member(unmarked, survey, contents, mapread)
     assert how.startswith("open case")
     assert all(level.verdict == "fallback" for dungeon in trace.dungeons for level in dungeon.levels)
+
+
+def test_a_fault_picture_puts_the_trace_beside_it_with_its_cut_off_floor_marked() -> None:
+    from PIL import Image
+    from tools.reading.full_pictures import fault_picture
+
+    key = load_geometry_truth(CAVES)
+    _survey, contents, mapread = load_caches(ROOT / "tests" / "assets" / "chaotic-caves")
+    checks = next(c for c in check_document(key, contents, mapread) if c.dungeon == "orc-lair-a")
+    assert checks.cut_off
+    with Image.open(ROOT / "tests" / "assets" / "chaotic-caves" / "maps" / "p038.png") as image:
+        picture = fault_picture(image.convert("RGB"), key, "jn1-p038", "orc-lair-a", 1, checks)
+    half = (picture.width - 20) // 2
+    left = np.asarray(picture.crop((0, 40, half, picture.height)), dtype=int)
+    right = np.asarray(picture.crop((half + 20, 40, picture.width, picture.height)), dtype=int)
+    assert left.shape == right.shape
+    cyan = (right[..., 0] < left[..., 0] - 40) & (right[..., 2] >= left[..., 2])
+    assert cyan.sum() > 0

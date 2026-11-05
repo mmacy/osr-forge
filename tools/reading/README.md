@@ -10,7 +10,7 @@ The plan's step 8 runs in two parts. The screening, which is done, chose the sta
 - Claude's model and the effort for each kind of request
 - the Clef backend
 
-The full run, still to come, scores every map with those settings.
+The full run reads, resolves, and scores every map with those settings (see "The full run"). It waits for the answer keys' approval.
 
 Commercial maps' specs, answers, and results stay outside the repository, under `~/.re-pod/map-plan/osr-suite/reading/`. The files here cover the committed Chaotic Caves maps and synthetic maps.
 
@@ -53,6 +53,7 @@ Commercial maps' specs, answers, and results stay outside the repository, under 
   - Every request goes through the stage's provider, `ClaudeProvider`, with one retry of a malformed answer and a cap on the screening's requests (`claude_run.py`).
   - `pictures.py` draws a region with its grid ticked.
   - `screen_summary.py` pools the stored outcomes by model and effort. It also scores the decision the items were chosen by on the same items, and counts the screening's entries on the Claude ledger.
+- `full_run.py` and the `full_*.py` modules are the full run (see "The full run").
 
 ## The files
 
@@ -182,6 +183,40 @@ P=$R/specs
        --source hosted=keyset-hosted-stored --paired
    ```
 
+## The full run
+
+The full run reads every map with a first answer key and every synthetic map as the stage reads it, resolves each member's reading into a trace with the reference resolution script (`tools/answer_keys/resolve.py`), scores the trace against its key with `score_trace`, and runs the structural checks of "When part of a trace fails". A *member* is one answer key, or one synthetic map's answer, with the caches it resolves with.
+
+- `full_settings.py` reads the settings file, which stays with the results: each kind of Claude request's model and effort, the request cap, the Clef backend and its hosted fallback's spend, the passable thresholds, ε, and the levels milestone 1 looks at.
+- `full_members.py` lists the members: the real ones from the map, pages, and answer-key spec files, and the synthetic ones from `tests/assets/synthetic-maps`.
+- `full_store.py` files every Clef answer and Claude outcome under its request's key, so an answer is reused only for the same request. `full_seed.py` fills the stores with the answer-key pass's and the screening's answers. A request the stores lack goes to the run's source: live, fake, or none.
+- `full_reading.py` reads a map in the plan's order: the whole-page read, the ink, Clef on every edge that touches floor or an unsettled cell, the calibration held out by map, the uncertain items, Claude's judgments, keys from marks, and the offset picks with the halves rule. Its docstring gives each step's rule.
+- `full_checks.py` runs the structural checks on a resolved document with the scorer's walk: unreachable areas, cut-off floor, doors without floor or the outside, bypasses, and disputes.
+- `full_run.py` drives the run and writes the report. `full_pictures.py` draws milestone 1's levels, each beside the same trace with its faults marked. `full_fakes.py` makes answers from the answer key, for tests and offline runs.
+
+The uncertain items are the edges between two cells the half rule makes floor whose calibrated P(passable) lies strictly between ε and 1 - ε, unless Clef reads a door there, and every cell the ink leaves unsettled. The plan's other kinds of item need the checks-and-repairs loop of osr-forge chunk 7, which isn't built, so the run sends none of them.
+
+The report gives the following:
+
+- Every scorer family per level, over every cell and without the partly-floor cells, with cave edges apart from straight ones. A level is scored on documents where every other level fell back and only its own panels are kept. A panel the key shares between levels, like page 38's, is cut to the level's outline in the key. Every calibration a map is read with was fitted without that map, so every score is held out.
+- The same families per member and pooled by style, real maps apart from synthetic ones.
+- Whether each level *needs no repair*: no unreachable area, no cut-off floor, no door without floor, and a dungeon that can be walked from its entrance. A bypass or a dispute changes no geometry, so it's reported and doesn't count. The answer key's own checks are given beside the trace's, because the keys fail some of them.
+- Claude requests and Claude and Clef dollars per level. A whole-page read's are shared evenly by the levels its page lists, and a map's items and Clef questions by the levels whose read outline holds them. A stored answer counts at what it cost when it was asked.
+
+Run it from the osr-forge checkout, with the commercial files added as in "Run it" and `S` the settings file:
+
+```text
+S=$R/full-run/settings.json
+uv run python -m tools.reading.full_run --settings $S --out $R/full-run --maps tools/reading/maps.json \
+    --pages tools/reading/pages.json --keys tools/answer_keys/keys.json --halves $P/halves.json \
+    --synthetic tests/assets/synthetic-maps --screening $R --dry-run --ledger ~/.re-pod/map-plan/claude-ledger.json
+```
+
+- `--dry-run` sends nothing. It reads with every stored answer, lets the answer key's whole-page answer stand in where none is stored, and estimates the requests and dollars each map still needs. `--ledger` only reads the ledger, to count what the cap leaves.
+- `--clef local` fills the Clef store from local Clef-flash, `--clef hosted` from hosted Clef-flash within the settings' spend, and `--clef fake` from the answer key.
+- `--claude live` asks Claude within the cap and needs `OSRFORGE_CLAUDE_LEDGER`. `--claude fake` answers from the answer key, so its scores measure the run's plumbing and the ink, not Claude.
+- `--pictures` draws milestone 1's levels into `pictures/`.
+
 ## The settings
 
 The maintainer decided the following for the stage:
@@ -278,5 +313,6 @@ Clef, on local Clef-flash unless a backend is named:
 - The retry of a malformed answer with its faults, the request cap, and the summary of stored outcomes.
 - The join pictures, and the marks found on the upper floor.
 - The findings' tallies: the letters by option set, the ink's cells and the cell question, the backends' agreement and best threshold, a mark's reading and one mark per key, the summary's first ten items, symbols by kind, and the decision the items were chosen by, and the ledger count.
+- The full run: answers reused by request key, the settings, the key's whole-page answer, a level scored alone on its part of a shared panel, the checks finding an area a removed door cuts off, wrong offset picks, a run on fake answers that joins the fold and scores every family, an open case that falls back, and a fault picture.
 
 No test calls a service or reads a ledger outside its temporary directory.
