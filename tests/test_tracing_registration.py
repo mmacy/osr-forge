@@ -72,14 +72,15 @@ class RealMap:
 
 REAL_MAPS = [
     RealMap(CHAOTIC_CAVES / "p021.png", [((37, 26), (44.13, 44.12), 501), ((37, 23), (44.13, 44.11), 486)]),
-    RealMap(CHAOTIC_CAVES / "p038.png", [((55, 78), (30.65, 30.63), 1483)]),
+    RealMap(CHAOTIC_CAVES / "p038.png", [((56, 80), (30.65, 30.63), 1483)]),
     RealMap(CHAOTIC_CAVES / "p046.png", [((32, 37), (60.85, 60.84), 660)]),
     RealMap(CHAOTIC_CAVES / "p047.png", [((16, 16), (75.00, 75.00), 136)]),
     RealMap(MONKEY_ISLE / "p044.png", [((41, 47), (42.86, 42.87), 1011)]),
 ]
 """Page 21 holds Halfling Home at 5 feet and the Cave of Horrors at 10 feet, drawn at one pitch and split by a
-frame line. Page 38 is the ten lairs: it has no frame, its printed vertical lines run from x 28 to x 1719 with
-the legend to their right, and its horizontal lines from y 29 to y 2418, so the grid is 55 by 78 cells. Page 46
+frame line. Page 38 is the ten lairs: it has no frame, and its drawing runs off the image on every side,
+with the legend to the right of its last vertical line at x 1719. Its grid takes each cell at least half inside
+the image, which is 56 by 80 cells. Page 46
 is the manor's ground floor: its printed horizontal lines run from y 303 to y 2554, which is 37 rows, and its
 vertical lines reach one row higher, to about y 243, below the legend, so the tolerance of one line accepts a
 fit that takes that row. Page 47 is the manor's upper floor, and Monkey Isle page 44 Dragon Harbor, which the
@@ -323,6 +324,124 @@ def test_two_drawings_at_two_pitches_are_two_regions(tmp_path: Path):
         assert fit.pitch is not None
         assert abs(fit.pitch[0] - pitch) <= PITCH_TOLERANCE * pitch, fit.pitch
         assert abs(fit.pitch[1] - pitch) <= PITCH_TOLERANCE * pitch, fit.pitch
+
+
+BAND_INK = np.array([30, 90, 170], dtype=np.uint8)
+"""A TSR-style blue, dark enough to read as ink in a line and as fill in a solid."""
+
+BAND_PITCH = 26
+BAND_ORIGIN = 100
+
+
+def framed_drawing(band: int) -> tuple[npt.NDArray[np.uint8], tuple[int, int, int, int]]:
+    """A floor plan inside a thin frame, with wide paper margins and, in its southeast, a solid band.
+
+    The floor is 24 by 30 cells at a pitch of 26 px from the lattice origin (100, 100), with grid lines 2 px wide
+    and a wall 6 px wide. The frame is a line 2 px wide on lattice lines: 3 pitches west of the floor, 1 pitch
+    north of it, on its east wall, and 4 pitches south of its south wall, so it encloses 27 by 35 cells. When
+    `band` is above 0, a solid band fills the floor's east `band` columns from row 18 down to the frame's south
+    line, and its last 2 rows are a gridded strip walled on its north and west sides. Everything else inside the
+    frame is paper. Returns the image and the frame's lines as `(x0, y0, x1, y1)` in pixels.
+    """
+    columns, rows = 24, 30
+    floor_x1 = BAND_ORIGIN + columns * BAND_PITCH
+    floor_y1 = BAND_ORIGIN + rows * BAND_PITCH
+    frame = (BAND_ORIGIN - 3 * BAND_PITCH, BAND_ORIGIN - BAND_PITCH, floor_x1, floor_y1 + 4 * BAND_PITCH)
+    fx0, fy0, fx1, fy1 = frame
+    rgb = np.full((fy1 + 120, fx1 + 120, 3), 255, dtype=np.uint8)
+
+    def paint(x0: int, y0: int, x1: int, y1: int) -> None:
+        rgb[max(0, y0) : y1, max(0, x0) : x1] = BAND_INK
+
+    for i in range(columns + 1):
+        x = BAND_ORIGIN + i * BAND_PITCH
+        paint(x - 1, BAND_ORIGIN - 1, x + 1, floor_y1 + 1)
+    for j in range(rows + 1):
+        y = BAND_ORIGIN + j * BAND_PITCH
+        paint(BAND_ORIGIN - 1, y - 1, floor_x1 + 1, y + 1)
+    paint(BAND_ORIGIN - 3, BAND_ORIGIN - 3, floor_x1 + 3, BAND_ORIGIN + 3)
+    paint(BAND_ORIGIN - 3, floor_y1 - 3, floor_x1 + 3, floor_y1 + 3)
+    paint(BAND_ORIGIN - 3, BAND_ORIGIN - 3, BAND_ORIGIN + 3, floor_y1 + 3)
+    paint(floor_x1 - 3, BAND_ORIGIN - 3, floor_x1 + 3, floor_y1 + 3)
+    if band:
+        band_x0 = floor_x1 - band * BAND_PITCH
+        paint(band_x0, BAND_ORIGIN + 18 * BAND_PITCH, fx1, fy1)
+        strip_y0 = fy1 - 2 * BAND_PITCH
+        rgb[strip_y0:fy1, band_x0:fx1] = 255
+        for i in range(band + 1):
+            x = band_x0 + i * BAND_PITCH
+            paint(x - 1, strip_y0 - 1, x + 1, fy1 + 1)
+        for j in range(3):
+            y = strip_y0 + j * BAND_PITCH
+            paint(band_x0 - 1, y - 1, fx1 + 1, y + 1)
+        paint(band_x0 - 3, strip_y0 - 3, fx1 + 3, strip_y0 + 3)
+        paint(band_x0 - 3, strip_y0 - 3, band_x0 + 3, fy1 + 1)
+    paint(fx0 - 1, fy0 - 1, fx1 + 1, fy0 + 1)
+    paint(fx0 - 1, fy1 - 1, fx1 + 1, fy1 + 1)
+    paint(fx0 - 1, fy0 - 1, fx0 + 1, fy1 + 1)
+    paint(fx1 - 1, fy0 - 1, fx1 + 1, fy1 + 1)
+    return rgb, frame
+
+
+FRAMED_VARIANTS = {
+    "band": (8, (0, 0), 1.0),
+    "no band": (0, (0, 0), 1.0),
+    "band, shifted": (8, (7, 11), 1.0),
+    "band, scaled": (8, (0, 0), 1.04),
+}
+"""Each framed drawing: the band's width in columns, a shift `(dx, dy)` in pixels, and a scale."""
+
+FRAME_RECT_TOLERANCE = 3
+"""Pixels, before scaling. The rectangle's sides lie this close to the frame's lines."""
+
+
+@pytest.mark.xfail(strict=True, reason="chunk: reg-frame")
+@pytest.mark.parametrize("variant", list(FRAMED_VARIANTS))
+def test_a_framed_drawing_registers_from_frame_to_frame(tmp_path: Path, variant: str):
+    """A thin frame with paper margins wider than two pitches on its west and south bounds the region.
+
+    On the variant with a band, the only columns covered from the frame's north line to its south line are the
+    band's, because every column west of it crosses the paper margin below the floor's south wall. The region's
+    rectangle is still the framed drawing, as `RegionFit` says, so it runs from the frame's west line to its east
+    line and from its north line to its south line, and its grid is 27 by 35 cells.
+    """
+    band, (dx, dy), scale = FRAMED_VARIANTS[variant]
+    rgb, (fx0, fy0, fx1, fy1) = framed_drawing(band)
+    image = Image.fromarray(rgb)
+    if (dx, dy) != (0, 0):
+        shifted = Image.new("RGB", (image.width + dx, image.height + dy), (255, 255, 255))
+        shifted.paste(image, (dx, dy))
+        image = shifted
+    if scale != 1.0:
+        image = image.resize((round(image.width * scale), round(image.height * scale)), Image.Resampling.LANCZOS)
+    path = tmp_path / "framed.png"
+    image.save(path)
+    fits = registered(register_image(path))
+    assert len(fits) == 1, [fit.rect for fit in fits]
+    fit = fits[0]
+    check_gate(fit)
+    expected = [(fx0 + dx) * scale, (fy0 + dy) * scale, (fx1 + dx) * scale, (fy1 + dy) * scale]
+    assert all(
+        abs(side - want) <= FRAME_RECT_TOLERANCE * scale for side, want in zip(fit.rect, expected, strict=True)
+    ), (fit.rect, expected)
+    assert grid_of(fit) == (27, 35)
+    assert fit.pitch is not None
+    for pitch in fit.pitch:
+        assert abs(pitch - BAND_PITCH * scale) <= SYNTHETIC_PITCH_TOLERANCE * BAND_PITCH * scale, fit.pitch
+
+
+@pytest.mark.xfail(strict=True, reason="chunk: reg-frame")
+def test_a_cell_the_image_edge_cuts_is_part_of_the_grid():
+    """Page 38 has no frame, and its drawing runs off the image on every side.
+
+    Its printed horizontal lines run from y 29 to y 2418, and the image is 2450 px tall. The cell above the first
+    line is 29 of 30.6 px inside the image, and the cell below the last line is 31 of 30.6, so both are part of the
+    grid under `RegionFit`'s rule for a side that the image edge cuts. With the 56 columns between the vertical
+    lines at x 0 and x 1719, the grid is 56 by 80.
+    """
+    fits = registered(register_image(CHAOTIC_CAVES / "p038.png"))
+    assert len(fits) == 1, [fit.rect for fit in fits]
+    assert grid_of(fits[0]) == (56, 80)
 
 
 class SyntheticMap:
