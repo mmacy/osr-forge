@@ -37,6 +37,7 @@ STYLES = ("tsr_blue", "black_white", "dark_rock", "cave")
 CORE = "chunk: synth-core"
 STYLES_CHUNK = "chunk: synth-styles"
 JOINS = "chunk: synth-joins"
+PASSAGES = "chunk: synth-passages"
 
 FEATURE_CHUNK: dict[str, str] = {
     **dict.fromkeys(
@@ -121,6 +122,15 @@ FEATURE_CHUNK: dict[str, str] = {
             "passage_at_floor_edge",
         ),
         JOINS,
+    ),
+    **dict.fromkeys(
+        (
+            "passage_narrower_than_half_a_cell",
+            "passage_along_a_cell_line",
+            "diagonal_passage",
+            "door_across_a_corner",
+        ),
+        PASSAGES,
     ),
 }
 """Which generator chunk draws each feature."""
@@ -882,11 +892,24 @@ PREDICATES: dict[str, Callable[[SyntheticMap], bool]] = {
     "door_no_vestibule_fits": lambda m: any(letter in "dls" for letter in reading_letter_at_passage(m.truth)),
     "corridor_bends_across_cut": lambda m: corridor_passage(m.truth),
     "passage_at_floor_edge": lambda m: passage_on_floor_edge(m.truth),
+    "passage_narrower_than_half_a_cell": lambda m: bool(thin_floor_cells(m)),
+    "passage_along_a_cell_line": lambda m: bool(thin_floor_cells(m)),
+    "diagonal_passage": lambda m: bool(thin_floor_cells(m)),
+    "door_across_a_corner": lambda m: door_beside_thin_floor(m),
 }
 """What a map's answer must show for each feature it declares, where the answer can show it."""
 
 
-@pytest.mark.parametrize("feature", list(FEATURES))
+@pytest.mark.parametrize(
+    "feature",
+    [
+        pytest.param(
+            name,
+            marks=pytest.mark.xfail(reason=PASSAGES, strict=True) if FEATURE_CHUNK[name] == PASSAGES else (),
+        )
+        for name in FEATURES
+    ],
+)
 def test_feature_coverage(feature: str):
     holders = [item for item in loaded_maps() if feature in item.manifest.features]
     assert holders, f"no synthetic map declares {feature}"
@@ -1019,6 +1042,68 @@ def region_edges(truth: GeometryTruth, region: Region) -> Iterable[tuple[tuple[i
                         if "~" in (here, there) or f"{px},{py}" in excluded or f"{nx + ox},{ny + oy}" in excluded:
                             continue
                         yield (rx, ry), side, panel.edges.at((px, py), side)
+
+
+def cell_paper(mask: np.ndarray, region: Region, cell: tuple[int, int]) -> float:
+    """The share of a region cell's picture that is paper, sampled on a grid inside the cell."""
+    registration = region.registration
+    assert registration is not None
+    x, y = cell
+    paper = 0
+    total = 0
+    for i in range(SAMPLES):
+        for j in range(SAMPLES):
+            px, py = registration.pixel((x + (i + 0.5) / SAMPLES, y + (j + 0.5) / SAMPLES))
+            column, row = round(px), round(py)
+            if 0 <= row < mask.shape[0] and 0 <= column < mask.shape[1]:
+                total += 1
+                paper += int(not mask[row, column])
+    return paper / total if total else 0.0
+
+
+def thin_floor_cells(item: SyntheticMap) -> list[tuple[Panel, tuple[int, int]]]:
+    """Each answer floor cell whose picture is under half paper, as its panel and panel cell.
+
+    Cells holding a mark or a symbol are left out, since their ink is the label or the symbol.
+    """
+    colors = {image.file: (image.ink, image.paper) for image in item.manifest.images}
+    found: list[tuple[Panel, tuple[int, int]]] = []
+    for region in item.truth.regions:
+        if region.verdict != "registered":
+            continue
+        ink, paper = colors[region.image]
+        with Image.open(item.path / "images" / region.image) as image:
+            mask = ink_mask(image, ink, paper)
+        for panel in item.truth.panels:
+            labelled = {mark.cell for mark in panel.marks} | {cell for symbol in panel.symbols for cell in symbol.cells}
+            for part in panel.regions:
+                if part.region != region.id:
+                    continue
+                ox, oy = part.origin
+                for ry in range(region.rows):
+                    for rx in range(region.columns):
+                        px, py = rx + ox, ry + oy
+                        if panel.cells[py][px] != "." or f"{px},{py}" in labelled:
+                            continue
+                        if cell_paper(mask, region, (rx, ry)) < 0.5:
+                            found.append((panel, (px, py)))
+    return found
+
+
+def door_beside_thin_floor(item: SyntheticMap) -> bool:
+    """Whether a door stands on an edge of an answer floor cell whose picture is under half paper."""
+    return any(
+        panel.edges.at(cell, side) in "dls"
+        for panel, cell in thin_floor_cells(item)
+        for side in ("north", "east", "south", "west")
+    )
+
+
+def test_floor_drawn_under_half_paper_is_partial():
+    """A floor cell drawn under half floor is one a passage keeps, so the answer lists it as partly floor."""
+    for item in loaded_maps():
+        for panel, (x, y) in thin_floor_cells(item):
+            assert f"{x},{y}" in panel.partial, (item.path.name, panel.id, (x, y))
 
 
 def test_pictures_show_ink_on_walls_and_doors_and_blank_paper_across_open_edges():
