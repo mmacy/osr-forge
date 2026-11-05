@@ -13,8 +13,23 @@
       "proposals": [
         {
           "a": "2",
+          "b": "6",
+          "door": "none"
+        },
+        {
+          "a": "2",
           "b": "3",
           "door": "none"
+        },
+        {
+          "a": "3",
+          "b": "4",
+          "door": "none"
+        },
+        {
+          "a": "4",
+          "b": "5",
+          "door": "door"
         }
       ],
       "entrance_key": null

@@ -2,7 +2,11 @@
   "name": "wyrm-caves",
   "title": "The wyrm caves",
   "features": [
-    "corridor_off_frame"
+    "corridor_off_frame",
+    "passage_narrower_than_half_a_cell",
+    "passage_along_a_cell_line",
+    "diagonal_passage",
+    "door_across_a_corner"
   ],
   "damage": [
     {
