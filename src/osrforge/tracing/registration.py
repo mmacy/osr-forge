@@ -212,8 +212,10 @@ class RegionFit(BaseModel):
     frame that closes around the drawing, so a rectangle that a wall inside
     the drawing closes is no frame. Of the
     frames around a drawing, the region takes the outermost
-    under which the fit passes the gate, so a page border whose paper and
-    legend fail the gate gives way to the drawing's own frame. Each framed
+    under which the fit passes the gate. A page border around a drawing and
+    its legend is such a frame, since the legend is no part of the drawing.
+    When a drawing's frame closes but no fit under its frames passes the gate,
+    the region is its outermost frame, unregistered. Each framed
     drawing is one region: two candidate grids that reach the same frame are
     one region. An inset, a framed drawing inside another drawing's frame, is
     a region of its own, and its rectangle lies inside the outer region's.

@@ -522,11 +522,13 @@ def test_marks_in_a_margin_and_walls_past_a_corner_leave_the_frame(tmp_path: Pat
     assert grid_of(fits[0]) == (27, 35)
 
 
-def test_a_border_around_a_drawing_and_its_legend_is_no_frame(tmp_path: Path):
+def test_a_page_border_around_a_drawing_and_its_legend_is_its_frame(tmp_path: Path):
     """A 20 by 20 room with a legend box east of it, inside a page border around both.
 
-    A corridor's two walls run from the room's west wall to the border, so the drawing's ink reaches it. Under the
-    border, the legend and the paper beside it fail the gate, so the region is the room's own frame, 20 by 20.
+    A corridor's two walls run from the room's west wall to the border, so the drawing's ink reaches it, and the
+    border closes around the drawing. The legend is no part of the drawing, so it doesn't count against the fit, and
+    the region is the border's: the grid lines inside it, from x 48 to the east line, which lies on the lattice, and
+    from y 48 to y 750, 39 by 27 cells.
     """
     rgb = np.full((800, 1100, 3), 255, dtype=np.uint8)
     gridded_room(rgb, 100, 100, 20, 20)
@@ -537,9 +539,9 @@ def test_a_border_around_a_drawing_and_its_legend_is_no_frame(tmp_path: Path):
     path = save_rgb(tmp_path / "border.png", rgb)
     fits = registered(register_image(path))
     assert len(fits) == 1, [fit.rect for fit in fits]
-    assert grid_of(fits[0]) == (20, 20)
+    assert grid_of(fits[0]) == (39, 27)
     assert all(
-        abs(side - want) <= FRAME_RECT_TOLERANCE for side, want in zip(fits[0].rect, (100, 100, 620, 620), strict=True)
+        abs(side - want) <= FRAME_RECT_TOLERANCE for side, want in zip(fits[0].rect, (48, 48, 1060, 750), strict=True)
     ), fits[0].rect
 
 
@@ -573,7 +575,6 @@ def legend_beside_an_l_shaped_drawing() -> npt.NDArray[np.uint8]:
     return rgb
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: reg-coverage")
 def test_a_legend_apart_from_the_drawing_inside_its_rectangle_doesnt_fail_the_gate(tmp_path: Path):
     """The legend's marks lie inside the region's rectangle but belong to no grid line, so they don't count against
     the drawing's coverage, and the drawing registers as its grid, 30 by 40 cells."""
@@ -584,7 +585,6 @@ def test_a_legend_apart_from_the_drawing_inside_its_rectangle_doesnt_fail_the_ga
     assert grid_of(fits[0]) == (30, 40)
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: reg-coverage")
 def test_a_scan_that_a_wall_inside_the_drawing_divides_never_registers_a_wrong_grid():
     """A scan of a synthetic dark-rock page whose true grid is 20 by 14 cells (issue 130).
 
