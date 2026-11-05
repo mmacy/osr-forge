@@ -260,7 +260,7 @@ Clef, on local Clef-flash unless a backend is named:
 - **Marks** (step 7):
   - The detector finds a mark within a cell of all 209 key marks.
   - Clef reads 175 of the 209 right, and 5 of 30 single letters.
-  - Clef gives a key to 331 of the 521 found marks that aren't labels. Keeping each key's most probable mark leaves 164 keys right and 35 false keys among 571 other marks.
+  - Clef gives a key to 331 of the 521 asked marks that aren't labels. Keeping each key's most probable mark leaves 164 keys right and 35 false keys among 571 other marks.
 - **Backends,** on identical requests (step 9):
   - Hosted Clef-flash agrees with local Clef-flash on 96% to 98% of top answers.
   - At its best threshold, hosted Clef reads more open edges as blocked than local Clef-flash on TSR blue, cave, and black and white, and fewer on dark rock's few blocked edges. On cave it names both secret doors, where local Clef-flash names neither.
