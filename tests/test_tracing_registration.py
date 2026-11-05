@@ -503,7 +503,6 @@ FRAME_EXTRAS: dict[str, tuple[int, Callable[[npt.NDArray[np.uint8], tuple[int, i
 """Each framed drawing with something more drawn: the band's width in columns, and what's drawn."""
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: reg-frame")
 @pytest.mark.parametrize("extra", list(FRAME_EXTRAS))
 def test_marks_in_a_margin_and_walls_past_a_corner_leave_the_frame(tmp_path: Path, extra: str):
     """A label or a legend box in the frame's margin, or a side that runs on past its corner, leaves the frame.
