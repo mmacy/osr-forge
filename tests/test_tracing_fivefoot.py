@@ -39,7 +39,6 @@ def test_two_rooms_with_a_door_on_one_segment():
     assert result.panel == ten.panels[0]
 
 
-@pytest.mark.xfail(strict=True, reason="chunk: fivefoot-openings")
 @pytest.mark.parametrize(("blocked", "opening"), [("w", "o"), ("n", "p")])
 def test_an_opening_between_floor_squares_keeps_its_ten_foot_edge_open(blocked: str, opening: str):
     """A 2 by 4 room whose wall across its middle, on y = 2, has one blocked segment and one opening.
