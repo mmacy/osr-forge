@@ -102,6 +102,10 @@ FEATURE_DESCRIPTIONS: dict[str, str] = {
     "refuse_outdoor": "an outdoor map",
     "refuse_town": "a town map",
     "refuse_quarter_mile": "a map at a quarter mile to the square",
+    "passage_narrower_than_half_a_cell": "a passage drawn narrower than half a cell",
+    "passage_along_a_cell_line": "a passage drawn along the line between two rows or columns of cells",
+    "diagonal_passage": "a passage drawn diagonally, through cells that meet at corners",
+    "door_across_a_corner": "a door drawn across the corner where two cells meet",
 }
 """Each feature id with the plan's words for it."""
 
@@ -174,6 +178,10 @@ Feature = Literal[
     "refuse_outdoor",
     "refuse_town",
     "refuse_quarter_mile",
+    "passage_narrower_than_half_a_cell",
+    "passage_along_a_cell_line",
+    "diagonal_passage",
+    "door_across_a_corner",
 ]
 """A feature id."""
 
