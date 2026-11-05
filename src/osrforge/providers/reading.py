@@ -113,6 +113,11 @@ class RequestKind:
         effort: The effort for this kind.
         max_tokens: The most output tokens a request of this kind allows,
             with room above the longest answer measured for the kind.
+        model: The model id for this kind, or `None` for the provider's
+            default model. Each kind is sent and charged on its own model and
+            effort, and requests share a cached prefix only when their model,
+            effort, thinking setting, and schema match. Recordings key each
+            request on its kind's model.
     """
 
     name: str
@@ -120,6 +125,7 @@ class RequestKind:
     schema: dict[str, object]
     effort: Effort
     max_tokens: int
+    model: str | None = None
 
     def __post_init__(self) -> None:
         if not _NAME_PATTERN.match(self.name):

@@ -498,6 +498,58 @@ def test_read_all_sends_the_first_request_of_each_shared_part_alone(tmp_path: Pa
             assert order[("first_event", first)] < order[("start", other)], (part, first, other)
 
 
+OPUS = "claude-opus-5-5"
+OPUS_KIND = RequestKind(
+    name="probe-opus", system="You read printed maps.", schema=SCHEMA, effort="medium", max_tokens=2000, model=OPUS
+)
+
+
+@pytest.mark.xfail(strict=True, reason="chunk: claude-kind-model")
+def test_each_kind_is_sent_and_charged_on_its_own_model_and_effort(tmp_path: Path):
+    default_request = make_request()
+    opus_request = ReadingRequest(kind=OPUS_KIND, shared=default_request.shared, question=default_request.question)
+    reader, client, path = provider(tmp_path, [final_message(), final_message(model=OPUS)])
+    first = reader.read(default_request)
+    second = reader.read(opus_request)
+    assert client.bodies == [request_body(default_request, MODEL), request_body(opus_request, OPUS)]
+    assert client.bodies[1]["model"] == OPUS
+    entries = json.loads(path.read_text(encoding="utf-8"))["entries"]
+    assert [(entry["model"], entry["label"]) for entry in entries] == [
+        (MODEL, "probe low"),
+        (OPUS, "probe-opus medium"),
+    ]
+    assert entries[0]["cost_usd"] == pytest.approx(cost_usd(MODEL, first.usage))
+    assert entries[1]["cost_usd"] == pytest.approx(cost_usd(OPUS, second.usage))
+
+
+@pytest.mark.xfail(strict=True, reason="chunk: claude-kind-model")
+def test_a_kind_on_a_model_without_prices_is_refused_before_sending(tmp_path: Path):
+    kind = RequestKind(
+        name="probe-x", system="s", schema=SCHEMA, effort="low", max_tokens=2000, model="claude-unpriced-1"
+    )
+    request = ReadingRequest(kind=kind, shared=make_request().shared, question=make_request().question)
+    reader, client, path = provider(tmp_path, [final_message()])
+    before = path.read_bytes()
+    with pytest.raises(ProviderError, match="claude-unpriced-1"):
+        reader.read(request)
+    assert client.bodies == []
+    assert path.read_bytes() == before
+
+
+@pytest.mark.xfail(strict=True, reason="chunk: claude-kind-model")
+def test_recordings_key_each_request_on_its_kind_model(tmp_path: Path):
+    base = make_request()
+    request = ReadingRequest(kind=OPUS_KIND, shared=base.shared, question=base.question)
+    response = RESPONSE.model_copy(update={"model_id": OPUS})
+    recorder = RecordingReadingProvider(StubReader([response]), tmp_path, MODEL)
+    assert recorder.read(request) == response
+    path = tmp_path / recording_filename("probe-opus", request.key(OPUS))
+    assert path.is_file()
+    recording = json.loads(path.read_text(encoding="utf-8"))
+    assert recording["model"] == OPUS and recording["request"]["model"] == OPUS
+    assert RecordedReadingProvider(tmp_path, MODEL).read(request) == response
+
+
 def test_read_all_returns_each_failure_in_its_place(tmp_path: Path):
     requests = [make_request(question=(ImagePart(png=png_bytes(20 + i)), TextPart(text=f"Item {i}"))) for i in range(3)]
     answers = {"Item 0": final_message(), "Item 1": final_message(stop_reason="max_tokens"), "Item 2": final_message()}

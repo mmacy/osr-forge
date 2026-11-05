@@ -132,7 +132,7 @@ class ClaudeSettings(BaseModel):
     """The Claude ledger file."""
 
     model: str = DEFAULT_MODEL
-    """The model id. One model serves every kind of request. It must be in `PRICES`."""
+    """The default model id, for a kind that names none. It and every model a kind names must be in `PRICES`."""
 
     ledger_stop_usd: float | None = None
     """The stop, or `None` to use the ledger file's own."""
