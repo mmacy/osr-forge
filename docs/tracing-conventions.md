@@ -55,7 +55,7 @@ The conversion uses the phase that puts the most blocked 5-foot segments (wall, 
 
 A cell is floor when at least two of its four squares are floor, otherwise water when at least two are water, and otherwise rock. A cell is partly floor when its squares aren't all the same kind, counting squares off the grid as rock, or when any of them is partly floor. A cell is a cave cell when any of its squares is.
 
-A 10-foot edge between two cells covers two 5-foot segments. Its letter is the first of its read segments in this order: `l`, `s`, `d`, `n`, `w`, `p`, `o`, and a `-` segment is skipped. An edge whose segments are both `-` but that touches floor or water is `w`. So an edge is passable only when each of its read segments is, and a door on either segment makes the edge a door.
+A 10-foot edge between two cells covers two 5-foot segments. Its letter is the first of its read segments in this order: `l`, `s`, `d`, `n`, `w`, `p`, `o`, and a `-` segment is skipped. One exception keeps a 5-foot opening, as a 10-foot cell holds a doorway. When one segment is a wall or window and the other is open or a printed open line, the edge takes the open segment's letter, provided the opening's two squares are floor in one open space after the wall moves below and both of the edge's cells are floor. An edge whose segments are both `-` but that touches floor or water is `w`. So a door on either segment makes the edge a door.
 
 A *narrow run* (see Keys and areas) stays joined edge to edge even where it's one square wide: every cell that covers a square of a narrow run is floor, and the edge between two consecutive cells of the run is passable.
 
