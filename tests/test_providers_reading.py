@@ -540,7 +540,7 @@ def test_a_kind_on_a_model_without_prices_is_refused_before_sending(tmp_path: Pa
 def test_recordings_key_each_request_on_its_kind_model(tmp_path: Path):
     base = make_request()
     request = ReadingRequest(kind=OPUS_KIND, shared=base.shared, question=base.question)
-    response = RESPONSE.model_copy(update={"model_id": OPUS})
+    response = ReadingResponse(data=RESPONSE.data, usage=RESPONSE.usage, model_id=OPUS)
     recorder = RecordingReadingProvider(StubReader([response]), tmp_path, MODEL)
     assert recorder.read(request) == response
     path = tmp_path / recording_filename("probe-opus", request.key(OPUS))
