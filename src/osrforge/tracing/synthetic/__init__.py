@@ -106,6 +106,7 @@ FEATURE_DESCRIPTIONS: dict[str, str] = {
     "passage_along_a_cell_line": "a passage drawn along the line between two rows or columns of cells",
     "diagonal_passage": "a passage drawn diagonally, through cells that meet at corners",
     "door_across_a_corner": "a door drawn across the corner where two cells meet",
+    "line_across_stair_top": "a line drawn across a stairway's top end",
 }
 """Each feature id with the plan's words for it."""
 
@@ -182,6 +183,7 @@ Feature = Literal[
     "passage_along_a_cell_line",
     "diagonal_passage",
     "door_across_a_corner",
+    "line_across_stair_top",
 ]
 """A feature id."""
 

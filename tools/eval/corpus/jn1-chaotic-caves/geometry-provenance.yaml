@@ -1,0 +1,84 @@
+# The provenance of geometry.json beside this file. Written by tools/answer_keys/assemble.py.
+authored: "2026-11-05"
+license: >-
+  CC BY-SA 4.0. The maps are from JN1 The Chaotic Caves (Release 28) by J.D. Neal, copyright © 2009-2015,
+  2018-2024 J.D. Neal and published by the Basic Fantasy Project, and the key is distributed under CC BY-SA 4.0
+  with attribution to J.D. Neal and the Basic Fantasy Project. The key is adapted from the maps on pages 21, 38,
+  46, and 47.
+instrument: >-
+  Two independent readings per map: Claude Sonnet 5.5 (claude-sonnet-5-5) at high effort reading 12 by 12
+  cell windows with grid ticks through tools/answer_keys/reader.py, which isn't the tracing stage's code,
+  and the ink classifier tools/answer_keys/classify.py. ollama/clef-flash answered the edges of jn1-p038, jn1-p046, jn1-p047, jn1-p021-halfling, jn1-p021-cave as a third reading; hosted Clef's earlier answers on jn1-p047, jn1-p021-halfling, jn1-p021-cave are kept as a record beside the key's.
+  Each disagreement was settled in a fresh Sonnet request at high effort that carried a zoomed crop, a
+  wider crop, and the readings that disagreed. The resolution layer
+  comes from tools/answer_keys/resolve.py by docs/tracing-conventions.md.
+verified: >-
+  An adversarial pass of fresh Sonnet requests at high effort rechecked every settled call and the
+  agreed edges in caves, at diagonals, and around keys; a challenged call was settled once more in a
+  fresh request with the challenge among its readings, and that value is the key's.
+  Owner sample, in the sample app (tools/answer_keys/sample_app.py): black_white.json, 85 calls, pending;
+  dark_rock.json, 71 calls, pending; cave.json, 128 calls, pending. Calls on jn1-p038, jn1-p046, jn1-p047,
+  jn1-p021-halfling, jn1-p021-cave were asked again after the settling, each in a fresh request with the earlier
+  answer, a measure, or a note among its readings; each map's rechecked figure counts them.
+spend_usd: {claude: 27.9533, clef: 0.9563}
+spend_note: >-
+  Claude is every batch store's answers, which match what the Claude ledger charged these maps. Clef is what the
+  Clef ledger charged hosted Clef for these maps: 5815 requests, of which the 2346 answers kept beside the key
+  cost $0.1707, 3469 failed and were charged at their estimates, and 8 reservations were never settled. The
+  local Clef reading cost nothing.
+maps:
+  - {"map": "jn1-p038", "adversary_usd": 5.91613, "joins-adversary_usd": 0.531231, "marks_usd": 0.343085, "recheck_usd": 0.686741, "resettle_usd": 0.926505, "settle_usd": 3.008075, "wholemap_usd": 0.009649, "windows_usd": 4.564059, "claude_usd": 15.985475, "clef_requests": 5534, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_failed": 168, "clef_ledger_usd": 0.042484, "clef_ledger_requests": 168, "clef_ledger_unsettled": 4, "cells": 4480, "cells_disputed": 354, "edges": 5591, "edges_disputed": 2156, "marks": 120, "marks_disputed": 58, "symbols": 81, "symbols_disputed": 39, "settled_calls": 1412, "adversarial_checks": 3846, "challenged": 343, "changed_by_challenge": 234, "rechecked": 282, "changed_by_recheck": 238}
+  - {"map": "jn1-p046", "adversary_usd": 2.186383, "joins-adversary_usd": 0.022281, "marks_usd": 0.098398, "recheck_usd": 0.038175, "resettle_usd": 0.205431, "settle_usd": 1.251013, "wholemap_usd": 0.011793, "windows_usd": 0.872317, "claude_usd": 4.685791, "clef_requests": 2668, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_failed": 2668, "clef_ledger_usd": 0.6003, "clef_ledger_requests": 2668, "clef_ledger_unsettled": 0, "cells": 1376, "cells_disputed": 136, "edges": 2669, "edges_disputed": 503, "marks": 24, "marks_disputed": 14, "symbols": 21, "symbols_disputed": 12, "settled_calls": 739, "adversarial_checks": 1431, "challenged": 108, "changed_by_challenge": 54, "rechecked": 15, "changed_by_recheck": 12}
+  - {"map": "jn1-p047", "adversary_usd": 0.584053, "joins-adversary_usd": 0.012268, "marks_usd": 0.028243, "recheck_usd": 0.014523, "resettle_usd": 0.015725, "settle_usd": 0.175281, "wholemap_usd": 0.011745, "windows_usd": 0.231795, "claude_usd": 1.073633, "clef_requests": 558, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_hosted_record": 558, "clef_hosted_usd": 0.041917, "clef_ledger_usd": 0.04185, "clef_ledger_requests": 558, "clef_ledger_unsettled": 0, "cells": 304, "cells_disputed": 44, "edges": 558, "edges_disputed": 82, "marks": 11, "marks_disputed": 5, "symbols": 2, "symbols_disputed": 0, "settled_calls": 111, "adversarial_checks": 416, "challenged": 6, "changed_by_challenge": 6, "rechecked": 9, "changed_by_recheck": 9}
+  - {"map": "jn1-p021-halfling", "adversary_usd": 1.328781, "joins-adversary_usd": 0.021514, "marks_usd": 0.040829, "recheck_usd": 0.028726, "resettle_usd": 0.089328, "settle_usd": 0.427588, "wholemap_usd": 0.008829, "windows_usd": 1.085125, "claude_usd": 3.03072, "clef_requests": 1789, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_hosted_record": 1145, "clef_hosted_usd": 0.086012, "clef_failed": 633, "clef_ledger_usd": 0.2292, "clef_ledger_requests": 1778, "clef_ledger_unsettled": 4, "cells": 962, "cells_disputed": 17, "edges": 1785, "edges_disputed": 366, "marks": 16, "marks_disputed": 13, "symbols": 0, "symbols_disputed": 0, "settled_calls": 264, "adversarial_checks": 840, "challenged": 21, "changed_by_challenge": 16, "rechecked": 11, "changed_by_recheck": 9}
+  - {"map": "jn1-p021-cave", "adversary_usd": 1.466916, "joins-adversary_usd": 0.146652, "marks_usd": 0.050002, "recheck_usd": 0.25165, "resettle_usd": 0.054988, "settle_usd": 0.405778, "wholemap_usd": 0.010683, "windows_usd": 0.790968, "claude_usd": 3.177637, "clef_requests": 790, "clef_usd": 0.0, "clef_reader": "ollama/clef-flash", "clef_hosted_record": 643, "clef_hosted_usd": 0.042747, "clef_ledger_usd": 0.042438, "clef_ledger_requests": 643, "clef_ledger_unsettled": 0, "cells": 888, "cells_disputed": 84, "edges": 711, "edges_disputed": 270, "marks": 15, "marks_disputed": 13, "symbols": 6, "symbols_disputed": 3, "settled_calls": 211, "adversarial_checks": 763, "challenged": 17, "changed_by_challenge": 13, "rechecked": 85, "changed_by_recheck": 73}
+prose_joins:
+  - "halfling-home/1: 14 of 14 prose joins made"
+  - "cave-of-horrors/1: 12 of 12 prose joins made"
+  - "orc-lair-a/1: 11 of 11 prose joins made"
+  - "orc-lair-b/1: 6 of 6 prose joins made"
+  - "hobgoblin-lair/1: 6 of 6 prose joins made"
+  - "goblin-lair/1: 5 of 5 prose joins made"
+  - "bandit-lair/1: 12 of 12 prose joins made"
+  - "kobold-lair/1: 6 of 6 prose joins made"
+  - "lizard-man-lair/1: 6 of 6 prose joins made"
+  - "bugbear-lair/1: 10 of 10 prose joins made"
+  - "gnoll-lair/1: 9 of 9 prose joins made"
+  - "roslof-manor/1: 24 of 25 prose joins made, not made: 82-93"
+  - "roslof-manor/2: 7 of 7 prose joins made"
+reach:
+  - "halfling-home/1: 216 of 219 floor cells reached; every area reached"
+  - "cave-of-horrors/1: 231 of 231 floor cells reached; every area reached"
+  - "orc-lair-a/1: 227 of 228 floor cells reached; every area reached"
+  - "orc-lair-b/1: 113 of 113 floor cells reached; every area reached"
+  - "hobgoblin-lair/1: 128 of 134 floor cells reached; every area reached"
+  - "abandoned-crypts/1: 114 of 114 floor cells reached; every area reached"
+  - "goblin-lair/1: 99 of 99 floor cells reached; every area reached"
+  - "bandit-lair/1: 235 of 235 floor cells reached; every area reached"
+  - "kobold-lair/1: 137 of 137 floor cells reached; every area reached"
+  - "lizard-man-lair/1: 154 of 154 floor cells reached; every area reached"
+  - "bugbear-lair/1: 156 of 157 floor cells reached; every area reached"
+  - "gnoll-lair/1: 167 of 167 floor cells reached; every area reached"
+  - "roslof-manor/1: 800 of 983 floor cells reached, 80 water cells; areas not reached: 82"
+  - "roslof-manor/2: 206 of 206 floor cells reached; every area reached"
+cases:
+  - "6: page 38's lairs' ground runs into the shared ravine across elevation lines (ruled in pull request 102: an answer key's outline border may follow a contour or elevation line)"
+  - "8: an unprinted entrance key on a lair whose outline ends at a slope (ruled in pull request 105: its opening is chosen among the outer openings into unkeyed floor)"
+  - "9: lairs that are separate dungeons in the survey but whose floors meet (ruled in pull request 109: the outline round separates them where the outlines made them meet, and a cut between dungeons whose floors meet in the drawing lays passages that name the other dungeon)"
+  - "10: a key printed outside its lair's cave mouth (ruled in pull request 114: it stays out of the outline and moves inside the mouth)"
+  - "11: a lair whose cave mouth isn't among its outer openings (ruled in pull request 116: a letter that equals a whole word of a dungeon's printed name, printed within two cells of a cave mouth, marks the mouth as the dungeon's and can print its entrance key)"
+  - "12: an unprinted entrance key with no outer opening into unkeyed floor (ruled in pull request 119: it is placed as other unprinted keys are, in the unlabelled walled room beside its connected area or a synthesized area)"
+  - "13 and 14: passages drawn narrower than half a cell, or along a cell line or across a corner (ruled in pull request 126: a passage drawn as floor at least a sixth of a cell wide that joins two floor regions the half-floor rule leaves apart keeps a chain of cells along its course, taking the cell with the most floor where it covers more than one cell across its course or turns a corner, and a floor cell on its course as it is; a door across a corner with floor drawn through it stands on the step cell with more floor)"
+  - "15: a 5-foot opening on a 10-foot edge (ruled in pull request 124: it keeps the edge open when its squares are floor in one open space and both cells are floor)"
+  - "16: a panel's cells outside its drawn grid (decided by the registration contract: the manor maps are keyed on their registered grids, without the title and legend above the frame)"
+  - "17: a courtyard reached only along the top of a wall (ruled in pull request 131: steps up onto a wall lead onto the wall's top, which no level holds, so they join nothing, and ground that only a wall's top reaches stays unreached)"
+  - "18: stairs whose top meets a level across a drawn line (ruled in pull request 131: a stairway's top end opens onto the floor it meets, whatever line is drawn across it, unless a door is drawn there)"
+residuals:
+  - "halfling-home/1: cell 2,4, walled on its north, east, and south sides, with a window, which the conventions make a wall, on its west side onto area h8"
+  - "halfling-home/1: cells 6,11 and 6,12, open to each other, walled from areas h2 and h5 and from the rock east of them, with a window on the south side of 6,12 onto floor the walk reaches"
+  - "orc-lair-a/1: cell 65,1, with rock on every side in the key; the drawing joins it to the lair's floor 0.12 of a cell wide, under the passage rule's sixth, and to floor outside the lair 0.41 wide"
+  - "hobgoblin-lair/1: cells 69,34, 70,34, 69,35, and 70,35, with rock on every side in the key; the drawing joins them, 0.79 of a cell wide, only to the floor inside the two cave mouths of the twin entrances, which the outline leaves outside the lair"
+  - "hobgoblin-lair/1: cells 68,37 and 68,38, stream A, with walls to area 16 where the settler and the adversarial check read the bars on its bank as walls, the legend printing no footing, and rock on its other sides; the drawing joins them to no other floor of the lair, and to floor outside it 0.12 of a cell wide"
+  - "bugbear-lair/1: cell 28,9, with rock on every side in the key; the drawing joins it to no other floor"
+  - "roslof-manor/1: the 183 floor cells of the courtyard north and east of the house, area 82 among them, which the stream entering under the north wall and the stream leaving under the east wall cut off from the rest of the level; both run to the map's edge with no bridge or footing drawn over them, and the steps up onto the wall on both sides join nothing (case 17)"
+  - "roslof-manor/1: the prose join 82-93, which the map doesn't draw: door 93 opens onto the moat with no crossing there, and area 82 lies in the courtyard the streams cut off"

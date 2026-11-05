@@ -50,6 +50,7 @@ __all__ = [
     "TraceScore",
     "VerdictsScore",
     "score_trace",
+    "walk",
 ]
 
 ALIGNMENT_SEARCH = 3
@@ -551,6 +552,52 @@ def _joins(level: Level | None) -> set[tuple[str, str]]:
     return joins
 
 
+def walk(levels: dict[int, Level], dungeon_id: str, starts: Iterable[tuple[int, _Cell]]) -> set[tuple[int, _Cell]]:
+    """The cells a party reaches from the starts, as `(level number, cell)`: the reachability family's walk.
+
+    A step crosses an edge whose letter is passable or a door onto a floor cell (`.`), or follows a transition or a
+    passage that stays in the dungeon to a floor cell of one of `levels`. Water, rock, and cells off a level's grid are
+    never entered, so water joins nothing unless resolution made a crossing of it.
+
+    Args:
+        levels: The levels the walk may enter, by number, each traced.
+        dungeon_id: The dungeon the levels belong to.
+        starts: Where the walk starts; each start is reached whatever its cell holds.
+
+    Returns:
+        The starts and every cell the walk reaches.
+    """
+    links: dict[tuple[int, _Cell], list[tuple[int, _Cell]]] = {}
+    for number, level in levels.items():
+        for transition in level.transitions:
+            if transition.to_dungeon in (None, dungeon_id) and transition.to_level in levels:
+                links.setdefault((number, parse_cell(transition.cell)), []).append(
+                    (transition.to_level, parse_cell(transition.to_cell))
+                )
+        for passage in level.passages:
+            if passage.to_dungeon in (None, dungeon_id) and passage.to_level in levels:
+                links.setdefault((number, parse_cell(passage.cell)), []).append(
+                    (passage.to_level, parse_cell(passage.to_cell))
+                )
+    seen = set(starts)
+    stack = list(seen)
+    while stack:
+        number, cell = stack.pop()
+        level = levels[number]
+        assert level.edges is not None
+        steps = [
+            (number, _neighbour(cell, side))
+            for side in _OPPOSITE
+            if _letter(level.edges, _edge(cell, side)) in _WALKABLE
+        ]
+        for step in [*steps, *links.get((number, cell), ())]:
+            (x, y), target = step[1], levels[step[0]]
+            if step not in seen and 0 <= y < target.height and 0 <= x < target.width and target.cells[y][x] == ".":
+                seen.add(step)
+                stack.append(step)
+    return seen
+
+
 def _placement[T: Hashable](key_items: list[tuple[str, T]], trace_items: list[T | None]) -> PlacementScore:
     """Match the key's items, each with its `dungeon/level/cell` label, with the trace's.
 
@@ -846,34 +893,7 @@ class _Comparison:
         start = (dungeon.entrance.level, parse_cell(dungeon.entrance.cell))
         if start[0] not in levels:
             return set()
-        links: dict[tuple[int, _Cell], list[tuple[int, _Cell]]] = {}
-        for number, level in levels.items():
-            for transition in level.transitions:
-                if transition.to_dungeon in (None, dungeon_id) and transition.to_level in levels:
-                    links.setdefault((number, parse_cell(transition.cell)), []).append(
-                        (transition.to_level, parse_cell(transition.to_cell))
-                    )
-            for passage in level.passages:
-                if passage.to_dungeon in (None, dungeon_id) and passage.to_level in levels:
-                    links.setdefault((number, parse_cell(passage.cell)), []).append(
-                        (passage.to_level, parse_cell(passage.to_cell))
-                    )
-        seen = {start}
-        stack = [start]
-        while stack:
-            number, cell = stack.pop()
-            level = levels[number]
-            assert level.edges is not None
-            steps = [
-                (number, _neighbour(cell, side))
-                for side in _OPPOSITE
-                if _letter(level.edges, _edge(cell, side)) in _WALKABLE
-            ]
-            for step in [*steps, *links.get((number, cell), ())]:
-                (x, y), target = step[1], levels[step[0]]
-                if step not in seen and 0 <= y < target.height and 0 <= x < target.width and target.cells[y][x] == ".":
-                    seen.add(step)
-                    stack.append(step)
+        seen = walk(levels, dungeon_id, [start])
         return {
             (number, name)
             for number, level in levels.items()

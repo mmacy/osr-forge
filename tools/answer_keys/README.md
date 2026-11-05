@@ -2,13 +2,14 @@
 
 An answer key for a printed dungeon map is built from two independent readings of the map and settled where they disagree (see `docs/plans/map-tracing.md` in re-pod, "How the work is checked"). The first reading comes from Claude. This tool gives the second: it reads every cell and every edge of a map from the ink alone, with no model of any kind, and writes the reading in the truth format of `osrforge.tracing.truth`. It is not the tracing stage's own ink measurement, so an answer key stays independent of the stage it scores.
 
-The tool has five parts:
+The tool has six parts:
 
 - `gridfit.py` fits the printed grid of a map region with numpy alone: one affine grid over the region, with a separate pitch and shear on each axis.
 - `classify.py` measures each cell and each edge on that grid and decides its letter and a confidence. `styles.py` holds each style's thresholds, and `ink.py` turns the image into masks of ink, paper, and fill.
 - `run.py` reads the maps a spec file names and writes one reading file per map. `reading.py` is that file's format.
 - `score.py` scores a reading against a settled window, and `settle.py` helps a person settle one.
 - `resolve.py` is the reference resolution script. It turns a reading into levels and areas by the conventions, and `world.py` is the grid it walks.
+- `pipeline.py` builds an answer key from the two readings, Clef's answers, the settler, and the adversarial pass, stage by stage (see Build an answer key).
 
 ## Run it
 
@@ -18,7 +19,7 @@ From the osr-forge checkout:
 uv run python -m tools.answer_keys.run tools/answer_keys/maps.json --out <dir>
 ```
 
-`maps.json` lists the committed Chaotic Caves maps. Each entry names the image, its style, the gray levels of its materials, the region to fit in pixels, the range of grid pitches to consider, and what the truth format records about the region: its scale, compass, and legend. Specs for commercial maps, like Palace of the Silver Princess, stay outside the repository; the ones this work used are in `~/.re-pod/map-plan/osr-suite/classifier/specs/palace.json`.
+`maps.json` lists the committed Chaotic Caves maps. Each entry names the image, its style, the gray levels of its materials, the region to fit in pixels, the range of grid pitches to consider, and what the truth format records about the region: its scale, compass, and legend. Specs for commercial maps stay outside the repository, under `~/.re-pod/map-plan/osr-suite/classifier/specs/`.
 
 Each map gets `<dir>/<id>.json`, a reading file with:
 
@@ -59,13 +60,99 @@ It prints `exact`, or the fields of each level that differ and the cells behind 
 
 Where the conventions give no answer for an input, the script raises `ConventionGap` with the case, so the gap is settled in the conventions and not in the code.
 
+## Build an answer key
+
+`pipeline.py` runs the answer-key method of the plan over the maps a key spec names: `keys.json` here covers the committed Chaotic Caves maps and the two synthetic maps the pipeline is checked on, and the specs of commercial maps stay outside the repository. Each map's requests, answers, crops, and calls go under the spec's `work` directory, in `<work>/<map id>/`, and the classifier's readings in `<work>/classifier/`. From the osr-forge checkout, after `run.py` has written the readings:
+
+```text
+uv run python -m tools.answer_keys.pipeline tools/answer_keys/keys.json <map id>... <stage> [<action>] [options]
+```
+
+The map ids come first, then the stage, then the action where the stage has more than one. Every request to Claude goes through the Batches API (`batches.py`), which reserves the request's worst case on the Claude ledger before sending and settles it at half the list price when the answer comes back. The pipeline needs:
+
+- `OSRFORGE_CLAUDE_LEDGER`: the Claude ledger's path, for every stage that sends or collects a batch.
+- `OSRFORGE_CLEF_ACCOUNT_ID` and `OSRFORGE_CLEF_LEDGER`: the Cloudflare account and the Clef ledger, for the hosted Clef pass. The token comes from `OSRFORGE_CLEF_TOKEN` or the wrangler login.
+- The API key, which is read from the `ANTHROPIC_API_KEY=` line of `~/repos/re-pod/.env` inside the process.
+
+None of them is printed or written anywhere. When `OSRFORGE_CLEF_LEDGER` is set, `combine` also reads the Clef ledger for the provenance's spend.
+
+Every stage can be run again: jobs and answers that exist are kept. A `collect` action takes `--wait` to poll until every open batch has ended, with `--interval` seconds between polls and `--limit` seconds at most.
+
+### The first reading and the settling
+
+These stages run in this order for each map.
+
+1. `windows submit` and `windows collect`: the first reading. `tiles.py` covers the region with 12 by 12 windows and draws each with red ticks and grid numbers in a white gutter; `reader.py` asks Claude Sonnet 5.5 at high effort for every cell and edge of the window in the truth letters, with the labels and symbols printed in it, as JSON the API checks against a schema. `windows.py` checks what the schema can't (the number of rows, each row's length, the letters, and that every named cell lies in the window) and asks once more for a malformed answer, with the answer and its faults appended; a window whose retry fails too gets a fresh attempt.
+2. `marks submit` and `marks collect`: the second reading of labels and symbols (`marks.py`), on windows laid half a window across and down from the first tiling, at medium effort, asking for labels and symbols alone.
+3. `wholemap submit` and `wholemap collect`: the whole page once, with the region's grid ticked, for each level's outline rectangles, seed cells, and open ground, the legend's entries from the symbol vocabulary, the compass, the scale, and the edges that cut the drawing off.
+4. `clef`: hosted Clef's answer for every edge that touches floor or water in either reading, and for every cell the two readings dispute (`clefpass.py`), through `osrforge.providers.clef.ClefProvider` and the Clef ledger. `--workers` sets the threads in flight (4 by default) and `--cap` the most dollars the run may spend (2 by default). The crops are the probe's best setup: 2 by 2 cells at 128 pixels per cell with a red box on the edge, and the options and their descriptions depend only on the style. `clef export` writes the same crops and questions to `<map>/clef/requests/` for a reader outside this environment, such as the maintainer's local Clef through Ollama; its answers go to `<map>/clef/answers.jsonl` in the same form, and the pass skips items that already have one.
+5. `disagree`: the table of every item's readings, `items.json` (`readings.py`). A cell is disputed when Claude's windows differ or the classifier's letter isn't among Claude's; an edge when any two letters differ, or when Clef, with a top probability of at least 0.5, is passable where the letters are blocked or the other way round, or names a different kind of door; a label when the two readings place it in different cells or one lacks it; a symbol likewise.
+6. `settle submit` and `settle collect`, run three times: the first round settles the cells, labels, and symbols, the second the edges, with the settled cells applied so an edge beside a cell settled as rock is a wall without a question unless a reader read a door there, and the third the outlines (`letters.py`): each open edge that leads from a level's outline onto floor no outline covers, and each open-ground rectangle of the whole-map read, confirmed as open ground of its level or sent to the outside. On a map whose entry sets `slopes` (the Chaotic Caves main map, whose lairs' ground runs into the ravine across elevation lines), the round after the edges is the slope round: one request per level asks for the cells of the elevation line that bounds the level's ground inside its rectangle, and the level's outline then ends at that line, on its seeds' side. Each request (`settler.py`) carries up to eight items, each with a zoomed crop and a wider crop with the item boxed in red and the readings that disagree, and is fresh: it carries none of the earlier work beyond those readings. `settle submit --jobs N` sends at most N jobs and leaves the rest pending for the next submit.
+7. `adversary submit` and `adversary collect`, run twice: the first round rechecks every settled call and the agreed cells and edges in caves, at diagonals, and around keys, in fresh requests that carry the recorded value and try to prove it wrong; the calls within one cell of every cave mouth a reading placed, and the agreed mouths themselves, are always among them and go out first, because an entrance letter printed in a mouth reads as rock; the second re-settles every challenged call in a fresh settling request that carries the challenge among the readings, and that result is final. A submit that finds its challenges already being re-settled sends the pass's next part instead. `adversary submit --jobs N` sends at most N jobs. `final.json` holds every call's final value with the settler's and the adversary's beside it.
+8. `assemble`: the map's `Region` and `Panel` from the table and the final values, with the outlines from the whole-map read, as a geometry truth document whose levels are shells (`assemble.py`, `<map>/reading.json`, or `--out`). An edge touching no floor is `-`, and an edge between floor and rock is a wall unless the settler put a door there. The log beside it counts the cells and edges that fell back to the classifier because no window read them, lists each outline border that crosses floor, and lists each cave mouth whose edge isn't passable or whose cells aren't both floor (`mouths_closed`), which can't make the ground beyond it the outside.
+
+### The join round and other questions after the settling
+
+Each of these asks a call again in a fresh request in the map's `recheck` store, and the answer supersedes the earlier ones on the same item. `recheck collect` collects any of them.
+
+- `joins measure --stages <dir>`: resolves the member with the caches in `<dir>/stages/` and lists every prose join between two areas of a level that the key doesn't make, with the cheapest way through rock and walls between them (`joins.py`). The measure walks as the scorer's reachability walk does, onto floor only, so water joins nothing unless it is a crossing.
+- `joins cells` and `joins edges`: ask the cells, then the walls and the new floor's edges, along each measured gap.
+- `joins check` and `joins check-collect`: the adversarial pass over the calls the join round changed, or over the calls `--call <map id>:<call id>` names (repeatable), in the map's `joins-adversary` store.
+- `joins resettle`: settles each challenged call once more, with the challenge among its readings; that value is final.
+- `joins final`: asks once more each wall the re-settling put between two cells the key has as floor.
+- `joins orphans`: settles the edges between two floor cells that no call settled.
+- `recheck submit --sample <file>`: after the owner's verdicts on a sample, a `wrong` verdict sends every call of that category on that map back for a fresh settling round, in which the sampled call carries the owner's verdict and note; an `unsure` verdict sends that call alone with the note. `--jobs N` sends at most N jobs.
+- `recheck correct --sample <file> --set <map id>:<call id>=<value>`: records the owner's value for a call the owner judged wrong; it is final over the recheck. `--set` is repeatable.
+- `recheck resample --out <file>`: writes a sample of every call whose value a recheck or a correction changed, under new ids, for the owner to check.
+- `recheck edges`: asks the edges of every cell a recheck turned from rock into floor, with the key's letters for both cells.
+- `recheck note --note <text> [--reader <who>]` with `--rect x,y,width,height` or `--call <map id>:<call id>` (repeatable): re-settles the cells of a rectangle, or the named calls, with the note among each item's readings.
+- `recheck region --level <dungeon>/<number> --cells "x,y;x,y" [--note <text>]`: asks one group of cells' outline as one question.
+- `recheck choices --cells "x,y|x,y;..."`: asks which of each pair of cells has more floor, for the passage rule's close calls.
+- `recheck reask --call <map id>:<call id>`: asks again a recheck call whose answer contradicts its own reason.
+- `passages --stages <dir>`: applies the two rules of Cells and edges that a settled reading leaves to them, the passage rule and the stairway rule (`kept.py`), writes their calls in each map's `passages` store, and assembles every map again.
+
+### The key, the sample, and the score
+
+- `combine --stages <dir>`: joins the region documents of one member in `keys.json`'s order, resolves them with the member's caches through `resolve.py`, and writes the key to the spec's `key` path, or `--out`. Beside it, `geometry-provenance.yaml` records what made the key: the instrument, the checks, the owner's sample from each `--verdicts <sample file>` (repeatable), the licence from `--license <text>` with the pages the maps come from, the spend by map, the prose joins made and each level's reach from its entrance by the scorer's walk, each `--cases <text>` the key depends on, and each `--residual <text>`, floor the key leaves unreached with its cause (both repeatable). When the resolver meets a case the conventions don't decide, the log names it and the key stays as it was.
+- `sample --out <file>`: the owner's sample of one style (`samples.py`), about `--size` settled calls (50 by default) drawn from caves, diagonals, and keys with `--seed` (7 by default), plus every label the settler placed, with the crops copied beside the sample file for the sample app.
+- `score [--settled <dir>]`: on a synthetic map, the assembled reading against the exact answer through `osrforge.tracing.score.score_trace` and a direct comparison of the labels, symbols, and outlines; on a Chaotic Caves map, against the settled windows in `settled/` (`scoring.py`).
+
+### The commands that built the Chaotic Caves key
+
+The key in `tools/eval/corpus/jn1-chaotic-caves/` was built by these commands, from the osr-forge checkout, with `P` for `uv run python -m tools.answer_keys.pipeline tools/answer_keys/keys.json` and `M` for the five maps `jn1-p021-halfling jn1-p021-cave jn1-p038 jn1-p046 jn1-p047`:
+
+```text
+uv run python -m tools.answer_keys.run tools/answer_keys/maps.json --out ~/.re-pod/map-plan/osr-suite/answer-keys/classifier
+$P $M windows submit && $P $M windows collect --wait
+$P $M marks submit && $P $M marks collect --wait
+$P $M wholemap submit && $P $M wholemap collect --wait
+$P $M clef export        # answered by the maintainer's local Clef, clef-flash through Ollama, into <map>/clef/answers.jsonl
+$P $M disagree
+$P $M settle submit && $P $M settle collect --wait          # three times: cells, labels, and symbols; edges; outlines
+$P $M adversary submit && $P $M adversary collect --wait    # twice: the checks, then the re-settling
+$P $M assemble
+# two passes of:
+$P $M assemble && $P $M joins measure --stages tests/assets/chaotic-caves
+$P $M joins cells && $P $M recheck collect --wait
+$P $M joins edges && $P $M recheck collect --wait
+# then:
+$P $M joins check && $P $M joins check-collect              # check-collect again until no batch is open
+$P $M joins resettle && $P $M recheck collect --wait
+$P $M joins final && $P $M recheck collect --wait
+$P $M joins orphans && $P $M recheck collect --wait
+$P $M passages --stages tests/assets/chaotic-caves
+$P $M combine --stages tests/assets/chaotic-caves --license <text> --cases <text>... --residual <text>... --verdicts <sample>...
+```
+
+Hosted Clef first read the edges of `jn1-p021-halfling`, `jn1-p021-cave`, and `jn1-p047` with `$P <map> clef`; its answers are kept beside each map's as `answers-hosted.jsonl`, a record the key doesn't use. Its runs on `jn1-p046` and `jn1-p038` failed when the token expired, and the Clef ledger charged their requests at their estimates. Between the join rounds and `passages`, single questions went out with `recheck region`, `recheck choices`, `recheck note`, `recheck reask`, and `recheck edges` on the maps they concerned, each followed by `recheck collect --wait` and `joins check --call` on the calls it changed, and `joins resettle` where the check challenged one. The `--license`, `--cases`, and `--residual` texts are the lines of the provenance's `license`, `cases`, and `residuals`, and the samples are `black_white.json`, `cave.json`, and `dark_rock.json` in the work directory's `samples/`.
+
 ## The grid fit
 
 The fit takes the ink mask of the region and keeps the thin runs: ink no wider than 4 px across and at least 12 px long. For each axis it projects those pixels at a range of shears and keeps the shear whose projection is sharpest, estimates the pitch from the projection's autocorrelation and refines it on far peaks, finds each line as a peak of the projection, and fits position against line index by least squares, dropping lines more than a fifth of a pitch from the fit. A peak weaker than three tenths of the median peak is dropped first: it is a wall or a label off the grid, not a grid line.
 
 The fit reports, per axis, the pitch, the shear, how many lines it found and kept, the root mean square and largest residual in pixels and in cells, and the share of lines within a tenth of a cell. The region's grid spans the rectangle the spec names.
 
-On the seven regions this work fitted (the five Chaotic Caves regions and the two Palace levels), the rms residual is under 0.04 cells and the largest residual under 0.1 cells, and every detected line lies within a tenth of a cell of the fit. The shear is at most 0.0005 on the Chaotic Caves maps, which are digital drawings, and up to 0.005 on the Palace scans.
+On the five Chaotic Caves regions, the tests hold the rms residual under 0.05 cells and the largest residual under 0.1 cells, with every detected line within a tenth of a cell of the fit.
 
 ## The rules
 
@@ -77,7 +164,7 @@ A cell is floor when at least half of it is floor, counted over the cell's inner
 
 A cell that isn't floor is rock, or water on a map whose spec says its fill is water (the manor's moat): then fill reads as `~` and ink as `#`.
 
-On Palace level 2, whose outside is bare paper, a floor cell also needs a printed line on at least three of its four sides (`floor_needs_grid`), because the paper outside the building has no grid.
+On the `tsr_blue_white` style, a floor cell also needs a printed line on at least three of its four sides (`floor_needs_grid`).
 
 A cell with at least four (TSR blue) or six (the other styles) parallel bars across it is a stair. Edges across the bars' direction between stair cells read open unless a wall covers them.
 
@@ -98,7 +185,7 @@ The confidence of a blocked or open edge comes from how far the ink measure sits
 
 - **Labels on a line.** A key or a letter printed across a grid line or against a wall is read as ink on that line. The result is a wall, a door box, a locked or secret door, or a dashed line where there is none. This is the largest source of errors on every style.
 - **Doors centred on a grid corner.** A door box drawn where two grid lines cross belongs to no one edge, and the box detector, which looks for both ends of the box along one edge, misses it.
-- **Thin walls the weight of a grid line.** On Palace level 1 some cave walls are drawn no heavier than the grid, and the ink measure can't tell them apart.
+- **Thin walls the weight of a grid line.** A wall drawn no heavier than the grid can't be told apart from it by the ink measure.
 - **Diagonals and freehand passages.** A cell crossed by a diagonal wall or a freehand cave passage is settled by the half rule, and a passage that straddles a grid line can leave both cells under half. These cells are partly floor, and the scores without them say how the rest reads.
 - **Outdoor ground.** Paper with a grid on it reads as floor, inside and outside a building alike. The resolution's outlines, not the reading, decide what is outside.
 

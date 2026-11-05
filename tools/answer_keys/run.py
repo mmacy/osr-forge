@@ -17,11 +17,16 @@ from PIL import Image
 
 from .classify import classify
 from .crops import render_reading
-from .gridfit import fit_grid
-from .ink import channel_image, materials
+from .gridfit import GridFit, fit_grid
+from .ink import Materials, channel_image, materials
 from .reading import save_reading, to_panel
 from .spec import MapSpec, load_specs
 from .styles import STYLES
+
+
+def map_materials(spec: MapSpec, rgb: np.ndarray, fit: GridFit) -> Materials:
+    """The masks the classifier reads a map from, closed at a tenth of the grid's pitch."""
+    return materials(rgb, spec.levels, max(3, round(0.1 * fit.pitch)))
 
 
 def read_map(spec: MapSpec, rgb: np.ndarray):
@@ -29,9 +34,7 @@ def read_map(spec: MapSpec, rgb: np.ndarray):
     style = STYLES[spec.style]
     gray = channel_image(rgb, spec.levels.channel)
     fit = fit_grid(gray < spec.line_ink_max, spec.rect, spec.pitch_range)
-    close_radius = max(3, round(0.1 * fit.pitch))
-    mats = materials(rgb, spec.levels, close_radius)
-    reading = classify(mats, fit, style, "~" if spec.fill_kind == "water" else "#")
+    reading = classify(map_materials(spec, rgb, fit), fit, style, "~" if spec.fill_kind == "water" else "#")
     return fit, reading
 
 

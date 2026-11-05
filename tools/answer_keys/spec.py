@@ -52,6 +52,10 @@ class MapSpec:
     """What the map's fill stands for: `rock`, or `water` on a map whose legend says so."""
 
     notes: str = ""
+    frame: tuple[int, int, int, int] | None = None
+    """The registered grid in the working grid's cells, `(x, y, columns, rows)`, where the region's rectangle (the
+    framed drawing) is smaller than `rect`: the key is written on it (`frame.py`). `None` when the two are one."""
+
     extra: dict[str, object] = field(default_factory=dict)
 
     @property
@@ -81,6 +85,8 @@ def load_specs(path: Path) -> list[MapSpec]:
         fields = {key: item[key] for key in item if key in known}
         fields["rect"] = tuple(fields["rect"])
         fields["pitch_range"] = tuple(fields["pitch_range"])
+        if fields.get("frame") is not None:
+            fields["frame"] = tuple(fields["frame"])
         specs.append(
             MapSpec(
                 image=str(image),
@@ -91,6 +97,7 @@ def load_specs(path: Path) -> list[MapSpec]:
                     wall_max=levels.get("wall_max"),
                     paper_min=levels["paper_min"],
                     fill=tuple(fill) if fill else None,
+                    hatched=bool(levels.get("hatched", False)),
                 ),
                 extra=extra,
                 **fields,

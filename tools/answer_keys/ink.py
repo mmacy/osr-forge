@@ -37,6 +37,9 @@ class Levels:
     fill: tuple[float, float] | None = None
     """The band of levels that is the fill, or `None` when the fill is the ink itself (TSR blue)."""
 
+    hatched: bool = False
+    """Whether the map draws rock as diagonal hatching, which then counts as fill."""
+
 
 def channel_image(rgb: np.ndarray, channel: str) -> np.ndarray:
     """The float image of one channel.
@@ -73,6 +76,63 @@ def box_min(mask: np.ndarray, radius: int) -> np.ndarray:
 def close(mask: np.ndarray, radius: int) -> np.ndarray:
     """Fill gaps narrower than the window: dilate, then erode."""
     return box_min(box_max(mask, radius), radius)
+
+
+def _axis_runs(mask: np.ndarray, axis: int) -> np.ndarray:
+    """The length of the run of true values each true pixel lies in, along one axis (0 down, 1 across)."""
+    m = mask if axis == 1 else mask.T
+    height, width = m.shape
+    index = np.broadcast_to(np.arange(width)[None, :], m.shape)
+    pad = np.zeros((height, 1), dtype=bool)
+    starts = m & ~np.concatenate([pad, m[:, :-1]], axis=1)
+    ends = m & ~np.concatenate([m[:, 1:], pad], axis=1)
+    run_start = np.maximum.accumulate(np.where(starts, index, 0), axis=1)
+    run_end = np.minimum.accumulate(np.where(ends, index, width)[:, ::-1], axis=1)[:, ::-1]
+    length = np.where(m, run_end - run_start + 1, 0)
+    return length if axis == 1 else length.T
+
+
+def diagonal_runs(mask: np.ndarray) -> np.ndarray:
+    """The length of the longest diagonal run of true values through each true pixel.
+
+    A diagonal run goes down-right or down-left one pixel at a time. The image is sheared so each diagonal
+    becomes a column, the runs are measured down the columns, and the result is sheared back.
+
+    Args:
+        mask: A boolean image.
+
+    Returns:
+        An integer image: the longer of the two diagonal run lengths at each true pixel, 0 elsewhere.
+    """
+    height, width = mask.shape
+    rows = np.arange(height)[:, None]
+    columns = np.arange(width)[None, :]
+    best = np.zeros(mask.shape, dtype=np.int64)
+    for sign in (1, -1):
+        sheared = np.zeros((height, width + height), dtype=bool)
+        target = columns + (rows if sign == 1 else height - 1 - rows)
+        sheared[rows, target] = mask
+        runs = _axis_runs(sheared, 0)
+        best = np.maximum(best, runs[rows, target])
+    return best
+
+
+def hatching(ink: np.ndarray, run_min: int = 14, width_max: int = 3, spacing: int = 4) -> np.ndarray:
+    """Where the page is hatched: thin diagonal ink lines, with the paper between them.
+
+    Args:
+        ink: The ink mask.
+        run_min: The fewest pixels a diagonal run needs to count as a hatch line, long enough to pass over the
+            diagonal strokes of printed digits.
+        width_max: The most pixels a hatch line spans across a row or a column.
+        spacing: Half the gap between hatch lines, in pixels: the lines are dilated this far to cover it.
+
+    Returns:
+        A boolean image, true on the hatch lines and the paper between them.
+    """
+    thin = ink & (_axis_runs(ink, 1) <= width_max) & (_axis_runs(ink, 0) <= width_max)
+    lines = thin & (diagonal_runs(thin) >= run_min)
+    return box_max(lines, spacing)
 
 
 @dataclass(frozen=True)
@@ -119,6 +179,10 @@ def materials(rgb: np.ndarray, levels: Levels, close_radius: int) -> Materials:
     else:
         lo, hi = levels.fill
         fill = (gray >= lo) & (gray <= hi)
+    if levels.hatched:
+        hatched = hatching(ink)
+        paper = paper & ~hatched
+        fill = fill | hatched
     floor = close(paper, close_radius)
     inkness = np.clip((levels.paper_min - gray) / (levels.paper_min - levels.ink_max), 0, 1).astype(np.float32)
     return Materials(

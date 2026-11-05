@@ -793,6 +793,52 @@ def test_keys_on_open_ground_on_an_inner_door_and_footings_across_water():
     assert level.cells[7][5] == "." and level.cells[7][4] == "~"
 
 
+ROOMS_ACROSS_WATER = [
+    "+-+-+-+-+-+",
+    "|. . . . .|",
+    "+-+-+ +-+-+",
+    "|~ ~ ~ ~ ~|",
+    "+-+-+ +-+-+",
+    "|. . . . .|",
+    "+-+-+-+-+-+",
+]
+"""Two walled rooms, each opening at column 2 onto a channel of water between them."""
+
+
+@pytest.mark.parametrize("kind", ["footing", "steps"])
+def test_the_key_measure_crosses_water_only_where_resolution_made_a_crossing(kind):
+    """With footings on both banks the water cell between them is a crossing, and the scorer's walk joins the two
+    rooms; with steps, which never make a crossing, the water stays water and the walk never enters it."""
+    from tools.answer_keys.assemble import entrance_reach, prose_joins
+
+    survey_index = survey("w", [(1, [("1", "North room"), ("2", "South room")])])
+    contents = {
+        ("w", 1): content(
+            "w",
+            1,
+            [
+                ("1", "A room.", [{"to_key": "2", "direction": "south", "via": "passage"}]),
+                ("2", "A room.", [{"to_key": "1", "direction": "north", "via": "passage"}]),
+            ],
+        )
+    }
+    outline = Outline(dungeon="w", level=1, rects=((0, 0, 5, 3),), seeds=("0,0",))
+    marks = [("1", "0,0", {}), ("2", "4,2", {})]
+    symbols = (Symbol(kind=kind, cells=("2,0",)), Symbol(kind=kind, cells=("2,2",)))
+    truth = document([region("p", 5, 3)], [panel("p", ROOMS_ACROSS_WATER, marks, (outline,), symbols)], survey_index)
+    result = resolve_document(truth, survey_index, contents, mapread("w", [1]))
+    level = level_of(result, 1)
+    x0, y0 = level.panels[0].origin
+    if kind == "footing":
+        assert level.cells[y0 + 1][x0 + 2] == "."
+        assert prose_joins(result, contents) == ["w/1: 1 of 1 prose joins made"]
+        assert entrance_reach(result) == ["w/1: 11 of 11 floor cells reached, 4 water cells; every area reached"]
+    else:
+        assert level.cells[y0 + 1][x0 + 2] == "~"
+        assert prose_joins(result, contents) == ["w/1: 0 of 1 prose joins made, not made: 1-2"]
+        assert entrance_reach(result) == ["w/1: 5 of 10 floor cells reached, 5 water cells; areas not reached: 2"]
+
+
 DUNGEONS_OPEN = [
     "+-+-+-+-+-+-+-+-+-+-+",
     "|#|#|#|#|#|#|#|#|#|#|",
@@ -902,6 +948,47 @@ def test_two_dungeons_meeting_at_a_door_give_a_vestibule_on_the_later_dungeons_s
 def test_pictures_parse_to_consistent_panels(rows):
     cells, edges = picture(rows)
     assert len(cells) == edges.height and len(cells[0]) == edges.width
+
+
+SHARED_CORRIDOR = [
+    "+-+-+-+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+-+-+",
+    "|#|. . . .|#|#|. . . .|#|",
+    "+-+ + + + +-+-+ + + + +-+",
+    " . . . . . . . . . . .|#|",
+    "+-+ + + + +-+-+ + + + +-+",
+    "|#|. . . .|#|#|. . . .|#|",
+    "+-+-+-+-+-+-+-+-+-+-+-+-+",
+    "|#|#|#|#|#|#|#|#|#|#|#|#|",
+    "+-+-+-+-+-+-+-+-+-+-+-+-+",
+]
+"""Two halls in one open space, level 1 west and level 2 east, joined by the open corridor of row 2, which runs off
+the frame at the west. Only the east hall prints a key; the west hall's key is an unprinted Entrance."""
+
+
+def test_an_area_takes_only_its_own_levels_floor():
+    """The one open space has one printed key, on level 2, so without the owner rule it would take the west hall
+    too and leave level 1's entrance key no unkeyed floor behind its opening."""
+    survey_index = survey("d", [(1, [("entrance", "Entrance")]), (2, [("2", "East hall")])])
+    contents = {
+        ("d", 1): content("d", 1, [("entrance", "The way in.", [])]),
+        ("d", 2): content("d", 2, [("2", "A hall.", [])]),
+    }
+    outlines = (
+        Outline(dungeon="d", level=1, rects=((0, 0, 6, 5),), seeds=("2,2",)),
+        Outline(dungeon="d", level=2, rects=((6, 0, 6, 5),), seeds=("8,2",)),
+    )
+    truth = document([region("p", 12, 5)], [panel("p", SHARED_CORRIDOR, [("2", "8,2", {})], outlines)], survey_index)
+    result = resolve_document(truth, survey_index, contents, mapread("d", [1, 2]))
+    one, two = level_of(result, 1), level_of(result, 2)
+    # Level 1's grid gains a column of rock west of the floor that runs off the frame, so its cells sit one
+    # column east of the panel's; level 2's grid is the panel's.
+    assert {"1,2", "2,1", "5,3"} <= set(one.areas["entrance"].cells)
+    assert all(int(cell.split(",")[0]) <= 6 for cell in one.areas["entrance"].cells)
+    assert {"7,1", "10,3"} <= set(two.areas["2"].cells)
+    assert all(int(cell.split(",")[0]) >= 6 for cell in two.areas["2"].cells)
+    assert passages(one) == {("6,2", "east", 2, "6,2")} and passages(two) == {("6,2", "west", 1, "6,2")}
 
 
 LAIR_TUNNEL = [

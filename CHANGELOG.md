@@ -16,6 +16,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Grid registration (`osrforge.tracing.registration`): the fit of the printed grid to each framed drawing on a map image, judged by a three-part gate (the share of detected lines the fit explains, consistent line indices, and the coverage of the fitted grid by ink), and the row alignment and three candidate column offsets for the two halves of a map.
 - The Clef ledger charges nothing for a request that ended with no answer when every attempt got 401, 403, 413, or 429, because the service runs no model for those. A request that ends otherwise keeps its estimate, as before. Either way the ledger entry counts the request.
 - A passage in the geometry truth format can lead into another dungeon of the document, which its `to_dungeon` names. The format refuses one whose dungeon is its own or is missing, whose level isn't traced, or whose destination cell isn't floor. The scorer counts the dungeon as part of a passage's destination, and its reachability walk stops at a passage into another dungeon.
+- The scorer's reachability walk is a public function, `walk` in `osrforge.tracing.score`: it steps onto floor across passable edges and doors and along a dungeon's own transitions and passages, never into water. The answer keys measure their prose joins and their reach from each entrance with it.
 
 ### Fixed
 
