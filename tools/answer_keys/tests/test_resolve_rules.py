@@ -793,6 +793,52 @@ def test_keys_on_open_ground_on_an_inner_door_and_footings_across_water():
     assert level.cells[7][5] == "." and level.cells[7][4] == "~"
 
 
+ROOMS_ACROSS_WATER = [
+    "+-+-+-+-+-+",
+    "|. . . . .|",
+    "+-+-+ +-+-+",
+    "|~ ~ ~ ~ ~|",
+    "+-+-+ +-+-+",
+    "|. . . . .|",
+    "+-+-+-+-+-+",
+]
+"""Two walled rooms, each opening at column 2 onto a channel of water between them."""
+
+
+@pytest.mark.parametrize("kind", ["footing", "steps"])
+def test_the_key_measure_crosses_water_only_where_resolution_made_a_crossing(kind):
+    """With footings on both banks the water cell between them is a crossing, and the scorer's walk joins the two
+    rooms; with steps, which never make a crossing, the water stays water and the walk never enters it."""
+    from tools.answer_keys.assemble import entrance_reach, prose_joins
+
+    survey_index = survey("w", [(1, [("1", "North room"), ("2", "South room")])])
+    contents = {
+        ("w", 1): content(
+            "w",
+            1,
+            [
+                ("1", "A room.", [{"to_key": "2", "direction": "south", "via": "passage"}]),
+                ("2", "A room.", [{"to_key": "1", "direction": "north", "via": "passage"}]),
+            ],
+        )
+    }
+    outline = Outline(dungeon="w", level=1, rects=((0, 0, 5, 3),), seeds=("0,0",))
+    marks = [("1", "0,0", {}), ("2", "4,2", {})]
+    symbols = (Symbol(kind=kind, cells=("2,0",)), Symbol(kind=kind, cells=("2,2",)))
+    truth = document([region("p", 5, 3)], [panel("p", ROOMS_ACROSS_WATER, marks, (outline,), symbols)], survey_index)
+    result = resolve_document(truth, survey_index, contents, mapread("w", [1]))
+    level = level_of(result, 1)
+    x0, y0 = level.panels[0].origin
+    if kind == "footing":
+        assert level.cells[y0 + 1][x0 + 2] == "."
+        assert prose_joins(result, contents) == ["w/1: 1 of 1 prose joins made"]
+        assert entrance_reach(result) == ["w/1: 11 of 11 floor cells reached, 4 water cells; every area reached"]
+    else:
+        assert level.cells[y0 + 1][x0 + 2] == "~"
+        assert prose_joins(result, contents) == ["w/1: 0 of 1 prose joins made, not made: 1-2"]
+        assert entrance_reach(result) == ["w/1: 5 of 10 floor cells reached, 5 water cells; areas not reached: 2"]
+
+
 DUNGEONS_OPEN = [
     "+-+-+-+-+-+-+-+-+-+-+",
     "|#|#|#|#|#|#|#|#|#|#|",

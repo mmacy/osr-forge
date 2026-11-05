@@ -460,7 +460,10 @@ def combine(
     save_geometry_truth(out, canonical_form(resolved))
     log["resolved"] = True
     log["prose_joins"] = prose_joins(resolved, contents)
-    log["provenance"] = str(write_provenance(keys, out, cases or [], True, samples, log["prose_joins"], residuals))
+    log["reach"] = entrance_reach(resolved)
+    log["provenance"] = str(
+        write_provenance(keys, out, cases or [], True, samples, log["prose_joins"], residuals, log["reach"])
+    )
     log["levels"] = [
         f"{d.id}/{level.number}: {level.verdict}" + (f" ({level.reason})" if level.reason else "")
         for d in resolved.dungeons
@@ -473,8 +476,10 @@ def prose_joins(truth: GeometryTruth, contents: dict[Any, Any]) -> list[str]:
     """For each traced level, how many of the prose's joins between two of its areas the key makes.
 
     A join is a connection from one area to another of the same level by passage, door, or secret door. The key
-    makes it when a walk across passable edges and doors of any kind joins a cell of each area. A join the key
-    doesn't make is floor or an opening the reading lost, a connection the drawing doesn't show, or both.
+    makes it when the scorer's reachability walk (`walk` in `osrforge.tracing.score`), kept to the level, reaches a
+    floor cell of the second area from the floor cells of the first. The walk never enters water, so water joins
+    nothing unless resolution made a crossing of it. A join the key doesn't make is floor or an opening the reading
+    lost, a connection the drawing doesn't show, or both.
 
     Args:
         truth: The resolved key.
@@ -483,36 +488,19 @@ def prose_joins(truth: GeometryTruth, contents: dict[Any, Any]) -> list[str]:
     Returns:
         One line per level with content: the joins made, of all, and the ones not made.
     """
-    from collections import deque
+    from osrforge.tracing.score import walk
 
-    sides = {"north": (0, -1), "south": (0, 1), "west": (-1, 0), "east": (1, 0)}
     lines = []
     for dungeon in truth.dungeons:
         for level in dungeon.levels:
             content = contents.get((dungeon.id, level.number))
-            edges = level.edges
-            if level.verdict != "traced" or content is None or edges is None:
+            if level.verdict != "traced" or content is None or level.edges is None:
                 continue
-            part: dict[tuple[int, int], int] = {}
-            height, width = len(level.cells), len(level.cells[0])
-            for y in range(height):
-                for x in range(width):
-                    if level.cells[y][x] == "#" or (x, y) in part:
-                        continue
-                    label = len(part)
-                    part[(x, y)] = label
-                    queue = deque([(x, y)])
-                    while queue:
-                        cx, cy = queue.popleft()
-                        for side, (dx, dy) in sides.items():
-                            nx, ny = cx + dx, cy + dy
-                            if not (0 <= nx < width and 0 <= ny < height) or (nx, ny) in part:
-                                continue
-                            if level.cells[ny][nx] == "#" or edges.at((cx, cy), side) not in "opdls":
-                                continue
-                            part[(nx, ny)] = label
-                            queue.append((nx, ny))
-            parts = {key: {part[parse_cell(c)] for c in area.cells} for key, area in level.areas.items()}
+
+            def floor(name: str, level: Any = level) -> set[tuple[int, int]]:
+                cells = {parse_cell(text) for text in level.areas[name].cells}
+                return {(x, y) for x, y in cells if level.cells[y][x] == "."}
+
             pairs: set[tuple[str, str]] = set()
             missing = []
             for area in content.areas:
@@ -520,19 +508,53 @@ def prose_joins(truth: GeometryTruth, contents: dict[Any, Any]) -> list[str]:
                     one, other = str(area.key), str(connection.to_key)
                     if (
                         connection.via not in ("passage", "door", "secret_door")
-                        or one not in parts
-                        or other not in parts
+                        or one not in level.areas
+                        or other not in level.areas
                     ):
                         continue
                     pair = (min(one, other), max(one, other))
                     if pair in pairs:
                         continue
                     pairs.add(pair)
-                    if not parts[one] & parts[other]:
+                    seen = walk({level.number: level}, dungeon.id, [(level.number, cell) for cell in floor(one)])
+                    if not any((level.number, cell) in seen for cell in floor(other)):
                         missing.append(f"{pair[0]}-{pair[1]}")
             if pairs:
                 line = f"{dungeon.id}/{level.number}: {len(pairs) - len(missing)} of {len(pairs)} prose joins made"
                 lines.append(line + (f", not made: {', '.join(missing)}" if missing else ""))
+    return lines
+
+
+def entrance_reach(truth: GeometryTruth) -> list[str]:
+    """For each traced level of a dungeon with an entrance, what the scorer's reachability walk from the entrance
+    reaches (`walk` in `osrforge.tracing.score`), over the dungeon's traced levels.
+
+    Args:
+        truth: The resolved key.
+
+    Returns:
+        One line per level: its floor cells reached, of all, its water cells, and the areas the walk misses.
+    """
+    from osrforge.tracing.score import walk
+
+    lines = []
+    for dungeon in truth.dungeons:
+        levels = {level.number: level for level in dungeon.levels if level.verdict == "traced"}
+        if dungeon.entrance is None or dungeon.entrance.level not in levels:
+            continue
+        seen = walk(levels, dungeon.id, [(dungeon.entrance.level, parse_cell(dungeon.entrance.cell))])
+        for number, level in levels.items():
+            floor = {(x, y) for y, row in enumerate(level.cells) for x, letter in enumerate(row) if letter == "."}
+            water = sum(row.count("~") for row in level.cells)
+            reached = sum(1 for cell in floor if (number, cell) in seen)
+            missed = [
+                name
+                for name, area in level.areas.items()
+                if not any((number, parse_cell(text)) in seen for text in area.cells)
+            ]
+            line = f"{dungeon.id}/{number}: {reached} of {len(floor)} floor cells reached"
+            line += f", {water} water cells" if water else ""
+            lines.append(line + (f"; areas not reached: {', '.join(missed)}" if missed else "; every area reached"))
     return lines
 
 
@@ -623,6 +645,7 @@ def write_provenance(
     samples: list[Path] | None = None,
     joins: list[str] | None = None,
     residuals: list[str] | None = None,
+    reach: list[str] | None = None,
 ) -> Path:
     """Write `geometry-provenance.yaml` beside a key: what made it, which checks ran, what it cost, the owner's
     sample, the cases it depends on, and the floor it leaves unreached with each cause."""
@@ -688,6 +711,9 @@ def write_provenance(
     if joins:
         lines.append("prose_joins:")
         lines += [f"  - {json.dumps(line)}" for line in joins]
+    if reach:
+        lines.append("reach:")
+        lines += [f"  - {json.dumps(line)}" for line in reach]
     lines.append("cases:")
     for case in cases:
         lines.append(f"  - {json.dumps(case)}")
