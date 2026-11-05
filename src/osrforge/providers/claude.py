@@ -420,13 +420,21 @@ class ClaudeProvider:
         kind = request.kind
         entry = {"t": self._now(), "script": "osrforge", "label": f"{kind.name} {kind.effort}", "model": model}
         reservation = self._ledger.open_reserved(entry, worst_case_usd(model, request))
+        statuses: list[int | None] = []
         try:
-            message = self._send(request_body(request, model), kind.name, on_first_event)
+            message = self._send(request_body(request, model), kind.name, on_first_event, statuses)
             usage = _usage(message, kind.name)
         except BaseException as error:
-            # Nothing says what the attempts cost, so the worst case stays on the ledger.
+            # No answer says what the attempts cost. The API ran no model when it refused every attempt with a 4xx,
+            # so that costs nothing. Any other ending, a lost connection or a 5xx included, may have run one and
+            # keeps the worst case.
+            refused = (
+                isinstance(error, ProviderError)
+                and bool(statuses)
+                and all(status is not None and 400 <= status < 500 for status in statuses)
+            )
             try:
-                self._ledger.settle(reservation, reservation.usd)
+                self._ledger.settle(reservation, 0.0 if refused else reservation.usd)
             except Exception as settle_error:
                 error.add_note(
                     f"settling its ledger reservation failed too, so the entry stays pending: {settle_error}"
@@ -435,7 +443,18 @@ class ClaudeProvider:
         self._ledger.settle(reservation, cost_usd(model, usage))
         return _answer(request, message, usage)
 
-    def _send(self, body: dict[str, Any], kind: str, on_first_event: Callable[[], None] | None) -> Any:
+    def _send(
+        self,
+        body: dict[str, Any],
+        kind: str,
+        on_first_event: Callable[[], None] | None,
+        statuses: list[int | None],
+    ) -> Any:
+        """Stream the request under the transport policy and return the final message.
+
+        Appends each attempt's status to `statuses`: 200 for an answer, the error's status for an
+        `APIStatusError`, and `None` for an attempt that failed in another way.
+        """
         last_error: anthropic.APIError | httpx2.TransportError | None = None
         for attempt in range(_ATTEMPTS):
             delay = min(2.0**attempt, _MAX_BACKOFF_SECONDS)
@@ -446,14 +465,18 @@ class ClaudeProvider:
                             on_first_event()
                             on_first_event = None
                             break
-                    return stream.get_final_message()
+                    message = stream.get_final_message()
+                statuses.append(200)
+                return message
             except (anthropic.APIConnectionError, httpx2.TransportError) as error:
                 # The SDK wraps a transport failure while it sends the request, but one while it reads the
                 # stream escapes as the httpx2 error itself.
+                statuses.append(None)
                 last_error = error
             except anthropic.APIStatusError as error:
                 # The SDK raises an error event inside a stream with the stream's own status, which is below 400.
                 status = error.status_code
+                statuses.append(status)
                 if status >= 400 and status < 500 and status not in _RETRIED_STATUSES:
                     raise ProviderError(self._redact(f"the {kind!r} request failed: {error}")) from error
                 last_error = error
@@ -461,6 +484,7 @@ class ClaudeProvider:
                 if retry_after is not None:
                     delay = min(retry_after, _MAX_BACKOFF_SECONDS)
             except anthropic.APIError as error:
+                statuses.append(None)
                 raise ProviderError(self._redact(f"the {kind!r} request failed: {error}")) from error
             if attempt + 1 < _ATTEMPTS:
                 self._sleep(delay)
