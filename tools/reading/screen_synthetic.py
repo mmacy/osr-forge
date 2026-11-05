@@ -5,9 +5,10 @@ calibration fitted on keys that Clef helped build still means what it says on ma
 the model is fitted on every measured edge of the style's real maps (Clef's answer-key-pass answers and the ink) and
 applied to the synthetic maps' measured edges (Clef's answers from `clefask --set keyset`), with doors first as the
 stage reads them: an edge whose most probable answer is a door kind is that door. Beside it, each set is also
-fitted on the real keys and the style's other synthetic maps, each synthetic map held out. The figures are the
-passable-or-blocked errors at each threshold, the share before the first and fifth wrong answers, the calibration
-error, and each letter's recall.
+fitted on the real keys and the style's other synthetic maps, each synthetic map held out, and the calibration with
+the ink fitted on the real keys is also given without doors first. The figures are the passable-or-blocked errors at
+each threshold, the key's doors read as open at each threshold, the share before the first and fifth wrong answers,
+the calibration error, and each letter's recall.
 
 Run from the osr-forge checkout:
 
@@ -92,11 +93,15 @@ def main(argv: list[str] | None = None) -> int:
                 for row in rows
             ]
         )
+        key_door = np.array([row.key in "dls" for row in rows])
         probabilities = {"raw": np.array([passable_probability(row.probabilities or {}) for row in rows])}
         for name in ("clef", "ink", "clef+ink"):
             model = Logistic().fit(features(train_rows, train_ink, name), y_train)
+            predicted = model.predict(features(rows, ink, name))
             # Doors first, as the stage reads them: a door kind on top is a door, whatever the threshold.
-            probabilities[name] = np.where(door_top, 0.0, model.predict(features(rows, ink, name)))
+            probabilities[name] = np.where(door_top, 0.0, predicted)
+            if name == "clef+ink":
+                probabilities["clef+ink, without doors first"] = predicted
             # The same calibration fitted on the real keys and the style's other synthetic maps, this map held out.
             held = np.zeros(len(rows))
             map_of = np.array([row.map for row in rows])
@@ -129,6 +134,8 @@ def main(argv: list[str] | None = None) -> int:
         for name, p in probabilities.items():
             figures[name] = {
                 "errors": {str(t): decision_errors(y, p, t) for t in THRESHOLDS},
+                "doors": int(key_door.sum()),
+                "doors read as open": {str(t): int((key_door & (p >= t)).sum()) for t in THRESHOLDS},
                 "ranked_share": ranked_share(y, p, 0.5),
                 "ranked_share_5": ranked_share(y, p, 0.5, nth=5),
                 "ece": round(expected_calibration_error(y, p), 4),
@@ -136,10 +143,14 @@ def main(argv: list[str] | None = None) -> int:
         result[style] = figures
         line = " | ".join(
             f"{kind}: T.5 {figures[kind]['errors']['0.5']} T.9 {figures[kind]['errors']['0.9']} "
+            f"doors open T.9 {figures[kind]['doors read as open']['0.9']} "
             f"rs {figures[kind]['ranked_share']} ece {figures[kind]['ece']}"
-            for kind in ("raw", "clef", "clef+ink", "clef+ink, synthetic in the fit")
+            for kind in ("raw", "clef", "clef+ink", "clef+ink, synthetic in the fit", "clef+ink, without doors first")
         )
-        print(f"{style:11} maps {maps} n={len(rows)} blocked={figures['blocked']} {line}", flush=True)
+        print(
+            f"{style:11} maps {maps} n={len(rows)} blocked={figures['blocked']} doors={int(key_door.sum())} {line}",
+            flush=True,
+        )
     if args.json:
         args.json.write_text(json.dumps(result, indent=1) + "\n")
     return 0

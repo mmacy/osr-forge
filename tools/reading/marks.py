@@ -13,7 +13,7 @@ whose outline lies within two cells of the mark go in chunks of 25, each with `n
 across the chunks wins. When every chunk answers `none`, a letter question decides between 25 letters and `none`.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -30,9 +30,10 @@ __all__ = [
     "find_marks",
     "key_chunks",
     "letter_request",
-    "mark_answer",
     "mark_crop",
+    "mark_reading",
     "mark_request",
+    "one_mark_per_key",
     "pixel_to_grid",
 ]
 
@@ -246,11 +247,14 @@ def letter_request(crop: bytes, model: ClefModel) -> DecisionRequest:
     )
 
 
-def mark_answer(chunks: Sequence[dict[str, float]], letter: dict[str, float] | None) -> str:
+def mark_reading(chunks: Sequence[dict[str, float]], letter: dict[str, float] | None) -> tuple[str, float]:
     """A mark's reading from its key questions' answers and, when every one said none, its letter question's.
 
     The key with the highest probability across the chunks wins when it beats that chunk's `none`. Otherwise the
     letter question decides, and with no letter question the answer is `none`.
+
+    Returns:
+        The answer and its probability. The probability of `none` with no letter question is 0.
     """
     best, best_p = "none", 0.0
     for answer in chunks:
@@ -258,7 +262,28 @@ def mark_answer(chunks: Sequence[dict[str, float]], letter: dict[str, float] | N
         if top != "none" and answer[top] > best_p:
             best, best_p = top, answer[top]
     if best != "none":
-        return best
+        return best, best_p
     if letter is None:
-        return "none"
-    return max(letter, key=letter.__getitem__)
+        return "none", 0.0
+    top = max(letter, key=letter.__getitem__)
+    return top, letter[top]
+
+
+def one_mark_per_key(readings: Mapping[int, tuple[str, float]]) -> dict[int, str]:
+    """Each mark's answer once every key keeps only its most probable mark.
+
+    Args:
+        readings: Each mark's answer and probability, from [`mark_reading`][tools.reading.marks.mark_reading].
+
+    Returns:
+        Each mark's answer. A mark whose key another mark reads with a higher probability answers `none`, and a tie
+        goes to the mark that comes first.
+    """
+    winners: dict[str, int] = {}
+    for index, (answer, p) in readings.items():
+        if answer.startswith("key:") and (answer not in winners or p > readings[winners[answer]][1]):
+            winners[answer] = index
+    return {
+        index: "none" if answer.startswith("key:") and winners[answer] != index else answer
+        for index, (answer, _p) in readings.items()
+    }
