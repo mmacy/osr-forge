@@ -4,7 +4,8 @@ It fills the tracing stage's reading role
 ([`ReadingProvider`][osrforge.providers.reading.ReadingProvider]) through the
 Messages API: it streams every response, sends images as base64 PNG, asks
 for each answer as JSON that fits the kind's schema (`output_config.format`),
-runs every request with adaptive thinking at the kind's effort, and marks a
+runs every request on the kind's model with adaptive thinking at the kind's
+effort, and marks a
 cache breakpoint on the system prompt and at the end of each shared part. It
 reserves each request's worst-case cost on the Claude ledger before sending
 and settles it from the answer's usage. The body it sends is
@@ -296,7 +297,7 @@ class ClaudeProvider:
         sleep: Callable[[float], None] = time.sleep,
         now: Callable[[], str] | None = None,
     ) -> None:
-        """Bind to a model and a ledger.
+        """Bind to a default model and a ledger.
 
         Args:
             settings: The settings.
@@ -325,7 +326,10 @@ class ClaudeProvider:
     def read(self, request: ReadingRequest) -> ReadingResponse:
         """Send one request and return its answer.
 
-        Before sending, the provider reserves
+        The request goes to its kind's model, or to the settings' model when
+        the kind names none, and is charged on that model. A model without
+        prices is refused before anything is sent or reserved. Before sending,
+        the provider reserves
         [`worst_case_usd`][osrforge.providers.claude.worst_case_usd] on a new
         ledger entry `{"t", "script": "osrforge", "label": "<kind> <effort>",
         "model"}` in one step
@@ -378,8 +382,7 @@ class ClaudeProvider:
             One item per request, in order: its answer, or the exception
             `read` raised for it.
         """
-        model = self.settings.model
-        chains = [_cache_prefixes(request, model) for request in requests]
+        chains = [_cache_prefixes(request, request.kind.model or self.settings.model) for request in requests]
         results: list[ReadingResponse | Exception] = [ProviderError("the request didn't finish") for _ in requests]
         warm: set[tuple[str, ...]] = set()
         claimed: set[tuple[str, ...]] = set()
@@ -421,8 +424,8 @@ class ClaudeProvider:
         return results
 
     def _read(self, request: ReadingRequest, on_first_event: Callable[[], None] | None) -> ReadingResponse:
-        model = self.settings.model
         kind = request.kind
+        model = kind.model or self.settings.model
         entry = {"t": self._now(), "script": "osrforge", "label": f"{kind.name} {kind.effort}", "model": model}
         reservation = self._ledger.open_reserved(entry, worst_case_usd(model, request))
         statuses: list[int | None] = []
