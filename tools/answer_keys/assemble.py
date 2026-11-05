@@ -42,6 +42,7 @@ from osrforge.tracing.truth import (
     save_geometry_truth,
 )
 
+from .frame import crop_panel, crop_region, frame_of
 from .keyspec import KeySpec, MapContext
 from .letters import final_cells, final_edges, outline_state
 from .marks import wholemap_answer
@@ -286,10 +287,11 @@ def _closed_mouths(symbols: list[Symbol], cells: list[list[str]], edges: EdgeGri
     return closed
 
 
-def panel_letters(ctx: MapContext) -> tuple[Panel, Region, dict[str, Any]]:
-    """Build the map's panel and region from the table, the final values, and the whole-map read."""
+def panel_letters(ctx: MapContext, passages: bool = True) -> tuple[Panel, Region, dict[str, Any]]:
+    """Build the map's panel and region from the table, the final values, and the whole-map read; with `passages`
+    false, without the passage rule's calls."""
     items = load_items(ctx)
-    final = final_values(ctx) if (ctx.key.directory / "final.json").exists() else {}
+    final = final_values(ctx, passages) if (ctx.key.directory / "final.json").exists() else {}
     log: dict[str, Any] = {"settled_calls": len(final)}
     cells = final_cells(items, final, log)
     edges = final_edges(items, cells, final, log)
@@ -300,6 +302,8 @@ def panel_letters(ctx: MapContext) -> tuple[Panel, Region, dict[str, Any]]:
     reading = classifier_reading(ctx)
     whole = wholemap_answer(ctx) or {}
     partial = [text for text in items.partial if _in_grid(text, items.width, items.height)]
+    # A cell under half floor that a passage keeps is partial too.
+    partial += [name[2:] for name, call in final.items() if call.get("partial") and name[2:] not in partial]
     cave = [text for text in items.cave if _in_grid(text, items.width, items.height)]
     panel = Panel(
         id=ctx.key.id,
@@ -328,6 +332,12 @@ def panel_letters(ctx: MapContext) -> tuple[Panel, Region, dict[str, Any]]:
             "cut_off": tuple(side for side in whole.get("cut_off", []) if side in ("top", "right", "bottom", "left")),
         }
     )
+    frame = frame_of(ctx)
+    if frame is not None:
+        # The key is on the registered grid: the framed drawing, without the title and legend outside its frame.
+        panel = crop_panel(panel, frame)
+        region = crop_region(region, frame)
+        log["frame"] = list(frame)
     if whole:
         for field_name, mine, theirs in (
             ("north", ctx.spec.north, whole.get("north")),
@@ -350,9 +360,10 @@ def _image_relative(ctx: MapContext, document_dir: Path) -> str:
     return os.path.relpath(image, document_dir.resolve())
 
 
-def assemble(ctx: MapContext, out: Path | None = None) -> dict[str, Any]:
-    """Write the map's reading document and return the assembly log."""
-    panel, region, log = panel_letters(ctx)
+def assemble(ctx: MapContext, out: Path | None = None, passages: bool = True) -> dict[str, Any]:
+    """Write the map's reading document and return the assembly log; with `passages` false, without the passage
+    rule's calls."""
+    panel, region, log = panel_letters(ctx, passages)
     out = out or ctx.key.directory / "reading.json"
     region = region.model_copy(update={"image": _image_relative(ctx, ctx.key.key.parent)})
     page = Page(number=ctx.spec.page, images=(PageImage(file=region.image),))

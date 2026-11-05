@@ -158,6 +158,7 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             collect_recheck,
             record_corrections,
             submit_cell_edges,
+            submit_choices,
             submit_owner_note,
             submit_reask,
             submit_recheck,
@@ -177,6 +178,14 @@ def run_stage(key: KeySpec, stage: str, action: str | None, args: argparse.Names
             mine = [name.partition(":")[2] for name in args.call if name.partition(":")[0] == key.id]
             batch, count = submit_owner_note(ctx, rect, mine, args.note, api, book, args.reader)  # type: ignore[arg-type]
             print(f"{key.id}: owner's note batch {batch}, {count} items")
+        elif action == "choices":
+            pairs = []
+            for text in args.cells.split(";"):
+                if text:
+                    kept, _, other = text.partition("|")
+                    pairs.append((parse_cell(kept), parse_cell(other)))
+            batch, count = submit_choices(ctx, pairs, api, book)
+            print(f"{key.id}: choices batch {batch}, {count} items")
         elif action == "region":
             if args.level is None or not args.cells:
                 raise SystemExit("recheck region needs --level and --cells")
@@ -253,7 +262,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--note", default="", help="recheck note: the owner's note, as one reading of each item")
     parser.add_argument("--reader", default="the map's owner", help="recheck note: whose note it is, as its reading")
     parser.add_argument("--level", default=None, help="recheck region: the level whose outline holds the group")
-    parser.add_argument("--cells", default="", help="recheck region: the group's cells, as x,y;x,y")
+    parser.add_argument(
+        "--cells",
+        default="",
+        help="recheck region: the group's cells, as x,y;x,y; recheck choices: pairs, as x,y|x,y;...",
+    )
     parser.add_argument(
         "--call",
         action="append",
@@ -282,6 +295,7 @@ def main(argv: list[str] | None = None) -> int:
         "score",
         "combine",
         "joins",
+        "passages",
     }
     action = None
     if words and words[-1] in (
@@ -301,6 +315,7 @@ def main(argv: list[str] | None = None) -> int:
         "note",
         "orphans",
         "region",
+        "choices",
     ):
         action = words.pop()
     if not words or words[-1] not in stages:
@@ -374,6 +389,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.out is None:
             parser.error("recheck resample needs --out, the new sample file")
         print(recheck_sample([context(specs[map_id]) for map_id in words], args.out))
+        return 0
+    if stage == "passages":
+        from .kept import apply_passages
+
+        if args.stages is None:
+            parser.error("passages needs --stages, the directory whose stages/ the resolver reads")
+        print(apply_passages([specs[map_id] for map_id in words], args.stages))
         return 0
     if stage == "combine":
         from .assemble import combine

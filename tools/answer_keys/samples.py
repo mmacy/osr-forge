@@ -15,6 +15,7 @@ from typing import Any
 
 from osrforge.tracing.truth import parse_cell
 
+from .frame import frame_of, to_registered_text
 from .keyspec import MapContext
 from .readings import edge_cells, edge_key, load_items
 from .sample import Reader, Reading, SampleCall, SampleSet
@@ -129,7 +130,11 @@ def sample_calls(
         category = categorize(ctx, item, kind) or fallback
         if category is None:
             continue
-        zoom, wide = crops_for(ctx, call_id)
+        frame = frame_of(ctx)
+        if frame is not None and not _in_frame(call_id, frame):
+            # Outside the framed drawing: no part of the key.
+            continue
+        zoom, wide = _crops(ctx, call_id)
         readings = tuple(
             Reading(reader=READER_NAMES[reader], value=_reading_value(reader, value))
             for reader, value in call["readings"]
@@ -145,6 +150,20 @@ def sample_calls(
         adversarial = call.get("adversarial")
         if kind == "mark" and adversarial is not None:
             adversarial = _mark_cells(adversarial)
+        reason = (
+            call.get("owner_note")
+            or call.get("recheck_reason")
+            or call.get("resettle_reason")
+            or call.get("reason", "")
+        )
+        if frame is not None:
+            # The sample shows the registered grid's cells, the key's own.
+            call_id = to_registered_text(ctx, call_id)
+            item = to_registered_text(ctx, item) if kind != "mark" else item
+            readings = tuple(r.model_copy(update={"value": to_registered_text(ctx, r.value)}) for r in readings)
+            settled = to_registered_text(ctx, settled)
+            adversarial = to_registered_text(ctx, adversarial) if adversarial is not None else None
+            reason = to_registered_text(ctx, reason)
         calls.append(
             SampleCall(
                 id=f"{ctx.key.id}:{call_id}",
@@ -160,13 +179,41 @@ def sample_calls(
                 readings=readings,
                 settled=settled,
                 adversarial=adversarial,
-                reason=call.get("owner_note")
-                or call.get("recheck_reason")
-                or call.get("resettle_reason")
-                or call.get("reason", ""),
+                reason=reason,
             )
         )
     return calls
+
+
+def _in_frame(call_id: str, frame: tuple[int, int, int, int]) -> bool:
+    """Whether a working call's cell lies in the registered grid."""
+    from osrforge.tracing.truth import parse_cell
+
+    x, y = parse_cell(call_id.partition(":")[2].split("|")[0].split(":")[0])
+    return frame[0] <= x < frame[0] + frame[2] and frame[1] <= y < frame[1] + frame[3]
+
+
+def _crops(ctx: MapContext, call_id: str) -> tuple[Path, Path]:
+    """A call's crops, on a framed map labelled with the registered grid's cells and kept apart from the working
+    crops, whose names they would share."""
+    frame = frame_of(ctx)
+    if frame is None:
+        return crops_for(ctx, call_id)
+    from .settler import WIDE_PX, WIDE_REACH, ZOOM_PX, ZOOM_REACH, _item_place
+    from .tiles import render_item
+
+    directory = ctx.key.directory / "crops-registered"
+    directory.mkdir(parents=True, exist_ok=True)
+    name = to_registered_text(ctx, call_id)
+    stem = name.replace(":", "_").replace(",", "-").replace("|", "_").replace("/", "_")
+    zoom, wide = directory / f"{stem}_zoom.png", directory / f"{stem}_wide.png"
+    cell, side = _item_place(call_id)
+    offset = (frame[0], frame[1])
+    if not zoom.exists():
+        render_item(ctx.rgb, ctx.fit, cell, side, zoom, ZOOM_PX, ZOOM_REACH, offset)
+    if not wide.exists():
+        render_item(ctx.rgb, ctx.fit, cell, side, wide, WIDE_PX, WIDE_REACH, offset)
+    return zoom, wide
 
 
 def build_sample(contexts: list[MapContext], out: Path, size: int, seed: int) -> dict[str, Any]:
@@ -198,7 +245,8 @@ def build_sample(contexts: list[MapContext], out: Path, size: int, seed: int) ->
     calls = []
     for ctx, call in chosen:
         for attribute in ("zoom", "wide"):
-            source = ctx.key.directory / "crops" / getattr(call, attribute)
+            folder = "crops-registered" if frame_of(ctx) is not None else "crops"
+            source = ctx.key.directory / folder / getattr(call, attribute)
             target = out.parent / f"{ctx.key.id}__{getattr(call, attribute)}"
             if not target.exists():
                 shutil.copyfile(source, target)

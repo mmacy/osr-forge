@@ -1041,3 +1041,71 @@ def test_an_outline_answer_of_outside_binds_and_a_group_answer_settles_every_cel
     # held it; the group's answer gives 5,0 to a alone.
     assert owned["a/1"] == {(0, 0), (1, 0), (2, 0), (3, 0), (5, 0)}
     assert owned["b/1"] == set()
+
+
+def test_a_door_across_a_corner_goes_through_the_step_cell_with_more_floor():
+    from tools.answer_keys.kept import corner_doors
+
+    # Floor at 1,0 and 0,1 meet at a corner; the step cells 0,0 and 1,1 are rock. The door was read on 1,0's south
+    # edge, into 1,1, which has more floor than 0,0.
+    floor = {(1, 0), (0, 1)}
+    letters_at = {((1, 0), "south"): "d"}
+    shares = {(0, 0): 0.04, (1, 1): 0.09}
+    found = corner_doors(
+        lambda cell: cell in floor,
+        lambda cell, side: letters_at.get((cell, side), "w"),
+        lambda cell: shares.get(cell, 0.0),
+        [(0, 0)],
+    )
+    # The door stands on 1,1's edge with 1,0, first in page order, and 1,1's edge with 0,1 is open.
+    assert found == [((1, 1), {"1,1:north": "d", "1,1:west": "o"}, {})]
+
+
+def test_a_course_keeps_one_cell_per_step_and_the_cell_with_more_floor_at_a_corner():
+    from tools.answer_keys.kept import _chain
+
+    # Region one is 0,0; region two is 2,1. The course runs from 0,0 east along row 0 and crosses the corner at 2,1's
+    # north-west: the step cells are 1,1 and 2,0, and 2,0 has more floor.
+    line = [(0.5, 0.5), (1.0, 0.5), (1.5, 0.5), (1.9, 0.9), (2.0, 1.0), (2.1, 1.1), (2.5, 1.5)]
+    shares = {(1, 0): 0.4, (2, 0): 0.35, (1, 1): 0.2}
+    chain = _chain(line, {(0, 0)}, {(2, 1)}, set(), lambda cell: shares.get(cell, 0.0), (0, 0, 4, 3))
+    assert chain == [(0, 0), (1, 0), (2, 0), (2, 1)]
+    # Barring the step cell with more floor, as a settled close call does, takes the other.
+    barred = _chain(line, {(0, 0)}, {(2, 1)}, {(2, 0)}, lambda cell: shares.get(cell, 0.0), (0, 0, 4, 3))
+    assert barred == [(0, 0), (1, 0), (1, 1), (2, 1)]
+
+
+def test_a_framed_map_writes_its_key_on_the_registered_grid():
+    from tools.answer_keys.frame import crop_panel, shift_text
+
+    from osrforge.tracing.truth import Mark, Outline, Panel, PanelRegion, Symbol
+
+    # A working grid of 3 columns and 4 rows whose first row is a title block outside the frame.
+    panel = Panel(
+        id="m",
+        regions=(PanelRegion(region="m", origin=(0, 0)),),
+        scale_feet=10,
+        cells=("...", "...", "...", "..."),
+        edges=EdgeGrids(
+            vertical=("wdow", "wodw", "woow", "wonw"),
+            horizontal=("www", "odo", "ooo", "oon", "www"),
+        ),
+        partial=("0,0", "1,2"),
+        cave=(),
+        marks=(Mark(text="T", cell="1,0"), Mark(text="1", cell="2,2", edge="2,2:north", leader_to="1,3")),
+        outlines=(Outline(dungeon="d", level=1, rects=((0, 0, 3, 4),), seeds=("1,2",), open_ground=((0, 2, 2, 2),)),),
+        symbols=(Symbol(kind="stairs", cells=("0,0", "0,1")),),
+    )
+    cropped = crop_panel(panel, (0, 1, 3, 3))
+    assert cropped.cells == ("...", "...", "...")
+    assert cropped.edges.vertical == ("wodw", "woow", "wonw")
+    assert cropped.edges.horizontal == ("odo", "ooo", "oon", "www")
+    assert cropped.partial == ("1,1",)
+    assert cropped.marks == (Mark(text="1", cell="2,1", edge="2,1:north", leader_to="1,2"),)
+    assert cropped.outlines[0].rects == ((0, 0, 3, 3),) and cropped.outlines[0].open_ground == ((0, 1, 2, 2),)
+    assert cropped.outlines[0].seeds == ("1,1",)
+    assert cropped.symbols[0].cells == ("0,0",)
+    # Call names move their cells; a group call moves its corner only; a cell address may end a sentence.
+    assert shift_text("e:4,5:north", 0, -5) == "e:4,0:north"
+    assert shift_text("r:49,15,7,15|crypt/1", 0, -5) == "r:49,10,7,15|crypt/1"
+    assert shift_text("so cell 13,10.", 0, -3) == "so cell 13,7."

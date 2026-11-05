@@ -28,6 +28,7 @@ from osrforge.tracing.truth import CELL_LETTERS, parse_cell, parse_edge
 
 from .batches import BatchStore
 from .classify import cell_floor_shares
+from .frame import frame_of, to_work_text
 from .keyspec import MapContext
 from .reader import READ_LETTERS
 from .readings import edge_cells, edge_key, load_items
@@ -68,10 +69,16 @@ RECHECK_MARK = "@recheck"
 """The suffix that gives a call a new id in the sample of the calls a recheck changed."""
 
 
-def sample_call_id(sample_id: str) -> tuple[str, str]:
-    """A sample call's panel and call id: `m1:c:2,3` and `m1:c:2,3@recheck` both name `c:2,3`."""
+def sample_call_id(sample_id: str, ctx: MapContext | None = None) -> tuple[str, str]:
+    """A sample call's panel and call id: `m1:c:2,3` and `m1:c:2,3@recheck` both name `c:2,3`. With the map, a
+    framed map's registered call id is turned into the working grid's, which its stores use (`frame.py`)."""
     panel, _, call_id = sample_id.partition(":")
-    return panel, call_id.split("@", 1)[0]
+    call_id = call_id.split("@", 1)[0]
+    if ctx is not None:
+        from .frame import to_work_text
+
+        call_id = to_work_text(ctx, call_id)
+    return panel, call_id
 
 
 def _verdicts(sample_path: Path) -> tuple[SampleSet, Verdicts]:
@@ -149,7 +156,7 @@ def recheck_items(ctx: MapContext, sample_path: Path) -> list[dict[str, Any]]:
         if verdict.settled != call.settled:
             # The verdict was given on an earlier value of the call; it doesn't carry over.
             continue
-        call_id = sample_call_id(verdict.call)[1]
+        call_id = sample_call_id(verdict.call, ctx)[1]
         wanted[call_id] = (verdict.verdict, verdict.note)
         if verdict.verdict == "wrong":
             categories_to_recheck.add(call.category)
@@ -374,12 +381,14 @@ def record_corrections(ctx: MapContext, sample_path: Path, values: dict[str, str
     sample, verdicts = _verdicts(sample_path)
     by_id = {call.id: call for call in sample.calls}
     judged = {
-        sample_call_id(verdict.call)[1]: verdict
+        sample_call_id(verdict.call, ctx)[1]: verdict
         for verdict in verdicts.verdicts
         if verdict.verdict == "wrong" and by_id.get(verdict.call) and by_id[verdict.call].panel == ctx.key.id
     }
     corrections = _load_calls(ctx, "owner")
-    for call_id, value in values.items():
+    for named, value in values.items():
+        # A framed map's sample names registered cells; its stores, working ones.
+        call_id = to_work_text(ctx, named)
         verdict = judged.get(call_id)
         if verdict is None:
             raise ValueError(f"{ctx.key.id} {call_id}: the sample has no wrong verdict on it")
@@ -479,7 +488,7 @@ def recheck_sample(contexts: list[MapContext], out: Path) -> dict[str, Any]:
             counts[f"{ctx.key.id} changed with no effect on the key"] = inert
         final = final_values(ctx)
         for call in sample_calls(ctx, ctx.key.member, ctx.spec.truth_style, every=True, fallback="key"):
-            call_id = sample_call_id(call.id)[1]
+            call_id = sample_call_id(call.id, ctx)[1]
             if call_id not in reach:
                 continue
             entry = final[call_id]
@@ -489,7 +498,8 @@ def recheck_sample(contexts: list[MapContext], out: Path) -> dict[str, Any]:
                 target = out.parent / f"{ctx.key.id}__{getattr(call, attribute)}"
                 if not target.exists():
                     out.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(ctx.key.directory / "crops" / getattr(call, attribute), target)
+                    folder = "crops-registered" if frame_of(ctx) is not None else "crops"
+                    shutil.copyfile(ctx.key.directory / folder / getattr(call, attribute), target)
             calls.append(
                 call.model_copy(
                     update={
@@ -614,6 +624,79 @@ def submit_region(
     custom_id = f"{prefix}{number:03d}"
     store.add_job(custom_id, _request(ctx, [item], RECHECK_SYSTEM, SCHEMA, False), {"map": ctx.key.id, "items": [item]})
     return store.submit(client, ledger, f"recheck region {ctx.key.id}", ids=[custom_id]), 1
+
+
+def choice_item(ctx: MapContext, kept: tuple[int, int], other: tuple[int, int]) -> dict[str, Any]:
+    """A close call of the passage rule: of two cells a passage's course runs between, which has more floor.
+
+    Its id is `k:x,y|x,y`, the cell the measure keeps and the other, and its answer is one of the two. Its readings
+    are both cells' pixel counts and their shares drawn as floor (paper, and lines across paper).
+    """
+    from .kept import floor_shares
+    from .settler import _readings_text
+
+    corner = kept[0] != other[0] and kept[1] != other[1]
+    x0, y0 = min(kept[0], other[0]), min(kept[1], other[1])
+    width, height = abs(kept[0] - other[0]) + 1, abs(kept[1] - other[1]) + 1
+    drawn = floor_shares(ctx, (x0, y0, width, height))
+    shares = _shares(ctx)
+    names = [f"{cell[0]},{cell[1]}" for cell in (kept, other)]
+    readings = [
+        (
+            "the pixel count",
+            "; ".join(
+                f"{round(100 * float(shares[c[1], c[0]]))}% of cell {n} is floor"
+                for c, n in zip((kept, other), names, strict=True)
+            ),
+        ),
+        (
+            "the passage measure",
+            "; ".join(
+                f"{round(100 * float(drawn[c[1] - y0, c[0] - x0]))}% of cell {n} is drawn as floor"
+                for c, n in zip((kept, other), names, strict=True)
+            ),
+        ),
+    ]
+    where = (
+        "across the corner where two floor cells meet; these are its two step cells"
+        if corner
+        else "along the line between the two cells"
+    )
+    return {
+        "id": f"k:{names[0]}|{names[1]}",
+        "kind": "choice",
+        "rect": [x0 - 1, y0 - 1, width + 2, height + 2],
+        "options": names,
+        "text": f"a passage drawn as floor runs {where}: cells {names[0]} and {names[1]}, in the boxed rectangle. "
+        "A passage keeps the one of the two with more floor, the first in page order on a tie. Which of the two has "
+        f"more floor? Answer with exactly one of: {', '.join(names)}. Readings: {_readings_text(readings)}.",
+        "readings": readings,
+    }
+
+
+def submit_choices(
+    ctx: MapContext, pairs: list[tuple[tuple[int, int], tuple[int, int]]], client: Any, ledger: Any
+) -> tuple[str | None, int]:
+    """Ask the passage rule's close calls on a map, eight to a recheck job."""
+    from .settler import RECHECK_SYSTEM, SCHEMA, _request
+
+    store = BatchStore(ctx.key.directory / "recheck")
+    rechecked = _load_calls(ctx, "recheck")
+    items = [choice_item(ctx, kept, other) for kept, other in pairs]
+    items = [item for item in items if item["id"] not in rechecked]
+    prefix = f"{ctx.key.id}__recheck__zchoice"
+    start = sum(1 for custom_id in store.job_ids() if custom_id.startswith(prefix) and not custom_id.endswith("__r"))
+    ids = []
+    for number, first in enumerate(range(0, len(items), 8), start):
+        batch = items[first : first + 8]
+        custom_id = f"{prefix}{number:03d}"
+        store.add_job(
+            custom_id, _request(ctx, batch, RECHECK_SYSTEM, SCHEMA, False), {"map": ctx.key.id, "items": batch}
+        )
+        ids.append(custom_id)
+    if not ids:
+        return None, 0
+    return store.submit(client, ledger, f"recheck choices {ctx.key.id}", ids=ids), len(items)
 
 
 def recheck_item(ctx: MapContext, name: str) -> dict[str, Any] | None:

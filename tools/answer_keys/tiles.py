@@ -134,11 +134,12 @@ class _Canvas:
         x, y = self.fit.corner(gx, gy)
         return (x - self.px0) * self.scale_x + GUTTER, (y - self.py0) * self.scale_y + GUTTER
 
-    def ticks(self, columns: range, rows: range, label_last: bool) -> None:
+    def ticks(self, columns: range, rows: range, label_last: bool, offset: tuple[int, int] = (0, 0)) -> None:
         """Draw ticks for grid lines in all four gutters, each numbered by the cell that starts at it.
 
         A tick's number sits just right of (or below) the tick, top and bottom, left and right, so a reader
-        can count the window's rows and columns from either side.
+        can count the window's rows and columns from either side. `offset` is taken from each number, to label
+        the cells of a registered grid that starts inside the working one.
         """
         font = _font(13)
         width, height = self.image.size
@@ -147,15 +148,15 @@ class _Canvas:
             self.draw.line([(x, GUTTER - 12), (x, GUTTER + 6)], fill=TICK_COLOUR, width=2)
             self.draw.line([(x, height - GUTTER - 6), (x, height - GUTTER + 12)], fill=TICK_COLOUR, width=2)
             if i < columns.stop - 1 or label_last:
-                self.draw.text((x + 2, 2), str(i), fill=TICK_COLOUR, font=font)
-                self.draw.text((x + 2, height - GUTTER + 14), str(i), fill=TICK_COLOUR, font=font)
+                self.draw.text((x + 2, 2), str(i - offset[0]), fill=TICK_COLOUR, font=font)
+                self.draw.text((x + 2, height - GUTTER + 14), str(i - offset[0]), fill=TICK_COLOUR, font=font)
         for j in rows:
             _, y = self.point(columns.start, j)
             self.draw.line([(GUTTER - 12, y), (GUTTER + 6, y)], fill=TICK_COLOUR, width=2)
             self.draw.line([(width - GUTTER - 6, y), (width - GUTTER + 12, y)], fill=TICK_COLOUR, width=2)
             if j < rows.stop - 1 or label_last:
-                self.draw.text((2, y + 1), str(j), fill=TICK_COLOUR, font=font)
-                self.draw.text((width - GUTTER + 14, y + 1), str(j), fill=TICK_COLOUR, font=font)
+                self.draw.text((2, y + 1), str(j - offset[1]), fill=TICK_COLOUR, font=font)
+                self.draw.text((width - GUTTER + 14, y + 1), str(j - offset[1]), fill=TICK_COLOUR, font=font)
 
     def box(self, gx0: float, gy0: float, gx1: float, gy1: float, width: int = 3) -> None:
         """Draw a red box around a grid rectangle."""
@@ -212,6 +213,7 @@ def render_item(
     out: Path,
     cell_px: int,
     reach: float,
+    offset: tuple[int, int] = (0, 0),
 ) -> Path:
     """Draw a zoomed crop around one cell or edge with the item boxed in red and every grid line in view ticked.
 
@@ -223,6 +225,7 @@ def render_item(
         out: Where to write the PNG.
         cell_px: Pixels per cell in the crop.
         reach: Cells shown around the item's centre on each side.
+        offset: Taken from each tick's number, to label a registered grid's cells (`frame.py`).
 
     Returns:
         The path written.
@@ -248,7 +251,7 @@ def render_item(
     last_column = int(np.floor(cx + reach))
     first_row = int(np.ceil(cy - reach))
     last_row = int(np.floor(cy + reach))
-    canvas.ticks(range(first_column, last_column + 1), range(first_row, last_row + 1), True)
+    canvas.ticks(range(first_column, last_column + 1), range(first_row, last_row + 1), True, offset)
     canvas.box(*box, width=3 if cell_px >= 96 else 2)
     return canvas.save(out)
 

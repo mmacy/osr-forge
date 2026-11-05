@@ -678,7 +678,7 @@ def check_answer(answer: dict[str, Any], expected: list[dict[str, Any]], adversa
                         parse_cell(text)
             except ValueError:
                 faults.append(f"item {item_id} names a place that isn't an address: {value!r}")
-        if kind == "outline" and value not in by_id[item_id].get("options", []):
+        if kind in ("outline", "choice") and value not in by_id[item_id].get("options", []):
             faults.append(f"item {item_id} needs one of {by_id[item_id].get('options')}, not {value!r}")
         if kind == "slope":
             fault = check_slope(value, by_id[item_id]["rect"])
@@ -1142,10 +1142,11 @@ def _harvest(store: BatchStore, calls: dict[str, dict[str, Any]], adversary: boo
         result["retries"] += 1
 
 
-def final_values(ctx: MapContext) -> dict[str, dict[str, Any]]:
-    """Every call's final value: the owner's correction where there is one, else the recheck's value, else the
-    re-settled value where the adversary's challenge was re-settled, else the settler's, with the adversary's value
-    beside it."""
+def final_values(ctx: MapContext, passages: bool = True) -> dict[str, dict[str, Any]]:
+    """Every call's final value: the owner's correction where there is one, else the passage rule's (`kept.py`),
+    else the recheck's value, else the re-settled value where the adversary's challenge was re-settled, else the
+    settler's, with the adversary's value beside it. With `passages` false the passage rule's calls are left out, as
+    the rule is worked out from the reading without them."""
     settled = _load_calls(ctx, "settle")
     adversary = _load_calls(ctx, "adversary")
     resettled = _load_calls(ctx, "resettle")
@@ -1215,6 +1216,16 @@ def final_values(ctx: MapContext) -> dict[str, dict[str, Any]]:
         final["recheck_reason"] = call["reason"]
         if "cells" in call:
             final["cells"] = call["cells"]
+    # The passage rule keeps cells and opens edges along each drawn passage the reading leaves cut.
+    for name, call in (_load_calls(ctx, "passages") if passages else {}).items():
+        final = out.setdefault(
+            name, {"kind": call["kind"], "readings": [], "settled": None, "reason": "", "category": "passage"}
+        )
+        final["before_passage"] = final.get("value")
+        final["value"] = call["value"]
+        final["passage_reason"] = call["reason"]
+        if call.get("partial"):
+            final["partial"] = True
     # The owner's correction of a call judged wrong in the sample is final: it replaces whatever the recheck found.
     for name, call in corrected.items():
         final = out.get(name)
