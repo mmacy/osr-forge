@@ -49,6 +49,7 @@ from .full_members import HalvesSpec, Member, load_halves, real_members, synthet
 from .full_reading import (
     MapReading,
     PageRead,
+    Pick,
     bare_edges_cleared,
     calibrate,
     choose_items,
@@ -429,6 +430,7 @@ def run(
                 "choice": pick.choice,
                 "truth": pick.truth,
                 "wrong": pick.wrong,
+                "same_pictures_as": [other.spec.id for other in picks if other is not pick and _same(other, pick)],
             }
             for pick in picks
         ],
@@ -498,6 +500,16 @@ def resolve_member(document: GeometryTruth, survey: Any, contents: Any, mapread:
         return merged, salvaged
     except ValueError as error:
         return shells, f"open case: {whole}; the salvaged levels don't validate ({error}), so every level falls back"
+
+
+def _same(one: Pick, other: Pick) -> bool:
+    """Whether two pairs' halves are the same image files byte for byte."""
+    import hashlib
+
+    def digest(path: Path) -> str:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    return (digest(one.spec.first), digest(one.spec.second)) == (digest(other.spec.first), digest(other.spec.second))
 
 
 def _level_costs(
@@ -608,9 +620,9 @@ def estimate(result: RunResult, sources: Sources, settings: FullRunSettings, mea
             continue
         extra = unanswered.get(f"{uid} edges between floor", 0)
         known = per[uid].get("reading-items", 0)
-        if extra:
-            items = len(reading.items)
-            per[uid]["reading-items at most"] = math.ceil((items + extra) / settings.items_per_request)
+        per[uid]["reading-items at most"] = max(
+            known, math.ceil((len(reading.items) + extra) / settings.items_per_request)
+        )
         per[uid]["items"] = len(reading.items)
         per[uid]["reading-items"] = known
     totals: Counter[str] = Counter()
@@ -627,7 +639,7 @@ def estimate(result: RunResult, sources: Sources, settings: FullRunSettings, mea
         ),
         "claude_at_most": round(
             totals["reading-wholemap"] * means.get("reading-wholemap", 0.0)
-            + max(totals["reading-items"], totals["reading-items at most"]) * means.get("reading-items", 0.0)
+            + totals["reading-items at most"] * means.get("reading-items", 0.0)
             + totals["reading-offset"] * means.get("reading-offset", 0.0),
             4,
         ),
@@ -635,11 +647,13 @@ def estimate(result: RunResult, sources: Sources, settings: FullRunSettings, mea
         "clef_if_hosted": round((totals["clef-edge"] + totals["clef-mark"]) * HOSTED_FLASH_USD, 4),
     }
     claude = totals["reading-wholemap"] + totals["reading-items"] + totals["reading-offset"]
+    at_most = totals["reading-wholemap"] + totals["reading-items at most"] + totals["reading-offset"]
     return {
         "per": {owner: counts for owner, counts in sorted(per.items())},
         "totals": dict(totals),
         "claude_requests": claude,
-        "claude_requests_with_one_retry_each": 2 * claude,
+        "claude_requests_at_most": at_most,
+        "claude_requests_with_one_retry_each": 2 * at_most,
         "usd": usd,
         "means": means,
     }
@@ -763,6 +777,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--screening", type=Path, default=None, help="the screening's results directory, to seed from")
     parser.add_argument("--only", action="append", default=None, help="a member id to run, of several")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--stand-in", action="store_true", help="let the key's whole-page answer stand in where none is stored"
+    )
     parser.add_argument("--claude", choices=("none", "fake", "live"), default="none")
     parser.add_argument("--clef", choices=("none", "fake", "local", "hosted"), default="none")
     parser.add_argument("--workers", type=int, default=2)
@@ -771,6 +788,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.dry_run and (args.claude != "none" or args.clef != "none"):
         parser.error("a dry run sends nothing: leave --claude and --clef at none")
+    fake = args.claude == "fake" or args.clef == "fake"
+    marker = args.out / "FAKE"
+    stored = (args.out / "clef.jsonl").exists() or (args.out / "claude").exists()
+    if fake and stored and not marker.exists():
+        parser.error(f"{args.out} holds real answers, and a run on fake answers would mix its answers in")
+    if not fake and marker.exists():
+        parser.error(f"{args.out} holds fake answers, so a run on real ones can't use it")
     settings = load_settings(args.settings)
     members = real_members(args.maps, args.pages, args.keys) if args.maps else []
     if args.synthetic is not None:
@@ -779,12 +803,15 @@ def main(argv: list[str] | None = None) -> int:
         members = [member for member in members if member.id in args.only]
     halves = [spec for path in args.halves for spec in load_halves(path) if spec.real]
     args.out.mkdir(parents=True, exist_ok=True)
+    if fake:
+        marker.write_text("The answers here include fake ones made from the answer keys.\n")
     sources = make_sources(args, settings, members)
     seeded = seed(sources, members, halves, args.screening, settings)
     print(f"seeded: {seeded}", flush=True)
-    result = run(members, halves, settings, sources, stand_in=args.dry_run, workers=args.workers)
+    result = run(members, halves, settings, sources, stand_in=args.dry_run or args.stand_in, workers=args.workers)
     result.report["seeded"] = seeded
     name = "dry-run" if args.dry_run else f"report-claude-{args.claude}-clef-{args.clef}"
+    name += "-stand-in" if args.stand_in and not args.dry_run else ""
     if args.dry_run:
         means = screening_means(args.screening / "claude" / "summary.json", settings) if args.screening else {}
         result.report["estimate"] = estimate(result, sources, settings, means)
@@ -834,7 +861,7 @@ def print_report(report: dict[str, Any], out: Any) -> None:
         estimate_ = report["estimate"]
         out.write(f"estimate totals: {json.dumps(estimate_['totals'])}\n")
         out.write(
-            f"estimate: Claude {estimate_['claude_requests']} requests "
+            f"estimate: Claude {estimate_['claude_requests']} to {estimate_['claude_requests_at_most']} requests "
             f"({estimate_['claude_requests_with_one_retry_each']} with one retry each), "
             f"{json.dumps(estimate_['usd'])}, "
             f"cap {json.dumps(estimate_.get('cap'))}\n"
