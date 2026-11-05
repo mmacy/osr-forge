@@ -64,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--classifier", type=Path, required=True)
     parser.add_argument("--calibration", default="clef+ink")
     parser.add_argument("--json", type=Path, default=None)
+    parser.add_argument("--dump", type=float, default=None, help="write each map's stage panel at this threshold")
+    parser.add_argument("--dump-dir", type=Path, default=Path("."))
     args = parser.parse_args(argv)
     maps = [screen for path in args.map_files for screen in load_maps(path)]
     windows = [window for path in args.windows for window in load_windows(path)]
@@ -136,8 +138,12 @@ def main(argv: list[str] | None = None) -> int:
                         lambda edge, screen=screen, calibrated=calibrated: calibrated.get((screen.id, edge)),
                         threshold,
                     )
-                    every, _whole = score_panel(key_document(screen.key), patched_window_panel(panel, cells, letters))
+                    trace = patched_window_panel(panel, cells, letters)
+                    every, _whole = score_panel(key_document(screen.key), trace)
                     tallies.append(every.edges.all)
+                    if args.dump is not None and threshold == args.dump:
+                        args.dump_dir.mkdir(parents=True, exist_ok=True)
+                        (args.dump_dir / f"{screen.id}.panel.json").write_text(trace.model_dump_json() + "\n")
                 total = tally(tallies)
                 figures[f"T{threshold}"] = {
                     "walls_read_as_open": total.walls_read_as_open,
@@ -150,6 +156,14 @@ def main(argv: list[str] | None = None) -> int:
             }
             figures["band"] = {str(e): int(((p > e) & (p < 1 - e)).sum()) for e in EPSILONS}
             figures["band_in_universe"] = {str(e): int(((p > e) & (p < 1 - e) & in_universe).sum()) for e in EPSILONS}
+            maps_of_rows = np.array([row.map for row in rows])
+            figures["band_by_map"] = {
+                map_id: {
+                    str(e): int(((p > e) & (p < 1 - e) & in_universe & (maps_of_rows == map_id)).sum())
+                    for e in EPSILONS
+                }
+                for map_id in ids
+            }
             figures["band_errors"] = {}
             for e in EPSILONS:
                 inside = (p > e) & (p < 1 - e) & in_universe

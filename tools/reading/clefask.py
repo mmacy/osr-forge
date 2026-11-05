@@ -125,7 +125,25 @@ def _seven(style: str) -> tuple[str, tuple[tuple[str, str], ...]]:
 SEVEN: dict[str, tuple[str, tuple[tuple[str, str], ...]]] = {style: _seven(style) for style in _EDGE_STATE}
 """The plan's seven-option edge question, by style: the state text and the options."""
 
-EDGE_SETS: dict[str, dict[str, tuple[str, tuple[tuple[str, str], ...]]]] = {"keyset": KEYSET_OPTIONS, "seven": SEVEN}
+
+def _seven_in_keyset_words(style: str) -> tuple[str, tuple[tuple[str, str], ...]]:
+    state, options = KEYSET_OPTIONS[style]
+    have = {option for option, _text in options}
+    extra = tuple(option for option in SEVEN[style][1] if option[0] not in have)
+    return state, (*options, *extra)
+
+
+SEVEN_KEYSET_WORDS: dict[str, tuple[str, tuple[tuple[str, str], ...]]] = {
+    style: _seven_in_keyset_words(style) for style in _EDGE_STATE
+}
+"""The seven options with the answer-key set's state and descriptions where it has them, and the seven set's for the
+options it lacks: it tells the effect of more options from the effect of the wording."""
+
+EDGE_SETS: dict[str, dict[str, tuple[str, tuple[tuple[str, str], ...]]]] = {
+    "keyset": KEYSET_OPTIONS,
+    "seven": SEVEN,
+    "sevenk": SEVEN_KEYSET_WORDS,
+}
 """The edge option sets the screening compares."""
 
 CELL_STATE = (
@@ -150,6 +168,7 @@ CELL_OPTIONS: tuple[tuple[str, str], ...] = (
 CELL_SETS: dict[str, tuple[str, tuple[tuple[str, str], ...]]] = {
     "keyset": (KEYSET_CELL_STATE, KEYSET_CELL_OPTIONS),
     "seven": (CELL_STATE, CELL_OPTIONS),
+    "sevenk": (CELL_STATE, CELL_OPTIONS),
 }
 """The cell option sets by edge set name: the answer-key pass's three options, and the stage's."""
 
