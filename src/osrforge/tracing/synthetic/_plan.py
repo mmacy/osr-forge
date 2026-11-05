@@ -82,8 +82,8 @@ class Ornament:
     within `size` of the segment from `points[0]` to `points[-1]`: a plan with
     caves draws its floor as their union, with walls off the grid. A corner
     door is a door drawn across a passage `size` cells wide each side of its
-    course, at `points[0]` on the course, which runs on toward `points[1]`.
-    The reading puts it on an edge the plan hides.
+    course, at the grid corner `points[0]`, the course running toward
+    `points[1]`. The reading puts it on an edge the plan hides.
     """
 
     kind: Decoration

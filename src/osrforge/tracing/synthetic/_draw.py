@@ -408,7 +408,7 @@ def _door(pen: Pen, cell: Cell, side: str, letter: str) -> None:
 
 
 def _corner_door(pen: Pen, ornament: Ornament) -> None:
-    """A door across a passage at `points[0]`, the passage running toward `points[1]` and `size` cells wide each side.
+    """A door across a passage at the corner `points[0]`, the passage running toward `points[1]`, `size` wide each side.
 
     Its wall line runs across the passage into the rock on each side.
     """
