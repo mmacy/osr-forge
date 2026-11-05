@@ -3,7 +3,9 @@
 The synthetic maps' answers are exact and no model made them, so they test what the real keys can't: whether a
 calibration fitted on keys that Clef helped build still means what it says on maps Clef never saw. For each style,
 the model is fitted on every measured edge of the style's real maps (Clef's answer-key-pass answers and the ink) and
-applied to the synthetic maps' measured edges (Clef's answers from `clefask --set keyset`). The figures are the
+applied to the synthetic maps' measured edges (Clef's answers from `clefask --set keyset`), with doors first as the
+stage reads them: an edge whose most probable answer is a door kind is that door. Beside it, each set is also
+fitted on the real keys and the style's other synthetic maps, each synthetic map held out. The figures are the
 passable-or-blocked errors at each threshold, the share before the first and fifth wrong answers, the calibration
 error, and each letter's recall.
 
@@ -83,10 +85,46 @@ def main(argv: list[str] | None = None) -> int:
             "blocked": int((1 - y).sum()),
             "letters": dict(sorted(letters.items())),
         }
+        door_top = np.array(
+            [
+                max(row.probabilities or {"w": 1.0}, key=(row.probabilities or {"w": 1.0}).__getitem__) in "dls"
+                for row in rows
+            ]
+        )
         probabilities = {"raw": np.array([passable_probability(row.probabilities or {}) for row in rows])}
         for name in ("clef", "ink", "clef+ink"):
             model = Logistic().fit(features(train_rows, train_ink, name), y_train)
-            probabilities[name] = model.predict(features(rows, ink, name))
+            # Doors first, as the stage reads them: a door kind on top is a door, whatever the threshold.
+            probabilities[name] = np.where(door_top, 0.0, model.predict(features(rows, ink, name)))
+            # The same calibration fitted on the real keys and the style's other synthetic maps, this map held out.
+            held = np.zeros(len(rows))
+            map_of = np.array([row.map for row in rows])
+            for map_id in maps:
+                others = [i for i, row in enumerate(rows) if row.map != map_id]
+                x_fit = (
+                    np.vstack(
+                        [
+                            features(train_rows, train_ink, name),
+                            features([rows[i] for i in others], [ink[i] for i in others], name),
+                        ]
+                    )
+                    if others
+                    else features(train_rows, train_ink, name)
+                )
+                y_fit = np.concatenate([y_train, y[others]]) if others else y_train
+                mine = map_of == map_id
+                held[mine] = (
+                    Logistic()
+                    .fit(x_fit, y_fit)
+                    .predict(
+                        features(
+                            [r for r, m in zip(rows, mine, strict=True) if m],
+                            [i for i, m in zip(ink, mine, strict=True) if m],
+                            name,
+                        )
+                    )
+                )
+            probabilities[f"{name}, synthetic in the fit"] = np.where(door_top, 0.0, held)
         for name, p in probabilities.items():
             figures[name] = {
                 "errors": {str(t): decision_errors(y, p, t) for t in THRESHOLDS},
@@ -98,7 +136,7 @@ def main(argv: list[str] | None = None) -> int:
         line = " | ".join(
             f"{kind}: T.5 {figures[kind]['errors']['0.5']} T.9 {figures[kind]['errors']['0.9']} "
             f"rs {figures[kind]['ranked_share']} ece {figures[kind]['ece']}"
-            for kind in ("raw", "clef", "clef+ink")
+            for kind in ("raw", "clef", "clef+ink", "clef+ink, synthetic in the fit")
         )
         print(f"{style:11} maps {maps} n={len(rows)} blocked={figures['blocked']} {line}", flush=True)
     if args.json:
