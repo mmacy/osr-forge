@@ -17,6 +17,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The Clef ledger charges nothing for a request that ended with no answer when every attempt got 401, 403, 413, or 429, because the service runs no model for those. A request that ends otherwise keeps its estimate, as before. Either way the ledger entry counts the request.
 - A passage in the geometry truth format can lead into another dungeon of the document, which its `to_dungeon` names. The format refuses one whose dungeon is its own or is missing, whose level isn't traced, or whose destination cell isn't floor. The scorer counts the dungeon as part of a passage's destination, and its reachability walk stops at a passage into another dungeon.
 - The scorer's reachability walk is a public function, `walk` in `osrforge.tracing.score`: it steps onto floor across passable edges and doors and along a dungeon's own transitions and passages, never into water. The answer keys measure their prose joins and their reach from each entrance with it.
+- The scorer's edge universe is a public function, `edge_universe` in `osrforge.tracing.score`: the edges its edges family counts on a panel, those with floor or water on a side, optionally leaving out the edges that touch a partly-floor cell. The reading measurement counts its edges with it.
 
 ### Fixed
 

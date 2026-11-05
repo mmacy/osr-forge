@@ -4,12 +4,13 @@ Run from the osr-forge checkout after the drivers:
 
     uv run python -m tools.reading.screen_summary <dir> [--json <file>]
 
-For each model and effort it reports, per kind: requests, malformed first answers, answers still malformed after
-the retry, the cost, output tokens, and seconds; and the kind's own figures. Whole-page reads: region fields right
-(style, plan view, feet, north, compass printed, legend printed, cut-off edges), the outline's floor overlap with
-the key's, seeds on the level's floor, and symbols found and extra. Offset picks: right picks, on the real pairs and
-on the synthetic ones. Items: readings right as passable or blocked (edges) or floor or not (cells), and exact
-letters.
+For each model and effort it reports, per kind, the requests, the malformed first answers, the answers still
+malformed after the retry, the cost, the output tokens, and the seconds. It also reports each kind's own figures:
+
+- whole-page reads: the region fields right (style, plan view, feet, north, compass printed, legend printed, cut-off
+  edges), the outline's floor overlap with the key's, the seeds on the level's floor, and the symbols found and extra
+- offset picks: the right picks, on the real pairs and on the synthetic ones
+- items: the readings right as passable or blocked (edges) or floor or not (cells), and the exact letters
 """
 
 import argparse

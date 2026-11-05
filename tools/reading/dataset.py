@@ -59,7 +59,7 @@ def features(rows: Sequence[EdgeRow], ink: Sequence[EdgeInk], name: str) -> np.n
     """The feature matrix of a feature set for answered rows.
 
     Args:
-        rows: The rows; each must have probabilities when the set uses Clef.
+        rows: The rows. Each must have probabilities when the set uses Clef.
         ink: Each row's ink.
         name: `clef` (Clef's passable and door log-odds), `ink`, or `clef+ink`. The door log-odds is there
             because a door's box interrupts the drawn line, so the ink alone makes a door look open.

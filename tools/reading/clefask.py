@@ -35,6 +35,7 @@ from tools.answer_keys.clefpass import CELL_STATE as KEYSET_CELL_STATE
 from tools.answer_keys.clefpass import STYLE_OPTIONS as KEYSET_OPTIONS
 
 from osrforge.providers.decisions import ClefModel, DecisionProvider, DecisionRequest
+from osrforge.providers.ledger import Ledger
 from osrforge.tracing.truth import Registration, cell_key, edge_key
 
 __all__ = [
@@ -286,11 +287,29 @@ def cell_request(option_set: str, crop: bytes, model: ClefModel) -> DecisionRequ
     return DecisionRequest(tag="cell", image=crop, state=state, question=CELL_QUESTION, options=options, model=model)
 
 
+def capped_stop(ledger_path: Path, stop_setting: float | None, spend: float) -> float:
+    """The stop for a hosted run held to `spend` more dollars, which only ever lowers the ledger's own stop.
+
+    The ledger's own stop is the setting when one is given, and otherwise the ledger file's `stop_usd`. The run's stop
+    is the smaller of that and the file's current spend plus `spend`.
+
+    Args:
+        ledger_path: The Clef ledger file.
+        stop_setting: The stop the provider's settings give, or `None`.
+        spend: The most dollars the run may add.
+
+    Returns:
+        The stop, in dollars.
+    """
+    ledger = Ledger(ledger_path, cost_key="usd", stop_usd=stop_setting)
+    return min(ledger.stop_usd, round(ledger.spent() + spend, 6))
+
+
 class AnswerStore:
     """A JSON-lines file of answers, one per item, appended under a lock."""
 
     def __init__(self, path: Path) -> None:
-        """Open a store; the file need not exist."""
+        """Open a store. The file need not exist."""
         self.path = path
         self._lock = threading.Lock()
 
@@ -424,14 +443,12 @@ def main(argv: list[str] | None = None) -> int:
         provider: DecisionProvider = LocalClefProvider(LocalClefSettings())
     else:
         from osrforge.providers.clef import ClefProvider, ClefSettings
-        from osrforge.providers.ledger import Ledger
 
         settings = ClefSettings.from_env()
-        spent = Ledger(settings.ledger_path, cost_key="usd").spent()
         settings = settings.model_copy(
             update={
                 "run_label": f"reading screening {args.option_set} {args.model}",
-                "ledger_stop_usd": min(settings.ledger_stop_usd or 8.0, round(spent + args.spend, 6)),
+                "ledger_stop_usd": capped_stop(settings.ledger_path, settings.ledger_stop_usd, args.spend),
             }
         )
         provider = ClefProvider(settings)

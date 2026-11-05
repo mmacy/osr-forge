@@ -1,11 +1,11 @@
 """The reading the stage would make of a map's windows, before Claude, and the classifier's on the same windows.
 
 Inside the windows, a cell is what the ink says (floor at half floor or more) unless the ink leaves it unsettled
-([`unsettled_cells`][tools.reading.ink.unsettled_cells]); then Clef's most probable answer decides, a symbol counting
+([`unsettled_cells`][tools.reading.ink.unsettled_cells]). Then Clef's most probable answer decides, a symbol counting
 as floor. An edge with floor or water on both sides is the door Clef reads when Clef's most probable answer is a
 door kind (a door's box breaks the drawn line, so the ink alone makes it look open), and otherwise takes the
-calibrated decision at the style's passable threshold;
-an edge with floor or water on one side only is a wall, or the door Clef reads there; an edge with neither is `-`.
+calibrated decision at the style's passable threshold. An edge with floor or water on one side only is a wall, or the
+door Clef reads there. An edge with neither is `-`.
 Outside the windows the panel is the key's, so every error the scorer counts lies inside them, and the classifier's
 reading is scored the same way, so the two compare on the same edges.
 """
@@ -22,7 +22,7 @@ from .windows import Window
 __all__ = ["CELL_LETTER", "patched_window_panel", "stage_letters"]
 
 CELL_LETTER = {"floor": ".", "rock": "#", "water": "~"}
-"""A cell answer's letter; every symbol counts as floor."""
+"""A cell answer's letter. Every symbol counts as floor."""
 
 _NEIGHBOUR = {"north": (0, -1), "south": (0, 1), "west": (-1, 0), "east": (1, 0)}
 

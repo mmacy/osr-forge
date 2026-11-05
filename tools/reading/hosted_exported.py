@@ -1,9 +1,11 @@
-"""Ask a Clef backend the answer-key pass's own exported edge requests, byte for byte, inside the screening windows.
+"""Ask a hosted Clef backend the answer-key pass's own exported edge requests, inside the screening windows.
 
-The answer-key pass exported every request it asked local Clef-flash (`<work>/clef/requests/requests.jsonl` and the
-crops beside it). Sending the same crop, state, question, and options to hosted Clef gives answers paired with the
-stored local ones on identical requests, so the two backends compare without any difference in the pictures. Each
-request's key is checked against the exported key before it is sent.
+The answer-key pass exported the edge requests local Clef-flash answered (`<work>/clef/requests/requests.jsonl` and
+the crops beside it), each with its key computed for the model `clef`. Each request is rebuilt from the exported crop,
+state, question, and options and checked against that key before anything is sent, so its pixels and text are the
+exported request's byte for byte. Hosted Clef gets the rebuilt request as it is, and hosted Clef-flash gets the
+same request with only the model changed. Either way the hosted answers pair with the stored local ones on the same crop
+and text.
 
 Run from the osr-forge checkout, with `OSRFORGE_CLEF_ACCOUNT_ID` and `OSRFORGE_CLEF_LEDGER` set and a wrangler login:
 
@@ -18,14 +20,48 @@ import json
 import time
 from pathlib import Path
 
-from osrforge.providers.decisions import DecisionProvider, DecisionRequest
+from osrforge.providers.decisions import ClefModel, DecisionProvider, DecisionRequest
 from osrforge.tracing.truth import edge_key, parse_edge
 
-from .clefask import AnswerStore, Item, run_items
+from .clefask import AnswerStore, Item, capped_stop, run_items
 from .maps import load_maps
 from .windows import load_windows
 
-__all__ = ["exported_requests", "main"]
+__all__ = ["checked_requests", "exported_requests", "for_model", "main"]
+
+
+def checked_requests(requests: dict[str, tuple[DecisionRequest, str]], map_id: str) -> dict[str, DecisionRequest]:
+    """The rebuilt requests, each checked against the key the answer-key pass exported for it.
+
+    A rebuilt request's key is the hash of its pixels, state, question, options, and model, so an equal key means the
+    crop, the text, and the options are the exported request's byte for byte.
+
+    Args:
+        requests: Each edge's rebuilt request and exported key, from `exported_requests`.
+        map_id: The map, for the error.
+
+    Returns:
+        Each edge's request, the model `clef` as exported.
+
+    Raises:
+        ValueError: If a rebuilt request's key differs from the exported one.
+    """
+    for name, (request, key) in requests.items():
+        if request.key() != key:
+            raise ValueError(f"{map_id} {name}: the rebuilt request's key differs from the exported one")
+    return {name: request for name, (request, _key) in requests.items()}
+
+
+def for_model(request: DecisionRequest, model: ClefModel) -> DecisionRequest:
+    """The same request asked of another model: only the model differs."""
+    return DecisionRequest(
+        tag=request.tag,
+        image=request.image,
+        state=request.state,
+        question=request.question,
+        options=request.options,
+        model=model,
+    )
 
 
 def exported_requests(work: Path, frame: tuple[int, int] | None) -> dict[str, tuple[DecisionRequest, str]]:
@@ -56,7 +92,6 @@ def exported_requests(work: Path, frame: tuple[int, int] | None) -> dict[str, tu
 
 def main(argv: list[str] | None = None) -> int:
     from osrforge.providers.clef import ClefProvider, ClefSettings
-    from osrforge.providers.ledger import Ledger
 
     parser = argparse.ArgumentParser(description="Hosted Clef on the answer-key pass's exported requests.")
     parser.add_argument("map_files", type=Path, nargs="+")
@@ -68,11 +103,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--spend", type=float, default=0.2)
     args = parser.parse_args(argv)
     settings = ClefSettings.from_env()
-    spent = Ledger(settings.ledger_path, cost_key="usd").spent()
     settings = settings.model_copy(
         update={
             "run_label": f"reading screening keyset-exported {args.model}",
-            "ledger_stop_usd": min(settings.ledger_stop_usd or 8.0, round(spent + args.spend, 6)),
+            "ledger_stop_usd": capped_stop(settings.ledger_path, settings.ledger_stop_usd, args.spend),
         }
     )
     provider: DecisionProvider = ClefProvider(settings)
@@ -83,10 +117,11 @@ def main(argv: list[str] | None = None) -> int:
         if not mine or screen.work is None:
             continue
         requests = exported_requests(screen.work, screen.frame)
-        wanted = {name: pair for name, pair in requests.items() if any(w.holds(parse_edge(name)[0]) for w in mine)}
-        for name, (request, key) in wanted.items():
-            if request.model == "clef" and args.model == "clef" and request.key() != key:
-                raise SystemExit(f"{screen.id} {name}: the rebuilt request's key differs from the exported one")
+        in_windows = {name: pair for name, pair in requests.items() if any(w.holds(parse_edge(name)[0]) for w in mine)}
+        try:
+            wanted = checked_requests(in_windows, screen.id)
+        except ValueError as error:
+            raise SystemExit(str(error)) from error
         store = AnswerStore(args.out / f"hosted-{args.model}" / "keyset-exported" / f"{screen.id}.edge.jsonl")
         done = store.answered()
         items = [Item(kind="edge", name=name, cell=parse_edge(name)[0], side=parse_edge(name)[1]) for name in wanted]
@@ -94,18 +129,8 @@ def main(argv: list[str] | None = None) -> int:
         if budget is not None:
             items = items[:budget]
 
-        def request_for(item: Item, wanted: dict[str, tuple[DecisionRequest, str]] = wanted) -> DecisionRequest:
-            request = wanted[item.name][0]
-            if args.model == "clef":
-                return request
-            return DecisionRequest(
-                tag=request.tag,
-                image=request.image,
-                state=request.state,
-                question=request.question,
-                options=request.options,
-                model=args.model,
-            )
+        def request_for(item: Item, wanted: dict[str, DecisionRequest] = wanted) -> DecisionRequest:
+            return for_model(wanted[item.name], args.model)
 
         started = time.monotonic()
         added = run_items(provider, store, items, request_for, workers=args.workers)  # type: ignore[arg-type]

@@ -144,7 +144,7 @@ def ask(
     Args:
         provider: The provider.
         request: The request.
-        check: The kind's check of what the schema can't catch; it returns the faults.
+        check: The kind's check of what the schema can't catch. It returns the faults.
         cap: The screening's request cap, checked before each request.
 
     Returns:

@@ -2,7 +2,7 @@
 
 The marks asked are every found mark within one cell of one of the key's marks, and a fixed-seed sample of the
 others, so Clef's `none` is measured too. A mark's key questions offer the survey's keys of the levels whose outline
-(the key's) lies within two cells of the mark, in chunks of 25 with `none`; a mark that every chunk answers `none`
+(the key's) lies within two cells of the mark, in chunks of 25 with `none`. A mark that every chunk answers `none`
 gets the letter question (`marks.mark_answer`).
 
 The score matches each key mark to the found mark nearest it, within one cell, by Chebyshev distance and then by the

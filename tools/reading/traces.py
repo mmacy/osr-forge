@@ -15,11 +15,9 @@ inside the part. The part's own edge count is then the denominator.
 from collections.abc import Iterable, Mapping
 
 from osrforge.tracing.score import EdgeTally, ScoreSet, score_trace
-from osrforge.tracing.truth import Dungeon, EdgeGrids, GeometryTruth, Level, Panel, parse_cell
+from osrforge.tracing.truth import Dungeon, EdgeGrids, GeometryTruth, Level, Panel
 
-__all__ = ["edge_letters", "one_panel", "patched_panel", "score_panel", "tally", "universe"]
-
-_NEIGHBOUR = {"north": (0, -1), "south": (0, 1), "west": (-1, 0), "east": (1, 0)}
+__all__ = ["edge_letters", "one_panel", "patched_panel", "score_panel", "tally"]
 
 _PLACEHOLDER = Dungeon(
     id="reading-measurement",
@@ -95,27 +93,6 @@ def patched_panel(key_panel: Panel, letters: Mapping[tuple[tuple[int, int], str]
         vertical=tuple("".join(row) for row in vertical), horizontal=tuple("".join(row) for row in horizontal)
     )
     return key_panel.model_copy(update={"edges": edges})
-
-
-def universe(panel: Panel, whole: bool = False) -> list[tuple[tuple[int, int], str]]:
-    """The edges the scorer's edge family counts on a panel of 10-foot cells: those that touch floor or water.
-
-    Args:
-        panel: The key's panel, converted when it is a 5-foot panel.
-        whole: Leave out the edges that touch a cell the panel marks as partly floor.
-
-    Returns:
-        The edges, each named once.
-    """
-    occupied = {(x, y) for y, row in enumerate(panel.cells) for x, letter in enumerate(row) if letter in ".~"}
-    partial = {parse_cell(text) for text in panel.partial} if whole else set()
-    out = []
-    for (x, y), side in panel.edges.positions():
-        dx, dy = _NEIGHBOUR[side]
-        sides = {(x, y), (x + dx, y + dy)}
-        if sides & occupied and not sides & partial:
-            out.append(((x, y), side))
-    return out
 
 
 def tally(scores: Iterable[EdgeTally]) -> EdgeTally:

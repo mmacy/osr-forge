@@ -1,9 +1,11 @@
 """The stage's reading of the screening windows against the classifier's, on the same edges, by the scorer.
 
-For each style and each option set: the stage's reading before Claude (`stage_reading`), at each passable threshold,
-with the calibration fitted without each map (`clef` or `clef+ink`), scored with
-[`score_panel`][tools.reading.traces.score_panel]; the classifier's reading of the same windows scored the same way;
-and the edges whose calibrated P(passable) lies between ε and 1 - ε, the band Claude would judge, for several ε.
+For each style and each option set, it gives the following:
+
+- the stage's reading before Claude (`stage_reading`) at each passable threshold, with the calibration fitted without
+  each map (`clef` or `clef+ink`), scored with [`score_panel`][tools.reading.traces.score_panel]
+- the classifier's reading of the same windows, scored the same way
+- the edges whose calibrated P(passable) lies between ε and 1 - ε, the band Claude would judge, for several ε
 
 Run from the osr-forge checkout:
 
@@ -18,6 +20,8 @@ from typing import Any
 
 import numpy as np
 
+from osrforge.tracing.score import edge_universe
+
 from .answers import load_answers
 from .bar import classifier_panel
 from .calibrate import Logistic, fold_of
@@ -26,7 +30,7 @@ from .edges import EdgeRow, rows_for
 from .ink import unsettled_cells
 from .maps import STYLES, ScreenMap, key_document, key_panel, load_maps
 from .stage_reading import patched_window_panel, stage_cells, stage_letters
-from .traces import score_panel, tally, universe
+from .traces import score_panel, tally
 from .windows import Window, load_windows, window_cells
 
 __all__ = ["main"]
@@ -37,7 +41,7 @@ EPSILONS = (0.02, 0.05, 0.1, 0.2)
 
 def _window_universe(screen: ScreenMap, windows: list[Window]) -> int:
     panel = key_panel(screen)
-    return sum(any(w.holds(edge[0]) for w in windows) for edge in universe(panel))
+    return sum(any(w.holds(edge[0]) for w in windows) for edge in edge_universe(panel))
 
 
 def _classifier_in_windows(screen: ScreenMap, readings: Path, windows: list[Window]) -> Any:
@@ -93,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
                 ink, floors = map_ink(screen)
                 unsettled = set(unsettled_cells(ink, floors, window_cells(panel, mine)))
                 cells = stage_cells(panel, floors, unsettled, cells_answers, mine)
-                # The calibration is fitted on the measured edges of the key; it is applied to every edge the
+                # The calibration is fitted on the measured edges of the key. It is applied to every edge the
                 # stage's cells put between two floor or water cells.
                 stage_panel = panel.model_copy(update={"cells": tuple("".join(row) for row in cells)})
                 occupied = {(x, y_) for y_, line in enumerate(panel.cells) for x, c in enumerate(line) if c in ".~"}

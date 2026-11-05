@@ -19,11 +19,11 @@ from tools.answer_keys.frame import crop_panel
 from tools.answer_keys.reading import load_reading
 
 from osrforge.tracing.fivefoot import convert_five_foot
-from osrforge.tracing.score import EdgeTally
+from osrforge.tracing.score import EdgeTally, edge_universe
 from osrforge.tracing.truth import PASSABLE_LETTERS, Panel
 
 from .maps import STYLES, ScreenMap, key_document, key_panel, load_maps
-from .traces import score_panel, tally, universe
+from .traces import score_panel, tally
 
 __all__ = ["classifier_panel", "key_blocked", "main", "style_rates"]
 
@@ -43,7 +43,7 @@ def key_blocked(screen: ScreenMap, whole: bool) -> int:
     panel = key_panel(screen)
     if panel.scale_feet == 5:
         panel = convert_five_foot(panel).panel
-    return sum(panel.edges.at(*edge) not in PASSABLE_LETTERS for edge in universe(panel, whole))
+    return sum(panel.edges.at(*edge) not in PASSABLE_LETTERS for edge in edge_universe(panel, whole=whole))
 
 
 def _rates(edges: EdgeTally, blocked: int) -> dict[str, float | int | None]:
@@ -107,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"{style:12} {name:5} edges {f['edges']:5} walls read as open {f['walls_read_as_open']:4} "
                 f"rate {f['rate_over_edges']:.4f} over edges, {f['rate_over_blocked']:.4f} over {f['key_blocked']} "
-                f"blocked; right {f['right']}"
+                f"blocked, right {f['right']}"
             )
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)

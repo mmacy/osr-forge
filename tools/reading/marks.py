@@ -4,13 +4,13 @@ The marks are found on the ink that is left once the long straight strokes are g
 run of dark pixels at least `LINE` cells long is a grid line or a wall, and it is removed, with a pixel's margin.
 What is left is labelled into 8-connected strokes. A stroke between `GLYPH_MIN` and `GLYPH_MAX` cells high and at most
 `GLYPH_WIDE` cells wide is a glyph. Glyphs on one line of text join into a label when the gap between them is at
-most `GAP` cells and their heights overlap by half; labels stacked one above the other, overlapping by half their
+most `GAP` cells and their heights overlap by half. Labels stacked one above the other, overlapping by half their
 widths with at most `GAP` cells between them, join into one mark. A mark's cell is the cell under its centre.
 
 Clef is asked about each mark on a crop of the mark with half a cell around it, scaled to about 100 pixels per
 cell, with the mark boxed in red. A choice question takes at most 26 options, so the survey's keys of every level
 whose outline lies within two cells of the mark go in chunks of 25, each with `none`, and the most probable key
-across the chunks wins; when every chunk answers `none`, a letter question decides between 25 letters and `none`.
+across the chunks wins. When every chunk answers `none`, a letter question decides between 25 letters and `none`.
 """
 
 from collections.abc import Sequence
@@ -249,7 +249,7 @@ def letter_request(crop: bytes, model: ClefModel) -> DecisionRequest:
 def mark_answer(chunks: Sequence[dict[str, float]], letter: dict[str, float] | None) -> str:
     """A mark's reading from its key questions' answers and, when every one said none, its letter question's.
 
-    The key with the highest probability across the chunks wins when it beats that chunk's `none`; otherwise the
+    The key with the highest probability across the chunks wins when it beats that chunk's `none`. Otherwise the
     letter question decides, and with no letter question the answer is `none`.
     """
     best, best_p = "none", 0.0

@@ -3,8 +3,8 @@
 For each answers source (an option set on a backend), and each style, over the edges the source answered:
 
 - *passable or blocked*, on the measured edges (both cells floor or water in the key): walls read as open and open
-  edges read as blocked, raw at one half and calibrated at each threshold; the share before the first wrong answer,
-  ranked by confidence; and the calibration error
+  edges read as blocked, raw at one half and calibrated at each threshold, the share before the first and the fifth
+  wrong answer, ranked by confidence, and the calibration error
 - *letters*, on every answered edge in the scorer's universe: for each of the key's letters, how many edges Clef's
   most probable option names right
 
@@ -26,12 +26,13 @@ from typing import Any
 
 import numpy as np
 
+from osrforge.tracing.score import edge_universe
+
 from .answers import Answers, load_answers, passable_probability
 from .calibrate import decision_errors, expected_calibration_error, fold_of, held_out, ranked_share
 from .dataset import features, map_rows
 from .edges import BLOCKED
 from .maps import STYLES, ScreenMap, key_panel, load_maps
-from .traces import universe
 from .windows import Window, load_windows
 
 __all__ = ["main", "score_source"]
@@ -91,7 +92,7 @@ def score_source(
                     rows.append(row)
                     ink.append(measure)
             panel = key_panel(screen)
-            for edge in universe(panel):
+            for edge in edge_universe(panel):
                 probabilities = answers.edges.get(edge)
                 if probabilities is None or not wanted(edge):
                     continue

@@ -23,12 +23,13 @@ from typing import Any
 
 import numpy as np
 
+from osrforge.tracing.score import edge_universe
+
 from .answers import load_answers, passable_probability
 from .calibrate import Logistic, decision_errors, expected_calibration_error, ranked_share
 from .dataset import features, map_rows
 from .maps import STYLES, key_panel, load_maps
 from .screen_clef import THRESHOLDS
-from .traces import universe
 
 __all__ = ["main"]
 
@@ -67,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
                 if row.probabilities is not None:
                     rows.append(row)
                     ink.append(measure)
-            for edge in universe(panel):
+            for edge in edge_universe(panel):
                 probabilities = answers.edges.get(edge)
                 if probabilities is None:
                     continue

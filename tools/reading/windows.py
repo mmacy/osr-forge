@@ -3,8 +3,8 @@
 A windows file is JSON: `{"windows": [[map id, x, y, width, height], ...]}` in the key's grid cells. Each map's
 windows are the windows of its 12-cell tiling with the most edges in the scorer's universe, chosen so that every
 rare letter the map has (printed open line, window, locked door, secret door) is in one of them, and the whole map
-where it is small. `windows.json` beside this module lists the committed maps' windows; the file for commercial maps
-stays outside the repository.
+where it is small. `windows.json` beside this module lists the committed maps' windows. The file for commercial
+maps stays outside the repository.
 """
 
 import json
@@ -12,9 +12,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from osrforge.tracing.score import edge_universe
 from osrforge.tracing.truth import Panel
-
-from .traces import universe
 
 __all__ = ["Window", "load_windows", "window_cells", "window_edges"]
 
@@ -41,7 +40,7 @@ def load_windows(path: Path) -> list[Window]:
 
 def window_edges(panel: Panel, windows: Sequence[Window]) -> list[tuple[tuple[int, int], str]]:
     """The key's universe edges named by a cell inside one of the windows."""
-    return [edge for edge in universe(panel) if any(window.holds(edge[0]) for window in windows)]
+    return [edge for edge in edge_universe(panel) if any(window.holds(edge[0]) for window in windows)]
 
 
 def window_cells(panel: Panel, windows: Sequence[Window]) -> list[tuple[int, int]]:

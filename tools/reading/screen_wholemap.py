@@ -2,8 +2,8 @@
 
 A pages file is JSON: `{"pages": [...]}`, each with `id`, `page` (the page number), `image`, `regions` (`[label,
 region id]` pairs in the order the request names them), `key`, and `survey`. Relative paths resolve against the
-file's directory. `pages.json` beside this module lists the committed pages; the file for commercial pages stays
-outside the repository.
+file's directory. `pages.json` beside this module lists the committed pages. The file for commercial pages
+stays outside the repository.
 
 Run from the osr-forge checkout, with `OSRFORGE_CLAUDE_LEDGER` set:
 

@@ -303,3 +303,18 @@ def test_reachability_stops_at_a_passage_into_another_dungeon():
     key = with_passage_into(demo_truth(), "demo-b")
     score = score_trace(with_passage_into(demo_truth(), None), key)
     assert "reachability" in score.after.imperfect_families()
+
+
+def test_the_edge_universe_is_what_the_edges_family_counts():
+    from osrforge.tracing.fivefoot import convert_five_foot
+    from osrforge.tracing.score import edge_universe
+
+    truth = demo_truth()
+    score = score_trace(truth, truth)
+    panels = [convert_five_foot(panel).panel if panel.scale_feet == 5 else panel for panel in truth.panels]
+    assert sum(len(edge_universe(panel)) for panel in panels) == score.after.edges.all.total
+    assert sum(len(edge_universe(panel, whole=True)) for panel in panels) == score.after_whole.edges.all.total
+    for panel in panels:
+        names = edge_universe(panel)
+        assert len(set(names)) == len(names)
+        assert set(names) <= set(panel.edges.positions())

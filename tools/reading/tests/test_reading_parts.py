@@ -260,6 +260,12 @@ def test_the_cap_refuses_a_request_past_it(tmp_path: Path) -> None:
         _cap(tmp_path, 5, 5).check()
 
 
+def test_the_cap_allows_a_request_below_it(tmp_path: Path) -> None:
+    cap = _cap(tmp_path, 4, 5)
+    cap.check()
+    assert cap.sent() == 4
+
+
 def test_join_pictures_widen_with_the_gap_and_letters_name_the_truth() -> None:
     first = np.full((60, 100, 3), 255, dtype=np.uint8)
     corners = np.stack(np.meshgrid(np.arange(0, 101, 10.0), np.arange(0, 61, 10.0)), axis=-1)

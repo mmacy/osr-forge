@@ -4,11 +4,11 @@ The tracing stage reads each printed map with three readers: Clef, a determinist
 
 Step 8 runs in two parts. The screening, which is done, chose the stage's settings:
 
-- the bar for walls read as open;
-- how Clef is asked, and the calibration with its thresholds;
-- how the ink settles cells, and how keys are found;
-- Claude's model and the effort for each kind of request;
-- the Clef backend.
+- the bar for walls read as open
+- how Clef is asked, and the calibration with its thresholds
+- how the ink settles cells, and how keys are found
+- Claude's model and the effort for each kind of request
+- the Clef backend
 
 The full run, still to come, scores every map with those settings.
 
@@ -16,7 +16,7 @@ Commercial maps' specs, answers, and results stay outside the repository, under 
 
 ## The parts
 
-- `traces.py` scores a reading of one panel with `score_trace`, on a one-panel document holding the key's panel and its region.
+- `traces.py` scores a reading of one panel with `score_trace`, on a one-panel document holding the key's panel and its region. Where a script needs the edges the scorer counts, it calls the scorer's own `edge_universe`.
 - `bar.py` gives the bar for walls read as open: the classifier's rate on the answer keys, per style. The rate is walls read as open over the scorer's edge universe, pooled over a style's maps.
 - `ink.py` and `marks.py` are the stage's ink measurements, in numpy alone. They share no code with the answer-key classifier.
   - `ink.py` gives each cell's floor fraction and the line across each edge (`width`, `heavy`, `line`). It also gives the cells the ink leaves unsettled.
@@ -34,9 +34,9 @@ Commercial maps' specs, answers, and results stay outside the repository, under 
   - `edges.py` gives the measured edges (both cells floor or water) and the threshold decision.
   - `dataset.py` and `calibrate.py` fit the calibration: a ridge logistic model per style. Each map is scored with a model fitted without it.
 - `screen_clef.py` compares option sets and backends per style:
-  - passable or blocked on the measured edges, raw and calibrated at each threshold;
-  - the share of answers, ranked by confidence, before the first and the fifth wrong one;
-  - each letter's recall.
+  - passable or blocked on the measured edges, raw and calibrated at each threshold
+  - the share of answers, ranked by confidence, before the first and the fifth wrong one
+  - each letter's recall
 - `stage_reading.py` and `screen_bar.py` give the stage's reading before Claude.
   - A cell is the ink's, or Clef's where the ink leaves it unsettled.
   - An edge between floor cells is the door Clef reads when a door kind is Clef's top answer, and otherwise the calibrated decision.
@@ -45,7 +45,7 @@ Commercial maps' specs, answers, and results stay outside the repository, under 
 - `screen_synthetic.py` applies the real keys' calibrations to synthetic maps with exact answers, with and without the other synthetic maps in the fit.
 - `screen_marks.py` finds the marks, asks Clef which key each is, and scores both against the key's marks.
 - `export_stored.py` puts the answer-key pass's stored Clef answers onto the keys' grids for `screen_bar`.
-- `hosted_exported.py` sends the answer-key pass's exported requests, byte for byte, to hosted Clef or hosted Clef-flash. This pairs the backends on identical requests.
+- `hosted_exported.py` rebuilds the answer-key pass's exported edge requests and checks each against its exported key, so its crop, state, question, and options are the exported request's byte for byte. Hosted Clef gets the request as exported. Hosted Clef-flash gets the same request with only the model changed. Either way the backends pair with the stored local answers on the same crop and text.
 - `wholemap.py`, `items.py`, and `offsets.py` are the three kinds of Claude request. Their drivers are `screen_wholemap.py`, `screen_items.py`, and `screen_offsets.py`.
   - Every request goes through the stage's provider, `ClaudeProvider`, with one retry of a malformed answer and a cap on the screening's requests (`claude_run.py`).
   - `pictures.py` draws a region with its grid ticked.
@@ -66,6 +66,7 @@ Each file here has a counterpart for commercial maps, in the same format, under 
 Run from the osr-forge checkout. Each driver keeps what it has stored and asks only what's missing. Each needs the following:
 
 - The Claude drivers need `OSRFORGE_CLAUDE_LEDGER`. They read the API key from the `ANTHROPIC_API_KEY=` line of `~/repos/re-pod/.env`, inside the process.
+- `--cap` counts every entry on the Claude ledger whose label starts with `reading-`, the screening's 128 among them, and refuses a request once the count reaches the cap. Step 8's budget is 350 Claude requests in all, so the full run passes `--cap 350`, which leaves it 222.
 - The local Clef runs need a System One server, such as the maintainer's Ollama with `clef-flash`. Never start, stop, or restart it.
 - The hosted Clef runs need `OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login. They stop at their first failure and are held to `--spend` dollars on the Clef ledger.
 
@@ -131,9 +132,13 @@ P=$R/specs
    uv run python -m tools.reading.screen_items tools/reading/maps.json --pages tools/reading/pages.json \
        --out $R/claude --models claude-sonnet-5-5 claude-opus-5-5 --efforts low medium high --cap 160
    uv run python -m tools.reading.screen_items tools/reading/maps.json --pages tools/reading/pages.json \
-       --out $R/claude --models claude-opus-5-5 --efforts medium --take 30 --per-request 30 --tag k30 --cap 160
+       --out $R/claude --models claude-opus-5-5 --efforts medium high --take 30 --per-request 30 --tag k30 --cap 160
+   uv run python -m tools.reading.screen_items tools/reading/maps.json --pages tools/reading/pages.json \
+       --out $R/claude --models claude-sonnet-5-5 --efforts low --take 30 --per-request 30 --tag k30 --cap 160
    uv run python -m tools.reading.screen_offsets tools/reading/halves.json --out $R/claude \
        --models claude-sonnet-5-5 claude-opus-5-5 --efforts low medium high --cap 160
+   uv run python -m tools.reading.screen_offsets $P/halves.json --out $R/claude \
+       --models claude-sonnet-5-5 --efforts low medium --tag .t2 --cap 160
    uv run python -m tools.reading.screen_summary $R/claude --json $R/claude/summary.json
    ```
 
@@ -189,7 +194,7 @@ The bar for walls read as open is the classifier's rate on the keys over the sco
 | Dark rock | 4 | 628 | 0.64% |
 | Cave | 56 | 5,339 | 1.05% |
 
-Claude made 128 requests, and none came back malformed.
+The Claude ledger holds 128 screening requests. 127 were answered, and the 127 stored outcomes hold no malformed first answer, so none needed the retry. The 128th was the first whole-page request: the API refused its schema with HTTP 400 before any model ran, its reservation was released to $0, and no outcome was stored.
 
 - **Whole-page reads:**
   - Every setting reads the scale and north of all 7 regions right.

@@ -137,3 +137,57 @@ def test_exported_requests_rebuild_with_their_keys_and_move_by_the_frame(tmp_pat
     rebuilt = exported_requests(tmp_path, (0, 3))
     assert set(rebuilt) == {"3,4:west"}
     assert rebuilt["3,4:west"][0].key() == rebuilt["3,4:west"][1]
+
+
+def _ledger(path: Path, stop: float, spent: float) -> Path:
+    path.write_text(json.dumps({"stop_usd": stop, "limit_usd": 10.0, "spent_usd": spent, "entries": []}))
+    return path
+
+
+def test_the_spend_cap_only_lowers_the_ledgers_own_stop(tmp_path: Path) -> None:
+    from tools.reading.clefask import capped_stop
+
+    ledger = _ledger(tmp_path / "clef-ledger.json", stop=5.0, spent=4.9)
+    # With no stop in the settings, the file's stop holds: 4.90 spent and 0.40 to spend must not raise it to 5.30.
+    assert capped_stop(ledger, None, 0.40) == 5.0
+    assert capped_stop(ledger, None, 0.05) == 4.95
+    assert capped_stop(ledger, 4.92, 0.40) == 4.92
+
+
+def _png() -> bytes:
+    import io
+
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (8, 8), "white").save(buffer, "PNG")
+    return buffer.getvalue()
+
+
+def test_a_rebuilt_request_whose_key_differs_from_the_export_is_refused() -> None:
+    import pytest
+    from tools.reading.hosted_exported import checked_requests
+
+    from osrforge.providers.decisions import DecisionRequest
+
+    request = DecisionRequest(
+        tag="edge", image=_png(), state="s", question="q", options=(("open", None), ("wall", None))
+    )
+    assert checked_requests({"1,1:west": (request, request.key())}, "m") == {"1,1:west": request}
+    with pytest.raises(ValueError, match="differs from the exported one"):
+        checked_requests({"1,1:west": (request, "0" * 64)}, "m")
+
+
+def test_the_flash_request_differs_from_the_exported_one_only_in_its_model() -> None:
+    from tools.reading.hosted_exported import for_model
+
+    from osrforge.providers.decisions import DecisionRequest, request_body
+
+    request = DecisionRequest(
+        tag="edge", image=_png(), state="s", question="q", options=(("open", None), ("wall", None))
+    )
+    flash = for_model(request, "clef-flash")
+    assert flash.model == "clef-flash" and flash.key() != request.key()
+    clef_body = json.loads(request_body(request, "png"))
+    flash_body = json.loads(request_body(flash, "png"))
+    assert {**clef_body, "model": None} == {**flash_body, "model": None}

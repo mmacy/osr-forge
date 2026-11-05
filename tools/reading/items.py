@@ -4,8 +4,8 @@ One request carries several items of one page. Its shared part is the page at th
 system prompt, so the requests about one page share it from the cache. Each item is two crops: the small crop Clef
 was asked about (an edge's 2 by 2 cells, a cell's 3 by 3 cells, with the red box), and a wider crop of 7 by 7 cells
 around it with the same item boxed. Claude answers each item with one reading: an edge letter for an edge, a cell
-letter for a cell. The schema fixes the shape; `check_items` tests that each item is answered once, with a reading
-of its own kind.
+letter for a cell. The schema fixes the shape, and `check_items` tests that each item is answered once, with a
+reading of its own kind.
 """
 
 from collections.abc import Sequence

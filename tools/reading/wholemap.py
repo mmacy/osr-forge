@@ -2,16 +2,21 @@
 
 One request per page. Its question carries the page at the size the API reads, then each registered region as a
 crop with its grid ticked (`R1`, `R2`, ...), then the levels the survey maps on the page with their keys. The answer
-gives each region's style, whether it's a plan view, its scale, and its compass; the page's legend; each level's
-outline, seed cells, and open ground; the stairs, ladders, trapdoors, chutes, and other symbols; and the image edges
-that cut a region off where the map goes on past the image. The schema fixes the shape, and `check` tests what it
-can't: that every region and level is answered once, and that every cell lies on its region's grid.
+gives the following:
+
+- each region's style, whether it's a plan view, its scale, and its compass
+- the page's legend
+- each level's outline, seed cells, and open ground
+- the stairs, ladders, trapdoors, chutes, and other symbols
+- the image edges that cut a region off where the map goes on past the image
+
+The schema fixes the shape, and `check` tests what it can't: that every region and level is answered once, and that
+every cell lies on its region's grid.
 
 The score compares the answer with the key: the region verdicts through the scorer's verdicts family, and the
 outlines, seeds, open ground, legend entries, and symbols directly.
 """
 
-import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, get_args
@@ -210,7 +215,7 @@ def whole_map_request(
         levels: Each level the survey maps on the page: dungeon id, level number, and its keys as printed.
 
     Returns:
-        The request. The system prompt is the shared part; the page and the regions are the question.
+        The request. The system prompt is the shared part, and the page and the regions are the question.
     """
     question: list[TextPart | ImagePart] = [
         TextPart(text="The page:"),
@@ -319,9 +324,9 @@ def score_whole_map(
         legend_from_page: The page whose legend the stage's rule gives this page when the answer says it prints none.
 
     Returns:
-        Per region, the scorer's verdict figures (style, scale, compass, legend) and the cut-off edges; per level, the
-        outline's floor overlap, the seeds on the level's floor, and the open ground's overlap; and the legend
-        entries and the symbols found.
+        The figures, in three parts. Per region, the scorer's verdict figures (style, scale, compass, legend) and the
+        cut-off edges. Per level, the outline's floor overlap, the seeds on the level's floor, and the open ground's
+        overlap. Per region again, the symbols found.
     """
     out: dict[str, Any] = {"regions": {}, "levels": {}, "symbols": {}}
     legend = Legend(
@@ -430,8 +435,3 @@ def _symbol_match(panel: Panel, mine: Sequence[dict[str, Any]]) -> dict[str, Any
         "direction_right": direction_right,
         "by_kind": by_kind,
     }
-
-
-def parse_answer(text: str) -> dict[str, Any]:
-    """An answer's JSON."""
-    return json.loads(text)

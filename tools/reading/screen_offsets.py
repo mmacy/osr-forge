@@ -7,7 +7,7 @@ printed module rather than a synthetic map), and optionally `first_fit` and
 registration where that leaves a half unregistered. Otherwise each half is registered with
 [`register_image`][osrforge.tracing.registration.register_image], taking its largest registered region. The row
 shift and the candidates come from osr-forge's alignment of the two grids. `halves.json` beside this module lists the
-synthetic pairs; the file for commercial maps stays outside the repository.
+synthetic pairs. The file for commercial maps stays outside the repository.
 
 Run from the osr-forge checkout, with `OSRFORGE_CLAUDE_LEDGER` set:
 

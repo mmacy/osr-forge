@@ -7,7 +7,7 @@ Every pixel gets a *darkness* from 0 (paper) to 1 (ink): the style's channel, sc
 level (its 95th percentile) and its ink level (its 2nd percentile). A pixel is *paper* below the style's paper
 threshold. The *fill* is what is left of the non-paper pixels after an opening by a square a quarter of a cell wide,
 so grid lines, walls, labels, and other strokes drop out and solid areas (rock, water, a void) stay. A cell's floor
-fraction is its paper over its paper and fill, inside its inner 76 percent; strokes count for neither.
+fraction is its paper over its paper and fill, inside its inner 76 percent. Strokes count for neither.
 
 An edge is measured on samples along it (from 0.1 to 0.9 of its length) and across it (a quarter of a cell each way):
 
@@ -213,7 +213,7 @@ class MapInk:
         Args:
             cell: The cell that names the edge.
             side: Its side.
-            floors: Every cell's floor fraction, from `floor_fractions`; a cell off the grid counts as no floor.
+            floors: Every cell's floor fraction, from `floor_fractions`. A cell off the grid counts as no floor.
 
         Returns:
             The measurements.
@@ -276,11 +276,14 @@ TONE_SPREAD = 0.15
 def unsettled_cells(ink: MapInk, floors: np.ndarray, cells: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """The cells the ink doesn't settle, which Clef is asked about.
 
-    A cell is unsettled when it is between a quarter and three quarters floor; when it is floor with ink inside it
-    (`INSIDE`), such as a label or a symbol; when it is floor with the printed grid on fewer than two of its sides
-    (`GRIDDED`), as bare paper outside a building is; or when it is not floor and its fill's tone lies more than
-    `TONE_SPREAD` from the region's rock tone, the median tone of the region's cells under a quarter floor, as water
-    or a grey void would.
+    A cell is unsettled in any of these cases:
+
+    - It is between a quarter and three quarters floor.
+    - It is floor with ink inside it (`INSIDE`), such as a label or a symbol.
+    - It is floor with the printed grid on fewer than two of its sides (`GRIDDED`), as bare paper outside a building
+      is.
+    - It is not floor, and its fill's tone lies more than `TONE_SPREAD` from the region's rock tone, the median tone
+      of the region's cells under a quarter floor, as water or a grey void would.
 
     Args:
         ink: The region's ink.
