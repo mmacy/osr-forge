@@ -2,10 +2,10 @@
 
 A prose join that a key doesn't make is either floor or an opening the reading lost, a passage the drawing gives
 narrower than the half rule keeps, or a connection the drawing doesn't show. `passage_between` tells these apart
-from the pixels: it samples the map's passable pixels (paper, and lines drawn across paper) at `RES` points per cell
-over a window around the two areas, and finds the widest white path from one area to the other. Its narrowest point,
-as a share of the grid's pitch, is the passage's width, and the median along the path outside both areas is its
-typical width.
+from the pixels: it samples the map's passable pixels (paper, and lines drawn across paper, never a line drawn over
+rock) at `RES` points per cell over a window around the two areas, and finds the widest white path from one area to
+the other. Its narrowest point, as a share of the grid's pitch, is the passage's width, and the median along the path
+outside both areas is its typical width.
 """
 
 from collections import deque
@@ -17,13 +17,17 @@ import numpy as np
 from .ink import sample
 from .keyspec import MapContext
 
-__all__ = ["NOT_A_PASSAGE", "RES", "Passage", "clearance", "passage_between", "widest_path"]
+__all__ = ["LINE_REACH", "NOT_A_PASSAGE", "RES", "Passage", "clearance", "passage_between", "widest_path"]
 
 RES = 12
 """Samples per cell along each axis."""
 
 NOT_A_PASSAGE = 0.2
-"""A white path narrower than this share of the pitch is a gap between strokes or a line over rock, not a passage."""
+"""A white path narrower than this share of the pitch is a gap between strokes, not a passage."""
+
+LINE_REACH = 4
+"""Pixels of paper closing: a line up to nine pixels wide drawn across paper counts as passable. On page 38 a
+contour line crossing the lizard man lair's south passage needs four; three leaves a notch."""
 
 _MATERIALS: dict[str, Any] = {}
 
@@ -49,18 +53,23 @@ class Passage:
 
 
 def _passable(ctx: MapContext) -> np.ndarray:
-    """Pixels a passage may cross: paper, or ink darker than the map's fill (a grid, contour, tree, or stream line
-    drawn across a passage), closed by two pixels so the antialiased fringe of a line doesn't split a passage. Fill
-    is rock. A line drawn over rock reads as a passage one or two samples wide, under `NOT_A_PASSAGE`."""
-    from .ink import channel_image, close
+    """Pixels a passage may cross: paper, and a line drawn across paper. A line counts only where paper lies on both
+    of its sides (the closing of the paper by `LINE_REACH` covers it), so a grid, contour, or stream line across a
+    passage leaves it whole while the same line drawn over rock is no passage. Rock is fill at least five pixels
+    thick, which no closing crosses."""
+    from .ink import box_max, box_min, channel_image, close
 
     key = ctx.key.id
     if key not in _MATERIALS:
         levels = ctx.spec.levels
         gray = channel_image(ctx.rgb, levels.channel)
         paper = gray >= levels.paper_min
-        lines = gray < levels.fill[0] if levels.fill is not None else gray <= levels.ink_max
-        _MATERIALS[key] = close(paper | lines, 2)
+        if levels.fill is not None:
+            fill = (gray >= levels.fill[0]) & (gray <= levels.fill[1])
+            rock = box_max(box_min(fill, 2), 2)
+        else:
+            rock = np.zeros_like(paper)
+        _MATERIALS[key] = close(paper, LINE_REACH) & ~rock
     return _MATERIALS[key]
 
 
