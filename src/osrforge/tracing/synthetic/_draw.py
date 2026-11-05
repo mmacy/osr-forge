@@ -333,7 +333,7 @@ def draw_plan(pen: Pen, plan: Plan, cut: Sequence[PageSide]) -> None:
             pen.dashes([a, b], 0.07, pattern)
         elif letter == "n":
             pen.line(a, b, WINDOW, cap=look.wall / 2.0)
-        elif letter in "dls" or (letter == "w" and not caves):
+        elif letter in "dls" or (letter == "w" and not caves) or style == "line":
             pen.line(a, b, look.wall, cap=look.wall / 2.0)
     for cell, side in positions:
         letter = plan.letter(cell, side)
