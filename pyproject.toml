@@ -112,6 +112,6 @@ typeCheckingMode = "standard"
 strict = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "tools/answer_keys/tests"]
+testpaths = ["tests", "tools/answer_keys/tests", "tools/reading/tests"]
 pythonpath = ["."]
 addopts = "-q"

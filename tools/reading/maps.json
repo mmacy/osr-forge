@@ -1,0 +1,49 @@
+{
+  "maps": [
+    {
+      "id": "jn1-p046",
+      "style": "black_white",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "image": "../../tests/assets/chaotic-caves/maps/p046.png",
+      "work": "~/.re-pod/map-plan/osr-suite/answer-keys/jn1-p046",
+      "frame": [0, 5],
+      "classifier": ["../answer_keys/maps.json", "jn1-p046"]
+    },
+    {
+      "id": "jn1-p047",
+      "style": "black_white",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "image": "../../tests/assets/chaotic-caves/maps/p047.png",
+      "work": "~/.re-pod/map-plan/osr-suite/answer-keys/jn1-p047",
+      "frame": [0, 3],
+      "classifier": ["../answer_keys/maps.json", "jn1-p047"]
+    },
+    {
+      "id": "jn1-p021-halfling",
+      "style": "black_white",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "image": "../../tests/assets/chaotic-caves/maps/p021.png",
+      "work": "~/.re-pod/map-plan/osr-suite/answer-keys/jn1-p021-halfling",
+      "frame": null,
+      "classifier": ["../answer_keys/maps.json", "jn1-p021-halfling"]
+    },
+    {
+      "id": "jn1-p021-cave",
+      "style": "dark_rock",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "image": "../../tests/assets/chaotic-caves/maps/p021.png",
+      "work": "~/.re-pod/map-plan/osr-suite/answer-keys/jn1-p021-cave",
+      "frame": null,
+      "classifier": ["../answer_keys/maps.json", "jn1-p021-cave"]
+    },
+    {
+      "id": "jn1-p038",
+      "style": "cave",
+      "key": "../eval/corpus/jn1-chaotic-caves/geometry.json",
+      "image": "../../tests/assets/chaotic-caves/maps/p038.png",
+      "work": "~/.re-pod/map-plan/osr-suite/answer-keys/jn1-p038",
+      "frame": null,
+      "classifier": ["../answer_keys/maps.json", "jn1-p038"]
+    }
+  ]
+}
