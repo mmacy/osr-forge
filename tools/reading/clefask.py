@@ -139,10 +139,23 @@ SEVEN_KEYSET_WORDS: dict[str, tuple[str, tuple[tuple[str, str], ...]]] = {
 """The seven options with the answer-key set's state and descriptions where it has them, and the seven set's for the
 options it lacks: it tells the effect of more options from the effect of the wording."""
 
+
+def _keyset_with_printed_line(style: str) -> tuple[str, tuple[tuple[str, str], ...]]:
+    state, options = KEYSET_OPTIONS[style]
+    printed = next(option for option in SEVEN[style][1] if option[0] == "printed_open_line")
+    return state, (*options, printed)
+
+
+KEYSET_PRINTED: dict[str, tuple[str, tuple[tuple[str, str], ...]]] = {
+    style: _keyset_with_printed_line(style) for style in _EDGE_STATE
+}
+"""The answer-key set with the printed open line added: the one extra option that helped on the screening window."""
+
 EDGE_SETS: dict[str, dict[str, tuple[str, tuple[tuple[str, str], ...]]]] = {
     "keyset": KEYSET_OPTIONS,
     "seven": SEVEN,
     "sevenk": SEVEN_KEYSET_WORDS,
+    "keysetp": KEYSET_PRINTED,
 }
 """The edge option sets the screening compares."""
 
@@ -169,6 +182,7 @@ CELL_SETS: dict[str, tuple[str, tuple[tuple[str, str], ...]]] = {
     "keyset": (KEYSET_CELL_STATE, KEYSET_CELL_OPTIONS),
     "seven": (CELL_STATE, CELL_OPTIONS),
     "sevenk": (CELL_STATE, CELL_OPTIONS),
+    "keysetp": (CELL_STATE, CELL_OPTIONS),
 }
 """The cell option sets by edge set name: the answer-key pass's three options, and the stage's."""
 
