@@ -2,8 +2,9 @@
 
 Every request goes through [`ClaudeProvider`][osrforge.providers.claude.ClaudeProvider], the stage's provider, so it
 streams, sends the stage's body, and reserves its worst case on the Claude ledger before sending and settles it
-after. The API key is read from the `ANTHROPIC_API_KEY=` line of `~/repos/re-pod/.env` inside the process and never
-printed. The ledger is the one `OSRFORGE_CLAUDE_LEDGER` names.
+after. A request goes to its kind's model, or to the provider's default model when the kind names none, and its
+outcome is charged at that model's prices. The API key is read from the `ANTHROPIC_API_KEY=` line of
+`~/repos/re-pod/.env` inside the process and never printed. The ledger is the one `OSRFORGE_CLAUDE_LEDGER` names.
 
 An answer is malformed when the provider can't read it (it stopped at `max_tokens`, was refused, or isn't JSON that
 fits the schema) or when the kind's own check finds faults. A malformed answer is asked once more, as the stage
@@ -127,7 +128,7 @@ def _one(
         retry=retry,
         seconds=round(time.monotonic() - started, 1),
         usage=usage.model_dump(),
-        cost_usd=cost_usd(provider.settings.model, usage),
+        cost_usd=cost_usd(request.kind.model or provider.settings.model, usage),
         answer=cast(dict[str, Any], response.data),
         faults=check(cast(dict[str, Any], response.data)),
     )
@@ -166,4 +167,4 @@ def ask(
         else:
             retry = request
         attempts.append(_one(provider, retry, check, retry=True))
-    return Outcome(model=provider.settings.model, effort=request.kind.effort, attempts=attempts)
+    return Outcome(model=request.kind.model or provider.settings.model, effort=request.kind.effort, attempts=attempts)

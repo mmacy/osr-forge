@@ -61,10 +61,15 @@ OFFSET_SCHEMA: dict[str, Any] = {
 OFFSET_MAX_TOKENS = 32000
 
 
-def offset_kind(effort: Effort) -> RequestKind:
-    """The offset pick at one effort."""
+def offset_kind(effort: Effort, model: str | None = None) -> RequestKind:
+    """The offset pick at one effort, on a model or the provider's default."""
     return RequestKind(
-        name="reading-offset", system=OFFSET_SYSTEM, schema=OFFSET_SCHEMA, effort=effort, max_tokens=OFFSET_MAX_TOKENS
+        name="reading-offset",
+        system=OFFSET_SYSTEM,
+        schema=OFFSET_SCHEMA,
+        effort=effort,
+        max_tokens=OFFSET_MAX_TOKENS,
+        model=model,
     )
 
 
