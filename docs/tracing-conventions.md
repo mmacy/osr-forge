@@ -41,7 +41,7 @@ Open spaces, open ground, walled rooms, walled structures, and narrow runs are f
 - An edge is passable (open, or a printed open line) only when the probability of those two readings together passes the threshold set for its map style. Otherwise the edge takes its most probable reading among the others. Every cell, and every other edge, takes its most probable reading. In an answer key and a synthetic answer the reading is settled, so each edge has one letter.
 - A window is a wall.
 - A floor cell stays floor when a symbol is drawn in it, like a pillar, a statue, a pool, or steps that no link names. The `steps` symbol is steps inside a level and never makes a crossing.
-- A stairway's top end opens onto the floor it meets. The edge between the stair symbol's cell at that end and the floor is open, whatever line is drawn across it, unless a door is drawn there.
+- A stairway's top end opens onto the floor it meets. A stairway is a stair symbol drawn at least two cells long in a line, and its top end is the one end of that line with floor beyond it. The edge between the stair symbol's cell at that end and the floor is open, whatever line is drawn across it, unless a door is drawn there. When both ends or neither have floor beyond, the rule changes nothing.
 - Steps up onto a wall lead onto the wall's top, which no level holds, so they join nothing. Ground that only a wall's top reaches stays unreached.
 - Lines drawn over the map (contours, trees, tracks, skylights, and stream hatching) are neither walls nor water.
 - A part of the map drawn as neither floor nor water (a void, a shaft) is rock.
