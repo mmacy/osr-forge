@@ -38,6 +38,7 @@ CORE = "chunk: synth-core"
 STYLES_CHUNK = "chunk: synth-styles"
 JOINS = "chunk: synth-joins"
 PASSAGES = "chunk: synth-passages"
+STAIR_TOPS = "chunk: synth-stair-tops"
 
 FEATURE_CHUNK: dict[str, str] = {
     **dict.fromkeys(
@@ -132,6 +133,7 @@ FEATURE_CHUNK: dict[str, str] = {
         ),
         PASSAGES,
     ),
+    "line_across_stair_top": STAIR_TOPS,
 }
 """Which generator chunk draws each feature."""
 
@@ -896,11 +898,21 @@ PREDICATES: dict[str, Callable[[SyntheticMap], bool]] = {
     "passage_along_a_cell_line": lambda m: "along a line" in passage_shapes(m),
     "diagonal_passage": lambda m: "turn across a corner" in passage_shapes(m),
     "door_across_a_corner": lambda m: "door at a turn across a corner" in passage_shapes(m),
+    "line_across_stair_top": lambda m: inked_open_stair_tops(m) > 0,
 }
 """What a map's answer must show for each feature it declares, where the answer can show it."""
 
 
-@pytest.mark.parametrize("feature", list(FEATURES))
+@pytest.mark.parametrize(
+    "feature",
+    [
+        pytest.param(
+            name,
+            marks=pytest.mark.xfail(reason=STAIR_TOPS, strict=True) if FEATURE_CHUNK[name] == STAIR_TOPS else (),
+        )
+        for name in FEATURES
+    ],
+)
 def test_feature_coverage(feature: str):
     holders = [item for item in loaded_maps() if feature in item.manifest.features]
     assert holders, f"no synthetic map declares {feature}"
@@ -1148,6 +1160,38 @@ def part_shapes(panel: Panel, region: Region, mask: np.ndarray, origin: tuple[in
 def passage_shapes(item: SyntheticMap) -> set[str]:
     """The shapes the answer's thin floor cells show on any part of any panel, as `part_shapes` judges them."""
     return set().union(*(part_shapes(*picture) for picture in panel_pictures(item)))
+
+
+def inked_open_stair_tops(item: SyntheticMap) -> int:
+    """How many open edges lead from a stair symbol's cell onto floor with a line drawn across them.
+
+    The edge must be `o`, the cell beyond it floor outside the stairs, and the picture must show as much ink across
+    it as the style's rule asks of a wall.
+    """
+    count = 0
+    styles = {region.id: region.style for region in item.truth.regions}
+    for panel, region, mask, (ox, oy) in panel_pictures(item):
+        rules = INK_RULES[styles[region.id]]
+        for symbol in panel.symbols:
+            if symbol.kind != "stairs":
+                continue
+            stairs = {parse_cell(cell) for cell in symbol.cells}
+            for x, y in stairs:
+                for (dx, dy), side in SIDE_TOWARD.items():
+                    nx, ny = x + dx, y + dy
+                    if (nx, ny) in stairs or not (0 <= ny < len(panel.cells) and 0 <= nx < len(panel.cells[0])):
+                        continue
+                    if panel.cells[ny][nx] != "." or panel.edges.at((x, y), side) != "o":
+                        continue
+                    if side in ("east", "south"):
+                        cell, across_side = (x - ox, y - oy), side
+                    else:
+                        cell, across_side = (nx - ox, ny - oy), "east" if side == "west" else "south"
+                    if not (0 <= cell[0] < region.columns and 0 <= cell[1] < region.rows):
+                        continue
+                    if window_fraction(mask, region, cell, across_side, rules["across"]) >= rules["blocked"]:
+                        count += 1
+    return count
 
 
 def test_floor_drawn_under_half_paper_is_partial():
