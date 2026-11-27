@@ -25,7 +25,7 @@ from .full_members import HalvesSpec
 from .full_store import ClaudeStore, ClefStore
 from .hosted_exported import checked_requests, exported_requests, for_model
 from .maps import ScreenMap, load_rgb
-from .offsets import LETTERS, check_offset, offset_kind, offset_request
+from .offsets import check_offset, offset_kind, offset_request
 from .screen_offsets import load_pair
 from .screen_wholemap import Page, _page_regions, levels_on
 from .wholemap import check_whole_map, whole_map_kind, whole_map_request
@@ -128,8 +128,6 @@ def seed_claude(
             continue
         outcome = json.loads(path.read_text())
         fault = _setting_fault(outcome, model, effort) or _answer_fault(outcome, check_offset)
-        if not fault and outcome["answer"] is not None and outcome["answer"]["choice"] not in (*LETTERS, "none"):
-            fault = f"the choice {outcome['answer']['choice']!r} isn't a letter or none"
         if fault:
             filed["left out"].append(f"{spec.id}: {fault}")
             continue
