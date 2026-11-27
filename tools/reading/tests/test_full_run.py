@@ -144,17 +144,19 @@ def test_the_keys_own_whole_page_answer_passes_the_whole_page_check() -> None:
 
 
 def test_one_level_is_scored_alone_on_its_part_of_a_shared_panel() -> None:
+    from tools.reading.full_pools import level_reading, panel_owners, panel_scores
+
     key = load_geometry_truth(CAVES)
     trace, one = level_documents(key, key, "orc-lair-a", 1)
     score = score_trace(trace, one).after
-    panel = key.panel("jn1-p038")
-    rects = [r for o in panel.outlines if (o.dungeon, o.level) == ("orc-lair-a", 1) for r in o.rects]
-    inside = {(x, y) for x0, y0, w, h in rects for x in range(x0, x0 + w) for y in range(y0, y0 + h)}
-    floor = sum(panel.cells[y][x] == "." for x, y in inside)
-    assert score.floor.key_cells == score.floor.both == floor
     assert score.areas.perfect and score.keys.right == score.keys.total > 0
+    panel = key.panel("jn1-p038")
+    owned = {cell for cell, owner in panel_owners(key, "jn1-p038").items() if owner == "orc-lair-a/1"}
+    floor = sum(panel.cells[y][x] == "." for x, y in owned)
+    reading = level_reading(panel_scores(key, key), key, "orc-lair-a", 1)["after"]
+    assert reading["floor"]["key"] == reading["floor"]["both"] == floor > 0
     whole = score_trace(key, key).after
-    assert 0 < score.edges.all.total < whole.edges.all.total
+    assert 0 < reading["edges"]["all"]["total"] == reading["edges"]["all"]["right"] < whole.edges.all.total
 
 
 def test_the_checks_find_an_area_a_removed_door_cuts_off() -> None:
@@ -302,12 +304,12 @@ def test_a_pool_counts_a_panel_two_levels_share_once(tmp_path: Path) -> None:
     result = run(members, [], settings, _fake_sources(tmp_path, members), stand_in=False)
     report = result.report
     rows = [row["after"]["edges"]["all"]["total"] for row in report["levels"]]
-    assert len(rows) == 2
+    assert len(rows) == 2 and all(rows)
     key = members[0].document()
     trace_panel = next(panel for panel in result.traces["synthetic/undercroft"].panels if panel.id == "undercroft")
     once = score_panel(key, trace_panel)[0].edges.all.total
     pool = report["pools"]["tsr_blue synthetic"]
-    assert pool["after"]["edges"]["all"]["total"] == once < sum(rows)
+    assert pool["after"]["edges"]["all"]["total"] == once == sum(rows)
     assert pool["levels"] == 2 and pool["after"]["keys"]["total"] == sum(
         r["after"]["keys"]["total"] for r in report["levels"]
     )
@@ -573,37 +575,20 @@ def test_the_bar_puts_the_stage_beside_the_classifier_per_style() -> None:
     members = real_members([TOOL / "maps.json"], [TOOL / "pages.json"], [ROOT / "tools" / "answer_keys" / "keys.json"])
     (member,) = members
     key = member.document()
-    rows = []
-    for dungeon in key.dungeons:
-        for level in dungeon.levels:
-            if level.verdict != "traced":
-                continue
-            trace, one = level_documents(key, key, dungeon.id, level.number)
-            style = key.region(key.panel(level.panels[0].panel).regions[0].region).style
-            after = summary(score_trace(trace, one).after)
-            rows.append(
-                {
-                    "member": member.id,
-                    "synthetic": False,
-                    "dungeon": dungeon.id,
-                    "level": level.number,
-                    "style": style,
-                    "after": after,
-                }
-            )
-    theirs = {(row["member"], row["dungeon"], row["level"]): row["after"] for row in rows}
-    table = bar_table(members, {member.id: key}, {member.id: key}, rows, theirs)
+    table = bar_table(members, {member.id: key}, {member.id: key}, {member.id: key})
     assert set(table) == {"black_white", "cave", "dark_rock"}
     for row in table.values():
         assert row["stage"]["edges"]["right"] == row["stage"]["edges"]["total"] == row["classifier"]["edges"]["total"]
         assert row["stage"]["walls_rate"] == 0.0 and row["stage"]["joins"]["errors"] == 0
+        assert row["stage"]["joins"]["key"] == row["classifier"]["joins"]["key"] > 0
         assert row["passes"] == {"walls": True, "edges": False, "joins": False, "all": False}
 
 
 def test_the_bars_settled_edges_are_those_in_the_scorers_edge_universe(monkeypatch: pytest.MonkeyPatch) -> None:
     import tools.reading.full_pools as full_pools
 
-    from osrforge.tracing.score import edge_universe
+    from osrforge.tracing.fivefoot import convert_five_foot
+    from osrforge.tracing.score import _edge, edge_universe
 
     corner = {((x, y), side) for x in range(6) for y in range(6) for side in ("north", "west")}
     monkeypatch.setattr(full_pools, "disputed_edges", lambda work, frame, width, height: set(corner))
@@ -615,8 +600,10 @@ def test_the_bars_settled_edges_are_those_in_the_scorers_edge_universe(monkeypat
     for panel in key.panels:
         if panel.id in screens:
             style = key.region(panel.regions[0].region).style
-            expected[style] = expected.get(style, 0) + len(corner & set(edge_universe(panel)))
-    table = full_pools.bar_table(members, {member.id: key}, {member.id: key}, [], {})
+            converted = convert_five_foot(panel).panel if panel.scale_feet == 5 else panel
+            universe = {_edge(*edge) for edge in edge_universe(converted)}
+            expected[style] = expected.get(style, 0) + len(full_pools.ten_foot_edges(panel, corner) & universe)
+    table = full_pools.bar_table(members, {member.id: key}, {member.id: key}, {member.id: key})
     counted = {style: row["disputed"]["stage"].get("total", 0) for style, row in table.items()}
     assert counted == expected
     assert sum(expected.values()) < len(corner) * len(screens)

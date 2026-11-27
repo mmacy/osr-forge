@@ -5,12 +5,14 @@ it with the screening's settings (`full_reading`, `full_settings`), resolves eac
 the reference resolution script (`full_score.resolve_member`), scores the trace against its key with `score_trace`,
 and runs the structural checks (`full_checks`). The report gives the following:
 
-- every scorer family per level, over every cell (`after`) and without the partly-floor cells (`after_whole`), on the
-  level's own documents (`full_score.level_documents`). Every calibration a map is read with was fitted without the
-  maps cut from its image, so every score is a held-out score.
-- every family pooled by style, real maps apart from synthetic ones, each drawn cell, edge, level, and pair once
-  (`full_pools.pools`), and the bar each style of the answer keys must meet, the stage beside the classifier
-  (`full_pools.bar_table`)
+- every scorer family per level, over every cell (`after`) and without the partly-floor cells (`after_whole`): the
+  reading families on the level's part of each panel (`full_pools.panel_scores`), and the rest on the level's own
+  documents (`full_score.level_documents`). Every calibration a map is read with was fitted without the maps cut from
+  its image, so the calibration's fit is held out. The passable thresholds and ε were chosen by the screening on the
+  same answer keys, so they are not.
+- every family per member, split by style (`full_pools.member_by_style`), and pooled by style, real maps apart from
+  synthetic ones, each drawn cell, edge, item, region, level, pair, and dungeon once (`full_pools.pools`), and the
+  bar each style of the answer keys must meet, the stage beside the classifier (`full_pools.bar_table`)
 - whether each level needs no repair by the checks, beside the same checks on the answer key
 - whether each level's reading is complete: the items Claude left without an answer, and the edges between floor
   that became walls for want of a Clef answer, both counted on the level
@@ -58,13 +60,13 @@ from pathlib import Path
 from typing import Any
 
 from osrforge.tracing.score import score_trace
-from osrforge.tracing.truth import GeometryTruth
+from osrforge.tracing.truth import GeometryTruth, Panel, parse_cell
 
 from .claude_run import LABEL_PREFIX, RequestCap
 from .full_checks import LevelChecks, check_document
 from .full_costs import allocate, place_cell, row_totals
 from .full_members import HalvesSpec, Member, load_halves, real_members, synthetic_members
-from .full_pools import bar_table, panel_scores, pools
+from .full_pools import READING, bar_table, level_reading, level_style, member_by_style, panel_scores, pools
 from .full_reading import (
     MapReading,
     PageRead,
@@ -116,33 +118,60 @@ class RunResult:
     checks: dict[str, list[LevelChecks]] = field(default_factory=dict)
 
 
-def _style_of(key: GeometryTruth, dungeon_id: str, number: int) -> str:
-    level = next(lv for d in key.dungeons if d.id == dungeon_id for lv in d.levels if lv.number == number)
-    for placement in level.panels:
-        return key.region(key.panel(placement.panel).regions[0].region).style
-    return "none"
+def _letter_at(cells: tuple[str, ...], text: str) -> str:
+    x, y = parse_cell(text)
+    return cells[y][x]
 
 
-def classifier_trace(member: Member, readings_dir: Path) -> GeometryTruth | None:
-    """The classifier's trace of a real member: the key's reading with each panel's cells and edges the classifier's,
-    resolved by the reference resolution script, or `None` when a map has no classifier reading."""
+def on_key_reading(member: Member, panels: dict[str, Panel]) -> GeometryTruth | None:
+    """A reading's cells and edges resolved on the key's reading of a real member.
+
+    The document is the key's reading (its regions, outlines, marks, symbols, partly-floor cells, and half pairs) with
+    each panel's cells and edges replaced by the reading's panel of the same id, resolved by the reference resolution
+    script with the member's caches. A mark's leader line that ends on a cell the reading makes rock is dropped,
+    because the truth format lets a leader end only on floor or water, and the mark keeps its own cell.
+
+    Args:
+        member: The member.
+        panels: The reading's panels, by id, each on the key panel's grid.
+
+    Returns:
+        The trace, or `None` when the reading lacks a key panel or has one of another size.
+    """
     from tools.answer_keys.resolve import load_caches, reading_of
 
-    from .bar import classifier_panel
-
     key = member.document()
-    screens = {run_map.screen.id: run_map.screen for run_map in member.maps}
-    panels = []
+    replaced = []
     for panel in key.panels:
-        screen = screens.get(panel.id)
-        if screen is None or not (readings_dir / f"{screen.id}.json").exists():
+        theirs = panels.get(panel.id)
+        if theirs is None or (theirs.width, theirs.height) != (panel.width, panel.height):
             return None
-        theirs = classifier_panel(readings_dir, screen)
-        panels.append(panel.model_copy(update={"cells": theirs.cells, "edges": theirs.edges}))
-    document = GeometryTruth.model_validate(reading_of(key).model_copy(update={"panels": tuple(panels)}).model_dump())
+        marks = tuple(
+            mark
+            if mark.leader_to is None or _letter_at(theirs.cells, mark.leader_to) in ".~"
+            else mark.model_copy(update={"leader_to": None})
+            for mark in panel.marks
+        )
+        replaced.append(panel.model_copy(update={"cells": theirs.cells, "edges": theirs.edges, "marks": marks}))
+    document = GeometryTruth.model_validate(reading_of(key).model_copy(update={"panels": tuple(replaced)}).model_dump())
     survey, contents, mapread = load_caches(member.stages)
     trace, _how = resolve_member(document, survey, contents, mapread)
     return trace
+
+
+def classifier_trace(member: Member, readings_dir: Path) -> GeometryTruth | None:
+    """The classifier's trace of a real member: its cells and edges resolved on the key's reading (`on_key_reading`),
+    or `None` when a map has no classifier reading."""
+    from .bar import classifier_panel
+
+    screens = {run_map.screen.id: run_map.screen for run_map in member.maps}
+    panels: dict[str, Panel] = {}
+    for panel in member.document().panels:
+        screen = screens.get(panel.id)
+        if screen is None or not (readings_dir / f"{screen.id}.json").exists():
+            return None
+        panels[panel.id] = classifier_panel(readings_dir, screen)
+    return on_key_reading(member, panels)
 
 
 def run(
@@ -230,10 +259,10 @@ def run(
     levels_report: list[dict[str, Any]] = []
     members_report: dict[str, Any] = {}
     panels: dict[str, dict[str, dict[str, Any]]] = {}
-    member_halves: dict[str, dict[str, Any]] = {}
     traced: dict[str, set[tuple[str, int]]] = {}
-    classifier_traces: dict[str, GeometryTruth] = {}
-    classifier_levels: dict[tuple[str, str, int], dict[str, Any]] = {}
+    by_style: dict[str, dict[str, Any]] = {}
+    classifier_traces: dict[str, GeometryTruth | None] = {}
+    key_reading_traces: dict[str, GeometryTruth | None] = {}
     for member in members:
         key = member.document()
         traced[member.id] = {(d.id, lv.number) for d in key.dungeons for lv in d.levels if lv.verdict == "traced"}
@@ -241,6 +270,7 @@ def run(
         if unread:
             # A member without its whole-page answers has no reading to resolve, so it gets no scores at all.
             members_report[member.id] = {
+                "synthetic": member.synthetic,
                 "resolution": f"unread: no whole-page answer for {', '.join(unread)}",
                 "unread_pages": unread,
             }
@@ -257,34 +287,30 @@ def run(
         key_checks = {(c.dungeon, c.level): c for c in check_document(key, contents, mapread)}
         result.checks[member.id] = trace_checks
         members_report[member.id] = {
+            "synthetic": member.synthetic,
             "resolution": resolution,
             "after": summary(scores.after),
             "after_whole": summary(scores.after_whole),
         }
         panels[member.id] = panel_scores(trace, key)
-        pair_style = key.region(key.half_pairs[0].regions[0]).style if key.half_pairs else "none"
-        member_halves[member.id] = {
-            "style": pair_style,
-            "total": scores.after.halves.total,
-            "right": scores.after.halves.right,
-        }
+        by_style[member.id] = member_by_style(trace, key, panels[member.id], scores.after)
+        members_report[member.id]["by_style"] = by_style[member.id]
+        members_report[member.id]["panels"] = panels[member.id]
         incomplete = _incomplete(readings.values(), traced[member.id])
         if classifier is not None and not member.synthetic:
-            theirs = classifier_trace(member, classifier)
-            if theirs is not None:
-                classifier_traces[member.id] = theirs
+            classifier_traces[member.id] = classifier_trace(member, classifier)
+            if classifier_traces[member.id] is not None:
+                key_reading_traces[member.id] = on_key_reading(member, {panel.id: panel for panel in trace.panels})
         by_level = {(c.dungeon, c.level): c for c in trace_checks}
         for dungeon_id, number in sorted(traced[member.id]):
             one_trace, one_key = level_documents(trace, key, dungeon_id, number)
             level_score = score_trace(one_trace, one_key)
             after, after_whole = summary(level_score.after), summary(level_score.after_whole)
+            reading = level_reading(panels[member.id], key, dungeon_id, number)
+            for name in READING:
+                after[name], after_whole[name] = reading["after"][name], reading["after_whole"][name]
             if not entrance_on_level(key, dungeon_id, number):
                 after["entrance"] = after_whole["entrance"] = None
-            if member.id in classifier_traces:
-                theirs_trace, theirs_key = level_documents(classifier_traces[member.id], key, dungeon_id, number)
-                classifier_levels[(member.id, dungeon_id, number)] = summary(
-                    score_trace(theirs_trace, theirs_key).after
-                )
             checks = by_level.get((dungeon_id, number))
             gaps = incomplete.get((dungeon_id, number), {"unjudged_items": 0, "walls_without_clef": 0})
             levels_report.append(
@@ -293,7 +319,7 @@ def run(
                     "synthetic": member.synthetic,
                     "dungeon": dungeon_id,
                     "level": number,
-                    "style": _style_of(key, dungeon_id, number),
+                    "style": level_style(key, dungeon_id, number),
                     "after": after,
                     "after_whole": after_whole,
                     "checks": checks.to_json() if checks else {"traced": False},
@@ -345,10 +371,8 @@ def run(
         "stopped": sources.stopped,
         "members": members_report,
         "levels": levels_report,
-        "pools": pools(levels_report, panels, member_halves, {m.id: m.synthetic for m in members}),
-        "bar": bar_table(
-            [m for m in members if not m.synthetic], result.traces, classifier_traces, levels_report, classifier_levels
-        )
+        "pools": pools(levels_report, by_style, {m.id: m.synthetic for m in members}),
+        "bar": bar_table([m for m in members if not m.synthetic], result.traces, classifier_traces, key_reading_traces)
         if classifier is not None
         else None,
         "costs": {

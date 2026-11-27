@@ -27,7 +27,7 @@ The reading follows the plan's steps with the screening's settings:
    order. Its answer replaces an item's probabilities, weighted by Claude's accuracy on such items of the style as the
    screening measured it (`screening_accuracy`): an edge is passable with that accuracy when Claude reads it
    passable, and the passable threshold decides, and a cell is floor with that accuracy when Claude reads it floor.
-   At the screening's accuracies (0.875 to 1 per style and kind) and the passable thresholds, every weighted reading is
+   At the screening's accuracies (0.833 to 1 per style and kind) and the passable thresholds, every weighted reading is
    Claude's own. Without the screening's figures, Claude's answer decides.
 6. **Cells and edges.** A cell is the half rule's, or Claude's answer for an item. An edge with floor or water on both
    sides is Claude's answer when it was an item, else the door Clef reads by doors first, else the calibrated

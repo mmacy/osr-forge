@@ -15,6 +15,7 @@ import pytest
 from tools.reading.claude_run import RequestCap, ask
 from tools.reading.full_fakes import FakeClaude, FakeClef
 from tools.reading.full_members import Member, synthetic_members
+from tools.reading.full_report_check import check_report
 from tools.reading.full_settings import load_settings
 from tools.reading.full_store import ClaudeStore, ClefStore, Counted, Sources
 from tools.reading.offsets import check_offset, offset_kind
@@ -316,6 +317,7 @@ def test_a_member_whose_page_is_unread_reports_it_and_gets_no_scores(tmp_path: P
     member = report["members"]["synthetic/fold-joined"]
     assert member["resolution"].startswith("unread") and member["unread_pages"]
     assert report["levels"] == [] and report["costs"]["rows_add_up"]
+    assert check_report(report, io.StringIO()) == 0
 
 
 def _main_args(tmp_path: Path, *extra: str) -> list[str]:

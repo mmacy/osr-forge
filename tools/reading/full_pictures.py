@@ -2,10 +2,11 @@
 
 Milestone 1 looks at three levels, which the settings name (`milestone`): a level of the commercial corpus, the
 manor's ground floor, and one lair of Chaotic Caves page 38. Each picture puts two drawings side by side, cut to the
-level's part of the region: on the left, the trace as read, drawn by
-[`render_overlay`][osrforge.tracing.overlay.render_overlay]; on the right, the same drawing with the faults the
-structural checks find (`full_checks`) marked over it. The repair isn't built, so the right-hand drawing stands in for
-the repaired trace the plan puts beside the trace before repair: it shows what a repair would act on.
+level's part of the region: the panel cells the key gives the level, which are the cells the level's row in the
+report scores (`full_pools.panel_owners`). The rest of the region is veiled in white. On the left is the trace as
+read, drawn by [`render_overlay`][osrforge.tracing.overlay.render_overlay]. On the right is the same drawing with the
+faults the structural checks find (`full_checks`) marked over it. The repair isn't built, so the right-hand drawing
+stands in for the repaired trace the plan puts beside the trace before repair: it shows what a repair would act on.
 
 - unreachable areas: their cells filled magenta
 - cut-off floor: its cells filled cyan
@@ -16,7 +17,7 @@ the repaired trace the plan puts beside the trace before repair: it shows what a
 The pictures are written outside the repository, because one of the three levels is from a commercial module.
 """
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from pathlib import Path
 
 import numpy as np
@@ -27,9 +28,11 @@ from osrforge.tracing.truth import GeometryTruth, Level, Panel, parse_cell, pars
 
 from .full_checks import LevelChecks
 from .full_members import Member
+from .full_pools import panel_owners
 
 __all__ = ["fault_picture", "milestone_pictures"]
 
+VEIL = (255, 255, 255, 150)
 UNREACHABLE = (220, 0, 200, 110)
 CUT_OFF = (0, 200, 220, 110)
 NO_FLOOR = (0, 0, 0, 255)
@@ -51,7 +54,13 @@ def _level_cells(trace: GeometryTruth, level: Level, panel: Panel) -> dict[tuple
 
 
 def fault_picture(
-    image: Image.Image, trace: GeometryTruth, region_id: str, dungeon_id: str, number: int, checks: LevelChecks
+    image: Image.Image,
+    trace: GeometryTruth,
+    region_id: str,
+    dungeon_id: str,
+    number: int,
+    checks: LevelChecks,
+    owned: Collection[tuple[int, int]] | None = None,
 ) -> Image.Image:
     """One level's trace beside the same trace with its faults marked, cut to the level's part of the region.
 
@@ -62,6 +71,9 @@ def fault_picture(
         dungeon_id: The level's dungeon.
         number: The level's number.
         checks: The level's checks.
+        owned: The panel cells the key gives the level, which the picture is cut to, with the rest of the region
+            veiled. `None` cuts it to the trace's floor and water of the level and veils nothing. A 5-foot panel's
+            picture shows the whole region.
 
     Returns:
         The two drawings side by side, with a line of text above that says what is marked.
@@ -126,8 +138,20 @@ def fault_picture(
         if len(ends) == 2:
             _dashed(draw, ends[0], ends[1], max(3, round(pitch / 10)))  # type: ignore[arg-type]
     marked = Image.alpha_composite(overlay, layer)
-    own = [(x, y) for y, row in enumerate(level.cells) for x, letter in enumerate(row) if letter in ".~"]
-    box = _bounds(corners, [region_cell(c) for c in own], pitch, overlay.size)
+    if owned is not None and panel.scale_feet == 10:
+        mine = {(x - origin[0], y - origin[1]) for x, y in owned}
+        veil = Image.new("RGBA", overlay.size, (0, 0, 0, 0))
+        veiled = ImageDraw.Draw(veil)
+        for y in range(region.rows):
+            for x in range(region.columns):
+                if (x, y) not in mine:
+                    veiled.polygon(quad((x, y)), fill=VEIL)
+        overlay, marked = Image.alpha_composite(overlay, veil), Image.alpha_composite(marked, veil)
+        cells = [cell if 0 <= cell[0] < region.columns and 0 <= cell[1] < region.rows else None for cell in mine]
+    else:
+        own = [(x, y) for y, row in enumerate(level.cells) for x, letter in enumerate(row) if letter in ".~"]
+        cells = [region_cell(c) for c in own]
+    box = _bounds(corners, cells, pitch, overlay.size)
     left, right = overlay.crop(box), marked.crop(box)
     width, height = left.size
     banner = 40
@@ -191,6 +215,7 @@ def milestone_pictures(
     out.mkdir(parents=True, exist_ok=True)
     written = []
     images = {(m.id, run_map.screen.id): run_map.screen.image for m in members for run_map in m.maps}
+    keys = {m.id: m.document() for m in members}
     for member_id, region_id, dungeon_id, number in levels:
         trace = result.traces.get(member_id)  # type: ignore[attr-defined]
         checks = next(
@@ -201,8 +226,15 @@ def milestone_pictures(
             continue
         if not any(any(part.region == region_id for part in p.regions) for p in trace.panels):
             continue
+        key = keys[member_id]
+        panel = next((p for p in key.panels if any(part.region == region_id for part in p.regions)), None)
+        owned = (
+            [cell for cell, owner in panel_owners(key, panel.id).items() if owner == f"{dungeon_id}/{number}"]
+            if panel is not None
+            else None
+        )
         with Image.open(images[(member_id, region_id)]) as image:
-            picture = fault_picture(image.convert("RGB"), trace, region_id, dungeon_id, number, checks)
+            picture = fault_picture(image.convert("RGB"), trace, region_id, dungeon_id, number, checks, owned)
         path = out / f"milestone-{dungeon_id}-{number}.png"
         picture.save(path)
         written.append(path)
