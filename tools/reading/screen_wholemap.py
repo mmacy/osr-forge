@@ -22,7 +22,7 @@ from typing import Any
 
 import numpy as np
 
-from .claude_run import RequestCap, ask, make_provider
+from .claude_run import RequestCap, ask, make_provider, stop_unless_final
 from .maps import key_document, load_rgb
 from .wholemap import PageRegion, check_whole_map, score_whole_map, whole_map_kind, whole_map_request
 
@@ -121,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
                         lambda answer, labels=labels, levels=levels: check_whole_map(answer, labels, levels),
                         cap,
                     )
+                    stop_unless_final(outcome)
                     path.parent.mkdir(parents=True, exist_ok=True)
                     path.write_text(json.dumps(outcome.to_json(), indent=1) + "\n")
                 stored = json.loads(path.read_text())

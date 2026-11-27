@@ -179,14 +179,15 @@ WHOLE_MAP_SCHEMA: dict[str, Any] = {
 WHOLE_MAP_MAX_TOKENS = 32000
 
 
-def whole_map_kind(effort: Effort) -> RequestKind:
-    """The whole-page read at one effort."""
+def whole_map_kind(effort: Effort, model: str | None = None) -> RequestKind:
+    """The whole-page read at one effort, on a model or the provider's default."""
     return RequestKind(
         name="reading-wholemap",
         system=WHOLE_MAP_SYSTEM,
         schema=WHOLE_MAP_SCHEMA,
         effort=effort,
         max_tokens=WHOLE_MAP_MAX_TOKENS,
+        model=model,
     )
 
 

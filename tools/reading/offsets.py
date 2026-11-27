@@ -61,10 +61,15 @@ OFFSET_SCHEMA: dict[str, Any] = {
 OFFSET_MAX_TOKENS = 32000
 
 
-def offset_kind(effort: Effort) -> RequestKind:
-    """The offset pick at one effort."""
+def offset_kind(effort: Effort, model: str | None = None) -> RequestKind:
+    """The offset pick at one effort, on a model or the provider's default."""
     return RequestKind(
-        name="reading-offset", system=OFFSET_SYSTEM, schema=OFFSET_SCHEMA, effort=effort, max_tokens=OFFSET_MAX_TOKENS
+        name="reading-offset",
+        system=OFFSET_SYSTEM,
+        schema=OFFSET_SCHEMA,
+        effort=effort,
+        max_tokens=OFFSET_MAX_TOKENS,
+        model=model,
     )
 
 
@@ -129,8 +134,13 @@ def offset_request(kind: RequestKind, pair: HalfPairInput) -> ReadingRequest:
 
 
 def check_offset(answer: dict[str, Any]) -> list[str]:
-    """The schema checks everything an offset answer holds."""
-    return []
+    """The faults of an offset answer: a choice that isn't one of the offered letters or `none`.
+
+    The schema allows nothing else, and the provider checks a live answer against it, but a stored answer reaches the
+    run without that check.
+    """
+    choice = answer.get("choice")
+    return [] if choice in (*LETTERS, "none") else [f"the choice {choice!r} isn't one of {', '.join(LETTERS)} or none"]
 
 
 def letters_for(columns: Sequence[int], truth: int | None) -> str:

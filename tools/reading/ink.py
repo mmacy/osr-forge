@@ -24,7 +24,7 @@ import numpy as np
 
 from osrforge.tracing.truth import Registration
 
-__all__ = ["HEAVY", "INK_STYLES", "NEAR", "EdgeInk", "InkStyle", "MapInk", "unsettled_cells"]
+__all__ = ["HEAVY", "INK_STYLES", "NEAR", "EdgeInk", "InkStyle", "MapInk", "unsettled_cells", "unsettled_reasons"]
 
 HEAVY = 0.07
 """Cells. A dark run across the line at least this wide is heavier than a printed grid line."""
@@ -273,17 +273,46 @@ TONE_SPREAD = 0.15
 """How far a cell's fill tone may lie from the region's rock tone and still be rock."""
 
 
+def unsettled_reasons(ink: MapInk, floors: np.ndarray, cells: list[tuple[int, int]]) -> dict[tuple[int, int], str]:
+    """Why the ink leaves each unsettled cell unsettled: the first of the four tests the cell fails.
+
+    The tests, in order:
+
+    - `partly floor`: between a quarter and three quarters floor
+    - `ink inside`: floor with ink inside it (`INSIDE`), such as a label or a symbol
+    - `grid on fewer than two sides`: floor with the printed grid on fewer than two of its sides (`GRIDDED`), as bare
+      paper outside a building is
+    - `tone off rock`: not floor, and its fill's tone lies more than `TONE_SPREAD` from the region's rock tone, the
+      median tone of the region's cells under a quarter floor, as water or a grey void would
+
+    Args:
+        ink: The region's ink.
+        floors: Every cell's floor fraction.
+        cells: The cells to sort.
+
+    Returns:
+        Each unsettled cell's reason, in the order given. A settled cell is left out.
+    """
+    rows, columns = floors.shape
+    rocky = [(x, y) for y in range(rows) for x in range(columns) if floors[y, x] <= 0.25]
+    tones = [ink.fill_tone(cell) for cell in rocky[:: max(1, len(rocky) // 400)]]
+    rock_tone = float(np.median(tones)) if tones else 1.0
+    out: dict[tuple[int, int], str] = {}
+    for x, y in cells:
+        share = floors[y, x]
+        if 0.25 < share < 0.75:
+            out[(x, y)] = "partly floor"
+        elif share >= 0.75 and ink.ink_inside((x, y)) >= INSIDE:
+            out[(x, y)] = "ink inside"
+        elif share >= 0.75 and _lined_sides(ink, floors, (x, y)) < 2:
+            out[(x, y)] = "grid on fewer than two sides"
+        elif share <= 0.25 and abs(ink.fill_tone((x, y)) - rock_tone) > TONE_SPREAD:
+            out[(x, y)] = "tone off rock"
+    return out
+
+
 def unsettled_cells(ink: MapInk, floors: np.ndarray, cells: list[tuple[int, int]]) -> list[tuple[int, int]]:
-    """The cells the ink doesn't settle, which Clef is asked about.
-
-    A cell is unsettled in any of these cases:
-
-    - It is between a quarter and three quarters floor.
-    - It is floor with ink inside it (`INSIDE`), such as a label or a symbol.
-    - It is floor with the printed grid on fewer than two of its sides (`GRIDDED`), as bare paper outside a building
-      is.
-    - It is not floor, and its fill's tone lies more than `TONE_SPREAD` from the region's rock tone, the median tone
-      of the region's cells under a quarter floor, as water or a grey void would.
+    """The cells the ink doesn't settle, which go to Claude: the cells `unsettled_reasons` gives a reason.
 
     Args:
         ink: The region's ink.
@@ -293,20 +322,7 @@ def unsettled_cells(ink: MapInk, floors: np.ndarray, cells: list[tuple[int, int]
     Returns:
         The unsettled cells, in the order given.
     """
-    rows, columns = floors.shape
-    rocky = [(x, y) for y in range(rows) for x in range(columns) if floors[y, x] <= 0.25]
-    tones = [ink.fill_tone(cell) for cell in rocky[:: max(1, len(rocky) // 400)]]
-    rock_tone = float(np.median(tones)) if tones else 1.0
-    out = []
-    for x, y in cells:
-        share = floors[y, x]
-        if (
-            0.25 < share < 0.75
-            or (share >= 0.75 and (ink.ink_inside((x, y)) >= INSIDE or _lined_sides(ink, floors, (x, y)) < 2))
-            or (share <= 0.25 and abs(ink.fill_tone((x, y)) - rock_tone) > TONE_SPREAD)
-        ):
-            out.append((x, y))
-    return out
+    return list(unsettled_reasons(ink, floors, cells))
 
 
 def _lined_sides(ink: MapInk, floors: np.ndarray, cell: tuple[int, int]) -> int:
