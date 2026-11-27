@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 
 from .calibrate import fold_of, held_out
-from .claude_run import RequestCap, ask, make_provider
+from .claude_run import RequestCap, ask, make_provider, stop_unless_final
 from .dataset import features, map_rows
 from .items import AskedItem, check_items, items_kind, items_request, letters_of
 from .maps import ScreenMap, key_panel, key_region, load_maps, load_rgb
@@ -134,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
                             part,
                         )
                         outcome = ask(provider, request, lambda answer, part=part: check_items(answer, part), cap)
+                        stop_unless_final(outcome)
                         path.parent.mkdir(parents=True, exist_ok=True)
                         path.write_text(json.dumps(outcome.to_json(), indent=1) + "\n")
                     stored = json.loads(path.read_text())

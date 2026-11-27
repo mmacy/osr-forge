@@ -387,20 +387,20 @@ def test_a_live_claude_run_stops_at_the_settings_cap_on_the_settings_ledger(
     assert outcome is not None and outcome["cost_usd"] == 0.001
     assert ledger_check(sources, (ledger, before), (None, None))["claude"]["agree"] is True
     second = ReadingRequest(kind=kind, shared=(), question=(TextPart(text="second"),))
-    with pytest.raises(SystemExit, match="cap of 480"):
-        sources.read(second, check_offset, "pair", {"pair": "pair"})
+    assert sources.read(second, check_offset, "pair", {"pair": "pair"}) is None
+    assert sources.stopped is not None and "cap of 480" in sources.stopped
     assert len(json.loads(ledger.read_text())["entries"]) == 481
 
 
 def test_a_local_server_that_names_another_model_for_clef_flash_is_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from tools.reading.full_run import clef_source
+    from tools.reading.full_run import ClefSource
 
     monkeypatch.setenv("OSRFORGE_CLEF_LOCAL_MODEL", "some-other-model")
     settings = load_settings(_settings(tmp_path))
     with pytest.raises(SystemExit, match="unset OSRFORGE_CLEF_LOCAL_MODEL"):
-        clef_source("local", settings)
+        ClefSource("local", settings)
 
 
 def test_a_malformed_attempt_is_charged_what_the_ledger_settled_and_each_attempt_counts(tmp_path: Path) -> None:
@@ -450,7 +450,7 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     import tools.reading.clefask as clefask
-    from tools.reading.full_run import clef_source, ledger_check, ledger_snapshot
+    from tools.reading.full_run import ClefSource, ledger_check, ledger_snapshot
 
     import osrforge.providers.clef as hosted_module
     import osrforge.providers.clef_local as local_module
@@ -461,7 +461,7 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
             pass
 
         def decide(self, request: DecisionRequest) -> Any:
-            raise ProviderError("the local server is down")
+            raise ProviderError("the local server's answer can't be read")
 
     made: list[Any] = []
     ledger = tmp_path / "clef-ledger.json"
@@ -513,7 +513,7 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
     sources = Sources(
         clef_store=ClefStore(tmp_path / "clef.jsonl"),
         claude_store=ClaudeStore(tmp_path / "claude"),
-        clef=clef_source("local", settings),
+        clef=ClefSource("local", settings),
     )
     before = ledger_snapshot(ledger, "reading full run", "usd", "requests")
     assert before == {"requests": 4, "usd": 0.5}
@@ -523,7 +523,8 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
             "open": 0.3,
             "wall": 0.7,
         }
-    assert spends == [0.95] and made == [{"run_label": "reading full run", "ledger_stop_usd": 5.0}]
+    # An earlier invocation's entry spent 0.5 of the 0.95, so this one may add 0.45.
+    assert spends == [0.45] and made == [{"run_label": "reading full run", "ledger_stop_usd": 5.0}]
     store = ClefStore(tmp_path / "clef.jsonl")
     records = [store.record(request.key()) for request in (first, second)]
     assert [record and (record["source"], record["usd"]) for record in records] == [
@@ -536,8 +537,7 @@ def test_a_question_local_clef_fails_on_goes_to_hosted_within_the_spend(
         "tally": {"requests": 2, "usd": 0.000198},
         "agree": True,
     }
-    with pytest.raises(ProviderError):
-        clef_source("local-only", settings)(_request("t"), {})
+    assert ClefSource("local-only", settings)(_request("t"), {}) is None
 
 
 def test_claude_answers_only_for_the_owners_a_run_names(tmp_path: Path) -> None:
@@ -563,7 +563,8 @@ def test_claude_answers_only_for_the_owners_a_run_names(tmp_path: Path) -> None:
     kept = sources.read(request, check_offset, "kept", {"pair": "kept"})
     assert kept is not None and kept["answer"]["choice"] == "A"
     assert asked == ["kept"]
-    assert [entry.origin for entry in sources.tally.entries.values()] == ["missing"]
+    # Both owners share the request's key: the owner that sent it replaces the one that counted it missing.
+    assert [(entry.owner, entry.origin) for entry in sources.tally.entries.values()] == [("kept", "sent")]
 
 
 def test_the_bar_puts_the_stage_beside_the_classifier_per_style() -> None:

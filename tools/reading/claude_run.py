@@ -17,6 +17,21 @@ charged at its usage's price.
 
 The screening's requests are capped: before each request, the runner counts the Claude ledger's entries whose label
 starts with `reading-` (every kind here is named so) and refuses to send past the cap.
+
+[`ask`][tools.reading.claude_run.ask] never raises for a request that went wrong. It returns an outcome that holds
+every attempt that reached the ledger, and says how the request ended (`Outcome.ended`):
+
+- `None`: answered, or malformed after the retry. The outcome is final.
+- `refused`: the API refused an attempt with a status that names a fault in the request itself (400, 404, 413, or
+  422). Sending it again would be refused again, so the outcome is final, with no answer.
+- `failed`: the attempts ended in a failure that may pass: a 5xx, a lost connection, 429s past the provider's
+  retries, a 408 or 409, or a 401 or 403, which name the key or the account rather than the request. The outcome
+  isn't final.
+- `cap` or `ledger stop`: the cap or the ledger's stop refused the next attempt before it was sent. The outcome isn't
+  final, and holds the attempts made before.
+
+The caller stores the attempts of an outcome that isn't final, stops sending, and sends the request again on a later
+invocation.
 """
 
 import json
@@ -29,14 +44,32 @@ from typing import Any, cast
 
 from pydantic import SecretStr
 
-from osrforge.errors import ReadingFailure, SchemaValidationError
+from osrforge.errors import LedgerStopError, ProviderError, ReadingFailure, SchemaValidationError
 from osrforge.providers.claude import ClaudeProvider, ClaudeSettings, cost_usd
 from osrforge.providers.reading import ReadingRequest, ReadingResponse, Retry
 
-__all__ = ["Attempt", "Outcome", "RequestCap", "ask", "load_api_key", "make_provider", "settled_since"]
+__all__ = [
+    "FINAL_ENDINGS",
+    "REFUSED_STATUSES",
+    "Attempt",
+    "Outcome",
+    "RequestCap",
+    "ask",
+    "load_api_key",
+    "make_provider",
+    "settled_since",
+    "stop_unless_final",
+]
 
 ENV_FILE = Path("~/repos/re-pod/.env").expanduser()
 LABEL_PREFIX = "reading-"
+
+REFUSED_STATUSES = frozenset({400, 404, 413, 422})
+"""The statuses that refuse a request for a fault in the request itself, so sending it again is refused again. A 401
+or 403 names the key or the account, and a 429 the rate, so a request refused with them may be sent again."""
+
+FINAL_ENDINGS = (None, "refused")
+"""The endings of an outcome that is final: answered or malformed after the retry, and refused."""
 
 
 def load_api_key(path: Path = ENV_FILE) -> SecretStr:
@@ -67,11 +100,16 @@ class RequestCap:
         entries = json.loads(self.ledger.read_text())["entries"]
         return sum(str(entry.get("label", "")).startswith(LABEL_PREFIX) for entry in entries)
 
+    def reached(self) -> str | None:
+        """Why the next request would pass the cap, or `None` when it wouldn't."""
+        sent = self.sent()
+        return f"the cap of {self.cap} Claude requests is reached ({sent} sent)" if sent >= self.cap else None
+
     def check(self) -> None:
         """Raise when the next request would pass the cap."""
-        sent = self.sent()
-        if sent >= self.cap:
-            raise SystemExit(f"the screening's cap of {self.cap} Claude requests is reached ({sent} sent)")
+        reached = self.reached()
+        if reached is not None:
+            raise SystemExit(reached)
 
 
 @dataclass
@@ -85,25 +123,42 @@ class Attempt:
     answer: dict[str, Any] | None = None
     error: str | None = None
     faults: list[str] = field(default_factory=list)
+    status: int | None = None
+    """The HTTP status that ended a failed attempt, when the API gave one."""
 
 
 @dataclass
 class Outcome:
-    """A request's attempts and its final answer, or none when the retry was malformed too."""
+    """A request's attempts and its final answer, or none when the retry was malformed too or the request ended."""
 
     model: str
     effort: str
     attempts: list[Attempt]
+    ended: str | None = None
+    """How the request ended, when it ended without an answer to check: `refused`, `failed`, `cap`, or
+    `ledger stop`. `None` for an answer, well formed or not."""
+
+    reason: str | None = None
+    """What ended it, in words."""
+
+    @property
+    def final(self) -> bool:
+        """Sending the request again can't change its outcome."""
+        return self.ended in FINAL_ENDINGS
 
     @property
     def answer(self) -> dict[str, Any] | None:
-        """The last attempt's answer when it was well formed."""
+        """The last attempt's answer when it was well formed and the request didn't end otherwise."""
+        if self.ended is not None or not self.attempts:
+            return None
         last = self.attempts[-1]
         return last.answer if last.answer is not None and not last.faults else None
 
     @property
     def malformed_first(self) -> bool:
         """The first answer was malformed."""
+        if not self.attempts:
+            return False
         first = self.attempts[0]
         return first.answer is None or bool(first.faults)
 
@@ -116,6 +171,8 @@ class Outcome:
             "answer": self.answer,
             "malformed_first": self.malformed_first,
             "cost_usd": round(sum(attempt.cost_usd or 0.0 for attempt in self.attempts), 6),
+            "ended": self.ended,
+            "reason": self.reason,
         }
 
 
@@ -144,26 +201,56 @@ def settled_since(ledger: Path, before: int, label: str, model: str) -> float | 
     return None
 
 
+def _status(error: BaseException) -> int | None:
+    """The HTTP status of the API error behind a provider's error, when there is one."""
+    status = getattr(error.__cause__, "status_code", None)
+    return status if isinstance(status, int) else None
+
+
 def _one(
     provider: ClaudeProvider, request: ReadingRequest, check: Callable[[dict[str, Any]], list[str]], retry: bool
-) -> Attempt:
+) -> tuple[Attempt | None, str | None, str | None]:
+    """Send one attempt.
+
+    Returns:
+        The attempt, or `None` when nothing reached the ledger; how the request ended (`refused`, `failed`, or
+        `ledger stop`), or `None` when it has an answer to check or a malformed one to retry; and what ended it.
+    """
     started = time.monotonic()
     model = request.kind.model or provider.settings.model
-    before = len(_entries(provider.settings.ledger_path))
+    ledger = provider.settings.ledger_path
+    label = f"{request.kind.name} {request.kind.effort}"
+    before = len(_entries(ledger))
     try:
         response: ReadingResponse = provider.read(request)
     except (ReadingFailure, SchemaValidationError) as error:
-        label = f"{request.kind.name} {request.kind.effort}"
-        return Attempt(
+        attempt = Attempt(
             retry=retry,
             seconds=round(time.monotonic() - started, 1),
-            cost_usd=settled_since(provider.settings.ledger_path, before, label, model),
+            cost_usd=settled_since(ledger, before, label, model),
             error=str(error),
         )
+        return attempt, None, None
+    except LedgerStopError as error:
+        return None, "ledger stop", str(error)
+    except ProviderError as error:
+        status = _status(error)
+        settled = settled_since(ledger, before, label, model)
+        ended = "refused" if status in REFUSED_STATUSES else "failed"
+        if settled is None:
+            # Nothing reached the ledger, so there is no attempt to record.
+            return None, ended, str(error)
+        attempt = Attempt(
+            retry=retry,
+            seconds=round(time.monotonic() - started, 1),
+            cost_usd=settled,
+            error=str(error),
+            status=status,
+        )
+        return attempt, ended, str(error)
     usage = response.usage
-    label = f"{request.kind.name} {request.kind.effort}"
-    settled = settled_since(provider.settings.ledger_path, before, label, model)
-    return Attempt(
+    settled = settled_since(ledger, before, label, model)
+    attempt = Attempt(
         retry=retry,
         seconds=round(time.monotonic() - started, 1),
         usage=usage.model_dump(),
@@ -171,6 +258,7 @@ def _one(
         answer=cast(dict[str, Any], response.data),
         faults=check(cast(dict[str, Any], response.data)),
     )
+    return attempt, None, None
 
 
 def ask(
@@ -181,20 +269,36 @@ def ask(
 ) -> Outcome:
     """Send a request, and once more when its answer is malformed.
 
+    Nothing that goes wrong with the request raises: the outcome holds every attempt that reached the ledger and says
+    how the request ended.
+
     Args:
         provider: The provider.
         request: The request.
         check: The kind's check of what the schema can't catch. It returns the faults.
-        cap: The screening's request cap, checked before each request.
+        cap: The request cap, checked before each attempt.
 
     Returns:
         The outcome.
     """
-    cap.check()
-    first = _one(provider, request, check, retry=False)
-    attempts = [first]
+    model = request.kind.model or provider.settings.model
+    attempts: list[Attempt] = []
+
+    def outcome(ended: str | None = None, reason: str | None = None) -> Outcome:
+        return Outcome(model=model, effort=request.kind.effort, attempts=attempts, ended=ended, reason=reason)
+
+    reached = cap.reached()
+    if reached is not None:
+        return outcome("cap", reached)
+    first, ended, reason = _one(provider, request, check, retry=False)
+    if first is not None:
+        attempts.append(first)
+    if ended is not None or first is None:
+        return outcome(ended, reason)
     if first.answer is None or first.faults:
-        cap.check()
+        reached = cap.reached()
+        if reached is not None:
+            return outcome("cap", reached)
         if first.answer is not None:
             fault = "The answer is malformed:\n- " + "\n- ".join(first.faults) + "\nAnswer again in full."
             retry = ReadingRequest(
@@ -205,5 +309,26 @@ def ask(
             )
         else:
             retry = request
-        attempts.append(_one(provider, retry, check, retry=True))
-    return Outcome(model=request.kind.model or provider.settings.model, effort=request.kind.effort, attempts=attempts)
+        second, ended, reason = _one(provider, retry, check, retry=True)
+        if second is not None:
+            attempts.append(second)
+        if ended is not None:
+            return outcome(ended, reason)
+    return outcome()
+
+
+def stop_unless_final(outcome: Outcome) -> None:
+    """Stop a screening driver at a request that didn't finish, naming what its attempts cost.
+
+    The screening drivers store final outcomes only, so a request that ended on a failure, the cap, or the ledger's
+    stop is sent again by the next invocation, and its attempts so far are paid for again.
+
+    Raises:
+        SystemExit: If the outcome isn't final.
+    """
+    if not outcome.final:
+        spent = round(sum(attempt.cost_usd or 0.0 for attempt in outcome.attempts), 6)
+        raise SystemExit(
+            f"the request ended ({outcome.ended}: {outcome.reason}) after {len(outcome.attempts)} attempts that "
+            f"cost ${spent}"
+        )

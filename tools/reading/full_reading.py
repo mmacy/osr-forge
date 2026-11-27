@@ -139,6 +139,9 @@ class PageRead:
     stand_in: bool = False
     """The answer is the answer key's, standing in for a request a dry run doesn't send."""
 
+    missing: bool = False
+    """The store has no outcome for the read and the run didn't get one, as against an outcome without an answer."""
+
     label_of: dict[str, str] = field(default_factory=dict)
     """Each region label's region id."""
 
@@ -314,7 +317,7 @@ def read_page(page: Page, settings: FullRunSettings, sources: Sources, stand_in:
     label_of = {region.label: region.region_id for region in labels}
     if outcome is None:
         if stand_in is None:
-            return PageRead(page=page, answer=None, label_of=label_of)
+            return PageRead(page=page, answer=None, label_of=label_of, missing=True)
         return PageRead(page=page, answer=key_page_answer(page, stand_in), stand_in=True, label_of=label_of)
     return PageRead(page=page, answer=outcome.get("answer"), label_of=label_of)
 

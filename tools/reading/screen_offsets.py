@@ -24,7 +24,7 @@ from osrforge.tracing._registration_halves import align
 from osrforge.tracing._registration_ink import ink_image, read_darkness
 from osrforge.tracing.registration import _INK, GAP_TOLERANCE, OFFSET_CANDIDATES, register_image
 
-from .claude_run import RequestCap, ask, make_provider
+from .claude_run import RequestCap, ask, make_provider, stop_unless_final
 from .maps import load_rgb
 from .offsets import HalfPairInput, check_offset, offset_kind, offset_request
 
@@ -102,6 +102,7 @@ def main(argv: list[str] | None = None) -> int:
                 path = args.out / "offset" / model / effort / f"{pair_id}{args.tag}.json"
                 if not path.exists():
                     outcome = ask(provider, offset_request(kind, pair), check_offset, cap)
+                    stop_unless_final(outcome)
                     record = outcome.to_json() | {
                         "columns": list(columns),
                         "gaps": list(pair.gaps),

@@ -31,11 +31,19 @@ Run from the osr-forge checkout. `R` is the results directory and `P` the commer
 
 `--dry-run` sends nothing: it reads with every stored answer, lets the answer key's whole-page answer stand in where
 none is stored, and estimates the requests and dollars each map still needs. `--claude live` needs
-`OSRFORGE_CLAUDE_LEDGER` to name the settings' ledger, and is held to the settings' cap on that ledger's `reading-`
-entries. `--claude-for <member>` keeps Claude to the named members' maps and pages (and the real pairs), so a run
-within the cap can take the members in an order. `--clef local` asks local Clef-flash and, for a question it fails
-on, hosted Clef-flash within the settings' hosted spend (`--clef local-only` without the fallback). Hosted Clef needs
-`OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login.
+`OSRFORGE_CLAUDE_LEDGER` to name the settings' ledger, is held to the settings' cap on that ledger's `reading-`
+entries, and refuses `--only`, `--stand-in`, and `--clef fake`, each of which would choose items no run of every
+member asks. `--claude-for <member>` keeps Claude's item requests and offset picks to the named members' maps and
+pairs (and the real pairs), so a run within the cap can take the members in an order. Whole-page reads go for every
+page whatever it names (`run`'s phases). `--clef local` asks local Clef-flash and, for a question it fails on by
+itself, hosted Clef-flash within the settings' hosted spend over every invocation (`ClefSource`; `--clef local-only`
+without the fallback). Hosted Clef needs `OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login,
+checked at the start.
+
+A request that goes wrong keeps its paid attempts in the store (`full_store`), and a failure that may pass stops the
+run in order: nothing more is sent, and the report is still written. `main` exits with status 1 when the run stopped,
+held a live run's item requests back, or its rows or a ledger check don't agree. One run at a time holds `--out`
+(`take_lock`).
 """
 
 import argparse
@@ -61,6 +69,7 @@ from .full_reading import (
     MapReading,
     PageRead,
     Pick,
+    asked_edges,
     calibrate,
     choose_items,
     clef_edges,
@@ -80,9 +89,10 @@ from .full_reading import (
 from .full_score import entrance_on_level, level_documents, resolve_member, summary
 from .full_seed import seed_claude, seed_clef_exported, seed_clef_stores
 from .full_settings import FullRunSettings, load_settings
-from .full_store import ORIGINS, ClaudeStore, ClefAnswer, ClefStore, Sources
+from .full_store import ORIGINS, Charged, ClaudeStore, ClefAnswer, ClefStore, RunStopped, Sources
 
 __all__ = [
+    "ClefSource",
     "RunResult",
     "classifier_trace",
     "estimate",
@@ -91,6 +101,8 @@ __all__ = [
     "main",
     "make_sources",
     "run",
+    "run_failures",
+    "take_lock",
 ]
 
 
@@ -145,6 +157,16 @@ def run(
 ) -> RunResult:
     """Read, resolve, score, and check every member.
 
+    The run goes in phases, so the requests a run sends are the ones a run of every member would send:
+
+    1. Every page's whole-page read, the ink, and Clef on every map's edges, whatever `sources.claude_owners` says.
+    2. The calibration, fitted on every map phase 1 read.
+    3. Each map's uncertain items and Claude's judgments of them, then keys from marks. Before this phase, a live
+       Claude source is held from every item request while a page lacks a whole-page outcome or an edge lacks a
+       Clef answer, since items chosen without them aren't the ones a complete run would ask
+       (`Sources.items_held`).
+    4. The offset picks.
+
     Args:
         members: The members.
         halves: The real pairs of halves, which decide the halves rule.
@@ -174,6 +196,12 @@ def run(
             if reading.style is not None:
                 measure_ink(reading)
                 clef_edges(reading, sources, workers)
+    waiting = _waiting_for(page_reads, result.readings)
+    if waiting["pages"] or waiting["edges"]:
+        sources.items_held = (
+            f"{len(waiting['pages'])} pages lack a whole-page outcome and "
+            f"{sum(waiting['edges'].values())} edges lack a Clef answer"
+        )
     calibration = calibrate(list(result.readings.values()))
     real_styles = {run_map.uid: run_map.screen.style for m in members if not m.synthetic for run_map in m.maps}
     measured = (
@@ -208,6 +236,15 @@ def run(
     classifier_levels: dict[tuple[str, str, int], dict[str, Any]] = {}
     for member in members:
         key = member.document()
+        traced[member.id] = {(d.id, lv.number) for d in key.dungeons for lv in d.levels if lv.verdict == "traced"}
+        unread = [page.id for page in member.pages if page_reads[page.id].answer is None]
+        if unread:
+            # A member without its whole-page answers has no reading to resolve, so it gets no scores at all.
+            members_report[member.id] = {
+                "resolution": f"unread: no whole-page answer for {', '.join(unread)}",
+                "unread_pages": unread,
+            }
+            continue
         survey, contents, mapread = load_caches(member.stages)
         readings = {r.run_map.screen.id: r for r in result.readings.values() if r.run_map.member == member.id}
         mine = [pick for pick in picks if pick.spec.member == member.id]
@@ -231,7 +268,6 @@ def run(
             "total": scores.after.halves.total,
             "right": scores.after.halves.right,
         }
-        traced[member.id] = {(d.id, lv.number) for d in key.dungeons for lv in d.levels if lv.verdict == "traced"}
         incomplete = _incomplete(readings.values(), traced[member.id])
         if classifier is not None and not member.synthetic:
             theirs = classifier_trace(member, classifier)
@@ -304,6 +340,9 @@ def run(
         "stand_in_pages": sorted(page for page, read in page_reads.items() if read.stand_in),
         "unread_pages": sorted(page for page, read in page_reads.items() if read.answer is None),
         "unanswered": {name: count for name, count in sorted(unanswered.items()) if count},
+        "waiting_for": waiting,
+        "items_held": sources.items_held if sources.claude is not None and sources.claude_how == "sent" else None,
+        "stopped": sources.stopped,
         "members": members_report,
         "levels": levels_report,
         "pools": pools(levels_report, panels, member_halves, {m.id: m.synthetic for m in members}),
@@ -320,6 +359,19 @@ def run(
         },
     }
     return result
+
+
+def _waiting_for(page_reads: dict[str, PageRead], readings: dict[str, MapReading]) -> dict[str, Any]:
+    """What the item requests wait for: the pages without a whole-page outcome, and each map's edges Clef left
+    unanswered."""
+    edges: dict[str, int] = {}
+    for uid, reading in readings.items():
+        if reading.style is None or reading.floors is None:
+            continue
+        lacking = sum(edge not in reading.clef for edge in asked_edges(reading))
+        if lacking:
+            edges[uid] = lacking
+    return {"pages": sorted(page for page, read in page_reads.items() if read.missing), "edges": edges}
 
 
 def _no_costs() -> dict[str, Any]:
@@ -398,6 +450,12 @@ def _same(one: Pick, other: Pick) -> bool:
 def estimate(result: RunResult, sources: Sources, settings: FullRunSettings, means: dict[str, float]) -> dict[str, Any]:
     """The requests and dollars each map and page still needs, from a run that sent nothing.
 
+    Every figure counts each request key once, so the item requests twin maps share count once, under the map that
+    looked them up first. The item requests' upper bound adds only what Clef's missing answers could add: a map with
+    edges between floor that Clef left unanswered may have each of them as an item, so its item list may grow to
+    `ceil((items + unanswered) / items_per_request)` requests. Maps whose item request keys are the same, twins,
+    count that bound once. A map without such edges adds nothing to the bound.
+
     Args:
         result: The dry run's result.
         sources: Its sources, whose tally counts the requests the stores lack, each once.
@@ -413,16 +471,24 @@ def estimate(result: RunResult, sources: Sources, settings: FullRunSettings, mea
         if entry.origin == "missing":
             per[entry.owner][entry.kind] = per[entry.owner].get(entry.kind, 0) + 1
     unanswered = result.report.get("unanswered", {})
+    groups: dict[tuple[frozenset[str], int], list[str]] = defaultdict(list)
     for uid, reading in result.readings.items():
         if reading.style is None:
             continue
-        extra = unanswered.get(f"{uid} edges between floor", 0)
-        known = per[uid].get("reading-items", 0)
-        per[uid]["reading-items at most"] = max(
-            known, math.ceil((len(reading.items) + extra) / settings.items_per_request)
-        )
         per[uid]["items"] = len(reading.items)
-        per[uid]["reading-items"] = known
+        per[uid].setdefault("reading-items", 0)
+        keys = frozenset(sources.tally.keys.get((uid, "reading-items"), set()))
+        extra = unanswered.get(f"{uid} edges between floor", 0)
+        # A map with no items has no keys: it can't share a twin's requests, so it is its own group.
+        groups[(keys, extra) if keys else (frozenset({uid}), extra)].append(uid)
+    for (_keys, extra), uids in groups.items():
+        known = sum(per[uid]["reading-items"] for uid in uids)
+        items = per[uids[0]]["items"]
+        at_most = max(known, math.ceil((items + extra) / settings.items_per_request)) if extra else known
+        per[uids[0]]["reading-items at most"] = at_most
+        for uid in uids[1:]:
+            per[uid]["reading-items at most"] = 0
+            per[uid]["shares its item requests with"] = uids[0]
     totals: Counter[str] = Counter()
     for counts in per.values():
         for kind, count in counts.items():
@@ -501,10 +567,12 @@ def make_sources(args: argparse.Namespace, settings: FullRunSettings, members: S
     """The stores and the sources the arguments name.
 
     Raises:
-        SystemExit: If a live Claude run's provider would write to another ledger than the settings', or the local
-            server names another model for `clef-flash`.
+        SystemExit: If a live Claude run's provider would write to another ledger than the settings', hosted Clef's
+            settings are missing, or the local server names another model for `clef-flash`.
     """
     clef_store = ClefStore(args.out / "clef.jsonl")
+    if clef_store.torn is not None:
+        print(f"the Clef store's last line was torn, and is dropped: {clef_store.torn[:80]}", flush=True)
     claude_store = ClaudeStore(args.out / "claude")
     sources = Sources(clef_store=clef_store, claude_store=claude_store)
     maps = {run_map.uid: run_map.screen for member in members for run_map in member.maps}
@@ -533,7 +601,7 @@ def make_sources(args: argparse.Namespace, settings: FullRunSettings, members: S
 
         sources.claude, sources.claude_how = live_claude, "sent"
     if args.clef in ("local", "local-only", "hosted"):
-        sources.clef = clef_source(args.clef, settings)
+        sources.clef = ClefSource(args.clef, settings)
         if args.clef != "local-only" and settings.hosted_model != "clef-flash":
             sources.clef_alternates = (settings.hosted_model,)
     return sources
@@ -543,65 +611,132 @@ HOSTED_LABEL = "reading full run"
 """The run label of the full run's entries on the Clef ledger."""
 
 
-def clef_source(mode: str, settings: FullRunSettings) -> Any:
+class ClefSource:
     """Local Clef-flash with hosted Clef-flash behind it (`local`), local alone (`local-only`), or hosted alone.
 
-    The hosted provider is made on its first question, held to the settings' hosted spend on the Clef ledger, where it
-    keeps one entry for the run (`HOSTED_LABEL`) and adds each request's settled cost to it. Hosted questions go one
-    at a time, so each answer's dollars are what its question added to the run's entries. Each answer comes back with
-    the request actually sent, so the store files it under that request's key.
+    Local answers first. A question local fails on by itself (an HTTP error, a 5xx past its retries, or an answer
+    that can't be read) goes to hosted, or, under `local-only`, stays unanswered. A failure that isn't the question's
+    (the connection refused or lost, or a timeout, which says the server is down or hung) stops the run, because
+    every later question would fail the same way.
+
+    Hosted is held to the settings' hosted spend over every invocation of the full run: the spend left is the
+    setting less every `HOSTED_LABEL` entry on the Clef ledger, so a restart doesn't get the spend afresh. The
+    provider keeps one entry for this invocation and adds each request's settled cost to it, and its stop is the
+    ledger's spend now plus the spend left. Once the stop refuses a question, that question and every later one that
+    would go to hosted stay unanswered, and the run goes on. A hosted failure that charged for a question stops the
+    run, with the charge counted. Hosted questions go one at a time, so each answer's dollars are what its question
+    added to the run's entries. Each answer comes back with the request actually sent, so the store files it under
+    that request's key.
+
+    Raises:
+        SystemExit: On construction, if hosted's settings are missing (`OSRFORGE_CLEF_ACCOUNT_ID`,
+            `OSRFORGE_CLEF_LEDGER`, or a token), or the local server names another model for `clef-flash`.
     """
-    import threading
 
-    from osrforge.errors import ProviderError
+    def __init__(self, mode: str, settings: FullRunSettings) -> None:
+        """Check the backends' settings; send nothing."""
+        import threading
 
-    from .hosted_exported import for_model
+        from osrforge.errors import ProviderError
 
-    hosted: list[tuple[Any, Path]] = []
-    one_at_a_time = threading.Lock()
+        self.mode = mode
+        self.settings = settings
+        self.hosted_spent_out: str | None = None
+        """Why hosted answers no more questions, or `None` while it may."""
 
-    def hosted_provider() -> tuple[Any, Path]:
-        if not hosted:
-            from osrforge.providers.clef import ClefProvider, ClefSettings
+        self._hosted: Any = None
+        self._one_at_a_time = threading.Lock()
+        self._local: Any = None
+        if mode != "hosted":
+            from osrforge.providers.clef_local import LocalClefProvider, LocalClefSettings
+
+            local_settings = LocalClefSettings.from_env()
+            if local_settings.models.get("clef-flash") != "clef-flash":
+                raise SystemExit(
+                    f"the local server names {local_settings.models.get('clef-flash')!r} for clef-flash, and the run "
+                    "files local answers under the clef-flash request's key: unset OSRFORGE_CLEF_LOCAL_MODEL"
+                )
+            self._local = LocalClefProvider(local_settings)
+        self._hosted_settings: Any = None
+        if mode != "local-only":
+            from osrforge.providers.clef import ClefSettings
+
+            try:
+                self._hosted_settings = ClefSettings.from_env()
+            except ProviderError as error:
+                raise SystemExit(f"hosted Clef can't run: {error}") from None
+
+    @property
+    def ledger(self) -> Path | None:
+        """The Clef ledger hosted writes to, or `None` without hosted."""
+        return None if self._hosted_settings is None else self._hosted_settings.ledger_path
+
+    def hosted_spend_left(self) -> float:
+        """The hosted spend the settings leave over every full run's entries on the Clef ledger."""
+        assert self.ledger is not None
+        spent = ledger_snapshot(self.ledger, HOSTED_LABEL, "usd")["usd"]
+        return round(self.settings.hosted_spend_usd - spent, 6)
+
+    def _hosted_provider(self) -> Any:
+        if self._hosted is None:
+            from osrforge.providers.clef import ClefProvider
 
             from .clefask import capped_stop
 
-            base = ClefSettings.from_env()
-            stop = capped_stop(base.ledger_path, base.ledger_stop_usd, settings.hosted_spend_usd)
-            provider = ClefProvider(base.model_copy(update={"run_label": HOSTED_LABEL, "ledger_stop_usd": stop}))
-            hosted.append((provider, base.ledger_path))
-        return hosted[0]
+            base = self._hosted_settings
+            left = self.hosted_spend_left()
+            if left <= 0:
+                return None
+            stop = capped_stop(base.ledger_path, base.ledger_stop_usd, left)
+            self._hosted = ClefProvider(base.model_copy(update={"run_label": HOSTED_LABEL, "ledger_stop_usd": stop}))
+        return self._hosted
 
-    def ask_hosted(request: Any) -> ClefAnswer:
-        sent = for_model(request, settings.hosted_model)  # type: ignore[arg-type]
-        with one_at_a_time:
-            provider, ledger = hosted_provider()
-            before = ledger_snapshot(ledger, HOSTED_LABEL, "usd")["usd"]
-            response = provider.decide(sent)
-            usd = round(ledger_snapshot(ledger, HOSTED_LABEL, "usd")["usd"] - before, 6)
+    def ask_hosted(self, request: Any) -> ClefAnswer | Charged | None:
+        """Hosted's answer, a charge without one, or `None` once the hosted spend is used up."""
+        from osrforge.errors import LedgerStopError, ProviderError
+
+        from .hosted_exported import for_model
+
+        sent = for_model(request, self.settings.hosted_model)  # type: ignore[arg-type]
+        with self._one_at_a_time:
+            if self.hosted_spent_out is not None:
+                return None
+            provider = self._hosted_provider()
+            if provider is None:
+                self.hosted_spent_out = (
+                    f"the full run's hosted spend of ${self.settings.hosted_spend_usd} is used up on the Clef ledger"
+                )
+                return None
+            assert self.ledger is not None
+            before = ledger_snapshot(self.ledger, HOSTED_LABEL, "usd")["usd"]
+            try:
+                response = provider.decide(sent)
+            except LedgerStopError as error:
+                self.hosted_spent_out = f"the hosted spend left is used up: {error}"
+                return None
+            except ProviderError as error:
+                usd = round(ledger_snapshot(self.ledger, HOSTED_LABEL, "usd")["usd"] - before, 6)
+                return Charged(sent, usd, f"hosted Clef failed: {error}", stop=True)
+            usd = round(ledger_snapshot(self.ledger, HOSTED_LABEL, "usd")["usd"] - before, 6)
         return ClefAnswer(dict(response.probabilities), sent, "hosted", usd)
 
-    if mode == "hosted":
-        return lambda request, about: ask_hosted(request)
-    from osrforge.providers.clef_local import LocalClefProvider, LocalClefSettings
+    def __call__(self, request: Any, about: dict[str, Any]) -> ClefAnswer | Charged | None:
+        """Answer a question, as the class says."""
+        from osrforge.errors import ProviderError
 
-    local_settings = LocalClefSettings.from_env()
-    if local_settings.models.get("clef-flash") != "clef-flash":
-        raise SystemExit(
-            f"the local server names {local_settings.models.get('clef-flash')!r} for clef-flash, and the run files "
-            "local answers under the clef-flash request's key: unset OSRFORGE_CLEF_LOCAL_MODEL"
-        )
-    local = LocalClefProvider(local_settings)
-
-    def ask(request: Any, about: dict[str, Any]) -> ClefAnswer:
+        if self._local is None:
+            return self.ask_hosted(request)
         try:
-            return ClefAnswer(dict(local.decide(request).probabilities), request, "local")
-        except ProviderError:
-            if mode == "local-only":
-                raise
-            return ask_hosted(request)
-
-    return ask
+            return ClefAnswer(dict(self._local.decide(request).probabilities), request, "local")
+        except ProviderError as error:
+            if isinstance(error.__cause__, OSError):
+                raise RunStopped(
+                    f"local Clef can't be reached ({error}); start the server and run again, and the run asks only "
+                    "what it lacks"
+                ) from error
+            if self.mode == "local-only":
+                return None
+            return self.ask_hosted(request)
 
 
 def seed(
@@ -636,7 +771,58 @@ def seed(
     return filed
 
 
+LOCK = "full-run.lock"
+"""The file in `--out` that says a full run is going there."""
+
+
+def take_lock(out: Path) -> Path:
+    """Claim `--out` for this invocation, so two runs never send at once and read each other's ledger entries.
+
+    A lock whose process is gone, as after a crash, is taken over.
+
+    Raises:
+        SystemExit: If another full run holds the lock.
+    """
+    path = out / LOCK
+    for _ in range(2):
+        try:
+            handle = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                holder = int(path.read_text().strip() or 0)
+            except OSError, ValueError:
+                holder = 0
+            if holder and _alive(holder):
+                raise SystemExit(
+                    f"another full run (process {holder}) holds {path}: wait for it to finish. If no run is going, "
+                    "delete the file."
+                ) from None
+            path.unlink(missing_ok=True)
+            continue
+        with os.fdopen(handle, "w") as lock:
+            lock.write(f"{os.getpid()}\n")
+        return path
+    raise SystemExit(f"{path} keeps coming back: another full run is starting there")
+
+
+def _alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Run the full run the arguments name.
+
+    Returns:
+        0 when the run finished and its figures check, and 1 when it stopped before the end (a transient failure,
+        the cap, a ledger's stop, or local Clef gone), held a live run's item requests back, its rows don't add up
+        to its totals, or a ledger check disagrees. The report is written either way.
+    """
     parser = argparse.ArgumentParser(description="The reading measurement's full run.")
     parser.add_argument("--settings", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
@@ -647,7 +833,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--synthetic", type=Path, default=None)
     parser.add_argument("--screening", type=Path, default=None, help="the screening's results directory, to seed from")
     parser.add_argument("--classifier", type=Path, default=None, help="the classifier's readings, for the bar")
-    parser.add_argument("--only", action="append", default=None, help="a member id to run, of several")
+    parser.add_argument("--only", action="append", default=None, help="a member id to run, of several (not live)")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--stand-in", action="store_true", help="let the key's whole-page answer stand in where none is stored"
@@ -655,7 +841,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--claude", choices=("none", "fake", "live"), default="none")
     parser.add_argument("--clef", choices=("none", "fake", "local", "local-only", "hosted"), default="none")
     parser.add_argument(
-        "--claude-for", action="append", default=None, help="a member whose requests Claude answers, of several"
+        "--claude-for",
+        action="append",
+        default=None,
+        help="a member whose item requests and offset picks Claude answers, of several",
     )
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--ledger", type=Path, default=None, help="the Claude ledger a dry run counts the cap on")
@@ -663,6 +852,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.dry_run and (args.claude != "none" or args.clef != "none"):
         parser.error("a dry run sends nothing: leave --claude and --clef at none")
+    if args.claude == "live" and args.only:
+        parser.error(
+            "--only leaves members out of every calibration, so a live run's item requests wouldn't be the ones a run "
+            "of every member asks: use --claude-for to choose whose item requests go"
+        )
+    if args.claude == "live" and args.clef == "fake":
+        parser.error("--claude live with --clef fake pays for item requests chosen on fake Clef answers")
+    if args.claude == "live" and args.stand_in:
+        parser.error("--stand-in reads with the key's whole-page answers, so a live run's item requests would be wrong")
     fake = args.claude == "fake" or args.clef == "fake"
     marker = args.out / "FAKE"
     stored = (args.out / "clef.jsonl").exists() or (args.out / "claude").exists()
@@ -674,10 +872,29 @@ def main(argv: list[str] | None = None) -> int:
     members = real_members(args.maps, args.pages, args.keys) if args.maps else []
     if args.synthetic is not None:
         members += synthetic_members(args.synthetic)
+    known = {member.id for member in members}
+    unknown = sorted({*(args.only or ()), *(args.claude_for or ())} - known)
+    if unknown:
+        parser.error(f"no member is named {', '.join(unknown)}")
     if args.only:
         members = [member for member in members if member.id in args.only]
     halves = [spec for path in args.halves for spec in load_halves(path) if spec.real]
     args.out.mkdir(parents=True, exist_ok=True)
+    lock = take_lock(args.out)
+    try:
+        return _main(args, settings, members, halves, fake, marker)
+    finally:
+        lock.unlink(missing_ok=True)
+
+
+def _main(
+    args: argparse.Namespace,
+    settings: FullRunSettings,
+    members: list[Member],
+    halves: list[HalvesSpec],
+    fake: bool,
+    marker: Path,
+) -> int:
     if fake:
         marker.write_text("The answers here include fake ones made from the answer keys.\n")
     sources = make_sources(args, settings, members)
@@ -685,15 +902,15 @@ def main(argv: list[str] | None = None) -> int:
         chosen = [member for member in members if member.id in args.claude_for]
         sources.claude_owners = {
             *(run_map.uid for member in chosen for run_map in member.maps),
-            *(page.id for member in chosen for page in member.pages),
             *(spec.id for member in chosen for spec in member.halves),
             *(spec.id for spec in halves),
         }
     seeded = seed(sources, members, halves, args.screening, settings)
     print(f"seeded: {json.dumps(seeded)}", flush=True)
     claude_ledger = settings.ledger if args.claude == "live" else None
-    clef_ledger_path = os.environ.get("OSRFORGE_CLEF_LEDGER", "").strip()
-    clef_ledger = Path(clef_ledger_path).expanduser() if args.clef in ("local", "hosted") and clef_ledger_path else None
+    clef_ledger = sources.clef.ledger if isinstance(sources.clef, ClefSource) else None
+    if isinstance(sources.clef, ClefSource) and clef_ledger is not None:
+        print(f"hosted Clef spend left: ${sources.clef.hosted_spend_left()}", flush=True)
     before_claude = ledger_snapshot(claude_ledger, LABEL_PREFIX, "cost_usd") if claude_ledger else None
     before_clef = ledger_snapshot(clef_ledger, HOSTED_LABEL, "usd", "requests") if clef_ledger else None
     result = run(
@@ -707,6 +924,7 @@ def main(argv: list[str] | None = None) -> int:
         classifier=args.classifier,
     )
     result.report["seeded"] = seeded
+    result.report["hosted_spent_out"] = sources.clef.hosted_spent_out if isinstance(sources.clef, ClefSource) else None
     result.report["ledger_check"] = ledger_check(sources, (claude_ledger, before_claude), (clef_ledger, before_clef))
     name = "dry-run" if args.dry_run else f"report-claude-{args.claude}-clef-{args.clef}"
     name += "-stand-in" if args.stand_in and not args.dry_run else ""
@@ -716,6 +934,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.ledger is not None:
             sent = RequestCap(args.ledger.expanduser(), settings.cap).sent()
             result.report["estimate"]["cap"] = {"cap": settings.cap, "sent": sent, "left": settings.cap - sent}
+    failures = run_failures(result.report)
+    result.report["failures"] = failures
     (args.out / f"{name}.json").write_text(json.dumps(result.report, indent=1) + "\n")
     for member_id, trace in result.traces.items():
         safe = member_id.replace("/", "__")
@@ -727,7 +947,23 @@ def main(argv: list[str] | None = None) -> int:
 
         for path in milestone_pictures(result, members, args.out / "pictures", settings.milestone):
             print(f"picture: {path}")
-    return 0
+    return 1 if failures else 0
+
+
+def run_failures(report: dict[str, Any]) -> list[str]:
+    """What makes a run exit non-zero, in words: a stop, held item requests, rows that don't add up, a ledger check
+    that disagrees."""
+    failures = []
+    if report.get("stopped"):
+        failures.append(f"the run stopped sending: {report['stopped']}")
+    if report.get("items_held"):
+        failures.append(f"no item request was sent, because {report['items_held']}")
+    if not report["costs"]["rows_add_up"]:
+        failures.append("the cost rows don't add up to the run's totals")
+    for part, check in report.get("ledger_check", {}).items():
+        if not check["agree"]:
+            failures.append(f"the {part} ledger gained {check['ledger']}, and the tally counted {check['tally']}")
+    return failures
 
 
 def ledger_check(
@@ -738,8 +974,8 @@ def ledger_check(
     """What this run added to each ledger, beside what its tally says it sent there.
 
     The Claude ledger has an entry per attempt, and the tally counts each sent outcome's attempts. The Clef ledger has
-    an entry per run, counting its requests, and only hosted answers are on it, so the tally's side is the sent Clef
-    answers the store records as hosted.
+    an entry per invocation, counting its requests, and only hosted questions are on it, so the tally's side is the
+    Clef questions hosted charged for: its answers, and its failures that charged.
 
     Args:
         sources: The run's sources, with its tally and stores.
@@ -752,11 +988,7 @@ def ledger_check(
     out: dict[str, Any] = {}
     sent = [entry for entry in sources.tally.entries.values() if entry.origin == "sent"]
     claude_sent = [entry for entry in sent if not entry.kind.startswith("clef")]
-    hosted = [
-        entry
-        for entry in sent
-        if entry.kind.startswith("clef") and (sources.clef_store.record(entry.key) or {}).get("source") == "hosted"
-    ]
+    hosted = [entry for entry in sent if entry.hosted]
     for part, (ledger, before), prefix, cost_key, count_key, counted in (
         ("claude", claude, LABEL_PREFIX, "cost_usd", None, claude_sent),
         ("clef", clef, HOSTED_LABEL, "usd", "requests", hosted),
@@ -778,7 +1010,8 @@ def ledger_check(
 
 
 def print_report(report: dict[str, Any], out: Any) -> None:
-    """The report's figures: members, one line per level, the pools, the bar, and the requests."""
+    """The report's figures: members, one line per level, the pools, the bar, the requests, the ledger checks, what
+    the item requests wait for, and why the run fails, if it does."""
     for member, figures in report["members"].items():
         out.write(f"{member}: {figures['resolution']}\n")
     out.write(
@@ -809,6 +1042,21 @@ def print_report(report: dict[str, Any], out: Any) -> None:
     out.write(f"halves: {json.dumps(report['halves'])}, apart: {report['halves_apart']}\n")
     out.write(f"requests: {json.dumps(report['costs']['requests'])}\n")
     out.write(f"cost rows add up: {report['costs']['rows_add_up']}\n")
+    for part, check in report.get("ledger_check", {}).items():
+        out.write(
+            f"{part} ledger check: ledger {json.dumps(check['ledger'])}, tally {json.dumps(check['tally'])}, "
+            f"agree: {check['agree']}\n"
+        )
+    waiting = report.get("waiting_for") or {}
+    if waiting.get("pages") or waiting.get("edges"):
+        out.write(
+            f"waiting for: whole-page outcomes of {json.dumps(waiting['pages'])}, Clef answers on "
+            f"{json.dumps(waiting['edges'])} edges\n"
+        )
+    if report.get("hosted_spent_out"):
+        out.write(f"hosted Clef: {report['hosted_spent_out']}\n")
+    for failure in report.get("failures", ()):
+        out.write(f"FAILED: {failure}\n")
     if "estimate" in report:
         estimate_ = report["estimate"]
         out.write(f"estimate totals: {json.dumps(estimate_['totals'])}\n")
