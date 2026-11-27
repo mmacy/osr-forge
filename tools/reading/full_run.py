@@ -5,12 +5,14 @@ it with the screening's settings (`full_reading`, `full_settings`), resolves eac
 the reference resolution script (`full_score.resolve_member`), scores the trace against its key with `score_trace`,
 and runs the structural checks (`full_checks`). The report gives the following:
 
-- every scorer family per level, over every cell (`after`) and without the partly-floor cells (`after_whole`), on the
-  level's own documents (`full_score.level_documents`). Every calibration a map is read with was fitted without the
-  maps cut from its image, so every score is a held-out score.
-- every family pooled by style, real maps apart from synthetic ones, each drawn cell, edge, level, and pair once
-  (`full_pools.pools`), and the bar each style of the answer keys must meet, the stage beside the classifier
-  (`full_pools.bar_table`)
+- every scorer family per level, over every cell (`after`) and without the partly-floor cells (`after_whole`): the
+  reading families on the level's part of each panel (`full_pools.panel_scores`), and the rest on the level's own
+  documents (`full_score.level_documents`). Every calibration a map is read with was fitted without the maps cut from
+  its image, so the calibration's fit is held out. The passable thresholds and ε were chosen by the screening on the
+  same answer keys, so they are not.
+- every family per member, split by style (`full_pools.member_by_style`), and pooled by style, real maps apart from
+  synthetic ones, each drawn cell, edge, item, region, level, pair, and dungeon once (`full_pools.pools`), and the
+  bar each style of the answer keys must meet, the stage beside the classifier (`full_pools.bar_table`)
 - whether each level needs no repair by the checks, beside the same checks on the answer key
 - whether each level's reading is complete: the items Claude left without an answer, and the edges between floor
   that became walls for want of a Clef answer, both counted on the level
@@ -50,7 +52,7 @@ from pathlib import Path
 from typing import Any
 
 from osrforge.tracing.score import score_trace
-from osrforge.tracing.truth import GeometryTruth, Panel
+from osrforge.tracing.truth import GeometryTruth, Panel, parse_cell
 
 from .claude_run import LABEL_PREFIX, RequestCap
 from .full_checks import LevelChecks, check_document
@@ -104,12 +106,18 @@ class RunResult:
     checks: dict[str, list[LevelChecks]] = field(default_factory=dict)
 
 
+def _letter_at(cells: tuple[str, ...], text: str) -> str:
+    x, y = parse_cell(text)
+    return cells[y][x]
+
+
 def on_key_reading(member: Member, panels: dict[str, Panel]) -> GeometryTruth | None:
     """A reading's cells and edges resolved on the key's reading of a real member.
 
     The document is the key's reading (its regions, outlines, marks, symbols, partly-floor cells, and half pairs) with
     each panel's cells and edges replaced by the reading's panel of the same id, resolved by the reference resolution
-    script with the member's caches.
+    script with the member's caches. A mark's leader line that ends on a cell the reading makes rock is dropped,
+    because the truth format lets a leader end only on floor or water, and the mark keeps its own cell.
 
     Args:
         member: The member.
@@ -126,7 +134,13 @@ def on_key_reading(member: Member, panels: dict[str, Panel]) -> GeometryTruth | 
         theirs = panels.get(panel.id)
         if theirs is None or (theirs.width, theirs.height) != (panel.width, panel.height):
             return None
-        replaced.append(panel.model_copy(update={"cells": theirs.cells, "edges": theirs.edges}))
+        marks = tuple(
+            mark
+            if mark.leader_to is None or _letter_at(theirs.cells, mark.leader_to) in ".~"
+            else mark.model_copy(update={"leader_to": None})
+            for mark in panel.marks
+        )
+        replaced.append(panel.model_copy(update={"cells": theirs.cells, "edges": theirs.edges, "marks": marks}))
     document = GeometryTruth.model_validate(reading_of(key).model_copy(update={"panels": tuple(replaced)}).model_dump())
     survey, contents, mapread = load_caches(member.stages)
     trace, _how = resolve_member(document, survey, contents, mapread)
@@ -241,7 +255,7 @@ def run(
             "after_whole": summary(scores.after_whole),
         }
         panels[member.id] = panel_scores(trace, key)
-        by_style[member.id] = member_by_style(trace, key, panels[member.id])
+        by_style[member.id] = member_by_style(trace, key, panels[member.id], scores.after)
         members_report[member.id]["by_style"] = by_style[member.id]
         members_report[member.id]["panels"] = panels[member.id]
         traced[member.id] = {(d.id, lv.number) for d in key.dungeons for lv in d.levels if lv.verdict == "traced"}

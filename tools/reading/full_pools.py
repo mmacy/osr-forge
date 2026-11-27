@@ -83,7 +83,6 @@ from osrforge.tracing.score import (
     _joins,
     _letter,
     _shift,
-    score_trace,
 )
 from osrforge.tracing.truth import DOOR_LETTERS, PASSABLE_LETTERS, GeometryTruth, Level, Panel, parse_cell, rotate_cell
 
@@ -329,13 +328,16 @@ def _placement(total: int, right: int, extra: int) -> dict[str, int]:
     return {"total": total, "right": right, "extra": extra}
 
 
-def member_by_style(trace: GeometryTruth, key: GeometryTruth, panels: Mapping[str, dict[str, Any]]) -> dict[str, Any]:
+def member_by_style(
+    trace: GeometryTruth, key: GeometryTruth, panels: Mapping[str, dict[str, Any]], whole: ScoreSet
+) -> dict[str, Any]:
     """A member's whole score split by style, each item counted once, so the styles add up to the whole score.
 
     Args:
         trace: The member's trace.
         key: Its answer key.
         panels: Its `panel_scores`.
+        whole: Its whole score over every cell, `score_trace(trace, key).after`.
 
     Returns:
         By style: the `after` and `after_whole` families, in `full_score.summary`'s form.
@@ -353,7 +355,6 @@ def member_by_style(trace: GeometryTruth, key: GeometryTruth, panels: Mapping[st
         if figures["after"] is not None:
             _add(style_part(figures["style"])["after"], figures["after"])
             _add(style_part(figures["style"])["after_whole"], figures["after_whole"])
-    whole = score_trace(trace, key).after
     comparison = _Comparison(_Document(trace), _Document(key))
     compared = comparison.compared
     styles = {level_id: level_style(key, *level_id) for level_id in compared}

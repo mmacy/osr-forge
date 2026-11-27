@@ -218,8 +218,9 @@ def test_a_pool_counts_each_region_level_passage_and_dungeon_once_by_style() -> 
     key = member.document()
     trace = _fallen_back(key, "orc-lair-a", 1)
     panels = panel_scores(trace, key)
-    split = member_by_style(trace, key, panels)
-    whole = summary(score_trace(trace, key).after)
+    score = score_trace(trace, key).after
+    split = member_by_style(trace, key, panels, score)
+    whole = summary(score)
     for family in whole:
         assert _added(*(styles["after"].get(family, {}) for styles in split.values())) == _flat(whole[family]), family
     cave_levels = sum(1 for d in key.dungeons for lv in d.levels if lv.panels and lv.panels[0].panel == "jn1-p038")
@@ -304,3 +305,22 @@ def test_a_milestone_picture_veils_the_cells_its_levels_row_does_not_score() -> 
         veiled = fault_picture(image.convert("RGB"), key, "jn1-p038", "hobgoblin-lair", 1, checks, owned)
     assert veiled.size == plain.size
     assert np.asarray(veiled, dtype=float).mean() > np.asarray(plain, dtype=float).mean() + 1
+
+
+def test_the_keys_reading_drops_a_leader_that_ends_on_a_cell_the_reading_makes_rock() -> None:
+    from tools.reading.full_reading import bare_edges_cleared
+    from tools.reading.full_run import on_key_reading
+
+    from osrforge.tracing.truth import parse_cell
+
+    member = _caves()
+    key = member.document()
+    panel = next(p for p in key.panels if p.scale_feet == 10 and any(m.leader_to for m in p.marks))
+    mark = next(m for m in panel.marks if m.leader_to)
+    x, y = parse_cell(mark.leader_to or "")
+    cells = list(panel.cells)
+    cells[y] = cells[y][:x] + "#" + cells[y][x + 1 :]
+    rock = panel.model_copy(update={"cells": tuple(cells), "edges": bare_edges_cleared(tuple(cells), panel.edges)})
+    resolved = on_key_reading(member, {p.id: rock if p.id == panel.id else p for p in key.panels})
+    assert resolved is not None
+    assert all(m.leader_to != mark.leader_to or m.text != mark.text for m in resolved.panel(panel.id).marks)
