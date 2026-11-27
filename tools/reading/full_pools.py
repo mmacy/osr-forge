@@ -1,14 +1,18 @@
 """The full run's panels split by level, its pools by style, and the bar each style must meet.
 
 **Panels split by level.** A level row's reading families (floor, edges with cave edges apart, and doors) count the
-cells and edges of its panels that the key gives the level, so the rows on a panel two levels share add up to the
-panel's score. `panel_owners` gives each cell of a panel, on the scorer's 10-foot grid, the traced level of the key
-that owns it: on a panel one traced level of the key uses, that level owns every cell, and on a shared panel a level
-owns the cells its grid in the key makes floor or water, mapped to the panel through the level's placement. A cell
-no traced level owns belongs to *no level*: on page 38 these are the ravine floor between the lairs and the rock. An
-edge belongs to the owner of its west or north cell, or to the owner of its east or south cell when no level owns
-the first, so an edge on the boundary between two levels' cells counts for the level west or north of it. A trace
-cell or edge belongs to the owner of the key's cell or edge it lands on after the scorer's alignment.
+cells and edges of its panels that the key gives the level. So the rows on a panel that two levels share add up to
+the panel's score. The owners are these:
+
+- `panel_owners` gives each cell of a panel, on the scorer's 10-foot grid, the traced level of the key that owns it.
+  On a panel that one traced level of the key uses, that level owns every cell. On a shared panel, a level owns the
+  cells its grid in the key makes floor or water, mapped to the panel through the level's placement.
+- A cell that no traced level owns belongs to *no level*. On page 38 these are the ravine floor between the lairs
+  and the rock.
+- An edge belongs to the owner of its west or north cell, or to the owner of its east or south cell when no level
+  owns the first. So an edge on the boundary between two levels' cells counts for the level west or north of it.
+- A trace cell or edge belongs to the owner of the key's cell or edge it lands on after the scorer's alignment.
+
 `panel_scores` scores each panel whole with `traces.score_panel` and splits the same comparison by owner, so a
 panel's parts add up to its whole score.
 
