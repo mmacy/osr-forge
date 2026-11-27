@@ -1,39 +1,45 @@
 """The full run's answers: stores keyed by each request's key, where an answer comes from, and what each request cost.
 
 Every Clef answer and Claude outcome the run uses is filed under the key of the request that was sent
-(`DecisionRequest.key()`, and `ReadingRequest.key(model)` for the kind's model), so an answer is reused only for a
-request whose pixels, text, options, model, and parameters are the same:
+(`DecisionRequest.key()`, and `ReadingRequest.key(model)` for the kind's model). So an answer is reused only for a
+request whose pixels, text, options, model, and parameters are the same.
 
 - [`ClefStore`][tools.reading.full_store.ClefStore] is a JSON-lines file of `{key, map, item, probabilities, source,
-  usd}`. A process that dies while it appends leaves a torn last line, which the next load reports and drops.
+  usd}`. A process that dies while it appends can leave a torn last line, which the next load reports and drops. A
+  last line that lacks only its newline is kept, and the load writes the file again so the next answer starts on a
+  line of its own.
 - [`ClaudeStore`][tools.reading.full_store.ClaudeStore] holds one JSON file per request, `<kind>/<key>.json`, with the
-  final outcome (its attempts, answer, and cost) and where it came from, written to a temporary file and renamed into
-  place. A request whose attempts ended without a final outcome (a transient failure, the cap, or the ledger's stop)
-  keeps those attempts in `<kind>/<key>.pending.json` until a later invocation sends it again. The final outcome then
-  lists them as `earlier_attempts`, and its `cost_usd` includes theirs.
+  final outcome (its attempts, answer, and cost) and where it came from. Each file is written to a temporary file
+  and renamed into place. A request whose attempts ended without a final outcome keeps them in
+  `<kind>/<key>.pending.json`, each marked with how it ended, until a later invocation sends the request again. The
+  final outcome then lists them as `earlier_attempts`, and its `cost_usd` includes theirs.
+
+A final outcome is an answer, an answer malformed after the retry, or a refusal of a request whose pending attempts
+already hold a refusal. A first refusal, a failure that may pass, the cap, the ledger's stop, and Ctrl-C aren't final
+(see [`Sources.read`][tools.reading.full_store.Sources.read]).
 
 The stores are seeded with the screening's and the answer-key pass's stored answers (see `full_seed`). A request the
 stores lack goes to the run's [`Sources`][tools.reading.full_store.Sources]: live (local Clef-flash with hosted
 Clef-flash behind it, or Claude within the cap), fake (made by a function, for tests and offline runs), or nothing,
 when a dry run only counts what it would ask.
 
-The [`Tally`][tools.reading.full_store.Tally] counts each request once, by key, however many maps look it up: the
-first lookup names its owner (a map, a page, or a pair) and what it is about, and a later lookup that has an answer
-replaces a first one that counted the request missing. Each request has an origin:
+The [`Tally`][tools.reading.full_store.Tally] counts each request once, by key, however many maps look it up. The
+first lookup names the request's owner (a map, a page, or a pair) and what it is about. A later lookup that has an
+answer replaces a first one that counted the request missing. Each request has an origin:
 
 - `sent`: asked of a live backend by this run, with the ledger entries it made (a Claude outcome's attempts) and
   what they cost
 - `full run`: answered by an earlier invocation of the full run, at what it cost then
 - `screening` or `answer-key pass`: reused from the stores those passes left, at what it cost then
 - `fake`: made from the answer key, at no cost
-- `missing`: neither stored nor asked
+- `missing`: neither stored nor asked, or refused by the cap or the ledger's stop before its first attempt
 
-A request's attempts that an earlier invocation paid for and that ended without a final outcome are counted apart,
-under the origin `full run` with no answer, so this invocation's `sent` figures are what it added to the ledger.
+The attempts that an earlier invocation paid for at a request, without a final outcome, are counted apart, under
+the origin `full run` with no answer. So this invocation's `sent` figures are what it added to the ledger.
 
-Once a source stops the run (`RunStopped`: a transient failure, the cap, a ledger's stop, or the local Clef server
-gone), the sources send nothing more, and every request after it is counted missing, so the run still finishes and
-writes its report.
+Once a source stops the run, the sources send nothing more, and every request after the stop is counted missing, so
+the run still finishes and writes its report. The run stops on a failure that may pass, a first refusal, the cap, a
+ledger's stop, the local Clef server failing (`RunStopped`), or Ctrl-C.
 """
 
 import json
@@ -49,7 +55,7 @@ from typing import Any
 from osrforge.providers.decisions import DecisionRequest
 from osrforge.providers.reading import ReadingRequest
 
-from .claude_run import FINAL_ENDINGS
+from .claude_run import paid_attempts
 
 __all__ = ["ClaudeStore", "ClefAnswer", "ClefStore", "Counted", "RunStopped", "Sources", "Tally", "origin_of"]
 
@@ -115,6 +121,13 @@ class Charged:
     stop: bool
     """The failure stops the run, as against leaving this one question unanswered."""
 
+    requests: int = 1
+    """The requests the Clef ledger counted for it."""
+
+
+CHARGE = "clef_charge"
+"""The attribute a Clef source sets on an exception that isn't a provider error: the `Charged` the ledger shows."""
+
 
 class ClefStore:
     """Clef answers by request key, in a JSON-lines file."""
@@ -126,7 +139,8 @@ class ClefStore:
         self.torn: str | None = None
         """The torn last line the load dropped, or `None`."""
         if path.exists():
-            lines = path.read_text().splitlines()
+            text = path.read_text()
+            lines = text.splitlines()
             for number, line in enumerate(lines, start=1):
                 if not line.strip():
                     continue
@@ -138,8 +152,9 @@ class ClefStore:
                     self.torn = line
                     continue
                 self._answers[record["key"]] = record
-            if self.torn is not None:
-                # A torn line has no newline, so the next answer appended would join it: write the file without it.
+            if self.torn is not None or (text and not text.endswith("\n")):
+                # A last line without its newline, torn or whole, would join the next answer appended: write the
+                # file again, each kept record on a line of its own.
                 write_atomically(path, "".join(json.dumps(record) + "\n" for record in self._answers.values()))
 
     def get(self, key: str) -> dict[str, float] | None:
@@ -304,6 +319,7 @@ class Sources:
             lacks a whole-page outcome or an edge lacks a Clef answer, because an item list fitted on what's missing
             differs from the one the run with them would ask.
         stopped: Why the run stopped sending, or `None` while it sends.
+        refused: The requests this invocation stored with no answer because the API refused them a second time.
     """
 
     clef_store: ClefStore
@@ -316,6 +332,9 @@ class Sources:
     claude_owners: set[str] | None = None
     items_held: str | None = None
     stopped: str | None = None
+    refused: list[str] = field(default_factory=list)
+    """The requests this invocation stored with no answer because they were refused a second time."""
+
     _stop_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
     _pending_here: set[str] = field(default_factory=set, repr=False)
     """The keys this invocation kept pending attempts for, which aren't an earlier invocation's."""
@@ -362,10 +381,16 @@ class Sources:
         except RunStopped as stopped:
             self.stop(str(stopped))
             answer = None
+        except BaseException as error:
+            charge = getattr(error, CHARGE, None)
+            if isinstance(charge, Charged):
+                self._count_charge(charge, owner, kind, about)
+            if not isinstance(error, KeyboardInterrupt) or self.stopped is not None:
+                raise
+            self.stop(f"interrupted (Ctrl-C) during a Clef question about {owner}")
+            answer = None
         if isinstance(answer, Charged):
-            # The ledger counts it, so the tally does too, with no answer; the question itself stays missing.
-            charged = Counted(answer.sent.key() + CHARGED, owner, kind, "sent", 1, answer.usd, about, 0, True)
-            self.tally.add(charged)
+            self._count_charge(answer, owner, kind, about)
             if answer.stop:
                 self.stop(answer.reason)
             answer = None
@@ -377,6 +402,12 @@ class Sources:
         origin = "fake" if answer.source == "fake" else "sent"
         self.tally.add(Counted(key, owner, kind, origin, 1, answer.usd, about, 1, answer.source == "hosted"))
         return answer.probabilities
+
+    def _count_charge(self, charge: Charged, owner: str, kind: str, about: dict[str, Any]) -> None:
+        """Count a charge that brought no answer, as the ledger does; the question itself stays missing."""
+        if charge.requests or charge.usd:
+            counted = Counted(charge.sent.key() + CHARGED, owner, kind, "sent", charge.requests, charge.usd, about, 0)
+            self.tally.add(Counted(**{**counted.__dict__, "hosted": True}))
 
     def decide_many(
         self, asks: Sequence[tuple[DecisionRequest, str, str, str, dict[str, Any]]], workers: int = 1
@@ -392,23 +423,40 @@ class Sources:
         """
         if workers <= 1 or self.clef is None:
             return [self.decide(*ask) for ask in asks]
-        with ThreadPoolExecutor(max_workers=workers) as pool:
-            return list(pool.map(lambda ask: self.decide(*ask), asks))
+        pool = ThreadPoolExecutor(max_workers=workers)
+        try:
+            futures = [pool.submit(self.decide, *ask) for ask in asks]
+            try:
+                return [future.result() for future in futures]
+            except KeyboardInterrupt:
+                if self.stopped is not None:
+                    raise
+                # The questions not yet started see the stop and send nothing, so only the ones in flight finish.
+                self.stop("interrupted (Ctrl-C) during the Clef questions")
+                return [future.result() for future in futures]
+        finally:
+            pool.shutdown(wait=True, cancel_futures=True)
 
     def read(
         self, request: ReadingRequest, check: Callable[[dict[str, Any]], list[str]], owner: str, about: dict[str, Any]
     ) -> dict[str, Any] | None:
         """Claude's outcome for a request, from the store or the source.
 
+        Every attempt that reached the ledger is stored before this returns or raises:
+
+        - An answer, or an answer malformed after the retry, is a final outcome, stored under the request's key.
+        - A refusal of a request whose pending attempts already hold a refusal from an earlier invocation is a final
+          outcome with no answer. The request is never sent again, and the run goes on.
+        - A first refusal, a failure, the cap, or the ledger's stop keeps the attempts as pending and stops the run.
+          A request that ended before its first attempt reached the ledger keeps nothing and is counted missing.
+        - A `KeyboardInterrupt` keeps the attempts as pending and stops the run, unless the run had stopped already,
+          in which case it travels on. Any other exception keeps the attempts as pending and travels on.
+
         Args:
             request: The request, whose kind names its model.
             check: The kind's check of an answer.
             owner: The map, page, or pair the request is about, for the tally.
             about: What the request asks, stored with the outcome and used to place it in the report.
-
-        Every attempt that reached the ledger is stored before this returns: a final outcome (answered, malformed
-        after the retry, or refused) under the request's key, and the attempts of one that isn't as pending, which
-        stops the run.
 
         Returns:
             The outcome's JSON, or `None` when the store lacks a final outcome and the run may not ask, or the
@@ -431,15 +479,28 @@ class Sources:
             self.tally.add(Counted(key, owner, kind.name, "missing", 0, 0.0, about))
             return None
         assert self.claude is not None
-        outcome = self.claude(request, check, about)
         origin = "fake" if self.claude_how == "fake" else "sent"
+        try:
+            outcome = self.claude(request, check, about)
+        except BaseException as error:
+            attempts = paid_attempts(error)
+            self._keep_pending(kind.name, key, owner, origin, attempts, about)
+            if not isinstance(error, KeyboardInterrupt) or self.stopped is not None:
+                raise
+            self.stop(
+                f"interrupted (Ctrl-C) during the {kind.name} request for {owner}; its {len(attempts)} paid "
+                "attempts are kept as pending"
+            )
+            return None
         attempts = outcome.get("attempts") or []
-        if outcome.get("ended") not in FINAL_ENDINGS:
-            self.claude_store.add_pending(kind.name, key, attempts, about)
-            self._pending_here.add(key)
-            usd = _usd(outcome)
-            self.tally.add(Counted(key, owner, kind.name, origin, len(attempts), usd, about, 0))
-            self.stop(f"the {kind.name} request for {owner} ended ({outcome.get('ended')}): {outcome.get('reason')}")
+        ended = outcome.get("ended")
+        refused_before = any(attempt.get("ended") == "refused" for attempt in earlier)
+        if ended is not None and not (ended == "refused" and refused_before):
+            marked = [dict(attempt) | {"ended": ended} for attempt in attempts]
+            if marked:
+                marked[-1]["reason"] = outcome.get("reason")
+            self._keep_pending(kind.name, key, owner, origin, marked, about)
+            self.stop(_stop_reason(kind.name, owner, about, outcome))
             return None
         record = outcome | {"source": "fake" if self.claude_how == "fake" else "asked", "about": about}
         if earlier:
@@ -447,7 +508,30 @@ class Sources:
             record["cost_usd"] = round(_usd(outcome) + sum(float(a.get("cost_usd") or 0.0) for a in earlier), 6)
         self.claude_store.put(kind.name, key, record)
         self.tally.add(Counted(key, owner, kind.name, origin, _attempts(outcome), _usd(outcome), about))
+        if ended == "refused":
+            self.refused.append(
+                f"the {kind.name} request for {owner} was refused again ({outcome.get('reason')}), so it is stored "
+                "with no answer and never sent again"
+            )
         return record
+
+    def _keep_pending(
+        self,
+        kind: str,
+        key: str,
+        owner: str,
+        origin: str,
+        attempts: list[dict[str, Any]],
+        about: dict[str, Any],
+    ) -> None:
+        """Keep a request's attempts as pending and count them with no answer, or count it missing without any."""
+        if not attempts:
+            self.tally.add(Counted(key, owner, kind, "missing", 0, 0.0, about))
+            return
+        self.claude_store.add_pending(kind, key, attempts, about)
+        self._pending_here.add(key)
+        usd = round(sum(float(attempt.get("cost_usd") or 0.0) for attempt in attempts), 6)
+        self.tally.add(Counted(key, owner, kind, origin, len(attempts), usd, about, 0))
 
     def _may_send(self, kind: str, owner: str) -> bool:
         """Whether the run may ask its Claude source this request now."""
@@ -460,6 +544,19 @@ class Sources:
 
 HELD_KINDS = ("reading-items", "reading-offset")
 """The kinds `claude_owners` holds back: whole-page reads go for every page."""
+
+
+def _stop_reason(kind: str, owner: str, about: dict[str, Any], outcome: dict[str, Any]) -> str:
+    """Why a request stopped the run, in words that tell the operator what to do."""
+    ended, reason = outcome.get("ended"), outcome.get("reason")
+    if ended == "refused":
+        return (
+            f"the API refused the {kind} request for {owner} ({json.dumps(about)[:200]}) with status "
+            f"{outcome.get('status')}: {reason}. If the message names the account, fix the account and run again. "
+            "If it names the request, run again anyway: the run sends the request once more, and a second refusal "
+            "stores it with no answer and lets the run go on"
+        )
+    return f"the {kind} request for {owner} ended ({ended}): {reason}"
 
 
 def _attempts(outcome: dict[str, Any]) -> int:

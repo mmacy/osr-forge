@@ -2,6 +2,8 @@
 
 The checks are the following:
 
+- Each member has scores. A member without them, such as one with a page that has no whole-page answer, drops out of
+  every figure.
 - Each member's split by style adds up, family by family, to its whole score, over every cell and without the
   partly-floor cells.
 - Each pool's every family equals its members' splits of that style added up, and its levels, levels that need no
@@ -9,7 +11,8 @@ The checks are the following:
 - Each scored panel's parts, one per level of the key and one for the cells no level owns, add up to the panel's
   score, and each level row's reading families add up its parts of the panels.
 - Each member's level rows add up to its whole keys and key joins.
-- The bar charges every reading's joins on the same levels, and its settled edges are no more than its edges.
+- The bar charges every reading's joins on the same levels, and its settled edges are no more than its edges. A style
+  is judged (its `passes` isn't `None`) exactly when the stage has a trace of every member with a map of that style.
 - Each level is marked complete exactly when it has no unjudged item and no wall made for want of a Clef answer.
 - The level rows and the named rows add up to the tally's totals by part and origin, request for request and dollar
   for dollar, and to the report's own `rows_added_up`.
@@ -84,8 +87,8 @@ def check_report(report: Mapping[str, Any], out: Any = sys.stdout) -> int:
 
     for member, figures in report["members"].items():
         if "after" not in figures:
-            # A member whose page is unread, or that didn't resolve, has no scores to add up.
-            check(f"{member}: no scores ({figures['resolution'][:60]})", True)
+            # A member without scores drops out of every figure, so the report can't stand for the run of every member.
+            check(f"{member}: it has scores ({figures['resolution'][:80]})", False)
             continue
         for part in ("after", "after_whole"):
             split = _sum([styles[part] for styles in figures["by_style"].values()])
@@ -148,6 +151,11 @@ def check_report(report: Mapping[str, Any], out: Any = sys.stdout) -> int:
             if not row[reader].get("left_out")
         }
         check(f"bar {style}: every reading's joins cover the same levels {keys}", len(set(keys.values())) <= 1)
+        unjudged = row.get("no_stage_trace") or []
+        check(
+            f"bar {style}: it is judged exactly when the stage has a trace of every member (left out: {unjudged})",
+            (row["passes"] is None) == bool(unjudged),
+        )
         for reader in ("stage", "classifier"):
             settled, edges = row["disputed"][reader], row[reader].get("edges", {})
             over = [name for name, value in settled.items() if value > edges.get(name, 0)]

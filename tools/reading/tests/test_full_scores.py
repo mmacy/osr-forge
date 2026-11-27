@@ -112,7 +112,8 @@ def test_the_bar_leaves_out_a_member_without_classifier_readings_whole(monkeypat
     table = bar_table([member], {member.id: stage}, {member.id: None}, {member.id: None})
     assert set(table) == {"black_white", "cave", "dark_rock"}
     for row in table.values():
-        assert row["left_out"] == [member.id]
+        assert row["no_classifier_reading"] == [member.id] and row["no_stage_trace"] == []
+        assert row["passes"] is not None
         assert "joins" not in row["stage"] and "joins" not in row["classifier"]
 
 
@@ -294,17 +295,37 @@ def test_a_milestone_picture_veils_the_cells_its_levels_row_does_not_score() -> 
     from PIL import Image
     from tools.answer_keys.resolve import load_caches
     from tools.reading.full_checks import check_document
-    from tools.reading.full_pictures import fault_picture
+    from tools.reading.full_pictures import fault_picture, owned_region_cells
 
     key = _caves().document()
     _survey, contents, mapread = load_caches(ROOT / "tests" / "assets" / "chaotic-caves")
     checks = next(c for c in check_document(key, contents, mapread) if c.dungeon == "hobgoblin-lair")
-    owned = [cell for cell, owner in panel_owners(key, "jn1-p038").items() if owner == "hobgoblin-lair/1"]
+    owned = owned_region_cells(key, key, "jn1-p038", "hobgoblin-lair", 1)
+    assert owned
     with Image.open(ROOT / "tests" / "assets" / "chaotic-caves" / "maps" / "p038.png") as image:
         plain = fault_picture(image.convert("RGB"), key, "jn1-p038", "hobgoblin-lair", 1, checks)
         veiled = fault_picture(image.convert("RGB"), key, "jn1-p038", "hobgoblin-lair", 1, checks, owned)
     assert veiled.size == plain.size
     assert np.asarray(veiled, dtype=float).mean() > np.asarray(plain, dtype=float).mean() + 1
+
+
+def test_a_milestone_pictures_veil_moves_the_keys_cells_by_the_key_panels_origin() -> None:
+    from tools.reading.full_pictures import owned_region_cells
+
+    key = _caves().document()
+    panel = key.panel("jn1-p038")
+    owned = [cell for cell, owner in panel_owners(key, panel.id).items() if owner == "hobgoblin-lair/1"]
+    # The key places its region 2 columns and 1 row into the panel, and the trace at the panel's corner.
+    shifted = panel.model_copy(
+        update={"regions": tuple(part.model_copy(update={"origin": (2, 1)}) for part in panel.regions)}
+    )
+    moved = key.model_copy(update={"panels": tuple(shifted if p.id == panel.id else p for p in key.panels)})
+    assert owned_region_cells(moved, key, "jn1-p038", "hobgoblin-lair", 1) == [(x - 2, y - 1) for x, y in owned]
+    # A trace without the key panel's id gets no veil.
+    renamed = key.model_copy(
+        update={"panels": tuple(p.model_copy(update={"id": "other"}) if p.id == panel.id else p for p in key.panels)}
+    )
+    assert owned_region_cells(key, renamed, "jn1-p038", "hobgoblin-lair", 1) is None
 
 
 def test_the_keys_reading_drops_a_leader_that_ends_on_a_cell_the_reading_makes_rock() -> None:

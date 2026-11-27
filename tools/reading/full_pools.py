@@ -56,11 +56,14 @@ the bar the screening set. The table gives, per style:
   the edges above. On a 5-foot panel an edge is disputed when any 5-foot segment the key's conversion lays on it was.
   Elsewhere every key edge the pass's readers agreed on is undisputed, and the classifier and Clef's top answer
   were among those readers, so on undisputed edges they are right by construction.
-- the members left out of the table because the classifier has no reading of one of their maps
+- the members left out of the table, in two lists: `no_stage_trace`, the members the stage has no trace of, as when
+  one of their pages has no whole-page answer, and `no_classifier_reading`, the members the classifier has no reading
+  of one of their maps for
 
 A style *passes* when the stage's rate of walls read as open is at most the classifier's, the stage gets more edges
 right than the classifier, and the stage makes fewer join errors than the classifier, both counted on the stage's own
-trace.
+trace. A style with a member in `no_stage_trace` isn't judged, and its `passes` is `None`, because the figures
+leave out a member whose reading could change the verdict.
 """
 
 import json
@@ -600,7 +603,10 @@ def bar_table(
 
     Returns:
         By style: the edges, each reading's figures and the levels it fell back on, the join errors, the disputed
-        edges, the walls rate against the bar, whether the style passes, and the members left out.
+        edges, the walls rate against the bar, whether the style passes, and the members left out. A member the
+        stage has no trace of (`no_stage_trace`, as when a page is unread) leaves the style unjudged: its `passes`
+        is `None`. A member the classifier has no reading of is listed apart, under `no_classifier_reading`, and
+        the style is judged on the other members.
     """
     out: dict[str, dict[str, Any]] = {}
 
@@ -610,7 +616,8 @@ def bar_table(
             {
                 **{name: {"fell_back": []} for name in READERS},
                 "disputed": {"stage": {}, "classifier": {}},
-                "left_out": [],
+                "no_stage_trace": [],
+                "no_classifier_reading": [],
             },
         )
 
@@ -620,7 +627,7 @@ def bar_table(
         if trace is None or classifier is None:
             styles = {key.region(panel.regions[0].region).style for panel in key.panels}
             for style in sorted(styles):
-                row_of(style)["left_out"].append(member.id)
+                row_of(style)["no_stage_trace" if trace is None else "no_classifier_reading"].append(member.id)
             continue
         readers = {"stage": trace, "stage_on_key_reading": on_key_reading.get(member.id), "classifier": classifier}
         stage_panels = {panel.id: panel for panel in trace.panels}
@@ -666,10 +673,9 @@ def bar_table(
         walls = stage["walls_rate"] is not None and stage["walls_rate"] <= (classifier["walls_rate"] or 0.0)
         edges_beat = stage.get("edges", {}).get("right", 0) > classifier.get("edges", {}).get("right", 0)
         joins_beat = stage.get("joins", {}).get("errors", 0) < classifier.get("joins", {}).get("errors", 0)
-        row["passes"] = {
-            "walls": walls,
-            "edges": edges_beat,
-            "joins": joins_beat,
-            "all": walls and edges_beat and joins_beat,
-        }
+        row["passes"] = (
+            None
+            if row["no_stage_trace"]
+            else {"walls": walls, "edges": edges_beat, "joins": joins_beat, "all": walls and edges_beat and joins_beat}
+        )
     return dict(sorted(out.items()))

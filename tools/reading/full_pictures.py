@@ -30,7 +30,7 @@ from .full_checks import LevelChecks
 from .full_members import Member
 from .full_pools import panel_owners
 
-__all__ = ["fault_picture", "milestone_pictures"]
+__all__ = ["fault_picture", "milestone_pictures", "owned_region_cells"]
 
 VEIL = (255, 255, 255, 150)
 UNREACHABLE = (220, 0, 200, 110)
@@ -71,9 +71,9 @@ def fault_picture(
         dungeon_id: The level's dungeon.
         number: The level's number.
         checks: The level's checks.
-        owned: The panel cells the key gives the level, which the picture is cut to, with the rest of the region
-            veiled. `None` cuts it to the trace's floor and water of the level and veils nothing. A 5-foot panel's
-            picture shows the whole region.
+        owned: The region cells the key gives the level (`owned_region_cells`). The picture is cut to them, and
+            the rest of the region is veiled. `None` cuts the picture to the trace's floor and water of the level
+            and veils nothing. A 5-foot panel's picture shows the whole region.
 
     Returns:
         The two drawings side by side, with a line of text above that says what is marked.
@@ -139,7 +139,7 @@ def fault_picture(
             _dashed(draw, ends[0], ends[1], max(3, round(pitch / 10)))  # type: ignore[arg-type]
     marked = Image.alpha_composite(overlay, layer)
     if owned is not None and panel.scale_feet == 10:
-        mine = {(x - origin[0], y - origin[1]) for x, y in owned}
+        mine = set(owned)
         veil = Image.new("RGBA", overlay.size, (0, 0, 0, 0))
         veiled = ImageDraw.Draw(veil)
         for y in range(region.rows):
@@ -165,6 +165,29 @@ def fault_picture(
     )
     ImageDraw.Draw(out).text((8, 10), text, fill=(0, 0, 0), font=ImageFont.load_default(size=18))
     return out
+
+
+def owned_region_cells(
+    key: GeometryTruth, trace: GeometryTruth, region_id: str, dungeon_id: str, number: int
+) -> list[tuple[int, int]] | None:
+    """The region cells the key gives a level, which the level's row in the report scores.
+
+    The key gives the level cells of its panel (`full_pools.panel_owners`). They are moved onto the region by the
+    region's origin on the key's panel, which may differ from its origin on the trace's panel.
+
+    Returns:
+        The cells, or `None` when the key has no panel with the region or the trace has no panel with the key
+        panel's id, so the picture is drawn without a veil.
+    """
+    panel = next((p for p in key.panels if any(part.region == region_id for part in p.regions)), None)
+    if panel is None or all(p.id != panel.id for p in trace.panels):
+        return None
+    origin = next(part.origin for part in panel.regions if part.region == region_id)
+    return [
+        (x - origin[0], y - origin[1])
+        for (x, y), owner in panel_owners(key, panel.id).items()
+        if owner == f"{dungeon_id}/{number}"
+    ]
 
 
 def _dashed(draw: ImageDraw.ImageDraw, start: tuple[float, float], end: tuple[float, float], width: int) -> None:
@@ -226,13 +249,7 @@ def milestone_pictures(
             continue
         if not any(any(part.region == region_id for part in p.regions) for p in trace.panels):
             continue
-        key = keys[member_id]
-        panel = next((p for p in key.panels if any(part.region == region_id for part in p.regions)), None)
-        owned = (
-            [cell for cell, owner in panel_owners(key, panel.id).items() if owner == f"{dungeon_id}/{number}"]
-            if panel is not None
-            else None
-        )
+        owned = owned_region_cells(keys[member_id], trace, region_id, dungeon_id, number)
         with Image.open(images[(member_id, region_id)]) as image:
             picture = fault_picture(image.convert("RGB"), trace, region_id, dungeon_id, number, checks, owned)
         path = out / f"milestone-{dungeon_id}-{number}.png"

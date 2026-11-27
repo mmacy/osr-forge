@@ -1,27 +1,29 @@
 """The reading measurement's full run (step 8 of the plan's measurements): every map read, resolved, scored, checked.
 
-It covers every map with a first answer key and every synthetic map (`full_members`), reads each as the stage reads
-it with the screening's settings (`full_reading`, `full_settings`), resolves each member's reading into a trace with
-the reference resolution script (`full_score.resolve_member`), scores the trace against its key with `score_trace`,
-and runs the structural checks (`full_checks`). The report gives the following:
+The run covers every map with a first answer key and every synthetic map (`full_members`). It reads each map as the
+stage reads it, with the screening's settings (`full_reading`, `full_settings`). It resolves each member's reading
+into a trace with the reference resolution script (`full_score.resolve_member`), scores the trace against its key
+with `score_trace`, and runs the structural checks (`full_checks`). The report gives the following:
 
-- every scorer family per level, over every cell (`after`) and without the partly-floor cells (`after_whole`): the
-  reading families on the level's part of each panel (`full_pools.panel_scores`), and the rest on the level's own
-  documents (`full_score.level_documents`). Every calibration a map is read with was fitted without the maps cut from
-  its image, so the calibration's fit is held out. The passable thresholds and ε were chosen by the screening on the
-  same answer keys, so they are not.
-- every family per member, split by style (`full_pools.member_by_style`), and pooled by style, real maps apart from
-  synthetic ones, each drawn cell, edge, item, region, level, pair, and dungeon once (`full_pools.pools`), and the
-  bar each style of the answer keys must meet, the stage beside the classifier (`full_pools.bar_table`)
-- whether each level needs no repair by the checks, beside the same checks on the answer key
-- whether each level's reading is complete: the items Claude left without an answer, and the edges between floor
-  that became walls for want of a Clef answer, both counted on the level
-- every request the run counted, once each, on exactly one level or on a row the report names for what no level owns
+- Every scorer family per level, over every cell (`after`) and without the partly-floor cells (`after_whole`). The
+  reading families come from the level's part of each panel (`full_pools.panel_scores`), and the rest from the
+  level's own documents (`full_score.level_documents`). Every calibration a map is read with was fitted without the
+  maps cut from its image, so the calibration's fit is held out. The screening chose the passable thresholds and ε
+  on the same answer keys, so they aren't held out.
+- Every family per member, split by style (`full_pools.member_by_style`), and pooled by style, real maps apart from
+  synthetic ones. A pool counts each drawn cell, edge, item, region, level, pair, and dungeon once
+  (`full_pools.pools`).
+- The bar each style of the answer keys must meet, the stage beside the classifier (`full_pools.bar_table`).
+- Whether each level needs no repair by the checks, beside the same checks on the answer key.
+- Whether each level's reading is complete: the items Claude left without an answer, and the edges between floor
+  that became walls for want of a Clef answer, both counted on the level.
+- Every request the run counted, once each, on one level row or on a named row for what no level row owns
   (`full_costs`), by origin: sent by this run, answered by an earlier invocation, reused from the screening or the
-  answer-key pass, fake, or missing. The rows add up to the run's totals, and a live run's totals are checked against
-  the ledgers' entries.
+  answer-key pass, fake, or missing. The rows add up to the run's totals, and a live run's totals are checked
+  against the ledgers' entries.
 - Claude's accuracy on the items per style and kind: the screening's, which weights each answer, and this run's
-  against the keys
+  against the keys.
+- The run's inputs (`run_inputs`), which a live run must share with the dry run before it.
 
 Run from the osr-forge checkout. `R` is the results directory and `P` the commercial specs:
 
@@ -31,33 +33,40 @@ Run from the osr-forge checkout. `R` is the results directory and `P` the commer
         --halves $P/halves.json --synthetic tests/assets/synthetic-maps --screening $R --classifier $R/classifier \\
         [--dry-run | --claude none|fake|live --clef none|fake|local|local-only|hosted] [--pictures]
 
-`--dry-run` sends nothing: it reads with every stored answer, lets the answer key's whole-page answer stand in where
-none is stored, and estimates the requests and dollars each map still needs. `--claude live` needs
-`OSRFORGE_CLAUDE_LEDGER` to name the settings' ledger, is held to the settings' cap on that ledger's `reading-`
-entries, and refuses `--only`, `--stand-in`, and `--clef fake`, each of which would choose items no run of every
-member asks. `--claude-for <member>` keeps Claude's item requests and offset picks to the named members' maps and
-pairs (and the real pairs), so a run within the cap can take the members in an order. Whole-page reads go for every
-page whatever it names (`run`'s phases). `--clef local` asks local Clef-flash and, for a question it fails on by
-itself, hosted Clef-flash within the settings' hosted spend over every invocation (`ClefSource`; `--clef local-only`
-without the fallback). Hosted Clef needs `OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login,
-checked at the start.
+The options:
 
-A request that goes wrong keeps its paid attempts in the store (`full_store`), and a failure that may pass stops the
-run in order: nothing more is sent, and the report is still written. `main` exits with status 1 when the run stopped,
-held a live run's item requests back, or its rows or a ledger check don't agree. One run at a time holds `--out`
-(`take_lock`).
+- `--dry-run` sends nothing. It reads with every stored answer, lets the answer key's whole-page answer stand in
+  where none is stored, estimates the requests and dollars each map still needs, and records the run's inputs.
+- `--claude live` sends Claude requests within the settings' cap on that ledger's `reading-` entries. It needs
+  `OSRFORGE_CLAUDE_LEDGER` to name the settings' ledger, and a dry run in `--out` with the same inputs
+  (`check_inputs`). It refuses `--only`, `--stand-in`, and `--clef fake`, each of which would choose items that no
+  run of every member asks.
+- `--claude-for <member>` keeps Claude's item requests and offset picks to the named members' maps and pairs, and
+  the real pairs, so a run within the cap can take the members in an order. Whole-page reads go for every page
+  whatever it names (`run`'s phases).
+- `--clef local` asks local Clef-flash. A question local fails on by itself goes to hosted Clef-flash, within the
+  settings' hosted spend over every invocation (`ClefSource`). `--clef local-only` leaves out the fallback. Hosted
+  Clef needs `OSRFORGE_CLEF_ACCOUNT_ID`, `OSRFORGE_CLEF_LEDGER`, and a wrangler login, checked at the start.
+
+A request that goes wrong keeps its paid attempts in the store (`full_store`). A failure that may pass, a first
+refusal, the cap, a ledger's stop, or Ctrl-C stops the run in order: nothing more is sent, and the report is still
+written. `main` exits with status 1 when the run stopped, left a member unread, held a live run's item requests back,
+or its rows or a ledger check don't agree. One run at a time holds `--out` (`take_lock`).
 """
 
 import argparse
+import fcntl
+import hashlib
 import json
 import math
 import os
+import signal
 import sys
 from collections import Counter, defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 from osrforge.tracing.score import score_trace
 from osrforge.tracing.truth import GeometryTruth, Panel, parse_cell
@@ -91,19 +100,22 @@ from .full_reading import (
 from .full_score import entrance_on_level, level_documents, resolve_member, summary
 from .full_seed import seed_claude, seed_clef_exported, seed_clef_stores
 from .full_settings import FullRunSettings, load_settings
-from .full_store import ORIGINS, Charged, ClaudeStore, ClefAnswer, ClefStore, RunStopped, Sources
+from .full_store import CHARGE, ORIGINS, Charged, ClaudeStore, ClefAnswer, ClefStore, RunStopped, Sources
 
 __all__ = [
     "ClefSource",
     "RunResult",
+    "check_inputs",
     "classifier_trace",
     "estimate",
     "ledger_check",
     "ledger_snapshot",
     "main",
     "make_sources",
+    "open_stores",
     "run",
     "run_failures",
+    "run_inputs",
     "take_lock",
 ]
 
@@ -330,7 +342,8 @@ def run(
                 }
             )
         members_report[member.id]["incomplete outside every level"] = incomplete.get(None, {})
-    rows = allocate(sources.tally, members, result.readings, traced, halves)
+    unread_members = {member_id for member_id, figures in members_report.items() if "unread_pages" in figures}
+    rows = allocate(sources.tally, members, result.readings, traced, halves, unread_members)
     for row in levels_report:
         row["costs"] = rows.get(f"{row['member']} {row['dungeon']}/{row['level']}") or _no_costs()
     named = {name: figures for name, figures in rows.items() if not _is_level_row(name, levels_report)}
@@ -369,6 +382,7 @@ def run(
         "waiting_for": waiting,
         "items_held": sources.items_held if sources.claude is not None and sources.claude_how == "sent" else None,
         "stopped": sources.stopped,
+        "refused": sources.refused,
         "members": members_report,
         "levels": levels_report,
         "pools": pools(levels_report, by_style, {m.id: m.synthetic for m in members}),
@@ -587,18 +601,26 @@ def ledger_snapshot(path: Path, prefix: str, cost_key: str, count_key: str | Non
 # Sources.
 
 
-def make_sources(args: argparse.Namespace, settings: FullRunSettings, members: Sequence[Member]) -> Sources:
-    """The stores and the sources the arguments name.
+def open_stores(out: Path) -> Sources:
+    """The stores in `--out`, with no source to ask."""
+    clef_store = ClefStore(out / "clef.jsonl")
+    if clef_store.torn is not None:
+        print(f"the Clef store's last line was torn, and is dropped: {clef_store.torn[:80]}", flush=True)
+    return Sources(clef_store=clef_store, claude_store=ClaudeStore(out / "claude"))
+
+
+def make_sources(
+    args: argparse.Namespace, settings: FullRunSettings, members: Sequence[Member], sources: Sources
+) -> Sources:
+    """Give the stores the sources the arguments name.
+
+    Returns:
+        The same sources.
 
     Raises:
         SystemExit: If a live Claude run's provider would write to another ledger than the settings', hosted Clef's
             settings are missing, or the local server names another model for `clef-flash`.
     """
-    clef_store = ClefStore(args.out / "clef.jsonl")
-    if clef_store.torn is not None:
-        print(f"the Clef store's last line was torn, and is dropped: {clef_store.torn[:80]}", flush=True)
-    claude_store = ClaudeStore(args.out / "claude")
-    sources = Sources(clef_store=clef_store, claude_store=claude_store)
     maps = {run_map.uid: run_map.screen for member in members for run_map in member.maps}
     if args.claude == "fake" or args.clef == "fake":
         from .full_fakes import FakeClaude, FakeClef
@@ -634,23 +656,42 @@ def make_sources(args: argparse.Namespace, settings: FullRunSettings, members: S
 HOSTED_LABEL = "reading full run"
 """The run label of the full run's entries on the Clef ledger."""
 
+LOCAL_FAILURES_IN_A_ROW = 3
+"""How many local failures in a row, other than a lost connection, stop the run."""
+
+SPENT_OUT = (
+    ". Each edge local failed on and hosted can't answer stays without a Clef answer, and a live run holds back "
+    "every item request until local answers those edges on a rerun or the settings' hosted spend is raised"
+)
+"""What `hosted_spent_out` adds to its reason: what the used-up spend holds back."""
+
 
 class ClefSource:
     """Local Clef-flash with hosted Clef-flash behind it (`local`), local alone (`local-only`), or hosted alone.
 
-    Local answers first. A question local fails on by itself (an HTTP error, a 5xx past its retries, or an answer
-    that can't be read) goes to hosted, or, under `local-only`, stays unanswered. A failure that isn't the question's
-    (the connection refused or lost, or a timeout, which says the server is down or hung) stops the run, because
-    every later question would fail the same way.
+    Local answers first:
 
-    Hosted is held to the settings' hosted spend over every invocation of the full run: the spend left is the
-    setting less every `HOSTED_LABEL` entry on the Clef ledger, so a restart doesn't get the spend afresh. The
-    provider keeps one entry for this invocation and adds each request's settled cost to it, and its stop is the
-    ledger's spend now plus the spend left. Once the stop refuses a question, that question and every later one that
-    would go to hosted stay unanswered, and the run goes on. A hosted failure that charged for a question stops the
-    run, with the charge counted. Hosted questions go one at a time, so each answer's dollars are what its question
-    added to the run's entries. Each answer comes back with the request actually sent, so the store files it under
-    that request's key.
+    - A question local fails on by itself goes to hosted, or, under `local-only`, stays unanswered. Local fails on a
+      question by itself with an HTTP error, a 5xx past its retries, or an answer that can't be read.
+    - A failure that isn't the question's stops the run, because every later question would fail the same way. Such
+      a failure is a refused or lost connection, or a timeout, which says the server is down or hung.
+    - `LOCAL_FAILURES_IN_A_ROW` failures in a row of any other kind also stop the run, as for a server that answers
+      every question with a 500, or a 404 because its model isn't loaded. An answer from local resets the count.
+
+    Hosted is held to the settings' hosted spend over every invocation of the full run:
+
+    - The spend left is the setting less every `HOSTED_LABEL` entry on the Clef ledger, so a restart doesn't get
+      the spend afresh.
+    - The provider keeps one entry for this invocation and adds each request's settled cost and count to it. Its stop
+      is the ledger's spend now plus the spend left.
+    - Once the stop refuses a question, that question and every later one for hosted stay unanswered, the run goes
+      on, and `hosted_spent_out` says why. Each such edge lacks a Clef answer, so a live run holds back every item
+      request until local answers those edges on a rerun or the settings' hosted spend is raised.
+    - A hosted failure stops the run, with the requests and dollars the ledger shows for it counted.
+    - Hosted questions go one at a time, so each answer's requests and dollars are what its question added to the
+      run's entry.
+
+    Each answer comes back with the request actually sent, so the store files it under that request's key.
 
     Raises:
         SystemExit: On construction, if hosted's settings are missing (`OSRFORGE_CLEF_ACCOUNT_ID`,
@@ -670,6 +711,9 @@ class ClefSource:
 
         self._hosted: Any = None
         self._one_at_a_time = threading.Lock()
+        self._local_failures = 0
+        """Local's failures since its last answer."""
+        self._failures_lock = threading.Lock()
         self._local: Any = None
         if mode != "hosted":
             from osrforge.providers.clef_local import LocalClefProvider, LocalClefSettings
@@ -716,7 +760,12 @@ class ClefSource:
         return self._hosted
 
     def ask_hosted(self, request: Any) -> ClefAnswer | Charged | None:
-        """Hosted's answer, a charge without one, or `None` once the hosted spend is used up."""
+        """Hosted's answer, a charge without one, or `None` once the hosted spend is used up.
+
+        Raises:
+            BaseException: Any exception that isn't the provider's, with what the Clef ledger charged for the
+                question set on it as `clef_charge`.
+        """
         from osrforge.errors import LedgerStopError, ProviderError
 
         from .hosted_exported import for_model
@@ -729,19 +778,30 @@ class ClefSource:
             if provider is None:
                 self.hosted_spent_out = (
                     f"the full run's hosted spend of ${self.settings.hosted_spend_usd} is used up on the Clef ledger"
+                    + SPENT_OUT
                 )
                 return None
             assert self.ledger is not None
-            before = ledger_snapshot(self.ledger, HOSTED_LABEL, "usd")["usd"]
+            before = ledger_snapshot(self.ledger, HOSTED_LABEL, "usd", "requests")
+
+            def charged() -> tuple[int, float]:
+                assert self.ledger is not None
+                after = ledger_snapshot(self.ledger, HOSTED_LABEL, "usd", "requests")
+                return after["requests"] - before["requests"], round(after["usd"] - before["usd"], 6)
+
             try:
                 response = provider.decide(sent)
             except LedgerStopError as error:
-                self.hosted_spent_out = f"the hosted spend left is used up: {error}"
+                self.hosted_spent_out = f"the hosted spend left is used up: {error}" + SPENT_OUT
                 return None
             except ProviderError as error:
-                usd = round(ledger_snapshot(self.ledger, HOSTED_LABEL, "usd")["usd"] - before, 6)
-                return Charged(sent, usd, f"hosted Clef failed: {error}", stop=True)
-            usd = round(ledger_snapshot(self.ledger, HOSTED_LABEL, "usd")["usd"] - before, 6)
+                requests, usd = charged()
+                return Charged(sent, usd, f"hosted Clef failed: {error}", stop=True, requests=requests)
+            except BaseException as error:
+                requests, usd = charged()
+                setattr(error, CHARGE, Charged(sent, usd, f"interrupted: {error!r}", stop=True, requests=requests))
+                raise
+            _requests, usd = charged()
         return ClefAnswer(dict(response.probabilities), sent, "hosted", usd)
 
     def __call__(self, request: Any, about: dict[str, Any]) -> ClefAnswer | Charged | None:
@@ -751,16 +811,27 @@ class ClefSource:
         if self._local is None:
             return self.ask_hosted(request)
         try:
-            return ClefAnswer(dict(self._local.decide(request).probabilities), request, "local")
+            answer = ClefAnswer(dict(self._local.decide(request).probabilities), request, "local")
         except ProviderError as error:
             if isinstance(error.__cause__, OSError):
                 raise RunStopped(
                     f"local Clef can't be reached ({error}); start the server and run again, and the run asks only "
                     "what it lacks"
                 ) from error
+            with self._failures_lock:
+                self._local_failures += 1
+                failures = self._local_failures
+            if failures >= LOCAL_FAILURES_IN_A_ROW:
+                raise RunStopped(
+                    f"local Clef failed {failures} questions in a row, the last with: {error}. Check the server, "
+                    "for example that its clef-flash model is loaded, and run again; the run asks only what it lacks"
+                ) from error
             if self.mode == "local-only":
                 return None
             return self.ask_hosted(request)
+        with self._failures_lock:
+            self._local_failures = 0
+        return answer
 
 
 def seed(
@@ -796,56 +867,50 @@ def seed(
 
 
 LOCK = "full-run.lock"
-"""The file in `--out` that says a full run is going there."""
+"""The file in `--out` that a full run holds an exclusive lock on while it runs."""
 
 
-def take_lock(out: Path) -> Path:
+def take_lock(out: Path) -> IO[str]:
     """Claim `--out` for this invocation, so two runs never send at once and read each other's ledger entries.
 
-    A lock whose process is gone, as after a crash, is taken over.
+    The claim is an exclusive `fcntl.flock` on `full-run.lock`, held for as long as the returned file stays open. The
+    system releases it when the process ends, however it ends, so a crashed run leaves no claim behind. The file
+    stays in place, and holds the process id of the run that last claimed it.
+
+    Returns:
+        The lock file, open. Close it to release the claim.
 
     Raises:
         SystemExit: If another full run holds the lock.
     """
     path = out / LOCK
-    for _ in range(2):
-        try:
-            handle = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError:
-            try:
-                holder = int(path.read_text().strip() or 0)
-            except OSError, ValueError:
-                holder = 0
-            if holder and _alive(holder):
-                raise SystemExit(
-                    f"another full run (process {holder}) holds {path}: wait for it to finish. If no run is going, "
-                    "delete the file."
-                ) from None
-            path.unlink(missing_ok=True)
-            continue
-        with os.fdopen(handle, "w") as lock:
-            lock.write(f"{os.getpid()}\n")
-        return path
-    raise SystemExit(f"{path} keeps coming back: another full run is starting there")
-
-
-def _alive(pid: int) -> bool:
+    handle = path.open("a+")
     try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        handle.seek(0)
+        holder = handle.read().strip() or "unknown"
+        handle.close()
+        raise SystemExit(f"another full run (process {holder}) holds {path}: wait for it to finish") from None
+    handle.seek(0)
+    handle.truncate()
+    handle.write(f"{os.getpid()}\n")
+    handle.flush()
+    return handle
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run the full run the arguments name.
 
+    The first Ctrl-C stops the run: nothing more is sent, the request in flight finishes, and the run finishes with
+    what is stored and writes the report. A second Ctrl-C ends the process at once, with the attempt in flight kept
+    as pending and no report written.
+
     Returns:
-        0 when the run finished and its figures check, and 1 when it stopped before the end (a transient failure,
-        the cap, a ledger's stop, or local Clef gone), held a live run's item requests back, its rows don't add up
-        to its totals, or a ledger check disagrees. The report is written either way.
+        0 when the run finished and its figures check. 1 when it stopped before the end (a failure that may pass, a
+        first refusal, the cap, a ledger's stop, local Clef failing, or Ctrl-C), left a member unread, held a live
+        run's item requests back, its rows don't add up to its totals, or a ledger check disagrees. The report is
+        written either way.
     """
     parser = argparse.ArgumentParser(description="The reading measurement's full run.")
     parser.add_argument("--settings", type=Path, required=True)
@@ -908,7 +973,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return _main(args, settings, members, halves, fake, marker)
     finally:
-        lock.unlink(missing_ok=True)
+        lock.close()
 
 
 def _main(
@@ -921,7 +986,13 @@ def _main(
 ) -> int:
     if fake:
         marker.write_text("The answers here include fake ones made from the answer keys.\n")
-    sources = make_sources(args, settings, members)
+    sources = open_stores(args.out)
+    seeded = seed(sources, members, halves, args.screening, settings)
+    print(f"seeded: {json.dumps(seeded)}", flush=True)
+    inputs = run_inputs(args.settings, members, halves, args.screening, seeded)
+    if args.claude == "live":
+        check_inputs(args.out / "dry-run.json", inputs)
+    make_sources(args, settings, members, sources)
     if args.claude_for:
         chosen = [member for member in members if member.id in args.claude_for]
         sources.claude_owners = {
@@ -929,24 +1000,27 @@ def _main(
             *(spec.id for member in chosen for spec in member.halves),
             *(spec.id for spec in halves),
         }
-    seeded = seed(sources, members, halves, args.screening, settings)
-    print(f"seeded: {json.dumps(seeded)}", flush=True)
     claude_ledger = settings.ledger if args.claude == "live" else None
     clef_ledger = sources.clef.ledger if isinstance(sources.clef, ClefSource) else None
     if isinstance(sources.clef, ClefSource) and clef_ledger is not None:
         print(f"hosted Clef spend left: ${sources.clef.hosted_spend_left()}", flush=True)
     before_claude = ledger_snapshot(claude_ledger, LABEL_PREFIX, "cost_usd") if claude_ledger else None
     before_clef = ledger_snapshot(clef_ledger, HOSTED_LABEL, "usd", "requests") if clef_ledger else None
-    result = run(
-        members,
-        halves,
-        settings,
-        sources,
-        stand_in=args.dry_run or args.stand_in,
-        workers=args.workers,
-        screening=args.screening,
-        classifier=args.classifier,
-    )
+    previous = signal.signal(signal.SIGINT, _stop_on_ctrl_c(sources))
+    try:
+        result = run(
+            members,
+            halves,
+            settings,
+            sources,
+            stand_in=args.dry_run or args.stand_in,
+            workers=args.workers,
+            screening=args.screening,
+            classifier=args.classifier,
+        )
+    finally:
+        signal.signal(signal.SIGINT, previous)
+    result.report["inputs"] = inputs
     result.report["seeded"] = seeded
     result.report["hosted_spent_out"] = sources.clef.hosted_spent_out if isinstance(sources.clef, ClefSource) else None
     result.report["ledger_check"] = ledger_check(sources, (claude_ledger, before_claude), (clef_ledger, before_clef))
@@ -974,12 +1048,93 @@ def _main(
     return 1 if failures else 0
 
 
+def _stop_on_ctrl_c(sources: Sources) -> Any:
+    """A SIGINT handler that stops the sources at the first Ctrl-C and lets a second one end the process."""
+
+    def handler(signum: int, frame: Any) -> None:
+        signal.signal(signal.SIGINT, signal.default_int_handler)
+        sources.stop("interrupted (Ctrl-C)")
+        print(
+            "Ctrl-C: the run sends nothing more. It finishes with what is stored and writes the report, which takes "
+            "about as long as a dry run. Press Ctrl-C again to end it now: the attempt in flight is kept as pending, "
+            "and no report is written.",
+            flush=True,
+        )
+
+    return handler
+
+
+def run_inputs(
+    settings: Path,
+    members: Sequence[Member],
+    halves: Sequence[HalvesSpec],
+    screening: Path | None,
+    seeded: dict[str, Any],
+) -> dict[str, Any]:
+    """What decides the requests a run sends: the members and their maps, the real pairs, the screening's seeds, and
+    the settings file's hash. A live run must have the inputs of the dry run before it (`check_inputs`)."""
+    return {
+        "members": sorted(member.id for member in members),
+        "maps": {member.id: sorted(m.uid for m in member.maps) for member in sorted(members, key=lambda m: m.id)},
+        "real_pairs": sorted(spec.id for spec in halves),
+        "screening": screening is not None,
+        "seeded": seeded,
+        "settings_sha256": hashlib.sha256(settings.read_bytes()).hexdigest(),
+    }
+
+
+def check_inputs(dry_run: Path, inputs: dict[str, Any]) -> None:
+    """Refuse a live run whose inputs differ from those of the dry run in `--out`.
+
+    Raises:
+        SystemExit: If `--out` holds no dry-run report, or the report's inputs differ from this run's. The message
+            names what differs.
+    """
+    again = (
+        "Run the dry run first with the same arguments (--dry-run in place of --claude and --clef), read its report, "
+        "and then start the live run"
+    )
+    if not dry_run.exists():
+        raise SystemExit(f"--claude live needs a dry run in {dry_run.parent}, and there is none. {again}.")
+    recorded = json.loads(dry_run.read_text()).get("inputs")
+    if recorded == inputs:
+        return
+    if recorded is None:
+        raise SystemExit(f"{dry_run} records no inputs, so it was made by an older driver. {again}.")
+    differences = []
+    for name in sorted({*recorded, *inputs}):
+        theirs, mine = recorded.get(name), inputs.get(name)
+        if theirs == mine:
+            continue
+        if name == "members":
+            missing, extra = sorted(set(theirs or ()) - set(mine or ())), sorted(set(mine or ()) - set(theirs or ()))
+            differences.append(f"members: this run lacks {missing or 'none'} and adds {extra or 'none'}")
+        elif name == "maps":
+            changed = sorted(
+                m for m in {*(theirs or {}), *(mine or {})} if (theirs or {}).get(m) != (mine or {}).get(m)
+            )
+            differences.append(f"maps of {', '.join(changed)}")
+        else:
+            differences.append(f"{name}: the dry run's {json.dumps(theirs)[:200]}, this run's {json.dumps(mine)[:200]}")
+    raise SystemExit(
+        f"this live run's inputs differ from the dry run's in {dry_run}: {'; '.join(differences)}. {again}."
+    )
+
+
 def run_failures(report: dict[str, Any]) -> list[str]:
-    """What makes a run exit non-zero, in words: a stop, held item requests, rows that don't add up, a ledger check
-    that disagrees."""
+    """What makes a run exit non-zero, in words: a stop, a member with an unread page, held item requests, rows that
+    don't add up, or a ledger check that disagrees."""
     failures = []
     if report.get("stopped"):
         failures.append(f"the run stopped sending: {report['stopped']}")
+    unread = {
+        member: figures["unread_pages"] for member, figures in report["members"].items() if "unread_pages" in figures
+    }
+    if unread:
+        failures.append(
+            f"{len(unread)} members have a page without a whole-page answer, so they have no scores and the bar "
+            f"doesn't judge their styles: {json.dumps(unread)}"
+        )
     if report.get("items_held"):
         failures.append(f"no item request was sent, because {report['items_held']}")
     if not report["costs"]["rows_add_up"]:
@@ -1063,6 +1218,9 @@ def print_report(report: dict[str, Any], out: Any) -> None:
     if report.get("bar"):
         for style, figures in report["bar"].items():
             out.write(f"bar {style}: {json.dumps(figures)}\n")
+            if figures["passes"] is None:
+                left_out = ", ".join(figures["no_stage_trace"])
+                out.write(f"bar {style}: not judged, because the stage has no trace of {left_out}\n")
     out.write(f"halves: {json.dumps(report['halves'])}, apart: {report['halves_apart']}\n")
     out.write(f"requests: {json.dumps(report['costs']['requests'])}\n")
     out.write(f"cost rows add up: {report['costs']['rows_add_up']}\n")
@@ -1077,6 +1235,8 @@ def print_report(report: dict[str, Any], out: Any) -> None:
             f"waiting for: whole-page outcomes of {json.dumps(waiting['pages'])}, Clef answers on "
             f"{json.dumps(waiting['edges'])} edges\n"
         )
+    for refused in report.get("refused", ()):
+        out.write(f"refused twice: {refused}\n")
     if report.get("hosted_spent_out"):
         out.write(f"hosted Clef: {report['hosted_spent_out']}\n")
     for failure in report.get("failures", ()):

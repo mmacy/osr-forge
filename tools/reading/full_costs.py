@@ -13,12 +13,15 @@ Each request is counted once, by its key (`full_store.Tally`), and placed by wha
   key doesn't trace`.
 - An offset pick of a synthetic member goes to its one traced level, or to `offset picks` when it has several. The
   real pairs' picks, which decide the halves rule, go to the run's row `real pairs`.
+- A member with a page that has no whole-page answer (an *unread* member) gets no level rows in the report. A request
+  that would land on one of its levels goes to the member's row `<dungeon>/<level> of an unread member`, so the
+  named rows hold what no level row owns.
 
 Each row adds up its requests (ledger entries) and dollars by origin (`full_store.ORIGINS`), Claude and Clef apart,
 and the rows add up to the run's totals.
 """
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from typing import Any
 
 from .full_members import HalvesSpec, Member
@@ -29,6 +32,9 @@ from .screen_wholemap import levels_on
 __all__ = ["allocate", "level_at", "place_cell", "row_totals"]
 
 LevelId = tuple[str, int]
+
+UNREAD_LEVEL = "of an unread member"
+"""What a level's row name says when its member is unread, so the report has no level row for it."""
 
 
 def level_at(reading: MapReading, cell: tuple[int, int]) -> LevelId | str:
@@ -78,6 +84,7 @@ def allocate(
     readings: Mapping[str, MapReading],
     traced: Mapping[str, set[LevelId]],
     real_pairs: Iterable[HalvesSpec],
+    unread: Collection[str] = (),
 ) -> dict[str, dict[str, Any]]:
     """Every counted request placed on one row.
 
@@ -87,6 +94,7 @@ def allocate(
         readings: Each map's reading, by uid.
         traced: Each member's traced levels in its key.
         real_pairs: The real pairs of halves.
+        unread: The members with a page that has no whole-page answer, whose levels get no rows.
 
     Returns:
         Rows by name: `<member> <dungeon>/<level>` for a level, `<member>: <what>` for a member's named row, and
@@ -101,6 +109,8 @@ def allocate(
     def land(member: Member | None, where: str | LevelId, entry: Counted) -> None:
         if member is None:
             name = str(where)
+        elif isinstance(where, tuple) and member.id in unread:
+            name = f"{member.id}: {where[0]}/{where[1]} {UNREAD_LEVEL}"
         elif isinstance(where, tuple):
             name = f"{member.id} {where[0]}/{where[1]}"
         else:

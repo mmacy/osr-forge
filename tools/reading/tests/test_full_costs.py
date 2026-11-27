@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 from tools.reading.claude_run import RequestCap, ask
 from tools.reading.full_fakes import FakeClaude, FakeClef
-from tools.reading.full_members import Member, synthetic_members
+from tools.reading.full_members import Member, real_members, synthetic_members
 from tools.reading.full_report_check import check_report
 from tools.reading.full_settings import load_settings
 from tools.reading.full_store import ClaudeStore, ClefStore, Counted, Sources
@@ -185,17 +185,78 @@ def test_a_transient_failure_keeps_the_paid_attempts_stops_the_run_and_a_restart
     assert later.tally.totals()["reading-offset full run"] == {"requests": 3, "answers": 1, "usd": 0.55}
 
 
-def test_a_request_the_api_refuses_is_stored_without_an_answer_and_never_sent_again(tmp_path: Path) -> None:
-    ledger = _claude_ledger(tmp_path)
-    refusing = _Claude(ledger, [_failure(400)], [0.0])
+def _refusal(status: int, message: str) -> ProviderError:
+    error = ProviderError(f"the 'reading-offset' request failed: Error code: {status} - {message}")
+    error.__cause__ = _Status(status)
+    return error
+
+
+def test_a_first_refusal_keeps_the_attempt_pending_stops_the_run_and_names_the_request(tmp_path: Path) -> None:
+    from tools.reading.full_run import run_failures
+
+    ledger = _claude_ledger(tmp_path, entries=128)
+    refusing = _Claude(ledger, [_refusal(404, "model: no-such-model")] * 20, [0.0] * 20)
     sources = _live(tmp_path, refusing)
+    for number in range(20):
+        sources.read(_offset(f"q{number}"), check_offset, f"pair{number}", {"pair": f"pair{number}"})
+    # One request is refused, and nothing more is sent.
+    assert len(refusing.sent) == 1 and len(json.loads(ledger.read_text())["entries"]) == 129
+    store = ClaudeStore(tmp_path / "claude")
+    key = _offset("q0").key("claude-sonnet-5-5")
+    assert store.get("reading-offset", key) is None
+    (pending,) = store.pending("reading-offset", key)
+    assert pending["ended"] == "refused" and pending["status"] == 404
+    assert sources.stopped is not None
+    assert "refused the reading-offset request for pair0" in sources.stopped
+    assert "model: no-such-model" in sources.stopped
+    report = {"stopped": sources.stopped, "members": {}, "costs": {"rows_add_up": True}}
+    assert any("pair0" in failure and "no-such-model" in failure for failure in run_failures(report))
+    # Once the account or the request is put right, a rerun sends every request.
+    answering = _Claude(ledger, [{"choice": "A", "reason": ""}] * 20)
+    restarted = _live(tmp_path, answering)
+    for number in range(20):
+        restarted.read(_offset(f"q{number}"), check_offset, f"pair{number}", {"pair": f"pair{number}"})
+    assert len(answering.sent) == 20 and restarted.stopped is None
+
+
+def test_a_request_refused_again_by_a_later_invocation_is_stored_without_an_answer_and_the_run_goes_on(
+    tmp_path: Path,
+) -> None:
+    ledger = _claude_ledger(tmp_path)
+    first = _Claude(ledger, [_refusal(400, "max_tokens: too large")], [0.0])
+    _live(tmp_path, first).read(_offset(), check_offset, "pair", {"pair": "pair"})
+    second = _Claude(ledger, [_refusal(400, "max_tokens: too large"), {"choice": "B", "reason": ""}], [0.0, 0.01])
+    sources = _live(tmp_path, second)
     outcome = sources.read(_offset(), check_offset, "pair", {"pair": "pair"})
     assert outcome is not None and outcome["answer"] is None and outcome["ended"] == "refused"
-    assert sources.stopped is None
-    again = _Claude(ledger, [{"choice": "A", "reason": ""}])
-    restarted = _live(tmp_path, again)
-    stored = restarted.read(_offset(), check_offset, "pair", {"pair": "pair"})
-    assert stored is not None and stored["answer"] is None and again.sent == []
+    assert len(outcome["earlier_attempts"]) == 1
+    assert sources.stopped is None and len(sources.refused) == 1 and "pair" in sources.refused[0]
+    # The run goes on to the next request.
+    assert sources.read(_offset("next"), check_offset, "next", {"pair": "next"}) is not None
+    # The request cost two cap entries, and is never sent again.
+    third = _Claude(ledger, [{"choice": "A", "reason": ""}])
+    stored = _live(tmp_path, third).read(_offset(), check_offset, "pair", {"pair": "pair"})
+    assert stored is not None and stored["answer"] is None and third.sent == []
+    assert len(json.loads(ledger.read_text())["entries"]) == 3
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing.",
+        "You have reached your specified workspace API usage limits.",
+    ],
+)
+def test_a_400_that_names_the_account_is_a_failure_and_never_final(tmp_path: Path, message: str) -> None:
+    ledger = _claude_ledger(tmp_path)
+    key = _offset().key("claude-sonnet-5-5")
+    for invocation in range(3):
+        provider = _Claude(ledger, [_refusal(400, message)], [0.0])
+        sources = _live(tmp_path, provider)
+        assert sources.read(_offset(), check_offset, "pair", {"pair": "pair"}) is None
+        assert len(provider.sent) == 1 and sources.stopped is not None and "failed" in sources.stopped
+        assert ClaudeStore(tmp_path / "claude").get("reading-offset", key) is None
+        assert len(ClaudeStore(tmp_path / "claude").pending("reading-offset", key)) == invocation + 1
 
 
 @pytest.mark.parametrize("status", [401, 403, 429, 500])
@@ -207,6 +268,88 @@ def test_an_account_or_transient_failure_isnt_stored_as_final(tmp_path: Path, st
     key = _offset().key("claude-sonnet-5-5")
     assert ClaudeStore(tmp_path / "claude").get("reading-offset", key) is None
     assert len(ClaudeStore(tmp_path / "claude").pending("reading-offset", key)) == 1
+
+
+def test_a_request_the_cap_refuses_before_its_first_attempt_is_counted_missing_and_keeps_nothing(
+    tmp_path: Path,
+) -> None:
+    ledger = _claude_ledger(tmp_path, entries=480)
+    provider = _Claude(ledger, [{"choice": "A", "reason": ""}])
+    sources = _live(tmp_path, provider, cap=480)
+    assert sources.read(_offset(), check_offset, "pair", {"pair": "pair"}) is None
+    assert provider.sent == [] and sources.stopped is not None and "cap of 480" in sources.stopped
+    (entry,) = sources.tally.entries.values()
+    assert entry.origin == "missing" and entry.requests == 0
+    assert not (tmp_path / "claude" / "reading-offset").exists()
+
+
+def test_an_interrupt_during_a_request_keeps_its_paid_attempts_and_stops_the_run(tmp_path: Path) -> None:
+    ledger = _claude_ledger(tmp_path)
+    provider = _Claude(ledger, [SchemaValidationError("not JSON"), KeyboardInterrupt()], [0.02, 0.9])
+    sources = _live(tmp_path, provider)
+    assert sources.read(_offset(), check_offset, "pair", {"pair": "pair"}) is None
+    assert sources.stopped is not None and "interrupted" in sources.stopped
+    key = _offset().key("claude-sonnet-5-5")
+    pending = ClaudeStore(tmp_path / "claude").pending("reading-offset", key)
+    assert [attempt["cost_usd"] for attempt in pending] == [0.02, 0.9]
+    assert "KeyboardInterrupt" in pending[1]["error"]
+    assert sources.tally.totals()["reading-offset sent"] == {"requests": 2, "answers": 0, "usd": 0.92}
+    # Nothing more is sent.
+    assert sources.read(_offset("other"), check_offset, "pair2", {"pair": "pair2"}) is None
+    assert len(provider.sent) == 2
+
+
+def test_a_second_interrupt_or_another_exception_keeps_the_paid_attempt_and_travels_on(tmp_path: Path) -> None:
+    ledger = _claude_ledger(tmp_path)
+    sources = _live(tmp_path, _Claude(ledger, [RuntimeError("a bug")], [0.4]))
+    with pytest.raises(RuntimeError, match="a bug"):
+        sources.read(_offset(), check_offset, "pair", {"pair": "pair"})
+    key = _offset().key("claude-sonnet-5-5")
+    assert [a["cost_usd"] for a in ClaudeStore(tmp_path / "claude").pending("reading-offset", key)] == [0.4]
+
+    class CtrlCTwice(_Claude):
+        """The first Ctrl-C stops the run while the request is in flight, and the second interrupts it."""
+
+        def read(self, request: ReadingRequest) -> ReadingResponse:
+            stopped.stop("interrupted (Ctrl-C)")
+            return super().read(request)
+
+    stopped = _live(tmp_path / "second", CtrlCTwice(ledger, [KeyboardInterrupt()], [0.5]))
+    with pytest.raises(KeyboardInterrupt):
+        stopped.read(_offset(), check_offset, "pair", {"pair": "pair"})
+    assert [a["cost_usd"] for a in ClaudeStore(tmp_path / "second" / "claude").pending("reading-offset", key)] == [0.5]
+
+
+def test_the_first_ctrl_c_stops_the_sources_and_the_second_ends_the_process(tmp_path: Path) -> None:
+    import signal
+
+    from tools.reading.full_run import _stop_on_ctrl_c
+
+    sources = Sources(clef_store=ClefStore(tmp_path / "clef.jsonl"), claude_store=ClaudeStore(tmp_path / "claude"))
+    previous = signal.getsignal(signal.SIGINT)
+    try:
+        signal.signal(signal.SIGINT, _stop_on_ctrl_c(sources))
+        signal.raise_signal(signal.SIGINT)
+        assert sources.stopped is not None and "Ctrl-C" in sources.stopped
+        assert signal.getsignal(signal.SIGINT) is signal.default_int_handler
+        with pytest.raises(KeyboardInterrupt):
+            signal.raise_signal(signal.SIGINT)
+    finally:
+        signal.signal(signal.SIGINT, previous)
+
+
+def test_a_run_interrupted_in_a_whole_page_read_finishes_writes_its_report_and_fails(tmp_path: Path) -> None:
+    from tools.reading.full_run import run, run_failures
+
+    settings = load_settings(_settings_path(tmp_path))
+    members = _members("cellars")
+    ledger = _claude_ledger(tmp_path)
+    sources = _live(tmp_path, _Claude(ledger, [KeyboardInterrupt()], [1.2]))
+    sources.clef = FakeClef({m.uid: m.screen for member in members for m in member.maps})
+    report = run(members, [], settings, sources, stand_in=False).report
+    assert report["stopped"] is not None and "interrupted" in report["stopped"]
+    assert report["costs"]["rows_add_up"]
+    assert any("stopped sending" in failure for failure in run_failures(report))
 
 
 def test_the_cap_before_the_retry_keeps_the_paid_first_attempt(tmp_path: Path) -> None:
@@ -302,8 +445,9 @@ def test_a_live_run_sends_no_item_request_while_an_edge_lacks_a_clef_answer(tmp_
     assert any("no item request was sent" in failure for failure in run_failures(report))
 
 
-def test_a_member_whose_page_is_unread_reports_it_and_gets_no_scores(tmp_path: Path) -> None:
-    from tools.reading.full_run import run
+def test_a_member_whose_page_is_unread_fails_the_run_and_the_report_check(tmp_path: Path) -> None:
+    from tools.reading.full_costs import UNREAD_LEVEL
+    from tools.reading.full_run import print_report, run, run_failures
 
     settings = load_settings(_settings_path(tmp_path))
     members = _members("fold-joined")
@@ -317,7 +461,49 @@ def test_a_member_whose_page_is_unread_reports_it_and_gets_no_scores(tmp_path: P
     member = report["members"]["synthetic/fold-joined"]
     assert member["resolution"].startswith("unread") and member["unread_pages"]
     assert report["levels"] == [] and report["costs"]["rows_add_up"]
-    assert check_report(report, io.StringIO()) == 0
+    failures = run_failures(report | {"ledger_check": {}})
+    assert any("without a whole-page answer" in failure and "synthetic/fold-joined" in failure for failure in failures)
+    out = io.StringIO()
+    assert check_report(report, out) >= 1
+    assert "FAIL synthetic/fold-joined: it has scores" in out.getvalue()
+    # The member's level costs are on rows named for what they are, not on rows named like a level's.
+    named = report["costs"]["named_rows"]
+    level_rows = [name for name in named if name.startswith("synthetic/fold-joined ")]
+    assert level_rows == [] and any(name.endswith(UNREAD_LEVEL) for name in named)
+    report["failures"] = failures
+    printed = io.StringIO()
+    print_report(report, printed)
+    assert "FAILED: 1 members have a page without a whole-page answer" in printed.getvalue()
+
+
+def test_the_bar_doesnt_judge_a_style_whose_member_the_stage_has_no_trace_of(tmp_path: Path) -> None:
+    from tools.reading.full_costs import row_totals
+    from tools.reading.full_pools import bar_table
+    from tools.reading.full_run import print_report
+
+    (member,) = real_members(
+        [TOOL / "maps.json"], [TOOL / "pages.json"], [ROOT / "tools" / "answer_keys" / "keys.json"]
+    )
+    key = member.document()
+    table = bar_table([member], {}, {member.id: key}, {member.id: key})
+    assert table
+    for row in table.values():
+        assert row["passes"] is None and row["no_stage_trace"] == [member.id] and row["no_classifier_reading"] == []
+    report: dict[str, Any] = {
+        "members": {},
+        "levels": [],
+        "pools": {},
+        "bar": table,
+        "halves": [],
+        "halves_apart": False,
+        "costs": {"requests": {}, "rows_add_up": True, "named_rows": {}, "rows_added_up": row_totals({})},
+    }
+    out = io.StringIO()
+    print_report(report, out)
+    assert f"not judged, because the stage has no trace of {member.id}" in out.getvalue()
+    checked = io.StringIO()
+    check_report(report, checked)
+    assert "FAIL bar" not in checked.getvalue()
 
 
 def _main_args(tmp_path: Path, *extra: str) -> list[str]:
@@ -344,30 +530,71 @@ def test_main_refuses_a_live_run_that_would_pay_for_requests_a_full_run_wouldnt_
     assert not (tmp_path / "out").exists()
 
 
+def test_a_dry_run_records_its_inputs_and_a_live_run_needs_the_same_ones(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tools.reading.full_run import main
+
+    monkeypatch.delenv("OSRFORGE_CLAUDE_LEDGER", raising=False)
+    out = tmp_path / "out"
+    # Without a dry run in --out, a live run refuses to start.
+    with pytest.raises(SystemExit, match="needs a dry run"):
+        main(_main_args(tmp_path, "--synthetic", str(SYNTHETIC), "--claude", "live"))
+    # A dry run records its inputs: here, no member, so it is quick.
+    assert main(_main_args(tmp_path, "--dry-run")) == 0
+    inputs = json.loads((out / "dry-run.json").read_text())["inputs"]
+    assert inputs["members"] == [] and inputs["screening"] is False and len(inputs["settings_sha256"]) == 64
+    # A live run with members the dry run didn't have is refused, naming them.
+    with pytest.raises(SystemExit) as refused:
+        main(_main_args(tmp_path, "--synthetic", str(SYNTHETIC), "--claude", "live"))
+    assert "this run lacks none and adds" in str(refused.value) and "synthetic/manor" in str(refused.value)
+    assert "Run the dry run first with the same arguments" in str(refused.value)
+    # A live run with the dry run's inputs gets past the check, to the ledger's.
+    with pytest.raises(SystemExit, match="must name the settings' ledger"):
+        main(_main_args(tmp_path, "--claude", "live"))
+    # A changed settings file is refused too.
+    document = json.loads((tmp_path / "settings.json").read_text())
+    document["decision"]["epsilon"] = 0.04
+    settings = tmp_path / "changed.json"
+    settings.write_text(json.dumps(document))
+    with pytest.raises(SystemExit, match="settings_sha256"):
+        main(["--settings", str(settings), "--out", str(out), "--claude", "live"])
+    capsys.readouterr()
+
+
 # 5. The tally.
 
 
 def test_a_request_one_twin_counts_missing_and_the_other_sends_is_counted_sent(tmp_path: Path) -> None:
+    from tools.reading.full_reading import read_page
     from tools.reading.full_run import run
 
     settings = load_settings(_settings_path(tmp_path))
     members = _members("fold-apart", "fold-joined")
     joined = next(member for member in members if member.id == "synthetic/fold-joined")
-    from tools.reading.full_reading import read_page
-
     # Every page's read is stored, so both twins choose items and look up the requests they share.
     filling, _sent = _recording(members, tmp_path, None)
     for member in members:
         for page in member.pages:
             read_page(page, settings, filling, None)
+    # Only the joined twin's item requests may go to the live stand-in, so the other twin counts its own missing.
     owners = {*(run_map.uid for run_map in joined.maps), *(page.id for page in joined.pages)}
     sources, sent = _recording(members, tmp_path, owners)
-    sources.claude_how = "fake"
-    run(members, [], settings, sources, stand_in=False)
-    sent_keys = {key for _kind, key in sent}
-    assert sent_keys
-    for entry in sources.tally.entries.values():
-        assert not (entry.origin == "missing" and entry.key in sent_keys), entry
+    assert sources.claude_how == "sent"
+    report = run(members, [], settings, sources, stand_in=False).report
+    assert report["items_held"] is None
+    apart_keys = {
+        key
+        for (owner, kind), keys in sources.tally.keys.items()
+        if owner.startswith("synthetic/fold-apart/")
+        for key in keys
+        if kind == "reading-items"
+    }
+    joined_sent = {key for kind, key in sent if kind == "reading-items"}
+    shared = apart_keys & joined_sent
+    assert shared
+    for key in shared:
+        assert sources.tally.entries[key].origin == "sent", sources.tally.entries[key]
 
 
 # 2 and 9. Hosted Clef's spend over invocations, and the local server's failures.
@@ -430,6 +657,7 @@ def test_the_hosted_spend_holds_over_every_invocation_and_a_spent_out_question_s
             answer = sources.decide(question, "m", f"{number},0:west", "clef-edge", {"edge": [[number, 0], "west"]})
             answered += answer is not None
         assert sources.stopped is None and source.hosted_spent_out is not None
+        assert "holds back every item request" in source.hosted_spent_out
     assert answered == len(posted) == 2
     spent = ledger_snapshot(ledger, "reading full run", "usd")["usd"]
     assert spent <= settings.hosted_spend_usd and spent == pytest.approx(2 * each, abs=1e-6)
@@ -484,6 +712,118 @@ def test_a_local_server_that_refuses_the_connection_stops_the_run_and_sends_noth
     assert sources.stopped is not None and "local Clef can't be reached" in sources.stopped
     assert sources.decide(_question("c"), "m", "1,0:west", "clef-edge", {"edge": [[1, 0], "west"]}) is None
     assert len(posted) == 1
+
+
+@pytest.mark.parametrize("status", [404, 500])
+def test_a_local_server_that_fails_three_questions_in_a_row_stops_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, status: int
+) -> None:
+    from tools.reading.full_run import ClefSource
+
+    import osrforge.providers.clef_local as local_module
+
+    ledger = tmp_path / "clef-ledger.json"
+    ledger.write_text(json.dumps({"stop_usd": 8.0, "limit_usd": 10.0, "spent_usd": 0.0, "entries": []}))
+    posted = _hosted(monkeypatch, ledger, 100)
+    real = local_module.LocalClefProvider
+    answers = {"next": (status, b"model 'clef-flash' not found")}
+
+    def transport(url: str, body: bytes, headers: Any) -> tuple[int, bytes]:
+        return answers["next"]
+
+    monkeypatch.delenv("OSRFORGE_CLEF_LOCAL_MODEL", raising=False)
+    monkeypatch.setattr(local_module, "LocalClefProvider", lambda s: real(s, transport=transport, sleep=lambda _: None))
+    settings = load_settings(_settings_path(tmp_path))
+    sources = Sources(clef_store=ClefStore(tmp_path / "a.jsonl"), claude_store=ClaudeStore(tmp_path / "claude"))
+    sources.clef = ClefSource("local", settings)
+    for number in range(6):
+        sources.decide(_question(f"q{number}"), "m", f"{number},0:west", "clef-edge", {"edge": [[number, 0], "west"]})
+    # Two questions went to hosted, the third failure stopped the run, and nothing more was asked.
+    assert len(posted) == 2
+    assert sources.stopped is not None and "failed 3 questions in a row" in sources.stopped
+    assert str(status) in sources.stopped
+
+
+def test_a_local_answer_resets_the_count_of_failures_in_a_row(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from tools.reading.full_run import ClefSource
+
+    monkeypatch.delenv("OSRFORGE_CLEF_LOCAL_MODEL", raising=False)
+    source = ClefSource("local-only", load_settings(_settings_path(tmp_path)))
+    answer = SimpleNamespace(probabilities={"open": 0.5, "wall": 0.5})
+    replies: list[Any] = [
+        ProviderError("404"),
+        ProviderError("404"),
+        answer,
+        ProviderError("404"),
+        ProviderError("404"),
+    ]
+
+    class Local:
+        def decide(self, request: DecisionRequest) -> Any:
+            reply = replies.pop(0)
+            if isinstance(reply, Exception):
+                raise reply
+            return reply
+
+    source._local = Local()
+    sources = Sources(clef_store=ClefStore(tmp_path / "a.jsonl"), claude_store=ClaudeStore(tmp_path / "claude"))
+    sources.clef = source
+    for number in range(5):
+        sources.decide(_question(f"q{number}"), "m", f"{number},0:west", "clef-edge", {"edge": [[number, 0], "west"]})
+    assert replies == [] and sources.stopped is None
+
+
+def test_a_hosted_failure_counts_the_requests_and_dollars_the_ledger_shows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tools.reading.full_run import HOSTED_LABEL, ClefSource, ledger_check, ledger_snapshot
+
+    ledger = tmp_path / "clef-ledger.json"
+    ledger.write_text(json.dumps({"stop_usd": 8.0, "limit_usd": 10.0, "spent_usd": 0.0, "entries": []}))
+    _hosted(monkeypatch, ledger, 100)
+    settings = load_settings(_settings_path(tmp_path))
+    source = ClefSource("hosted", settings)
+
+    class Failing:
+        """A hosted provider that fails before it reserves anything, so the ledger shows no request."""
+
+        def decide(self, request: DecisionRequest) -> Any:
+            raise ProviderError("the image can't be encoded")
+
+    source._hosted = Failing()
+    sources = Sources(clef_store=ClefStore(tmp_path / "a.jsonl"), claude_store=ClaudeStore(tmp_path / "claude"))
+    sources.clef = source
+    before = ledger_snapshot(ledger, HOSTED_LABEL, "usd", "requests")
+    assert sources.decide(_question("a"), "m", "0,0:west", "clef-edge", {"edge": [[0, 0], "west"]}) is None
+    assert sources.stopped is not None and "hosted Clef failed" in sources.stopped
+    check = ledger_check(sources, (None, None), (ledger, before))["clef"]
+    assert check["agree"], check
+
+
+def test_an_interrupt_during_a_hosted_question_counts_its_charge_and_stops_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tools.reading.full_run import HOSTED_LABEL, ClefSource, ledger_check, ledger_snapshot
+
+    import osrforge.providers.clef as hosted_module
+
+    ledger = tmp_path / "clef-ledger.json"
+    ledger.write_text(json.dumps({"stop_usd": 8.0, "limit_usd": 10.0, "spent_usd": 0.0, "entries": []}))
+    real = hosted_module.ClefProvider
+    _hosted(monkeypatch, ledger, 100)
+
+    def interrupted(url: str, body: bytes, headers: Any) -> tuple[int, bytes]:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(hosted_module, "ClefProvider", lambda settings: real(settings, transport=interrupted))
+    source = ClefSource("hosted", load_settings(_settings_path(tmp_path)))
+    sources = Sources(clef_store=ClefStore(tmp_path / "a.jsonl"), claude_store=ClaudeStore(tmp_path / "claude"))
+    sources.clef = source
+    before = ledger_snapshot(ledger, HOSTED_LABEL, "usd", "requests")
+    assert sources.decide(_question("a"), "m", "0,0:west", "clef-edge", {"edge": [[0, 0], "west"]}) is None
+    assert sources.stopped is not None and "interrupted" in sources.stopped
+    check = ledger_check(sources, (None, None), (ledger, before))["clef"]
+    assert check["agree"] and check["ledger"]["requests"] == 1 and check["ledger"]["usd"] > 0, check
 
 
 # 4. The checks fail the run.
@@ -546,6 +886,27 @@ def test_the_estimate_counts_twins_shared_item_requests_once_and_bounds_only_by_
     assert figures["per"]["twin/b"]["shares its item requests with"] == "twin/a"
 
 
+def test_the_estimates_bound_counts_twins_whose_item_lists_overlap_partly_once_each(tmp_path: Path) -> None:
+    from tools.reading.full_run import RunResult, estimate
+
+    settings = load_settings(_settings_path(tmp_path))
+    items = [object()] * 40
+    readings = {
+        "twin/a": SimpleNamespace(style="cave", items=items),
+        "twin/b": SimpleNamespace(style="cave", items=items),
+    }
+    sources = Sources(clef_store=ClefStore(tmp_path / "clef.jsonl"), claude_store=ClaudeStore(tmp_path / "claude"))
+    for owner, key in (("twin/a", "shared"), ("twin/b", "shared"), ("twin/a", "a"), ("twin/b", "b")):
+        sources.tally.add(Counted(key, owner, "reading-items", "missing", 0, 0.0, {}))
+    unanswered = {"twin/a edges between floor": 5, "twin/b edges between floor": 5}
+    result = RunResult(report={"unanswered": unanswered}, readings=readings)  # type: ignore[arg-type]
+    figures = estimate(result, sources, settings, {"reading-items": 0.1})
+    # The three known requests once each, but the bound gives each twin its own 45 items in two requests: the shared
+    # request may be counted twice, which errs toward too many.
+    assert figures["totals"]["reading-items"] == 3
+    assert figures["totals"]["reading-items at most"] == 2 + 2
+
+
 # 8. Writes a crash can't tear.
 
 
@@ -561,6 +922,17 @@ def test_a_torn_last_line_of_the_clef_store_is_reported_and_dropped(tmp_path: Pa
     path.write_text('{"torn\n' + json.dumps(good) + "\n")
     with pytest.raises(ValueError, match="isn't the last line"):
         ClefStore(path)
+
+
+def test_a_clef_store_whose_last_line_lacks_its_newline_stays_loadable(tmp_path: Path) -> None:
+    path = tmp_path / "clef.jsonl"
+    good = {"key": "a", "map": "m", "item": "i", "probabilities": {"open": 1.0}, "source": "local", "usd": 0.0}
+    path.write_text(json.dumps(good))
+    store = ClefStore(path)
+    assert store.torn is None and store.get("a") == {"open": 1.0}
+    store.put("b", "m", "i", {"wall": 1.0}, "local")
+    reloaded = ClefStore(path)
+    assert reloaded.get("a") == {"open": 1.0} and reloaded.get("b") == {"wall": 1.0}
 
 
 def test_a_claude_outcome_is_written_whole_or_not_at_all(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -583,24 +955,27 @@ def test_a_claude_outcome_is_written_whole_or_not_at_all(tmp_path: Path, monkeyp
 # 10. One run at a time.
 
 
-def test_a_second_run_is_refused_while_the_first_holds_the_lock_and_a_dead_runs_lock_is_taken_over(
-    tmp_path: Path,
-) -> None:
+def test_a_second_run_is_refused_while_the_first_holds_the_lock_whatever_the_file_says(tmp_path: Path) -> None:
     from tools.reading.full_run import LOCK, take_lock
 
     lock = take_lock(tmp_path)
-    assert lock == tmp_path / LOCK and lock.read_text().strip() == str(os.getpid())
+    assert (tmp_path / LOCK).read_text().strip() == str(os.getpid())
     with pytest.raises(SystemExit, match="another full run"):
         take_lock(tmp_path)
-    lock.write_text("999999999\n")
-    assert take_lock(tmp_path) == lock and lock.read_text().strip() == str(os.getpid())
+    # A file that names a process that is gone, as a stale lock does, doesn't let a second run take the lock over.
+    (tmp_path / LOCK).write_text("999999999\n")
+    with pytest.raises(SystemExit, match="another full run"):
+        take_lock(tmp_path)
+    lock.close()
+    # Once the holder lets go, or its process ends, the next run takes the lock.
+    take_lock(tmp_path).close()
 
 
 def test_main_releases_the_lock_when_it_ends(tmp_path: Path) -> None:
-    from tools.reading.full_run import LOCK, main
+    from tools.reading.full_run import main, take_lock
 
     assert main(_main_args(tmp_path, "--claude", "fake", "--clef", "fake")) == 0
-    assert not (tmp_path / "out" / LOCK).exists()
+    take_lock(tmp_path / "out").close()
 
 
 # 11. The offset pick's check.
@@ -610,3 +985,74 @@ def test_the_offset_check_refuses_a_choice_that_isnt_an_offered_letter_or_none()
     assert check_offset({"choice": "B", "reason": ""}) == []
     assert check_offset({"choice": "none", "reason": ""}) == []
     assert check_offset({"choice": "D", "reason": ""}) != []
+
+
+# 12. The real provider's errors, as `ask` classifies them.
+
+
+def _sdk_error(status: int, message: str) -> Exception:
+    import anthropic
+    import httpx2 as httpx
+
+    request = httpx.Request("POST", "https://example.invalid/v1/messages")
+    if status == 0:
+        return anthropic.APIConnectionError(request=request)
+    response = httpx.Response(
+        status, request=request, json={"type": "error", "error": {"type": "error", "message": message}}
+    )
+    kinds = {
+        400: anthropic.BadRequestError,
+        401: anthropic.AuthenticationError,
+        404: anthropic.NotFoundError,
+        429: anthropic.RateLimitError,
+        529: anthropic.InternalServerError,
+    }
+    return kinds[status](message, response=response, body={"type": "error", "error": {"message": message}})
+
+
+@pytest.mark.parametrize(
+    ("status", "message", "ended", "charged"),
+    [
+        (400, "max_tokens: 99999999 > 64000, which is the maximum allowed", "refused", False),
+        (400, "Your credit balance is too low to access the Anthropic API.", "failed", False),
+        (401, "invalid x-api-key", "failed", False),
+        (404, "model: claude-no-such-model", "refused", False),
+        (429, "rate limited", "failed", False),
+        (529, "overloaded", "failed", True),
+        (0, "", "failed", True),
+    ],
+)
+def test_ask_classifies_the_real_providers_errors(
+    tmp_path: Path, status: int, message: str, ended: str, charged: bool
+) -> None:
+    from pydantic import SecretStr
+    from tools.reading.claude_run import ask
+
+    from osrforge.providers.claude import ClaudeProvider, ClaudeSettings
+
+    error = _sdk_error(status, message)
+
+    class Client:
+        """A client whose every stream raises the SDK's own error."""
+
+        def __init__(self) -> None:
+            self.messages = self
+            self.calls = 0
+
+        def stream(self, **body: Any) -> Any:
+            self.calls += 1
+            raise error
+
+    ledger = tmp_path / "ledger.json"
+    ledger.write_text(json.dumps({"stop_usd": 100.0, "spent_usd": 0.0, "entries": []}))
+    client = Client()
+    settings = ClaudeSettings(api_key=SecretStr("stand-in"), ledger_path=ledger, model="claude-sonnet-5-5")
+    provider = ClaudeProvider(settings, client=client, sleep=lambda seconds: None)
+    outcome = ask(provider, _offset(), check_offset, RequestCap(ledger, 480))
+    assert outcome.ended == ended and not outcome.final
+    assert outcome.status == (status or None)
+    assert message in (outcome.reason or "")
+    entries = json.loads(ledger.read_text())["entries"]
+    assert len(entries) == 1 and len(outcome.attempts) == 1
+    assert (entries[0]["cost_usd"] > 0) == charged and outcome.attempts[0].cost_usd == entries[0]["cost_usd"]
+    assert client.calls == (5 if status in (0, 429, 529) else 1)

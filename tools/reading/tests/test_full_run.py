@@ -339,13 +339,13 @@ def test_a_live_claude_run_refuses_a_ledger_other_than_the_settings(
 ) -> None:
     import argparse
 
-    from tools.reading.full_run import make_sources
+    from tools.reading.full_run import make_sources, open_stores
 
     settings = load_settings(_settings(tmp_path, ledger=tmp_path / "settings-ledger.json"))
     monkeypatch.setenv("OSRFORGE_CLAUDE_LEDGER", str(tmp_path / "other-ledger.json"))
     args = argparse.Namespace(out=tmp_path / "out", claude="live", clef="none")
     with pytest.raises(SystemExit, match="must name the settings' ledger"):
-        make_sources(args, settings, [])
+        make_sources(args, settings, [], open_stores(args.out))
 
 
 def test_a_live_claude_run_stops_at_the_settings_cap_on_the_settings_ledger(
@@ -355,7 +355,7 @@ def test_a_live_claude_run_stops_at_the_settings_cap_on_the_settings_ledger(
     from types import SimpleNamespace
 
     import tools.reading.claude_run as claude_run
-    from tools.reading.full_run import ledger_check, ledger_snapshot, make_sources
+    from tools.reading.full_run import ledger_check, ledger_snapshot, make_sources, open_stores
     from tools.reading.offsets import check_offset, offset_kind
 
     from osrforge.providers.base import TextPart
@@ -381,7 +381,7 @@ def test_a_live_claude_run_stops_at_the_settings_cap_on_the_settings_ledger(
     settings = load_settings(_settings(tmp_path, ledger=ledger))
     assert settings.cap == 480
     args = argparse.Namespace(out=tmp_path / "out", claude="live", clef="none")
-    sources = make_sources(args, settings, [])
+    sources = make_sources(args, settings, [], open_stores(args.out))
     before = ledger_snapshot(ledger, "reading-", "cost_usd")
     kind = offset_kind("low", "claude-sonnet-5-5")
     first = ReadingRequest(kind=kind, shared=(), question=(TextPart(text="first"),))
