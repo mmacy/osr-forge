@@ -1,18 +1,17 @@
-"""How the full run scores a trace: every family of a level alone, and a member's reading resolved with salvage.
+"""How the full run scores a trace: a level on its own documents, and a member's reading resolved with salvage.
 
 [`level_documents`][tools.reading.full_score.level_documents] gives a level's own documents, on which `score_trace`
-counts that level alone, and [`resolve_member`][tools.reading.full_score.resolve_member] resolves a member's reading
-with the reference resolution script, taking out a level that meets an open case so the rest resolve.
+gives the level's resolution families: its areas, keys, and joins, and its transitions, passages, reachability, and
+entrance as the level's own documents have them. Their reading families count each of the level's panels whole, so
+the run takes a level's reading families from its part of each panel instead (`full_pools.panel_scores`).
+[`resolve_member`][tools.reading.full_score.resolve_member] resolves a member's reading with the reference resolution
+script, taking out a level that meets an open case so the rest resolve.
 """
 
-from collections import Counter
-from collections.abc import Sequence
 from typing import Any
 
 from osrforge.tracing.score import ScoreSet
-from osrforge.tracing.truth import Entrance, GeometryTruth, Level, Panel, cell_key, parse_cell
-
-from .full_reading import bare_edges_cleared
+from osrforge.tracing.truth import Entrance, GeometryTruth, Level, cell_key, parse_cell
 
 __all__ = ["entrance_on_level", "level_documents", "resolve_member", "summary"]
 
@@ -20,6 +19,7 @@ __all__ = ["entrance_on_level", "level_documents", "resolve_member", "summary"]
 def summary(score: ScoreSet) -> dict[str, Any]:
     """A score set's figures, family by family, as counts."""
     areas = score.areas.areas
+    overlaps = [area.overlap for area in areas if area.overlap is not None]
     doors = {
         kind: {
             "key": getattr(score.doors, kind).key,
@@ -44,6 +44,8 @@ def summary(score: ScoreSet) -> dict[str, Any]:
             "perfect": sum(a.key_cells == a.trace_cells == a.both for a in areas),
             "mean_overlap": round(score.areas.mean_overlap, 4) if score.areas.mean_overlap is not None else None,
             "extra": len(score.areas.extra),
+            "overlaps": round(sum(overlaps), 6),
+            "overlapped": len(overlaps),
         },
         "keys": {"total": score.keys.total, "right": score.keys.right},
         "joins": {
@@ -72,26 +74,6 @@ def summary(score: ScoreSet) -> dict[str, Any]:
         },
         "repairs": {"edges": score.repairs.edges, "matching": score.repairs.edges_matching},
     }
-
-
-def _restricted(panel: Panel, rects: Sequence[tuple[int, int, int, int]]) -> Panel:
-    inside = {(x, y) for x0, y0, w, h in rects for x in range(x0, x0 + w) for y in range(y0, y0 + h)}
-    cells = tuple(
-        "".join(letter if (x, y) in inside else "#" for x, letter in enumerate(row))
-        for y, row in enumerate(panel.cells)
-    )
-    keep = {cell_key(cell) for cell in inside}
-    return panel.model_copy(
-        update={
-            "cells": cells,
-            "edges": bare_edges_cleared(cells, panel.edges),
-            "partial": tuple(c for c in panel.partial if c in keep),
-            "cave": tuple(c for c in panel.cave if c in keep),
-            "marks": (),
-            "symbols": (),
-            "outlines": (),
-        }
-    )
 
 
 def _within(level: Level, dungeon_id: str) -> Level:
@@ -156,11 +138,11 @@ def level_documents(
 ) -> tuple[GeometryTruth, GeometryTruth]:
     """A trace and its key with one level traced and every other level fallen back.
 
-    Each document keeps only the panels its level uses, so the reading families count no other level's panel.
-    Panels the key's level shares with another traced level of the key are cut, in both documents, to the level's
-    outline on that panel in the key, every other cell made rock. A passage to another level and a transition into
-    another dungeon are left out, because their levels fall back, so the member's whole score counts them and the
-    level's doesn't.
+    Each document keeps only the panels its level uses, whole, so the scorer lines each panel up as it does on the
+    member's documents. A panel the level shares with another level counts whole in the reading families, so a level
+    row takes those from its part of the panel (`full_pools.panel_scores`). A passage to another level and a
+    transition into another dungeon are left out, because their levels fall back, so the member's whole score counts
+    them and the level's doesn't.
 
     A dungeon with a traced level needs an entrance on a traced level. A document whose entrance stands on another
     level gets a stand-in on this one, at the first floor cell of the area the key names: the key's area holding its
@@ -169,22 +151,6 @@ def level_documents(
     family then walks from the stand-in, and the level's entrance family counts only where the key's entrance stands
     on the level (`entrance_on_level`).
     """
-    level = next(lv for d in key.dungeons if d.id == dungeon_id for lv in d.levels if lv.number == number)
-    users: Counter[str] = Counter(
-        placement.panel
-        for d in key.dungeons
-        for other in d.levels
-        if other.verdict == "traced"
-        for placement in other.panels
-    )
-    cuts: dict[str, list[tuple[int, int, int, int]]] = {}
-    for placement in level.panels:
-        if users[placement.panel] > 1:
-            panel = key.panel(placement.panel)
-            cuts[placement.panel] = [
-                rect for o in panel.outlines if (o.dungeon, o.level) == (dungeon_id, number) for rect in o.rects
-            ]
-
     area = _entrance_area(key, dungeon_id, number)
 
     def only(document: GeometryTruth) -> GeometryTruth:
@@ -210,11 +176,7 @@ def level_documents(
             dungeons.append(dungeon.model_copy(update={"levels": levels, "entrance": entrance}))
         kept = next(lv for d in document.dungeons if d.id == dungeon_id for lv in d.levels if lv.number == number)
         used = {placement.panel for placement in kept.panels}
-        panels = tuple(
-            _restricted(panel, cuts[panel.id]) if cuts.get(panel.id) else panel
-            for panel in document.panels
-            if panel.id in used
-        )
+        panels = tuple(panel for panel in document.panels if panel.id in used)
         data = document.model_copy(update={"dungeons": tuple(dungeons), "panels": panels}).model_dump()
         return GeometryTruth.model_validate(data)
 
