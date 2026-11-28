@@ -33,6 +33,15 @@ Refactor freely and update every call site — tests are the safety net. No re-e
 - **Truth-semantics migrations complete in-phase.** A phase that changes what a truth file can assert — a new metric, a new assertion key, a matching-convention change — finishes the corresponding truth passes over every corpus member, committed and BYOM alike, before the phase closes. Those passes are agent work under `tools/eval/AUTHORING.md` (agents author, an adversarial pass verifies; the runbook's independence line, not a human's hands, is what makes truth trustworthy) — a phase must not end by relabeling them "owner work," which is how phase 7 left the HotO/B3/B4 custom passes dangling. The one leg that legitimately remains out-of-band is owner sampling, and it leaves the phase as a GitHub issue assigned to the module owner — never as a prose note in a handoff.
 - **Changelog discipline.** A PR that changes user-visible behavior adds its bullet to the `[Unreleased]` section of `CHANGELOG.md` in the same PR. A release renames that section to the version and date.
 
+## Crashes come first
+
+A crash is a traceback from the CLI or from a pipeline stage on an input that osr-forge accepted. The inputs include module PDFs, `overrides.yaml`, workdirs, and cached stage outputs. A hang or a process that dies is also a crash. A refusal that osr-forge documents is not a crash: a typed error for bad content, a validation error, or a flag or finding in `report.json`.
+
+- A crash is the highest priority. Fix it in the current work session, ahead of other planned work. A crash that a user's input can cause comes before every other crash.
+- A crash found while working on something else is fixed in the same session. Do not leave it, and do not defer it to an issue. If the fix needs a decision only the maintainer can make, stop and ask at once.
+- A crash fix includes a test that reproduces the crash.
+- A release waits until the work already in flight is complete. When no other work is in flight or planned for the session, fix the crash and release at once, following the runbook in `.claude/skills/release/SKILL.md`.
+
 ## Releasing
 
 The version lives in `pyproject.toml` alone and the bump procedure is: edit the version, run `uv lock`, and nothing else — the goldens re-bless deliberately on version bumps per `tests/assets/README.md`. The full runbook — the annotated tag that drives `release.yml`, the machine-checked licensing fence in `check_dist.py`, the local dry run, recovery, and the 0.1.0 one-time setup provenance — is `.claude/skills/release/SKILL.md`.
